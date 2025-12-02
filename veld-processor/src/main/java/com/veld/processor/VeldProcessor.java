@@ -1,0 +1,355 @@
+package com.veld.processor;
+
+import com.veld.annotation.*;
+import com.veld.processor.InjectionPoint.Dependency;
+import com.veld.runtime.Scope;
+
+import javax.annotation.processing.*;
+import javax.lang.model.SourceVersion;
+import javax.lang.model.element.*;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
+import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.Elements;
+import javax.lang.model.util.Types;
+import javax.tools.Diagnostic;
+import javax.tools.FileObject;
+import javax.tools.StandardLocation;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+/**
+ * Annotation Processor that generates ComponentFactory implementations and VeldRegistry
+ * using ASM bytecode generation. NO REFLECTION is used at runtime.
+ * 
+ * This processor runs at compile-time and generates .class files directly.
+ */
+@SupportedAnnotationTypes("com.veld.annotation.Component")
+@SupportedSourceVersion(SourceVersion.RELEASE_11)
+public class VeldProcessor extends AbstractProcessor {
+    
+    private Messager messager;
+    private Filer filer;
+    private Elements elementUtils;
+    private Types typeUtils;
+    
+    private final List<ComponentInfo> discoveredComponents = new ArrayList<>();
+    
+    @Override
+    public synchronized void init(ProcessingEnvironment processingEnv) {
+        super.init(processingEnv);
+        this.messager = processingEnv.getMessager();
+        this.filer = processingEnv.getFiler();
+        this.elementUtils = processingEnv.getElementUtils();
+        this.typeUtils = processingEnv.getTypeUtils();
+    }
+    
+    @Override
+    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        if (roundEnv.processingOver()) {
+            if (!discoveredComponents.isEmpty()) {
+                generateRegistry();
+            }
+            return true;
+        }
+        
+        // Find all @Component annotated classes
+        for (Element element : roundEnv.getElementsAnnotatedWith(Component.class)) {
+            if (element.getKind() != ElementKind.CLASS) {
+                error(element, "@Component can only be applied to classes");
+                continue;
+            }
+            
+            TypeElement typeElement = (TypeElement) element;
+            
+            // Validate class
+            if (typeElement.getModifiers().contains(Modifier.ABSTRACT)) {
+                error(element, "@Component cannot be applied to abstract classes");
+                continue;
+            }
+            
+            if (typeElement.getNestingKind() == NestingKind.LOCAL || 
+                typeElement.getNestingKind() == NestingKind.ANONYMOUS) {
+                error(element, "@Component cannot be applied to local or anonymous classes");
+                continue;
+            }
+            
+            try {
+                ComponentInfo info = analyzeComponent(typeElement);
+                discoveredComponents.add(info);
+                generateFactory(info);
+                note("Generated factory for: " + info.getClassName());
+            } catch (ProcessingException e) {
+                error(element, e.getMessage());
+            }
+        }
+        
+        return true;
+    }
+    
+    private ComponentInfo analyzeComponent(TypeElement typeElement) throws ProcessingException {
+        String className = typeElement.getQualifiedName().toString();
+        
+        // Get component name from @Component annotation
+        Component componentAnnotation = typeElement.getAnnotation(Component.class);
+        String componentName = componentAnnotation.value();
+        if (componentName == null || componentName.isEmpty()) {
+            componentName = decapitalize(typeElement.getSimpleName().toString());
+        }
+        
+        // Determine scope
+        Scope scope = Scope.SINGLETON; // default
+        if (typeElement.getAnnotation(Prototype.class) != null) {
+            scope = Scope.PROTOTYPE;
+        }
+        
+        ComponentInfo info = new ComponentInfo(className, componentName, scope);
+        
+        // Find injection points
+        analyzeConstructors(typeElement, info);
+        analyzeFields(typeElement, info);
+        analyzeMethods(typeElement, info);
+        analyzeLifecycle(typeElement, info);
+        
+        return info;
+    }
+    
+    private void analyzeConstructors(TypeElement typeElement, ComponentInfo info) throws ProcessingException {
+        ExecutableElement injectConstructor = null;
+        ExecutableElement defaultConstructor = null;
+        
+        for (Element enclosed : typeElement.getEnclosedElements()) {
+            if (enclosed.getKind() != ElementKind.CONSTRUCTOR) continue;
+            
+            ExecutableElement constructor = (ExecutableElement) enclosed;
+            
+            if (constructor.getAnnotation(Inject.class) != null) {
+                if (injectConstructor != null) {
+                    throw new ProcessingException("Only one constructor can be annotated with @Inject");
+                }
+                injectConstructor = constructor;
+            } else if (constructor.getParameters().isEmpty()) {
+                defaultConstructor = constructor;
+            }
+        }
+        
+        ExecutableElement chosenConstructor = injectConstructor != null ? injectConstructor : defaultConstructor;
+        
+        if (chosenConstructor == null) {
+            throw new ProcessingException("No suitable constructor found. " +
+                    "Must have either @Inject constructor or no-arg constructor");
+        }
+        
+        List<Dependency> dependencies = new ArrayList<>();
+        for (VariableElement param : chosenConstructor.getParameters()) {
+            dependencies.add(createDependency(param));
+        }
+        
+        String descriptor = getMethodDescriptor(chosenConstructor);
+        info.setConstructorInjection(new InjectionPoint(
+                InjectionPoint.Type.CONSTRUCTOR, "<init>", descriptor, dependencies));
+    }
+    
+    private void analyzeFields(TypeElement typeElement, ComponentInfo info) throws ProcessingException {
+        for (Element enclosed : typeElement.getEnclosedElements()) {
+            if (enclosed.getKind() != ElementKind.FIELD) continue;
+            
+            VariableElement field = (VariableElement) enclosed;
+            if (field.getAnnotation(Inject.class) == null) continue;
+            
+            if (field.getModifiers().contains(Modifier.FINAL)) {
+                throw new ProcessingException("@Inject cannot be applied to final fields: " + field.getSimpleName());
+            }
+            if (field.getModifiers().contains(Modifier.STATIC)) {
+                throw new ProcessingException("@Inject cannot be applied to static fields: " + field.getSimpleName());
+            }
+            if (field.getModifiers().contains(Modifier.PRIVATE)) {
+                throw new ProcessingException("@Inject cannot be applied to private fields (use package-private, protected, or public): " + field.getSimpleName());
+            }
+            
+            Dependency dep = createDependency(field);
+            String descriptor = getTypeDescriptor(field.asType());
+            
+            info.addFieldInjection(new InjectionPoint(
+                    InjectionPoint.Type.FIELD, 
+                    field.getSimpleName().toString(),
+                    descriptor,
+                    List.of(dep)));
+        }
+    }
+    
+    private void analyzeMethods(TypeElement typeElement, ComponentInfo info) throws ProcessingException {
+        for (Element enclosed : typeElement.getEnclosedElements()) {
+            if (enclosed.getKind() != ElementKind.METHOD) continue;
+            
+            ExecutableElement method = (ExecutableElement) enclosed;
+            if (method.getAnnotation(Inject.class) == null) continue;
+            
+            if (method.getModifiers().contains(Modifier.STATIC)) {
+                throw new ProcessingException("@Inject cannot be applied to static methods: " + method.getSimpleName());
+            }
+            if (method.getModifiers().contains(Modifier.ABSTRACT)) {
+                throw new ProcessingException("@Inject cannot be applied to abstract methods: " + method.getSimpleName());
+            }
+            
+            List<Dependency> dependencies = new ArrayList<>();
+            for (VariableElement param : method.getParameters()) {
+                dependencies.add(createDependency(param));
+            }
+            
+            String descriptor = getMethodDescriptor(method);
+            info.addMethodInjection(new InjectionPoint(
+                    InjectionPoint.Type.METHOD,
+                    method.getSimpleName().toString(),
+                    descriptor,
+                    dependencies));
+        }
+    }
+    
+    private void analyzeLifecycle(TypeElement typeElement, ComponentInfo info) throws ProcessingException {
+        for (Element enclosed : typeElement.getEnclosedElements()) {
+            if (enclosed.getKind() != ElementKind.METHOD) continue;
+            
+            ExecutableElement method = (ExecutableElement) enclosed;
+            
+            if (method.getAnnotation(PostConstruct.class) != null) {
+                validateLifecycleMethod(method, "@PostConstruct");
+                info.setPostConstruct(method.getSimpleName().toString(), getMethodDescriptor(method));
+            }
+            
+            if (method.getAnnotation(PreDestroy.class) != null) {
+                validateLifecycleMethod(method, "@PreDestroy");
+                info.setPreDestroy(method.getSimpleName().toString(), getMethodDescriptor(method));
+            }
+        }
+    }
+    
+    private void validateLifecycleMethod(ExecutableElement method, String annotation) throws ProcessingException {
+        if (!method.getParameters().isEmpty()) {
+            throw new ProcessingException(annotation + " methods must have no parameters: " + method.getSimpleName());
+        }
+        if (method.getModifiers().contains(Modifier.STATIC)) {
+            throw new ProcessingException(annotation + " cannot be applied to static methods: " + method.getSimpleName());
+        }
+    }
+    
+    private Dependency createDependency(VariableElement element) {
+        TypeMirror typeMirror = element.asType();
+        String typeName = getTypeName(typeMirror);
+        String typeDescriptor = getTypeDescriptor(typeMirror);
+        
+        Named named = element.getAnnotation(Named.class);
+        String qualifier = named != null ? named.value() : null;
+        
+        return new Dependency(typeName, typeDescriptor, qualifier);
+    }
+    
+    private String getTypeName(TypeMirror typeMirror) {
+        if (typeMirror.getKind() == TypeKind.DECLARED) {
+            DeclaredType declaredType = (DeclaredType) typeMirror;
+            TypeElement typeElement = (TypeElement) declaredType.asElement();
+            return typeElement.getQualifiedName().toString();
+        }
+        return typeMirror.toString();
+    }
+    
+    private String getTypeDescriptor(TypeMirror typeMirror) {
+        switch (typeMirror.getKind()) {
+            case BOOLEAN: return "Z";
+            case BYTE: return "B";
+            case SHORT: return "S";
+            case INT: return "I";
+            case LONG: return "J";
+            case CHAR: return "C";
+            case FLOAT: return "F";
+            case DOUBLE: return "D";
+            case VOID: return "V";
+            case ARRAY:
+                javax.lang.model.type.ArrayType arrayType = (javax.lang.model.type.ArrayType) typeMirror;
+                return "[" + getTypeDescriptor(arrayType.getComponentType());
+            case DECLARED:
+                DeclaredType declaredType = (DeclaredType) typeMirror;
+                TypeElement typeElement = (TypeElement) declaredType.asElement();
+                String internalName = typeElement.getQualifiedName().toString().replace('.', '/');
+                return "L" + internalName + ";";
+            default:
+                return "L" + typeMirror.toString().replace('.', '/') + ";";
+        }
+    }
+    
+    private String getMethodDescriptor(ExecutableElement method) {
+        StringBuilder sb = new StringBuilder("(");
+        for (VariableElement param : method.getParameters()) {
+            sb.append(getTypeDescriptor(param.asType()));
+        }
+        sb.append(")");
+        sb.append(getTypeDescriptor(method.getReturnType()));
+        return sb.toString();
+    }
+    
+    private void generateFactory(ComponentInfo info) {
+        try {
+            ComponentFactoryGenerator generator = new ComponentFactoryGenerator(info);
+            byte[] bytecode = generator.generate();
+            
+            writeClassFile(info.getFactoryClassName(), bytecode);
+        } catch (IOException e) {
+            error(null, "Failed to generate factory for " + info.getClassName() + ": " + e.getMessage());
+        }
+    }
+    
+    private void generateRegistry() {
+        try {
+            // Generate VeldRegistry bytecode
+            RegistryGenerator registryGen = new RegistryGenerator(discoveredComponents);
+            byte[] registryBytecode = registryGen.generate();
+            writeClassFile(registryGen.getRegistryClassName(), registryBytecode);
+            note("Generated VeldRegistry with " + discoveredComponents.size() + " components");
+            
+            // Generate Veld bootstrap class bytecode (ZERO REFLECTION)
+            VeldBootstrapGenerator bootstrapGen = new VeldBootstrapGenerator();
+            byte[] bootstrapBytecode = bootstrapGen.generate();
+            writeClassFile(bootstrapGen.getClassName(), bootstrapBytecode);
+            note("Generated Veld bootstrap class (pure ASM bytecode)");
+        } catch (IOException e) {
+            error(null, "Failed to generate VeldRegistry: " + e.getMessage());
+        }
+    }
+    
+    private void writeClassFile(String className, byte[] bytecode) throws IOException {
+        String resourcePath = className.replace('.', '/') + ".class";
+        FileObject fileObject = filer.createResource(StandardLocation.CLASS_OUTPUT, "", resourcePath);
+        try (OutputStream os = fileObject.openOutputStream()) {
+            os.write(bytecode);
+        }
+    }
+    
+    private String decapitalize(String name) {
+        if (name == null || name.isEmpty()) {
+            return name;
+        }
+        if (name.length() > 1 && Character.isUpperCase(name.charAt(1))) {
+            return name;
+        }
+        char[] chars = name.toCharArray();
+        chars[0] = Character.toLowerCase(chars[0]);
+        return new String(chars);
+    }
+    
+    private void error(Element element, String message) {
+        messager.printMessage(Diagnostic.Kind.ERROR, "[Veld] " + message, element);
+    }
+    
+    private void note(String message) {
+        messager.printMessage(Diagnostic.Kind.NOTE, "[Veld] " + message);
+    }
+    
+    private static class ProcessingException extends Exception {
+        ProcessingException(String message) {
+            super(message);
+        }
+    }
+}

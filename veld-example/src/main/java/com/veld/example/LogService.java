@@ -1,0 +1,44 @@
+package com.veld.example;
+
+import com.veld.annotation.Component;
+import com.veld.annotation.Singleton;
+import com.veld.annotation.PostConstruct;
+import com.veld.annotation.PreDestroy;
+
+/**
+ * Simple logging service - Singleton scope.
+ * Demonstrates @Singleton and lifecycle callbacks.
+ */
+@Component
+@Singleton
+public class LogService {
+    
+    private boolean initialized = false;
+    
+    public LogService() {
+        System.out.println("[LogService] Constructor called");
+    }
+    
+    @PostConstruct
+    public void init() {
+        this.initialized = true;
+        System.out.println("[LogService] @PostConstruct - Service initialized");
+    }
+    
+    @PreDestroy
+    public void cleanup() {
+        System.out.println("[LogService] @PreDestroy - Service shutting down");
+    }
+    
+    public void log(String message) {
+        System.out.println("[LOG] " + message);
+    }
+    
+    public void debug(String message) {
+        System.out.println("[DEBUG] " + message);
+    }
+    
+    public boolean isInitialized() {
+        return initialized;
+    }
+}
