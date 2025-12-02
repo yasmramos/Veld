@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -26,6 +27,12 @@ import java.util.Set;
  * using ASM bytecode generation. NO REFLECTION is used at runtime.
  * 
  * This processor runs at compile-time and generates .class files directly.
+ * 
+ * Features:
+ * - Circular dependency detection at compile-time
+ * - Constructor, field, and method injection
+ * - Lifecycle callbacks (@PostConstruct, @PreDestroy)
+ * - Singleton and Prototype scopes
  */
 @SupportedAnnotationTypes("com.veld.annotation.Component")
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
@@ -37,6 +44,7 @@ public class VeldProcessor extends AbstractProcessor {
     private Types typeUtils;
     
     private final List<ComponentInfo> discoveredComponents = new ArrayList<>();
+    private final DependencyGraph dependencyGraph = new DependencyGraph();
     
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -51,7 +59,10 @@ public class VeldProcessor extends AbstractProcessor {
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         if (roundEnv.processingOver()) {
             if (!discoveredComponents.isEmpty()) {
-                generateRegistry();
+                // Check for circular dependencies before generating code
+                if (validateNoCyclicDependencies()) {
+                    generateRegistry();
+                }
             }
             return true;
         }
@@ -80,6 +91,10 @@ public class VeldProcessor extends AbstractProcessor {
             try {
                 ComponentInfo info = analyzeComponent(typeElement);
                 discoveredComponents.add(info);
+                
+                // Build dependency graph for cycle detection
+                buildDependencyGraph(info);
+                
                 generateFactory(info);
                 note("Generated factory for: " + info.getClassName());
             } catch (ProcessingException e) {
@@ -87,6 +102,59 @@ public class VeldProcessor extends AbstractProcessor {
             }
         }
         
+        return true;
+    }
+    
+    /**
+     * Builds the dependency graph for a component.
+     * Adds the component and all its dependencies to the graph.
+     */
+    private void buildDependencyGraph(ComponentInfo info) {
+        String componentName = info.getClassName();
+        dependencyGraph.addComponent(componentName);
+        
+        // Add constructor dependencies
+        if (info.getConstructorInjection() != null) {
+            for (InjectionPoint.Dependency dep : info.getConstructorInjection().getDependencies()) {
+                dependencyGraph.addDependency(componentName, dep.getTypeName());
+            }
+        }
+        
+        // Add field dependencies
+        for (InjectionPoint field : info.getFieldInjections()) {
+            for (InjectionPoint.Dependency dep : field.getDependencies()) {
+                dependencyGraph.addDependency(componentName, dep.getTypeName());
+            }
+        }
+        
+        // Add method dependencies
+        for (InjectionPoint method : info.getMethodInjections()) {
+            for (InjectionPoint.Dependency dep : method.getDependencies()) {
+                dependencyGraph.addDependency(componentName, dep.getTypeName());
+            }
+        }
+    }
+    
+    /**
+     * Validates that there are no circular dependencies.
+     * 
+     * @return true if no cycles found, false otherwise
+     */
+    private boolean validateNoCyclicDependencies() {
+        Optional<List<String>> cycle = dependencyGraph.detectCycle();
+        
+        if (cycle.isPresent()) {
+            String cyclePath = DependencyGraph.formatCycle(cycle.get());
+            error(null, "Circular dependency detected: " + cyclePath + 
+                "\n  Circular dependencies are not allowed. " +
+                "Consider using:\n" +
+                "    - Setter/method injection instead of constructor injection\n" +
+                "    - @Lazy injection (if supported)\n" +
+                "    - Refactoring to break the cycle");
+            return false;
+        }
+        
+        note("Dependency graph validated: no circular dependencies found");
         return true;
     }
     
