@@ -36,6 +36,18 @@
             <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
+        
+        <!-- JSR-330 Standard (javax.inject) - for examples -->
+        <dependency>
+            <groupId>javax.inject</groupId>
+            <artifactId>javax.inject</artifactId>
+        </dependency>
+        
+        <!-- Jakarta Inject (jakarta.inject) - for examples -->
+        <dependency>
+            <groupId>jakarta.inject</groupId>
+            <artifactId>jakarta.inject-api</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

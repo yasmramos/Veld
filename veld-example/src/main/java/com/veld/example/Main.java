@@ -13,6 +13,8 @@ import com.veld.runtime.VeldContainer;
  * 5. @Prototype scope (RequestContext, EmailNotification)
  * 6. @PostConstruct and @PreDestroy lifecycle callbacks
  * 7. Interface-based injection (IUserRepository -> UserRepositoryImpl)
+ * 8. JSR-330 compatibility (javax.inject.*)
+ * 9. Jakarta Inject compatibility (jakarta.inject.*)
  * 
  * Simple API: Just create a new VeldContainer() - that's it!
  * All bytecode generation happens at compile-time using ASM.
@@ -52,7 +54,12 @@ public class Main {
             demonstrateInterfaceInjection(container);
             
             System.out.println("\n══════════════════════════════════════════════════════════");
-            System.out.println("5. SERVICE USAGE");
+            System.out.println("5. JSR-330 & JAKARTA INJECT COMPATIBILITY");
+            System.out.println("══════════════════════════════════════════════════════════");
+            demonstrateJsr330AndJakarta(container);
+            
+            System.out.println("\n══════════════════════════════════════════════════════════");
+            System.out.println("6. SERVICE USAGE");
             System.out.println("══════════════════════════════════════════════════════════");
             demonstrateServiceUsage(container);
             
@@ -157,6 +164,52 @@ public class Main {
         System.out.println("\n→ UserService injects IUserRepository (interface):");
         System.out.println("  This demonstrates that services can depend on interfaces,");
         System.out.println("  and Veld resolves them to concrete implementations automatically.");
+    }
+    
+    /**
+     * Demonstrates JSR-330 (javax.inject) and Jakarta Inject (jakarta.inject) compatibility.
+     */
+    private static void demonstrateJsr330AndJakarta(VeldContainer container) {
+        System.out.println("\n→ PaymentService uses javax.inject.* annotations:");
+        System.out.println("  @javax.inject.Singleton for scope");
+        System.out.println("  @javax.inject.Inject for constructor and method injection");
+        PaymentService paymentService = container.get(PaymentService.class);
+        System.out.println("  PaymentService obtained: " + (paymentService != null ? "YES" : "NO"));
+        
+        System.out.println("\n→ OrderService uses jakarta.inject.* annotations:");
+        System.out.println("  @jakarta.inject.Singleton for scope");
+        System.out.println("  @jakarta.inject.Inject for constructor and method injection");
+        OrderService orderService = container.get(OrderService.class);
+        System.out.println("  OrderService obtained: " + (orderService != null ? "YES" : "NO"));
+        
+        System.out.println("\n→ NotificationService uses MIXED annotations:");
+        System.out.println("  @com.veld.annotation.Singleton for scope");
+        System.out.println("  @javax.inject.Inject for constructor");
+        System.out.println("  @jakarta.inject.Inject for method");
+        System.out.println("  @com.veld.annotation.Inject for field");
+        NotificationService notificationService = container.get(NotificationService.class);
+        System.out.println("  NotificationService obtained: " + (notificationService != null ? "YES" : "NO"));
+        
+        System.out.println("\n→ Testing PaymentService functionality:");
+        boolean valid = paymentService.validatePayment(500.0);
+        System.out.println("  Payment of $500 valid? " + (valid ? "YES" : "NO"));
+        paymentService.processPayment("ORD-001", 500.0);
+        
+        System.out.println("\n→ Testing OrderService with Jakarta annotations:");
+        String orderId = orderService.createOrder(1L, "Veld Framework", 99.99);
+        System.out.println("  Order created: " + orderId);
+        
+        System.out.println("\n→ Testing NotificationService with mixed annotations:");
+        notificationService.sendWelcomeNotification("new-user@example.com");
+        
+        System.out.println("\n→ Verifying all services are singletons:");
+        PaymentService payment2 = container.get(PaymentService.class);
+        OrderService order2 = container.get(OrderService.class);
+        NotificationService notif2 = container.get(NotificationService.class);
+        
+        System.out.println("  PaymentService singleton? " + (paymentService == payment2 ? "YES" : "NO"));
+        System.out.println("  OrderService singleton? " + (orderService == order2 ? "YES" : "NO"));
+        System.out.println("  NotificationService singleton? " + (notificationService == notif2 ? "YES" : "NO"));
     }
     
     /**

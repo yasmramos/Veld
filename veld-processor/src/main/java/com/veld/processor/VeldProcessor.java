@@ -1,6 +1,7 @@
 package com.veld.processor;
 
 import com.veld.annotation.*;
+import com.veld.processor.AnnotationHelper.InjectSource;
 import com.veld.processor.InjectionPoint.Dependency;
 import com.veld.runtime.Scope;
 
@@ -19,6 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -35,6 +37,24 @@ import java.util.Set;
  * - Constructor, field, and method injection
  * - Lifecycle callbacks (@PostConstruct, @PreDestroy)
  * - Singleton and Prototype scopes
+ * - JSR-330 compatibility (javax.inject.*)
+ * - Jakarta Inject compatibility (jakarta.inject.*)
+ * 
+ * Supported Injection Annotations:
+ * - @com.veld.annotation.Inject (Veld native)
+ * - @javax.inject.Inject (JSR-330)
+ * - @jakarta.inject.Inject (Jakarta EE)
+ * 
+ * Supported Qualifier Annotations:
+ * - @com.veld.annotation.Named (Veld native)
+ * - @javax.inject.Named (JSR-330)
+ * - @jakarta.inject.Named (Jakarta EE)
+ * 
+ * Supported Scope Annotations:
+ * - @com.veld.annotation.Singleton (Veld native)
+ * - @javax.inject.Singleton (JSR-330)
+ * - @jakarta.inject.Singleton (Jakarta EE)
+ * - @com.veld.annotation.Prototype (Veld only)
  */
 @SupportedAnnotationTypes("com.veld.annotation.Component")
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
@@ -175,10 +195,16 @@ public class VeldProcessor extends AbstractProcessor {
             componentName = decapitalize(typeElement.getSimpleName().toString());
         }
         
-        // Determine scope
+        // Determine scope - check all @Singleton variants (Veld, javax.inject, jakarta.inject)
         Scope scope = Scope.SINGLETON; // default
         if (typeElement.getAnnotation(Prototype.class) != null) {
             scope = Scope.PROTOTYPE;
+            note("  -> Scope: PROTOTYPE");
+        } else if (AnnotationHelper.hasSingletonAnnotation(typeElement)) {
+            scope = Scope.SINGLETON;
+            note("  -> Scope: SINGLETON (explicit)");
+        } else {
+            note("  -> Scope: SINGLETON (default)");
         }
         
         ComponentInfo info = new ComponentInfo(className, componentName, scope);
@@ -265,17 +291,20 @@ public class VeldProcessor extends AbstractProcessor {
     private void analyzeConstructors(TypeElement typeElement, ComponentInfo info) throws ProcessingException {
         ExecutableElement injectConstructor = null;
         ExecutableElement defaultConstructor = null;
+        InjectSource injectSource = InjectSource.NONE;
         
         for (Element enclosed : typeElement.getEnclosedElements()) {
             if (enclosed.getKind() != ElementKind.CONSTRUCTOR) continue;
             
             ExecutableElement constructor = (ExecutableElement) enclosed;
             
-            if (constructor.getAnnotation(Inject.class) != null) {
+            // Check for any @Inject annotation (Veld, javax.inject, or jakarta.inject)
+            if (AnnotationHelper.hasInjectAnnotation(constructor)) {
                 if (injectConstructor != null) {
                     throw new ProcessingException("Only one constructor can be annotated with @Inject");
                 }
                 injectConstructor = constructor;
+                injectSource = AnnotationHelper.getInjectSource(constructor);
             } else if (constructor.getParameters().isEmpty()) {
                 defaultConstructor = constructor;
             }
@@ -286,6 +315,11 @@ public class VeldProcessor extends AbstractProcessor {
         if (chosenConstructor == null) {
             throw new ProcessingException("No suitable constructor found. " +
                     "Must have either @Inject constructor or no-arg constructor");
+        }
+        
+        // Log which annotation specification is being used
+        if (injectSource.isStandard()) {
+            note("  -> Using " + injectSource.getPackageName() + ".Inject for constructor injection");
         }
         
         List<Dependency> dependencies = new ArrayList<>();
@@ -303,7 +337,11 @@ public class VeldProcessor extends AbstractProcessor {
             if (enclosed.getKind() != ElementKind.FIELD) continue;
             
             VariableElement field = (VariableElement) enclosed;
-            if (field.getAnnotation(Inject.class) == null) continue;
+            
+            // Check for any @Inject annotation (Veld, javax.inject, or jakarta.inject)
+            if (!AnnotationHelper.hasInjectAnnotation(field)) continue;
+            
+            InjectSource injectSource = AnnotationHelper.getInjectSource(field);
             
             if (field.getModifiers().contains(Modifier.FINAL)) {
                 throw new ProcessingException("@Inject cannot be applied to final fields: " + field.getSimpleName());
@@ -313,6 +351,11 @@ public class VeldProcessor extends AbstractProcessor {
             }
             if (field.getModifiers().contains(Modifier.PRIVATE)) {
                 throw new ProcessingException("@Inject cannot be applied to private fields (use package-private, protected, or public): " + field.getSimpleName());
+            }
+            
+            // Log which annotation specification is being used
+            if (injectSource.isStandard()) {
+                note("  -> Using " + injectSource.getPackageName() + ".Inject for field: " + field.getSimpleName());
             }
             
             Dependency dep = createDependency(field);
@@ -331,13 +374,22 @@ public class VeldProcessor extends AbstractProcessor {
             if (enclosed.getKind() != ElementKind.METHOD) continue;
             
             ExecutableElement method = (ExecutableElement) enclosed;
-            if (method.getAnnotation(Inject.class) == null) continue;
+            
+            // Check for any @Inject annotation (Veld, javax.inject, or jakarta.inject)
+            if (!AnnotationHelper.hasInjectAnnotation(method)) continue;
+            
+            InjectSource injectSource = AnnotationHelper.getInjectSource(method);
             
             if (method.getModifiers().contains(Modifier.STATIC)) {
                 throw new ProcessingException("@Inject cannot be applied to static methods: " + method.getSimpleName());
             }
             if (method.getModifiers().contains(Modifier.ABSTRACT)) {
                 throw new ProcessingException("@Inject cannot be applied to abstract methods: " + method.getSimpleName());
+            }
+            
+            // Log which annotation specification is being used
+            if (injectSource.isStandard()) {
+                note("  -> Using " + injectSource.getPackageName() + ".Inject for method: " + method.getSimpleName());
             }
             
             List<Dependency> dependencies = new ArrayList<>();
@@ -386,10 +438,15 @@ public class VeldProcessor extends AbstractProcessor {
         String typeName = getTypeName(typeMirror);
         String typeDescriptor = getTypeDescriptor(typeMirror);
         
-        Named named = element.getAnnotation(Named.class);
-        String qualifier = named != null ? named.value() : null;
+        // Use AnnotationHelper to get qualifier from any @Named annotation 
+        // (Veld, javax.inject, or jakarta.inject)
+        Optional<String> qualifier = AnnotationHelper.getQualifierValue(element);
         
-        return new Dependency(typeName, typeDescriptor, qualifier);
+        if (qualifier.isPresent()) {
+            note("    -> Qualifier: @Named(\"" + qualifier.get() + "\")");
+        }
+        
+        return new Dependency(typeName, typeDescriptor, qualifier.orElse(null));
     }
     
     private String getTypeName(TypeMirror typeMirror) {
