@@ -1,6 +1,5 @@
 package com.veld.example;
 
-import com.veld.annotation.Component;
 import com.veld.annotation.Singleton;
 import com.veld.annotation.PostConstruct;
 import com.veld.annotation.PreDestroy;
@@ -8,8 +7,9 @@ import com.veld.annotation.PreDestroy;
 /**
  * Simple logging service - Singleton scope.
  * Demonstrates @Singleton and lifecycle callbacks.
+ * 
+ * Note: @Singleton implies @Component, so we don't need both.
  */
-@Component
 @Singleton
 public class LogService {
     

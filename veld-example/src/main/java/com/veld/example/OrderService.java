@@ -1,14 +1,16 @@
 package com.veld.example;
 
-import com.veld.annotation.Component;
 import com.veld.annotation.PostConstruct;
 
 /**
  * Example service using Jakarta Inject (jakarta.inject) annotations.
  * Demonstrates Veld's compatibility with the modern Jakarta EE DI API.
+ * 
+ * Note: @jakarta.inject.Singleton alone is sufficient - no @Component needed.
+ * Veld recognizes Jakarta Inject annotations directly.
  */
-@Component("orderService")
 @jakarta.inject.Singleton
+@jakarta.inject.Named("orderService")
 public class OrderService {
     
     private LogService logService;

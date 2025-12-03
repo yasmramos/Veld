@@ -1,6 +1,5 @@
 package com.veld.example;
 
-import com.veld.annotation.Component;
 import com.veld.annotation.Singleton;
 import com.veld.annotation.Inject;
 import com.veld.annotation.PostConstruct;
@@ -8,8 +7,9 @@ import com.veld.annotation.PostConstruct;
 /**
  * Configuration service - Singleton scope.
  * Demonstrates field injection with @Inject.
+ * 
+ * Note: @Singleton implies @Component, so we don't need both.
  */
-@Component
 @Singleton
 public class ConfigService {
     

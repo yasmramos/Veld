@@ -1,13 +1,14 @@
 package com.veld.example;
 
-import com.veld.annotation.Component;
-
 /**
  * Example service using JSR-330 (javax.inject) annotations.
  * Demonstrates Veld's compatibility with the standard Java DI API.
+ * 
+ * Note: @javax.inject.Singleton alone is sufficient - no @Component needed.
+ * Veld recognizes JSR-330 annotations directly.
  */
-@Component("paymentService")
 @javax.inject.Singleton
+@javax.inject.Named("paymentService")
 public class PaymentService {
     
     private LogService logService;

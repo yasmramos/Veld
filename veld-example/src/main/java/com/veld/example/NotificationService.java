@@ -1,22 +1,20 @@
 package com.veld.example;
 
-import com.veld.annotation.Component;
 import com.veld.annotation.PostConstruct;
 import com.veld.annotation.Singleton;
 
 /**
  * Example service demonstrating mixed annotations from different specifications.
  * Uses:
- * - @Component from Veld (required for component discovery)
- * - @Singleton from Veld
+ * - @Singleton("name") from Veld (includes component naming)
  * - @javax.inject.Inject for some injections
  * - @jakarta.inject.Inject for other injections
- * - @javax.inject.Named for qualifier
+ * - @com.veld.annotation.Inject for field injection
  * 
  * This demonstrates that Veld can handle mixed annotation usage in a single class.
+ * Note: @Singleton implies @Component, so we don't need both.
  */
-@Component("notificationService")
-@Singleton
+@Singleton("notificationService")
 public class NotificationService {
     
     private LogService logService;

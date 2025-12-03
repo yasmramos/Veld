@@ -1,6 +1,5 @@
 package com.veld.example;
 
-import com.veld.annotation.Component;
 import com.veld.annotation.Inject;
 import com.veld.annotation.PostConstruct;
 import com.veld.annotation.Singleton;
@@ -14,8 +13,9 @@ import com.veld.runtime.Provider;
  * - Want lazy initialization without @Lazy
  * - Need to break circular dependencies
  * - Want to defer creation to runtime decision points
+ * 
+ * Note: @Singleton implies @Component, so we don't need both.
  */
-@Component
 @Singleton
 public class ReportGenerator {
     

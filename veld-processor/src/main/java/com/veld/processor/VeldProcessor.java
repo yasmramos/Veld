@@ -40,6 +40,14 @@ import java.util.Set;
  * - JSR-330 compatibility (javax.inject.*)
  * - Jakarta Inject compatibility (jakarta.inject.*)
  * 
+ * Supported Component Annotations (use only ONE - they are mutually exclusive):
+ * - @com.veld.annotation.Component (Veld native - requires scope annotation)
+ * - @com.veld.annotation.Singleton (Veld native - singleton scope, implies @Component)
+ * - @com.veld.annotation.Prototype (Veld native - prototype scope, implies @Component)
+ * - @com.veld.annotation.Lazy (Veld native - lazy singleton, implies @Component)
+ * - @javax.inject.Singleton (JSR-330 - singleton scope)
+ * - @jakarta.inject.Singleton (Jakarta EE - singleton scope)
+ * 
  * Supported Injection Annotations:
  * - @com.veld.annotation.Inject (Veld native)
  * - @javax.inject.Inject (JSR-330)
@@ -49,14 +57,15 @@ import java.util.Set;
  * - @com.veld.annotation.Named (Veld native)
  * - @javax.inject.Named (JSR-330)
  * - @jakarta.inject.Named (Jakarta EE)
- * 
- * Supported Scope Annotations:
- * - @com.veld.annotation.Singleton (Veld native)
- * - @javax.inject.Singleton (JSR-330)
- * - @jakarta.inject.Singleton (Jakarta EE)
- * - @com.veld.annotation.Prototype (Veld only)
  */
-@SupportedAnnotationTypes("com.veld.annotation.Component")
+@SupportedAnnotationTypes({
+    "com.veld.annotation.Component",
+    "com.veld.annotation.Singleton",
+    "com.veld.annotation.Prototype",
+    "com.veld.annotation.Lazy",
+    "javax.inject.Singleton",
+    "jakarta.inject.Singleton"
+})
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
 public class VeldProcessor extends AbstractProcessor {
     
@@ -70,6 +79,9 @@ public class VeldProcessor extends AbstractProcessor {
     
     // Maps interface -> list of implementing components (for conflict detection)
     private final Map<String, List<String>> interfaceImplementors = new HashMap<>();
+    
+    // Track already processed classes to avoid duplicates
+    private final Set<String> processedClasses = new HashSet<>();
     
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -94,24 +106,76 @@ public class VeldProcessor extends AbstractProcessor {
             return true;
         }
         
-        // Find all @Component annotated classes
+        // Collect all elements that should be components
+        Set<TypeElement> componentElements = new HashSet<>();
+        
+        // Find all directly annotated @Component classes
         for (Element element : roundEnv.getElementsAnnotatedWith(Component.class)) {
-            if (element.getKind() != ElementKind.CLASS) {
-                error(element, "@Component can only be applied to classes");
+            if (element.getKind() == ElementKind.CLASS) {
+                componentElements.add((TypeElement) element);
+            }
+        }
+        
+        // Find classes annotated with @Singleton (which has @Component as meta-annotation)
+        for (Element element : roundEnv.getElementsAnnotatedWith(Singleton.class)) {
+            if (element.getKind() == ElementKind.CLASS) {
+                componentElements.add((TypeElement) element);
+            }
+        }
+        
+        // Find classes annotated with @Prototype (which has @Component as meta-annotation)
+        for (Element element : roundEnv.getElementsAnnotatedWith(Prototype.class)) {
+            if (element.getKind() == ElementKind.CLASS) {
+                componentElements.add((TypeElement) element);
+            }
+        }
+        
+        // Find classes annotated with @Lazy (which has @Component as meta-annotation)
+        for (Element element : roundEnv.getElementsAnnotatedWith(Lazy.class)) {
+            if (element.getKind() == ElementKind.CLASS) {
+                componentElements.add((TypeElement) element);
+            }
+        }
+        
+        // Find classes annotated with javax.inject.Singleton
+        TypeElement javaxSingleton = elementUtils.getTypeElement("javax.inject.Singleton");
+        if (javaxSingleton != null) {
+            for (Element element : roundEnv.getElementsAnnotatedWith(javaxSingleton)) {
+                if (element.getKind() == ElementKind.CLASS) {
+                    componentElements.add((TypeElement) element);
+                }
+            }
+        }
+        
+        // Find classes annotated with jakarta.inject.Singleton
+        TypeElement jakartaSingleton = elementUtils.getTypeElement("jakarta.inject.Singleton");
+        if (jakartaSingleton != null) {
+            for (Element element : roundEnv.getElementsAnnotatedWith(jakartaSingleton)) {
+                if (element.getKind() == ElementKind.CLASS) {
+                    componentElements.add((TypeElement) element);
+                }
+            }
+        }
+        
+        // Process all component elements
+        for (TypeElement typeElement : componentElements) {
+            String className = typeElement.getQualifiedName().toString();
+            
+            // Skip if already processed
+            if (processedClasses.contains(className)) {
                 continue;
             }
-            
-            TypeElement typeElement = (TypeElement) element;
+            processedClasses.add(className);
             
             // Validate class
             if (typeElement.getModifiers().contains(Modifier.ABSTRACT)) {
-                error(element, "@Component cannot be applied to abstract classes");
+                error(typeElement, "Component annotation cannot be applied to abstract classes");
                 continue;
             }
             
             if (typeElement.getNestingKind() == NestingKind.LOCAL || 
                 typeElement.getNestingKind() == NestingKind.ANONYMOUS) {
-                error(element, "@Component cannot be applied to local or anonymous classes");
+                error(typeElement, "Component annotation cannot be applied to local or anonymous classes");
                 continue;
             }
             
@@ -125,7 +189,7 @@ public class VeldProcessor extends AbstractProcessor {
                 generateFactory(info);
                 note("Generated factory for: " + info.getClassName());
             } catch (ProcessingException e) {
-                error(element, e.getMessage());
+                error(typeElement, e.getMessage());
             }
         }
         
@@ -188,27 +252,16 @@ public class VeldProcessor extends AbstractProcessor {
     private ComponentInfo analyzeComponent(TypeElement typeElement) throws ProcessingException {
         String className = typeElement.getQualifiedName().toString();
         
-        // Get component name from @Component annotation
-        Component componentAnnotation = typeElement.getAnnotation(Component.class);
-        String componentName = componentAnnotation.value();
+        // Get component name - check all possible sources
+        String componentName = getComponentName(typeElement);
         if (componentName == null || componentName.isEmpty()) {
             componentName = decapitalize(typeElement.getSimpleName().toString());
         }
         
-        // Determine scope - check all @Singleton variants (Veld, javax.inject, jakarta.inject)
-        Scope scope = Scope.SINGLETON; // default
-        if (typeElement.getAnnotation(Prototype.class) != null) {
-            scope = Scope.PROTOTYPE;
-            note("  -> Scope: PROTOTYPE");
-        } else if (AnnotationHelper.hasSingletonAnnotation(typeElement)) {
-            scope = Scope.SINGLETON;
-            note("  -> Scope: SINGLETON (explicit)");
-        } else {
-            note("  -> Scope: SINGLETON (default)");
-        }
-        
-        // Check for @Lazy annotation
+        // Determine scope and check for @Lazy
+        Scope scope = determineScope(typeElement);
         boolean isLazy = typeElement.getAnnotation(Lazy.class) != null;
+        
         if (isLazy) {
             note("  -> Lazy initialization enabled");
         }
@@ -225,6 +278,69 @@ public class VeldProcessor extends AbstractProcessor {
         analyzeInterfaces(typeElement, info);
         
         return info;
+    }
+    
+    /**
+     * Gets the component name from any applicable annotation.
+     * Priority: @Component > @Singleton > @Prototype > @Lazy
+     */
+    private String getComponentName(TypeElement typeElement) {
+        // Check @Component first
+        Component componentAnnotation = typeElement.getAnnotation(Component.class);
+        if (componentAnnotation != null && !componentAnnotation.value().isEmpty()) {
+            return componentAnnotation.value();
+        }
+        
+        // Check @Singleton
+        Singleton singletonAnnotation = typeElement.getAnnotation(Singleton.class);
+        if (singletonAnnotation != null && !singletonAnnotation.value().isEmpty()) {
+            return singletonAnnotation.value();
+        }
+        
+        // Check @Prototype
+        Prototype prototypeAnnotation = typeElement.getAnnotation(Prototype.class);
+        if (prototypeAnnotation != null && !prototypeAnnotation.value().isEmpty()) {
+            return prototypeAnnotation.value();
+        }
+        
+        // Check @Lazy
+        Lazy lazyAnnotation = typeElement.getAnnotation(Lazy.class);
+        if (lazyAnnotation != null && !lazyAnnotation.value().isEmpty()) {
+            return lazyAnnotation.value();
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Determines the scope of a component based on its annotations.
+     * @Prototype takes precedence for prototype scope.
+     * All other scope annotations (Veld @Singleton, javax/jakarta @Singleton) result in SINGLETON.
+     * Default is SINGLETON if no explicit scope is specified.
+     */
+    private Scope determineScope(TypeElement typeElement) {
+        // Check for @Prototype first - it's the only way to get prototype scope
+        if (typeElement.getAnnotation(Prototype.class) != null) {
+            note("  -> Scope: PROTOTYPE");
+            return Scope.PROTOTYPE;
+        }
+        
+        // Check for explicit singleton annotations
+        if (typeElement.getAnnotation(Singleton.class) != null ||
+            AnnotationHelper.hasSingletonAnnotation(typeElement)) {
+            note("  -> Scope: SINGLETON (explicit)");
+            return Scope.SINGLETON;
+        }
+        
+        // Check for @Lazy alone (implies singleton)
+        if (typeElement.getAnnotation(Lazy.class) != null) {
+            note("  -> Scope: SINGLETON (from @Lazy)");
+            return Scope.SINGLETON;
+        }
+        
+        // Default scope
+        note("  -> Scope: SINGLETON (default)");
+        return Scope.SINGLETON;
     }
     
     /**

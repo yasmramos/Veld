@@ -1,6 +1,5 @@
 package com.veld.example;
 
-import com.veld.annotation.Component;
 import com.veld.annotation.Prototype;
 import com.veld.annotation.Inject;
 import com.veld.annotation.PostConstruct;
@@ -9,8 +8,9 @@ import com.veld.annotation.PreDestroy;
 /**
  * Email notification - Prototype scope.
  * Demonstrates @Prototype with constructor injection.
+ * 
+ * Note: @Prototype implies @Component, so we don't need both.
  */
-@Component
 @Prototype
 public class EmailNotification {
     

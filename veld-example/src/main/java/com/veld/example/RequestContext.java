@@ -1,6 +1,5 @@
 package com.veld.example;
 
-import com.veld.annotation.Component;
 import com.veld.annotation.Prototype;
 import com.veld.annotation.Inject;
 import com.veld.annotation.PostConstruct;
@@ -10,8 +9,9 @@ import java.util.UUID;
  * Request context - Prototype scope.
  * Demonstrates @Prototype - new instance created each time.
  * Uses field injection.
+ * 
+ * Note: @Prototype implies @Component, so we don't need both.
  */
-@Component
 @Prototype
 public class RequestContext {
     

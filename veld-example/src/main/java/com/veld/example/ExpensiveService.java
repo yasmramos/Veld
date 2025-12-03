@@ -1,9 +1,7 @@
 package com.veld.example;
 
-import com.veld.annotation.Component;
 import com.veld.annotation.Lazy;
 import com.veld.annotation.PostConstruct;
-import com.veld.annotation.Singleton;
 
 /**
  * Demonstrates @Lazy initialization.
@@ -14,9 +12,10 @@ import com.veld.annotation.Singleton;
  * - Are expensive to create
  * - May not be needed in all execution paths
  * - Have heavy initialization logic
+ * 
+ * Note: @Lazy alone implies @Component with singleton scope.
+ * You can also combine with @Singleton for clarity: @Lazy @Singleton
  */
-@Component
-@Singleton
 @Lazy
 public class ExpensiveService {
     

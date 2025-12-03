@@ -1,6 +1,5 @@
 package com.veld.example;
 
-import com.veld.annotation.Component;
 import com.veld.annotation.Singleton;
 import com.veld.annotation.Inject;
 import com.veld.annotation.PostConstruct;
@@ -14,9 +13,10 @@ import java.util.Optional;
  * 
  * This class implements IUserRepository, so when you inject IUserRepository,
  * Veld will automatically resolve to this implementation.
+ * 
+ * Note: @Singleton("name") includes component naming - no need for @Component.
  */
-@Component("userRepository")
-@Singleton
+@Singleton("userRepository")
 public class UserRepositoryImpl implements IUserRepository {
     
     private final LogService logService;

@@ -1,37 +1,48 @@
 package com.veld.annotation;
 
+import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Indicates that a component should be lazily initialized.
+ * Marks a component for lazy initialization.
+ * The component will not be created until it is first requested.
  * 
- * When applied to a @Component class, the component will not be instantiated
- * until it is first requested from the container.
- * 
- * When applied to an injection point (field, constructor parameter, or method parameter),
- * the dependency will be lazily resolved.
- * 
+ * <p>Can be combined with {@link Singleton} for lazy singletons:
  * <pre>
- * // Lazy component - not created until first use
- * {@literal @}Component
- * {@literal @}Lazy
+ * &#64;Lazy
+ * &#64;Singleton
  * public class ExpensiveService {
- *     // ...
- * }
- * 
- * // Lazy injection point
- * {@literal @}Component
- * public class MyService {
- *     {@literal @}Inject
- *     {@literal @}Lazy
- *     private ExpensiveService expensive;
+ *     // Created only when first accessed
  * }
  * </pre>
+ * 
+ * <p>Can also be used alone (implies @Component with singleton scope):
+ * <pre>
+ * &#64;Lazy
+ * public class ExpensiveService {
+ *     // Equivalent to @Lazy @Singleton
+ * }
+ * </pre>
+ * 
+ * <p>Can also be applied to injection points:
+ * <pre>
+ * &#64;Inject
+ * &#64;Lazy
+ * private ExpensiveService service;  // Wrapped in LazyHolder
+ * </pre>
  */
+@Documented
 @Retention(RetentionPolicy.CLASS)
 @Target({ElementType.TYPE, ElementType.FIELD, ElementType.PARAMETER})
+@Component  // Meta-annotation: @Lazy implies @Component (singleton by default)
 public @interface Lazy {
+    
+    /**
+     * Optional name for the component (when used on types).
+     * If not specified, the class name with lowercase first letter will be used.
+     */
+    String value() default "";
 }
