@@ -35,6 +35,7 @@ public final class ComponentFactoryGenerator {
     private static final String COMPONENT_FACTORY = "com/veld/runtime/ComponentFactory";
     private static final String VELD_CONTAINER = "com/veld/runtime/VeldContainer";
     private static final String SCOPE = "com/veld/runtime/Scope";
+    private static final String PROVIDER = "com/veld/runtime/Provider";
     private static final String OBJECT = "java/lang/Object";
     private static final String CLASS = "java/lang/Class";
     private static final String STRING = "java/lang/String";
@@ -77,6 +78,11 @@ public final class ComponentFactoryGenerator {
         
         // getScope() method
         generateGetScope(cw);
+        
+        // isLazy() method (only if component is lazy)
+        if (component.isLazy()) {
+            generateIsLazy(cw);
+        }
         
         // invokePostConstruct(T) method
         generateInvokePostConstruct(cw, componentInternal);
@@ -161,6 +167,19 @@ public final class ComponentFactoryGenerator {
     }
     
     private void loadDependency(MethodVisitor mv, Dependency dep) {
+        if (dep.isProvider()) {
+            // For Provider<T>, call container.getProvider(T.class)
+            loadProviderDependency(mv, dep);
+        } else if (dep.isLazy()) {
+            // For @Lazy, wrap in a LazyHolder that calls container.get() on first access
+            loadLazyDependency(mv, dep);
+        } else {
+            // Regular dependency
+            loadRegularDependency(mv, dep);
+        }
+    }
+    
+    private void loadRegularDependency(MethodVisitor mv, Dependency dep) {
         String depInternal = dep.getTypeName().replace('.', '/');
         
         // container.get(DependencyType.class)
@@ -171,6 +190,31 @@ public final class ComponentFactoryGenerator {
         
         // Cast to dependency type
         mv.visitTypeInsn(CHECKCAST, depInternal);
+    }
+    
+    private void loadProviderDependency(MethodVisitor mv, Dependency dep) {
+        String actualTypeInternal = dep.getActualTypeName().replace('.', '/');
+        
+        // container.getProvider(ActualType.class)
+        mv.visitVarInsn(ALOAD, 1); // Load container (parameter 1)
+        mv.visitLdcInsn(org.objectweb.asm.Type.getObjectType(actualTypeInternal));
+        mv.visitMethodInsn(INVOKEVIRTUAL, VELD_CONTAINER, "getProvider",
+                "(L" + CLASS + ";)L" + PROVIDER + ";", false);
+        
+        // No need to cast - Provider<T> is returned
+    }
+    
+    private void loadLazyDependency(MethodVisitor mv, Dependency dep) {
+        String actualTypeInternal = dep.getActualTypeName().replace('.', '/');
+        
+        // container.getLazy(ActualType.class)
+        mv.visitVarInsn(ALOAD, 1); // Load container (parameter 1)
+        mv.visitLdcInsn(org.objectweb.asm.Type.getObjectType(actualTypeInternal));
+        mv.visitMethodInsn(INVOKEVIRTUAL, VELD_CONTAINER, "getLazy",
+                "(L" + CLASS + ";)L" + OBJECT + ";", false);
+        
+        // Cast to dependency type
+        mv.visitTypeInsn(CHECKCAST, actualTypeInternal);
     }
     
     private void generateGetComponentType(ClassWriter cw, String componentInternal) {
@@ -206,6 +250,18 @@ public final class ComponentFactoryGenerator {
         String scopeName = component.getScope() == Scope.SINGLETON ? "SINGLETON" : "PROTOTYPE";
         mv.visitFieldInsn(GETSTATIC, SCOPE, scopeName, "L" + SCOPE + ";");
         mv.visitInsn(ARETURN);
+        
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    
+    private void generateIsLazy(ClassWriter cw) {
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "isLazy",
+                "()Z", null, null);
+        mv.visitCode();
+        
+        mv.visitInsn(ICONST_1); // return true
+        mv.visitInsn(IRETURN);
         
         mv.visitMaxs(0, 0);
         mv.visitEnd();

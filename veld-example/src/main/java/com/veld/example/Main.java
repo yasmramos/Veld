@@ -1,5 +1,6 @@
 package com.veld.example;
 
+import com.veld.runtime.Provider;
 import com.veld.runtime.VeldContainer;
 
 /**
@@ -15,6 +16,8 @@ import com.veld.runtime.VeldContainer;
  * 7. Interface-based injection (IUserRepository -> UserRepositoryImpl)
  * 8. JSR-330 compatibility (javax.inject.*)
  * 9. Jakarta Inject compatibility (jakarta.inject.*)
+ * 10. @Lazy initialization (ExpensiveService)
+ * 11. Provider<T> injection (ReportGenerator)
  * 
  * Simple API: Just create a new VeldContainer() - that's it!
  * All bytecode generation happens at compile-time using ASM.
@@ -59,7 +62,17 @@ public class Main {
             demonstrateJsr330AndJakarta(container);
             
             System.out.println("\n══════════════════════════════════════════════════════════");
-            System.out.println("6. SERVICE USAGE");
+            System.out.println("6. @LAZY INITIALIZATION");
+            System.out.println("══════════════════════════════════════════════════════════");
+            demonstrateLazy(container);
+            
+            System.out.println("\n══════════════════════════════════════════════════════════");
+            System.out.println("7. PROVIDER<T> INJECTION");
+            System.out.println("══════════════════════════════════════════════════════════");
+            demonstrateProvider(container);
+            
+            System.out.println("\n══════════════════════════════════════════════════════════");
+            System.out.println("8. SERVICE USAGE");
             System.out.println("══════════════════════════════════════════════════════════");
             demonstrateServiceUsage(container);
             
@@ -210,6 +223,67 @@ public class Main {
         System.out.println("  PaymentService singleton? " + (paymentService == payment2 ? "YES" : "NO"));
         System.out.println("  OrderService singleton? " + (orderService == order2 ? "YES" : "NO"));
         System.out.println("  NotificationService singleton? " + (notificationService == notif2 ? "YES" : "NO"));
+    }
+    
+    /**
+     * Demonstrates @Lazy initialization.
+     * Components marked with @Lazy are not instantiated until first accessed.
+     */
+    private static void demonstrateLazy(VeldContainer container) {
+        // Reset the counter for clean demo
+        ExpensiveService.resetInstanceCount();
+        
+        System.out.println("\n→ ExpensiveService is marked with @Lazy");
+        System.out.println("  It should NOT be created when the container starts.");
+        System.out.println("  Current instance count: " + ExpensiveService.getInstanceCount());
+        
+        System.out.println("\n→ Now requesting ExpensiveService for the first time...");
+        ExpensiveService expensive1 = container.get(ExpensiveService.class);
+        System.out.println("  Instance count after first request: " + ExpensiveService.getInstanceCount());
+        
+        System.out.println("\n→ Requesting ExpensiveService again (should be same singleton)...");
+        ExpensiveService expensive2 = container.get(ExpensiveService.class);
+        System.out.println("  Instance count after second request: " + ExpensiveService.getInstanceCount());
+        System.out.println("  Same instance? " + (expensive1 == expensive2 ? "YES ✓" : "NO ✗"));
+        
+        System.out.println("\n→ Using the service:");
+        String result = expensive1.process("test data");
+        System.out.println("  Result: " + result);
+    }
+    
+    /**
+     * Demonstrates Provider<T> injection.
+     * Provider allows lazy access and on-demand instance creation.
+     */
+    private static void demonstrateProvider(VeldContainer container) {
+        System.out.println("\n→ ReportGenerator uses Provider<RequestContext>");
+        System.out.println("  Provider allows getting new instances of @Prototype components on demand");
+        
+        ReportGenerator reportGen = container.get(ReportGenerator.class);
+        
+        System.out.println("\n→ Generating multiple reports (each gets a fresh RequestContext):");
+        String report1 = reportGen.generateReport("Sales");
+        String report2 = reportGen.generateReport("Inventory");
+        String report3 = reportGen.generateReport("Financial");
+        
+        System.out.println("  " + report1);
+        System.out.println("  " + report2);
+        System.out.println("  " + report3);
+        
+        reportGen.demonstrateMultipleContexts();
+        
+        System.out.println("\n→ Using container.getProvider() directly:");
+        Provider<LogService> logProvider = container.getProvider(LogService.class);
+        System.out.println("  Got Provider<LogService>");
+        
+        LogService log1 = logProvider.get();
+        LogService log2 = logProvider.get();
+        System.out.println("  Provider.get() returns singleton: " + (log1 == log2 ? "YES ✓" : "NO ✗"));
+        
+        Provider<RequestContext> ctxProvider = container.getProvider(RequestContext.class);
+        RequestContext ctx1 = ctxProvider.get();
+        RequestContext ctx2 = ctxProvider.get();
+        System.out.println("  Provider.get() creates new prototype: " + (ctx1 != ctx2 ? "YES ✓" : "NO ✗"));
     }
     
     /**

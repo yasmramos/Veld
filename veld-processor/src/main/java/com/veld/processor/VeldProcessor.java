@@ -207,7 +207,13 @@ public class VeldProcessor extends AbstractProcessor {
             note("  -> Scope: SINGLETON (default)");
         }
         
-        ComponentInfo info = new ComponentInfo(className, componentName, scope);
+        // Check for @Lazy annotation
+        boolean isLazy = typeElement.getAnnotation(Lazy.class) != null;
+        if (isLazy) {
+            note("  -> Lazy initialization enabled");
+        }
+        
+        ComponentInfo info = new ComponentInfo(className, componentName, scope, isLazy);
         
         // Find injection points
         analyzeConstructors(typeElement, info);
@@ -446,7 +452,71 @@ public class VeldProcessor extends AbstractProcessor {
             note("    -> Qualifier: @Named(\"" + qualifier.get() + "\")");
         }
         
-        return new Dependency(typeName, typeDescriptor, qualifier.orElse(null));
+        // Check for @Lazy annotation
+        boolean isLazy = element.getAnnotation(Lazy.class) != null;
+        if (isLazy) {
+            note("    -> Lazy injection for: " + element.getSimpleName());
+        }
+        
+        // Check if this is a Provider<T>
+        ProviderInfo providerInfo = checkForProvider(typeMirror);
+        if (providerInfo != null) {
+            note("    -> Provider injection for: " + providerInfo.actualTypeName);
+            return new Dependency(
+                typeName, typeDescriptor, qualifier.orElse(null),
+                true, isLazy,
+                providerInfo.actualTypeName, providerInfo.actualTypeDescriptor
+            );
+        }
+        
+        return new Dependency(typeName, typeDescriptor, qualifier.orElse(null),
+                false, isLazy, typeName, typeDescriptor);
+    }
+    
+    /**
+     * Checks if a type is a Provider (Veld, javax.inject, or jakarta.inject).
+     * Returns the actual type T from Provider<T>, or null if not a Provider.
+     */
+    private ProviderInfo checkForProvider(TypeMirror typeMirror) {
+        if (typeMirror.getKind() != TypeKind.DECLARED) {
+            return null;
+        }
+        
+        DeclaredType declaredType = (DeclaredType) typeMirror;
+        TypeElement typeElement = (TypeElement) declaredType.asElement();
+        String providerTypeName = typeElement.getQualifiedName().toString();
+        
+        // Check for any Provider type (Veld, javax.inject, jakarta.inject)
+        boolean isProvider = 
+            "com.veld.runtime.Provider".equals(providerTypeName) ||
+            "javax.inject.Provider".equals(providerTypeName) ||
+            "jakarta.inject.Provider".equals(providerTypeName);
+        
+        if (!isProvider) {
+            return null;
+        }
+        
+        // Get the type argument T from Provider<T>
+        List<? extends TypeMirror> typeArgs = declaredType.getTypeArguments();
+        if (typeArgs.isEmpty()) {
+            return null; // Raw Provider type, not supported
+        }
+        
+        TypeMirror actualType = typeArgs.get(0);
+        String actualTypeName = getTypeName(actualType);
+        String actualTypeDescriptor = getTypeDescriptor(actualType);
+        
+        return new ProviderInfo(actualTypeName, actualTypeDescriptor);
+    }
+    
+    private static class ProviderInfo {
+        final String actualTypeName;
+        final String actualTypeDescriptor;
+        
+        ProviderInfo(String actualTypeName, String actualTypeDescriptor) {
+            this.actualTypeName = actualTypeName;
+            this.actualTypeDescriptor = actualTypeDescriptor;
+        }
     }
     
     private String getTypeName(TypeMirror typeMirror) {

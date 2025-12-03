@@ -15,6 +15,7 @@ public final class ComponentInfo {
     private final String internalName;           // ASM internal: com/example/MyService
     private final String componentName;          // @Component value or simple class name
     private final Scope scope;                   // SINGLETON or PROTOTYPE
+    private final boolean lazy;                  // @Lazy - deferred initialization
     
     private InjectionPoint constructorInjection; // Constructor with @Inject (or default)
     private final List<InjectionPoint> fieldInjections = new ArrayList<>();
@@ -29,10 +30,15 @@ public final class ComponentInfo {
     private String preDestroyDescriptor;
     
     public ComponentInfo(String className, String componentName, Scope scope) {
+        this(className, componentName, scope, false);
+    }
+    
+    public ComponentInfo(String className, String componentName, Scope scope, boolean lazy) {
         this.className = className;
         this.internalName = className.replace('.', '/');
         this.componentName = componentName;
         this.scope = scope;
+        this.lazy = lazy;
     }
     
     public String getClassName() {
@@ -49,6 +55,10 @@ public final class ComponentInfo {
     
     public Scope getScope() {
         return scope;
+    }
+    
+    public boolean isLazy() {
+        return lazy;
     }
     
     public String getFactoryClassName() {

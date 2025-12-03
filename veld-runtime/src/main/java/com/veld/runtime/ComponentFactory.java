@@ -38,6 +38,16 @@ public interface ComponentFactory<T> {
      * @return the component scope
      */
     Scope getScope();
+    
+    /**
+     * Returns true if this component should be lazily initialized.
+     * Lazy components are not instantiated until first accessed.
+     *
+     * @return true if lazy initialization is enabled
+     */
+    default boolean isLazy() {
+        return false;
+    }
 
     /**
      * Invokes the post-construct lifecycle method if present.

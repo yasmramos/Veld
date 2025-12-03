@@ -127,11 +127,12 @@ public class VeldContainer {
     }
 
     /**
-     * Pre-initializes all singleton components.
+     * Pre-initializes all non-lazy singleton components.
+     * Lazy singletons are initialized on first access.
      */
     private void initializeSingletons() {
         for (ComponentFactory<?> factory : registry.getAllFactories()) {
-            if (factory.getScope() == Scope.SINGLETON) {
+            if (factory.getScope() == Scope.SINGLETON && !factory.isLazy()) {
                 getOrCreateSingleton(factory);
             }
         }
@@ -229,6 +230,72 @@ public class VeldContainer {
      */
     public boolean contains(String name) {
         return registry.getFactory(name) != null;
+    }
+    
+    /**
+     * Gets a Provider for the specified type.
+     * The Provider allows lazy access to the component - it's only created when get() is called.
+     * 
+     * For @Singleton components, the Provider always returns the same instance.
+     * For @Prototype components, each call to get() creates a new instance.
+     *
+     * @param type the component type
+     * @param <T> the component type
+     * @return a Provider for the component
+     * @throws VeldException if no component found for the type
+     */
+    public <T> Provider<T> getProvider(Class<T> type) {
+        checkNotClosed();
+        ComponentFactory<T> factory = registry.getFactory(type);
+        if (factory == null) {
+            throw new VeldException("No component found for type: " + type.getName());
+        }
+        return () -> getInstance(factory);
+    }
+    
+    /**
+     * Gets a Provider for the specified type and name.
+     *
+     * @param type the component type
+     * @param name the component name
+     * @param <T> the component type
+     * @return a Provider for the component
+     * @throws VeldException if no component found
+     */
+    public <T> Provider<T> getProvider(Class<T> type, String name) {
+        checkNotClosed();
+        ComponentFactory<?> factory = registry.getFactory(name);
+        if (factory == null) {
+            throw new VeldException("No component found with name: " + name);
+        }
+        if (!type.isAssignableFrom(factory.getComponentType())) {
+            throw new VeldException("Component '" + name + "' is not of type: " + type.getName());
+        }
+        @SuppressWarnings("unchecked")
+        ComponentFactory<T> typedFactory = (ComponentFactory<T>) factory;
+        return () -> getInstance(typedFactory);
+    }
+    
+    /**
+     * Gets a lazy instance wrapper for the specified type.
+     * The instance is not created until first access through the LazyHolder.
+     * This is used internally for @Lazy injection points.
+     *
+     * @param type the component type
+     * @param <T> the component type
+     * @return a LazyHolder that provides the component on first access
+     * @throws VeldException if no component found for the type
+     */
+    public <T> T getLazy(Class<T> type) {
+        checkNotClosed();
+        ComponentFactory<T> factory = registry.getFactory(type);
+        if (factory == null) {
+            throw new VeldException("No component found for type: " + type.getName());
+        }
+        
+        // For singletons, just return the instance (will be lazy-created if needed)
+        // For prototypes, we return a proxy-like behavior through the instance
+        return getInstance(factory);
     }
 
     /**

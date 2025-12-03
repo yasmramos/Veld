@@ -49,11 +49,25 @@ public final class InjectionPoint {
         private final String typeName;           // Fully qualified class name
         private final String typeDescriptor;     // ASM type descriptor
         private final String qualifierName;      // @Named value, or null
+        private final boolean isProvider;        // true if Provider<T>
+        private final boolean isLazy;            // true if @Lazy
+        private final String actualTypeName;     // For Provider<T>, the T type
+        private final String actualTypeDescriptor; // For Provider<T>, the T descriptor
         
         public Dependency(String typeName, String typeDescriptor, String qualifierName) {
+            this(typeName, typeDescriptor, qualifierName, false, false, typeName, typeDescriptor);
+        }
+        
+        public Dependency(String typeName, String typeDescriptor, String qualifierName,
+                          boolean isProvider, boolean isLazy, 
+                          String actualTypeName, String actualTypeDescriptor) {
             this.typeName = typeName;
             this.typeDescriptor = typeDescriptor;
             this.qualifierName = qualifierName;
+            this.isProvider = isProvider;
+            this.isLazy = isLazy;
+            this.actualTypeName = actualTypeName;
+            this.actualTypeDescriptor = actualTypeDescriptor;
         }
         
         public String getTypeName() {
@@ -70,6 +84,43 @@ public final class InjectionPoint {
         
         public boolean hasQualifier() {
             return qualifierName != null && !qualifierName.isEmpty();
+        }
+        
+        /**
+         * Returns true if this dependency is a Provider&lt;T&gt;.
+         */
+        public boolean isProvider() {
+            return isProvider;
+        }
+        
+        /**
+         * Returns true if this dependency is marked with @Lazy.
+         */
+        public boolean isLazy() {
+            return isLazy;
+        }
+        
+        /**
+         * For Provider&lt;T&gt; dependencies, returns the actual type T.
+         * For regular dependencies, returns the same as getTypeName().
+         */
+        public String getActualTypeName() {
+            return actualTypeName;
+        }
+        
+        /**
+         * For Provider&lt;T&gt; dependencies, returns the actual type descriptor of T.
+         * For regular dependencies, returns the same as getTypeDescriptor().
+         */
+        public String getActualTypeDescriptor() {
+            return actualTypeDescriptor;
+        }
+        
+        /**
+         * Returns true if this dependency needs special handling (Provider or Lazy).
+         */
+        public boolean needsSpecialHandling() {
+            return isProvider || isLazy;
         }
     }
 }
