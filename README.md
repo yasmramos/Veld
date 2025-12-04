@@ -10,6 +10,7 @@ A lightweight, compile-time Dependency Injection framework for Java using pure A
 
 ## Features
 
+### Core DI
 - **Pure Bytecode Generation**: Uses ASM to generate optimized factory classes at compile time
 - **Zero Reflection**: All dependency resolution happens via generated code, not reflection
 - **JSR-330 Compatible**: Full support for `javax.inject.*` annotations
@@ -25,6 +26,20 @@ A lightweight, compile-time Dependency Injection framework for Java using pure A
 - **Circular Dependency Detection**: Compile-time detection with clear error messages
 - **Lightweight**: Minimal runtime footprint
 
+### EventBus
+- **Publish/Subscribe**: Lightweight event-driven architecture
+- **Synchronous & Asynchronous**: Choose between sync and async event delivery
+- **Priority Ordering**: Control handler execution order
+- **Type Hierarchy**: Handlers receive events of declared type and subtypes
+- **Weak References**: Automatic cleanup of unsubscribed handlers
+
+### AOP (Aspect-Oriented Programming)
+- **ASM Proxy Generation**: Dynamic proxy creation using bytecode manipulation
+- **AspectJ-like Syntax**: Familiar pointcut expression language
+- **Multiple Advice Types**: `@Around`, `@Before`, `@After` (RETURNING, THROWING, FINALLY)
+- **CDI Interceptors**: `@Interceptor`, `@AroundInvoke`, `@InterceptorBinding`
+- **Built-in Interceptors**: Logging, Timing, Validation, Transactions
+
 ## Quick Start
 
 ### 1. Add Dependencies
@@ -35,21 +50,28 @@ A lightweight, compile-time Dependency Injection framework for Java using pure A
     <dependency>
         <groupId>com.veld</groupId>
         <artifactId>veld-annotations</artifactId>
-        <version>1.0.0-alpha.4</version>
+        <version>1.0.0-alpha.5</version>
     </dependency>
     
     <!-- Veld Runtime -->
     <dependency>
         <groupId>com.veld</groupId>
         <artifactId>veld-runtime</artifactId>
-        <version>1.0.0-alpha.4</version>
+        <version>1.0.0-alpha.5</version>
+    </dependency>
+    
+    <!-- Veld AOP (optional) -->
+    <dependency>
+        <groupId>com.veld</groupId>
+        <artifactId>veld-aop</artifactId>
+        <version>1.0.0-alpha.5</version>
     </dependency>
     
     <!-- Veld Processor (compile-time only) -->
     <dependency>
         <groupId>com.veld</groupId>
         <artifactId>veld-processor</artifactId>
-        <version>1.0.0-alpha.4</version>
+        <version>1.0.0-alpha.5</version>
         <scope>provided</scope>
     </dependency>
 </dependencies>
@@ -71,7 +93,7 @@ A lightweight, compile-time Dependency Injection framework for Java using pure A
                     <path>
                         <groupId>com.veld</groupId>
                         <artifactId>veld-processor</artifactId>
-                        <version>1.0.0-alpha.4</version>
+                        <version>1.0.0-alpha.5</version>
                     </path>
                 </annotationProcessorPaths>
             </configuration>
@@ -344,11 +366,6 @@ public class FeatureXService {
 }
 ```
 
-**Attributes:**
-- `name`: Property name (also checks environment variable with underscores, e.g., `app.debug` → `APP_DEBUG`)
-- `havingValue`: Expected value (default: "true")
-- `matchIfMissing`: Register if property is not set (default: false)
-
 ### @ConditionalOnClass
 
 Register a component only when specific classes are available in the classpath:
@@ -359,71 +376,18 @@ Register a component only when specific classes are available in the classpath:
 public class JacksonJsonService {
     // Only registered if Jackson is on the classpath
 }
-
-@Singleton
-@ConditionalOnClass(value = {DataSource.class, HikariDataSource.class})
-public class HikariPoolService {
-    // Only registered if both classes are available
-}
 ```
-
-**Attributes:**
-- `value`: Array of Class objects to check
-- `name`: Array of fully-qualified class names to check
 
 ### @ConditionalOnMissingBean
 
-Register a component only when specific beans are NOT already registered (useful for fallbacks):
+Register a component only when specific beans are NOT already registered:
 
 ```java
-public interface DatabaseService {
-    void connect();
-}
-
 @Singleton
 @ConditionalOnMissingBean(DatabaseService.class)
 public class DefaultDatabaseService implements DatabaseService {
     // Only registered if no other DatabaseService exists
-    // Acts as a fallback/default implementation
 }
-
-@Singleton
-public class PostgresDatabaseService implements DatabaseService {
-    // If this is registered, DefaultDatabaseService won't be
-}
-```
-
-**Attributes:**
-- `value`: Array of bean types to check
-- `name`: Array of bean names to check
-
-### Combining Conditions
-
-Multiple conditions can be combined (all must match):
-
-```java
-@Singleton
-@ConditionalOnProperty(name = "cache.enabled", havingValue = "true")
-@ConditionalOnClass(name = "redis.clients.jedis.Jedis")
-public class RedisCacheService {
-    // Only registered when:
-    // 1. cache.enabled=true AND
-    // 2. Jedis is on the classpath
-}
-```
-
-### Runtime Condition Evaluation
-
-Conditions are evaluated at container initialization:
-
-```java
-// Set properties before creating container
-System.setProperty("app.debug", "true");
-
-VeldContainer container = new VeldContainer();
-
-// DebugService is now available
-DebugService debug = container.get(DebugService.class);
 ```
 
 ## Lifecycle Callbacks
@@ -446,12 +410,189 @@ public class DatabaseService {
 }
 ```
 
+## EventBus
+
+Veld includes a lightweight publish/subscribe event system:
+
+### Publishing Events
+
+```java
+import com.veld.runtime.event.EventBus;
+
+EventBus eventBus = new EventBus();
+
+// Synchronous publishing
+eventBus.post(new UserCreatedEvent(user));
+
+// Asynchronous publishing
+eventBus.postAsync(new EmailNotificationEvent(email));
+```
+
+### Subscribing to Events
+
+```java
+import com.veld.annotation.Subscribe;
+
+public class UserEventHandler {
+    
+    @Subscribe
+    public void onUserCreated(UserCreatedEvent event) {
+        System.out.println("User created: " + event.getUser().getName());
+    }
+    
+    @Subscribe(priority = 10)  // Higher priority = earlier execution
+    public void onHighPriorityEvent(OrderEvent event) {
+        // Executed before lower priority handlers
+    }
+}
+
+// Register handler
+eventBus.register(new UserEventHandler());
+```
+
+### Event Hierarchy
+
+Handlers receive events of the declared type AND all subtypes:
+
+```java
+public class BaseEvent { }
+public class UserEvent extends BaseEvent { }
+public class AdminEvent extends UserEvent { }
+
+public class EventHandler {
+    @Subscribe
+    public void onBaseEvent(BaseEvent event) {
+        // Receives BaseEvent, UserEvent, and AdminEvent
+    }
+    
+    @Subscribe
+    public void onUserEvent(UserEvent event) {
+        // Receives UserEvent and AdminEvent only
+    }
+}
+```
+
+### Dead Events
+
+Undelivered events are wrapped in `DeadEvent`:
+
+```java
+@Subscribe
+public void onDeadEvent(DeadEvent event) {
+    System.out.println("Unhandled event: " + event.getOriginalEvent());
+}
+```
+
+## AOP (Aspect-Oriented Programming)
+
+Veld provides complete AOP support with ASM-based proxy generation:
+
+### Defining Aspects
+
+```java
+import com.veld.annotation.*;
+import com.veld.aop.*;
+
+@Aspect
+public class LoggingAspect {
+    
+    @Around("execution(* com.example.service.*.*(..))")
+    public Object logMethod(InvocationContext ctx) throws Exception {
+        System.out.println("Entering: " + ctx.getMethod().getName());
+        try {
+            Object result = ctx.proceed();
+            System.out.println("Exiting: " + ctx.getMethod().getName());
+            return result;
+        } catch (Exception e) {
+            System.out.println("Exception in: " + ctx.getMethod().getName());
+            throw e;
+        }
+    }
+    
+    @Before("execution(public * com.example..*.*(..))")
+    public void beforeMethod(JoinPoint jp) {
+        System.out.println("Before: " + jp.getSignature());
+    }
+    
+    @After(value = "execution(* *.*(..))", type = AfterType.RETURNING)
+    public void afterReturning(JoinPoint jp, Object result) {
+        System.out.println("Returned: " + result);
+    }
+    
+    @After(value = "execution(* *.*(..))", type = AfterType.THROWING)
+    public void afterThrowing(JoinPoint jp, Throwable error) {
+        System.out.println("Exception: " + error.getMessage());
+    }
+}
+```
+
+### Pointcut Expressions
+
+```java
+// Match all methods in a package
+@Around("execution(* com.example.service.*.*(..))")
+
+// Match methods by name pattern
+@Before("execution(* *.save*(..))")
+
+// Match by annotation
+@Around("@annotation(Transactional)")
+
+// Match by class type
+@Before("within(com.example.repository..*)")
+
+// Composite expressions
+@Around("execution(* *.save*(..)) && @annotation(Validated)")
+```
+
+### Built-in Interceptors
+
+```java
+// Automatic logging
+@Logged(level = "INFO")
+public void processOrder(Order order) { }
+
+// Performance measurement
+@Timed(threshold = 100, unit = ChronoUnit.MILLIS)
+public void slowOperation() { }
+
+// Argument validation
+@Validated
+public void saveUser(User user) { }  // Validates user != null
+
+// Transaction management
+@Transactional(propagation = Propagation.REQUIRED)
+public void transferFunds(Account from, Account to, BigDecimal amount) { }
+```
+
+### Using AOP
+
+```java
+import com.veld.aop.*;
+
+// Register aspects and interceptors
+InterceptorRegistry registry = InterceptorRegistry.getInstance();
+registry.registerAspect(new LoggingAspect());
+registry.registerInterceptor(new TransactionInterceptor());
+
+// Create proxied instance
+ProxyFactory proxyFactory = new ProxyFactory();
+UserService proxy = proxyFactory.createProxy(
+    new UserService(),
+    registry.getInterceptors(UserService.class.getMethod("save", User.class))
+);
+
+// Use the proxy - all interceptors are automatically applied
+proxy.save(user);
+```
+
 ## Project Structure
 
 ```
 Veld/
-├── pom.xml                    # Parent POM
-├── veld-annotations/          # Annotation definitions
+├── pom.xml                     # Parent POM
+├── CHANGELOG.md                # Version history
+├── veld-annotations/           # Annotation definitions
 │   └── src/main/java/
 │       └── com/veld/annotation/
 │           ├── Component.java
@@ -460,41 +601,63 @@ Veld/
 │           ├── Prototype.java
 │           ├── Lazy.java
 │           ├── Optional.java
-│           ├── ConditionalOnProperty.java
-│           ├── ConditionalOnClass.java
-│           ├── ConditionalOnMissingBean.java
 │           ├── Named.java
-│           ├── PostConstruct.java
-│           └── PreDestroy.java
-├── veld-processor/            # Compile-time annotation processor
-│   └── src/main/java/
-│       └── com/veld/processor/
-│           ├── VeldProcessor.java      # Main processor
-│           ├── AnnotationHelper.java   # Multi-source annotation detection
-│           ├── ComponentInfo.java      # Component metadata
-│           ├── ConditionInfo.java      # Condition metadata
-│           ├── DependencyGraph.java    # Cycle detection
+│           ├── Subscribe.java          # EventBus
+│           ├── Aspect.java             # AOP
+│           ├── Around.java
+│           ├── Before.java
+│           ├── After.java
+│           ├── Pointcut.java
+│           ├── Interceptor.java
+│           ├── AroundInvoke.java
+│           ├── InterceptorBinding.java
 │           └── ...
-├── veld-runtime/              # Runtime container
+├── veld-runtime/               # Runtime container
 │   └── src/main/java/
 │       └── com/veld/runtime/
 │           ├── VeldContainer.java
 │           ├── ComponentRegistry.java
-│           ├── ComponentFactory.java
 │           ├── Provider.java
-│           ├── LazyHolder.java
-│           ├── ConditionalRegistry.java
-│           └── condition/
-│               ├── Condition.java
-│               ├── ConditionContext.java
-│               ├── ConditionEvaluator.java
-│               ├── PropertyCondition.java
-│               ├── ClassCondition.java
-│               └── MissingBeanCondition.java
-└── veld-example/              # Example application
+│           └── event/
+│               ├── EventBus.java
+│               └── DeadEvent.java
+├── veld-aop/                   # AOP module
+│   └── src/main/java/
+│       └── com/veld/aop/
+│           ├── JoinPoint.java
+│           ├── InvocationContext.java
+│           ├── MethodInvocation.java
+│           ├── MethodInterceptor.java
+│           ├── Advice.java
+│           ├── InterceptorRegistry.java
+│           ├── PointcutExpression.java
+│           ├── CompositePointcut.java
+│           ├── ProxyFactory.java
+│           ├── ProxyMethodHandler.java
+│           └── interceptor/
+│               ├── Logged.java
+│               ├── LoggingInterceptor.java
+│               ├── Timed.java
+│               ├── TimingInterceptor.java
+│               ├── Validated.java
+│               ├── ValidationInterceptor.java
+│               ├── Transactional.java
+│               └── TransactionInterceptor.java
+├── veld-processor/             # Compile-time annotation processor
+│   └── src/main/java/
+│       └── com/veld/processor/
+│           ├── VeldProcessor.java
+│           ├── AnnotationHelper.java
+│           └── ...
+└── veld-example/               # Example application
     └── src/main/java/
         └── com/veld/example/
             ├── Main.java
+            ├── aop/
+            │   ├── LoggingAspect.java
+            │   ├── PerformanceAspect.java
+            │   ├── CalculatorService.java
+            │   └── ProductService.java
             └── ...
 ```
 
@@ -529,6 +692,7 @@ mvn exec:java -Dexec.mainClass="com.veld.example.Main"
 2. **Analysis**: Builds a dependency graph and validates for cycles
 3. **Generation**: Creates optimized factory classes using ASM bytecode
 4. **Runtime**: Container uses generated factories - no reflection needed
+5. **AOP**: ProxyFactory generates bytecode proxies that intercept method calls
 
 ### Generated Code Example
 
@@ -555,34 +719,7 @@ public class UserService$$VeldFactory implements ComponentFactory<UserService> {
 
 ## Changelog
 
-### v1.0.0-alpha.4 (2025-12-03)
-- Added `@ConditionalOnProperty` for property-based component registration
-- Added `@ConditionalOnClass` for classpath-based component registration
-- Added `@ConditionalOnMissingBean` for fallback component registration
-- Added `ConditionContext` for runtime condition evaluation
-- Added `ConditionalRegistry` for filtering components based on conditions
-- Conditions evaluated at container initialization time
-
-### v1.0.0-alpha.4 (2025-12-03)
-- Added `@Optional` annotation for optional dependency injection
-- Added `Optional<T>` wrapper support for optional dependencies
-- Added `container.tryGet()` method (returns null if not found)
-- Added `container.getOptional()` method (returns Optional.empty() if not found)
-- Optional dependencies excluded from circular dependency detection
-
-### v1.0.0-alpha.2 (2025-12-02)
-- Added `@Lazy` annotation for deferred initialization
-- Added `Provider<T>` support for on-demand injection
-- Support for `javax.inject.Provider` and `jakarta.inject.Provider`
-- Simplified annotations: `@Singleton`, `@Prototype`, `@Lazy` now imply `@Component`
-
-### v1.0.0-alpha.1 (2025-12-01)
-- Initial release
-- Constructor, field, and method injection
-- Singleton and Prototype scopes
-- JSR-330 and Jakarta Inject compatibility
-- Compile-time circular dependency detection
-- Lifecycle callbacks (@PostConstruct, @PreDestroy)
+See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
 ## License
 

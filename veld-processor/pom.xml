@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.veld</groupId>
         <artifactId>veld-parent</artifactId>
-        <version>1.0.0-alpha.4</version>
+        <version>1.0.0-alpha.5</version>
     </parent>
 
     <artifactId>veld-processor</artifactId>
