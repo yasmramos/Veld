@@ -41,6 +41,7 @@
         <module>veld-aop</module>
         <module>veld-processor</module>
         <module>veld-weaver</module>
+        <module>veld-benchmark</module>
         <module>veld-example</module>
     </modules>
 

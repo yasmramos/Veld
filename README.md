@@ -154,6 +154,7 @@ Veld is fully modularized with JPMS. Here are the module names:
 | veld-aop | `com.veld.aop` |
 | veld-processor | `com.veld.processor` |
 | veld-weaver | `com.veld.weaver` |
+| veld-benchmark | `com.veld.benchmark` |
 
 ### Example module-info.java
 
@@ -967,6 +968,14 @@ Veld/
 │       └── com/veld/weaver/
 │           ├── WeaverMojo.java         # Maven plugin goal
 │           └── FieldInjectorWeaver.java # Private field injection support
+├── veld-benchmark/             # Performance benchmarks
+│   └── src/main/java/
+│       └── com/veld/benchmark/
+│           ├── StartupBenchmark.java   # Container startup time
+│           ├── InjectionBenchmark.java # Dependency lookup time
+│           ├── ThroughputBenchmark.java # Operations per second
+│           ├── MemoryBenchmark.java    # Memory footprint
+│           └── BenchmarkRunner.java    # Main runner
 └── veld-example/               # Example application
     ├── src/main/java/
     │   ├── module-info.java    # JPMS module descriptor
@@ -1071,6 +1080,51 @@ public class UserService$$VeldFactory implements ComponentFactory<UserService> {
 - **Mockito**: 5.20.0 (for testing)
 - **ByteBuddy**: 1.17.4 (for testing, Java 25 compatible)
 - **JUnit**: 5.11.3
+
+## Benchmarks
+
+Veld includes a comprehensive benchmark suite comparing performance against Spring, Guice, and Dagger.
+
+### Run Benchmarks
+
+```bash
+# Build benchmark module
+mvn clean package -pl veld-benchmark -am -DskipTests
+
+# Run all benchmarks
+java -jar veld-benchmark/target/veld-benchmark.jar
+
+# Run specific benchmark
+java -jar veld-benchmark/target/veld-benchmark.jar Startup
+
+# Quick mode (for development)
+java -jar veld-benchmark/target/veld-benchmark.jar -f 1 -wi 1 -i 2
+```
+
+### Benchmark Categories
+
+| Benchmark | Description |
+|-----------|-------------|
+| StartupBenchmark | Container initialization time |
+| InjectionBenchmark | Dependency lookup time |
+| ThroughputBenchmark | Operations per second |
+| MemoryBenchmark | Memory footprint |
+| PrototypeBenchmark | New instance creation |
+
+### Expected Performance Characteristics
+
+| Metric | Veld | Dagger | Guice | Spring |
+|--------|------|--------|-------|--------|
+| Startup | Fast | Fast | Medium | Slow |
+| Lookup | Fast | Fastest | Medium | Medium |
+| Memory | Low | Low | Medium | High |
+
+Veld achieves fast performance through:
+- **No Reflection** - Pure bytecode generation
+- **Compile-time Resolution** - Dependencies resolved at build time
+- **Direct Method Calls** - No dynamic dispatch overhead
+
+See [veld-benchmark/README.md](veld-benchmark/README.md) for detailed benchmark documentation.
 
 ## Changelog
 
