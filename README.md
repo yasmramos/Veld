@@ -13,6 +13,8 @@ A lightweight, compile-time Dependency Injection framework for Java using pure A
 ### Core DI
 - **Pure Bytecode Generation**: Uses ASM to generate optimized factory classes at compile time
 - **Zero Reflection**: All dependency resolution happens via generated code, not reflection
+- **Private Field Injection**: Inject into `private`, `private static`, `private final`, and `private static final` fields without reflection
+- **@Value Injection**: Inject configuration values from system properties, environment variables, and config files
 - **JSR-330 Compatible**: Full support for `javax.inject.*` annotations
 - **Jakarta Inject Compatible**: Full support for `jakarta.inject.*` annotations
 - **Mixed Annotations**: Use Veld, JSR-330, and Jakarta annotations together seamlessly
@@ -151,6 +153,7 @@ Veld is fully modularized with JPMS. Here are the module names:
 | veld-runtime | `com.veld.runtime` |
 | veld-aop | `com.veld.aop` |
 | veld-processor | `com.veld.processor` |
+| veld-weaver | `com.veld.weaver` |
 
 ### Example module-info.java
 
@@ -171,7 +174,7 @@ module com.myapp {
 Veld supports annotations from three sources, which can be mixed freely:
 
 | Feature | Veld | JSR-330 (javax) | Jakarta |
-|---------|------|-----------------|---------|
+|---------|------|-----------------|-----------|
 | Injection | `@Inject` | `@Inject` | `@Inject` |
 | Singleton | `@Singleton` | `@Singleton` | `@Singleton` |
 | Prototype | `@Prototype` | - | - |
@@ -182,6 +185,7 @@ Veld supports annotations from three sources, which can be mixed freely:
 | Provider | `Provider<T>` | `Provider<T>` | `Provider<T>` |
 | Post-construct | `@PostConstruct` | - | - |
 | Pre-destroy | `@PreDestroy` | - | - |
+| Value | `@Value` | - | - |
 
 > **Note**: `@Singleton`, `@Prototype`, and `@Lazy` automatically imply `@Component`, so you don't need to add both.
 
@@ -222,9 +226,53 @@ public class OrderService {
 @Singleton
 public class UserService {
     @Inject
-    UserRepository userRepository; // Must be non-private (no reflection)
+    UserRepository userRepository;
 }
 ```
+
+### Private Field Injection
+
+Veld supports injection into **private fields** without using reflection, thanks to bytecode weaving:
+
+```java
+@Singleton
+public class SecureService {
+    @Inject
+    private AuthService authService;        // private field
+    
+    @Inject
+    private static Logger logger;           // private static field
+    
+    @Inject
+    private final ConfigService config;     // private final field
+    
+    @Inject
+    private static final Validator validator; // private static final
+}
+```
+
+The `veld-weaver` Maven plugin generates synthetic setter methods at compile time, enabling injection without reflection:
+
+```xml
+<plugin>
+    <groupId>com.veld</groupId>
+    <artifactId>veld-weaver</artifactId>
+    <version>1.0.0-alpha.6</version>
+    <executions>
+        <execution>
+            <goals>
+                <goal>weave</goal>
+            </goals>
+        </execution>
+    </executions>
+</plugin>
+```
+
+**How it works:**
+- The weaver scans compiled classes for `@Inject` or `@Value` annotated private fields
+- Generates synthetic setter methods: `__di_set_<fieldName>(FieldType value)`
+- For `final` fields, the modifier is removed to allow injection
+- The generated factory uses these setters instead of reflection
 
 ### Method Injection
 
@@ -239,6 +287,95 @@ public class NotificationService {
     }
 }
 ```
+
+## @Value Injection
+
+Inject configuration values from system properties, environment variables, or configuration files:
+
+### Basic Usage
+
+```java
+@Singleton
+public class AppConfig {
+    @Value("${app.name}")
+    private String appName;
+    
+    @Value("${server.port}")
+    private int port;
+    
+    @Value("${feature.enabled}")
+    private boolean featureEnabled;
+}
+```
+
+### Default Values
+
+```java
+@Singleton
+public class ServerConfig {
+    @Value("${app.name:MyApplication}")
+    private String appName;  // Uses "MyApplication" if not configured
+    
+    @Value("${server.port:8080}")
+    private int port;  // Uses 8080 if not configured
+    
+    @Value("${debug.enabled:false}")
+    private boolean debug;  // Uses false if not configured
+}
+```
+
+### Environment Variables
+
+```java
+@Singleton
+public class DatabaseConfig {
+    @Value("${DATABASE_URL}")
+    private String dbUrl;
+    
+    @Value("${DB_PASSWORD:secret}")
+    private String password;
+}
+```
+
+### Constructor Injection with @Value
+
+```java
+@Singleton
+public class DatabaseService {
+    private final String url;
+    private final int maxConnections;
+    
+    @Inject
+    public DatabaseService(
+            @Value("${db.url}") String url,
+            @Value("${db.pool.size:10}") int maxConnections) {
+        this.url = url;
+        this.maxConnections = maxConnections;
+    }
+}
+```
+
+### Supported Types for @Value
+
+| Type | Example |
+|------|--------|
+| String | `@Value("${app.name}")` |
+| int / Integer | `@Value("${port:8080}")` |
+| long / Long | `@Value("${timeout:5000}")` |
+| double / Double | `@Value("${rate:0.5}")` |
+| float / Float | `@Value("${factor:1.0}")` |
+| boolean / Boolean | `@Value("${enabled:true}")` |
+| byte / Byte | `@Value("${level:1}")` |
+| short / Short | `@Value("${count:100}")` |
+| char / Character | `@Value("${separator:,}")` |
+
+### Value Resolution Order
+
+Values are resolved in the following order (first match wins):
+
+1. **System Properties**: `-Dproperty=value`
+2. **Environment Variables**: `export PROPERTY=value`
+3. **Configuration Files**: `application.properties`
 
 ## Interface-Based Injection
 
@@ -828,7 +965,8 @@ Veld/
 ├── veld-weaver/                # Bytecode weaver Maven plugin
 │   └── src/main/java/
 │       └── com/veld/weaver/
-│           └── ...
+│           ├── WeaverMojo.java         # Maven plugin goal
+│           └── FieldInjectorWeaver.java # Private field injection support
 └── veld-example/               # Example application
     ├── src/main/java/
     │   ├── module-info.java    # JPMS module descriptor
@@ -867,8 +1005,9 @@ mvn exec:java -Dexec.mainClass="com.veld.example.Main"
 1. **Compile Time**: The annotation processor scans for `@Component` classes (or `@Singleton`, `@Prototype`, `@Lazy`)
 2. **Analysis**: Builds a dependency graph and validates for cycles
 3. **Generation**: Creates optimized factory classes using ASM bytecode
-4. **Runtime**: Container uses generated factories - no reflection needed
-5. **AOP**: ProxyFactory generates bytecode proxies that intercept method calls
+4. **Weaving**: `veld-weaver` adds synthetic setters for private field injection
+5. **Runtime**: Container uses generated factories - no reflection needed
+6. **AOP**: ProxyFactory generates bytecode proxies that intercept method calls
 
 ### Generated Code Example
 
@@ -877,17 +1016,41 @@ For a component like:
 ```java
 @Singleton
 public class UserService {
-    @Inject LogService logService;
+    @Inject 
+    private LogService logService;
+    
+    @Value("${app.name}")
+    private String appName;
 }
 ```
 
-Veld generates an optimized factory:
+Veld generates an optimized factory and weaves the class:
 
+**1. Weaved Class (private fields get synthetic setters):**
+```java
+public class UserService {
+    private LogService logService;
+    private String appName;
+    
+    // Generated by veld-weaver:
+    public synthetic void __di_set_logService(LogService value) {
+        this.logService = value;
+    }
+    
+    public synthetic void __di_set_appName(String value) {
+        this.appName = value;
+    }
+}
+```
+
+**2. Generated Factory:**
 ```java
 public class UserService$$VeldFactory implements ComponentFactory<UserService> {
     public UserService create(VeldContainer container) {
         UserService instance = new UserService();
-        instance.logService = container.get(LogService.class);
+        // Uses synthetic setters for private fields:
+        instance.__di_set_logService(container.get(LogService.class));
+        instance.__di_set_appName(ValueResolver.getInstance().resolve("${app.name}", String.class));
         return instance;
     }
 }
