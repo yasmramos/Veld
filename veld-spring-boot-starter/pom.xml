@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.veld</groupId>
+        <artifactId>veld-parent</artifactId>
+        <version>1.0.0-alpha.6</version>
+    </parent>
+
+    <artifactId>veld-spring-boot-starter</artifactId>
+    <packaging>jar</packaging>
+
+    <name>Veld Spring Boot Starter</name>
+    <description>Spring Boot Starter for Veld Framework - Zero Reflection Dependency Injection</description>
+
+    <properties>
+        <spring.boot.version>3.4.1</spring.boot.version>
+        <spring.boot.starter.version>3.4.1</spring.boot.starter.version>
+    </properties>
+
+    <dependencies>
+        <!-- Veld Core Dependencies -->
+        <dependency>
+            <groupId>com.veld</groupId>
+            <artifactId>veld-runtime</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.veld</groupId>
+            <artifactId>veld-annotations</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.veld</groupId>
+            <artifactId>veld-aop</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Starter Core -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+
+        <!-- Spring Boot AutoConfiguration -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+
+        <!-- Spring Boot Configuration Processor -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <version>${spring.boot.version}</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Spring Context -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+
+        <!-- Spring Boot Actuator (for health checks) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+
+        <!-- Logging -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-logging</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+
+        <!-- Testing -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <version>${spring.boot.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <version>${spring.boot.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>11</source>
+                    <target>11</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub yasmramos Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/yasmramos/Veld</url>
+        </repository>
+    </distributionManagement>
+</project>
