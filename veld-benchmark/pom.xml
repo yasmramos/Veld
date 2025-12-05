@@ -19,9 +19,9 @@
         <jmh.version>1.37</jmh.version>
         
         <!-- Competing frameworks -->
-        <spring.version>6.1.14</spring.version>
-        <guice.version>7.0.0</guice.version>
-        <dagger.version>2.52</dagger.version>
+        <spring.version>5.3.30</spring.version>
+        <guice.version>5.1.0</guice.version>
+        <dagger.version>2.45</dagger.version>
         
         <!-- Benchmark configuration -->
         <benchmark.forks>2</benchmark.forks>
@@ -59,6 +59,16 @@
             <artifactId>spring-context</artifactId>
             <version>${spring.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-beans</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
 
         <!-- Google Guice -->
         <dependency>
@@ -78,6 +88,13 @@
             <artifactId>dagger-compiler</artifactId>
             <version>${dagger.version}</version>
             <scope>provided</scope>
+        </dependency>
+        
+        <!-- Additional required dependencies -->
+        <dependency>
+            <groupId>javax.inject</groupId>
+            <artifactId>javax.inject</artifactId>
+            <version>1</version>
         </dependency>
 
         <!-- Jakarta Inject (shared) -->
@@ -102,8 +119,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
+                    <source>11</source>
+                    <target>11</target>
                     <annotationProcessorPaths>
                         <!-- JMH annotation processor -->
                         <path>
@@ -124,6 +141,14 @@
                             <version>${project.version}</version>
                         </path>
                     </annotationProcessorPaths>
+                    <compilerArgs>
+                        <arg>--add-opens</arg>
+                        <arg>java.base/java.lang=ALL-UNNAMED</arg>
+                        <arg>--add-opens</arg>
+                        <arg>java.base/java.lang.reflect=ALL-UNNAMED</arg>
+                        <arg>--add-opens</arg>
+                        <arg>java.base/java.util=ALL-UNNAMED</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
 
