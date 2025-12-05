@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
+import org.objectweb.asm.tree.AbstractInsnNode;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -387,6 +388,218 @@ class FieldInjectorWeaverTest {
     }
     
     @Nested
+    @DisplayName("Static Fields")
+    class StaticFields {
+        
+        @Test
+        @DisplayName("Should generate static setter for private static field")
+        void shouldGenerateStaticSetterForPrivateStaticField() {
+            byte[] originalClass = generateClassWithField(
+                "com/example/StaticService",
+                "instance",
+                "Lcom/example/StaticService;",
+                "Lcom/veld/annotation/Inject;",
+                ACC_PRIVATE | ACC_STATIC
+            );
+            
+            FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
+            
+            assertTrue(result.wasModified(), "Class should be modified");
+            assertTrue(result.getAddedSetters().get(0).contains("static"), "Setter should be marked as static");
+            
+            ClassNode weavedClass = parseClass(result.getBytecode());
+            MethodNode setter = findMethod(weavedClass, "__di_set_instance");
+            
+            assertNotNull(setter, "Static setter should exist");
+            assertTrue((setter.access & ACC_STATIC) != 0, "Setter should be static");
+            assertTrue((setter.access & ACC_PUBLIC) != 0, "Setter should be public");
+            assertTrue((setter.access & ACC_SYNTHETIC) != 0, "Setter should be synthetic");
+        }
+        
+        @Test
+        @DisplayName("Static setter should use PUTSTATIC opcode")
+        void staticSetterShouldUsePutstatic() {
+            byte[] originalClass = generateClassWithField(
+                "com/example/StaticService",
+                "config",
+                "Lcom/example/Config;",
+                "Lcom/veld/annotation/Inject;",
+                ACC_PRIVATE | ACC_STATIC
+            );
+            
+            FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
+            ClassNode weavedClass = parseClass(result.getBytecode());
+            MethodNode setter = findMethod(weavedClass, "__di_set_config");
+            
+            // Find PUTSTATIC instruction
+            boolean hasPutstatic = false;
+            for (AbstractInsnNode insn : setter.instructions) {
+                if (insn instanceof FieldInsnNode) {
+                    FieldInsnNode fieldInsn = (FieldInsnNode) insn;
+                    if (fieldInsn.getOpcode() == PUTSTATIC) {
+                        hasPutstatic = true;
+                        assertEquals("config", fieldInsn.name);
+                        break;
+                    }
+                }
+            }
+            assertTrue(hasPutstatic, "Static setter should use PUTSTATIC");
+        }
+        
+        @Test
+        @DisplayName("Should generate static setter for primitive static field")
+        void shouldGenerateStaticSetterForPrimitiveStaticField() {
+            byte[] originalClass = generateClassWithField(
+                "com/example/Counter",
+                "count",
+                "I",
+                "Lcom/veld/annotation/Value;",
+                ACC_PRIVATE | ACC_STATIC
+            );
+            
+            FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
+            ClassNode weavedClass = parseClass(result.getBytecode());
+            MethodNode setter = findMethod(weavedClass, "__di_set_count");
+            
+            assertNotNull(setter);
+            assertEquals("(I)V", setter.desc, "Setter should take int parameter");
+            assertTrue((setter.access & ACC_STATIC) != 0, "Setter should be static");
+        }
+    }
+    
+    @Nested
+    @DisplayName("Final Fields")
+    class FinalFields {
+        
+        @Test
+        @DisplayName("Should remove final modifier and generate setter")
+        void shouldRemoveFinalModifierAndGenerateSetter() {
+            byte[] originalClass = generateClassWithField(
+                "com/example/ImmutableService",
+                "dependency",
+                "Lcom/example/Dep;",
+                "Lcom/veld/annotation/Inject;",
+                ACC_PRIVATE | ACC_FINAL
+            );
+            
+            FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
+            
+            assertTrue(result.wasModified(), "Class should be modified");
+            
+            ClassNode weavedClass = parseClass(result.getBytecode());
+            
+            // Verify final modifier was removed from field
+            FieldNode field = findField(weavedClass, "dependency");
+            assertNotNull(field);
+            assertFalse((field.access & ACC_FINAL) != 0, "Final modifier should be removed");
+            
+            // Verify setter was generated
+            MethodNode setter = findMethod(weavedClass, "__di_set_dependency");
+            assertNotNull(setter, "Setter should exist");
+        }
+        
+        @Test
+        @DisplayName("Should handle private final primitive field")
+        void shouldHandlePrivateFinalPrimitiveField() {
+            byte[] originalClass = generateClassWithField(
+                "com/example/Constants",
+                "maxSize",
+                "I",
+                "Lcom/veld/annotation/Value;",
+                ACC_PRIVATE | ACC_FINAL
+            );
+            
+            FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
+            ClassNode weavedClass = parseClass(result.getBytecode());
+            
+            FieldNode field = findField(weavedClass, "maxSize");
+            assertFalse((field.access & ACC_FINAL) != 0, "Final should be removed");
+            
+            MethodNode setter = findMethod(weavedClass, "__di_set_maxSize");
+            assertNotNull(setter);
+            assertEquals("(I)V", setter.desc);
+        }
+    }
+    
+    @Nested
+    @DisplayName("Static Final Fields")
+    class StaticFinalFields {
+        
+        @Test
+        @DisplayName("Should handle private static final field")
+        void shouldHandlePrivateStaticFinalField() {
+            byte[] originalClass = generateClassWithField(
+                "com/example/Singleton",
+                "INSTANCE",
+                "Lcom/example/Singleton;",
+                "Lcom/veld/annotation/Inject;",
+                ACC_PRIVATE | ACC_STATIC | ACC_FINAL
+            );
+            
+            FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
+            
+            assertTrue(result.wasModified(), "Class should be modified");
+            
+            ClassNode weavedClass = parseClass(result.getBytecode());
+            
+            // Verify final modifier was removed
+            FieldNode field = findField(weavedClass, "INSTANCE");
+            assertFalse((field.access & ACC_FINAL) != 0, "Final should be removed");
+            assertTrue((field.access & ACC_STATIC) != 0, "Static should remain");
+            
+            // Verify static setter was generated
+            MethodNode setter = findMethod(weavedClass, "__di_set_INSTANCE");
+            assertNotNull(setter);
+            assertTrue((setter.access & ACC_STATIC) != 0, "Setter should be static");
+        }
+        
+        @Test
+        @DisplayName("Static final setter should use PUTSTATIC")
+        void staticFinalSetterShouldUsePutstatic() {
+            byte[] originalClass = generateClassWithField(
+                "com/example/Config",
+                "DEFAULT",
+                "Ljava/lang/String;",
+                "Lcom/veld/annotation/Value;",
+                ACC_PRIVATE | ACC_STATIC | ACC_FINAL
+            );
+            
+            FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
+            ClassNode weavedClass = parseClass(result.getBytecode());
+            MethodNode setter = findMethod(weavedClass, "__di_set_DEFAULT");
+            
+            boolean hasPutstatic = false;
+            for (AbstractInsnNode insn : setter.instructions) {
+                if (insn instanceof FieldInsnNode && insn.getOpcode() == PUTSTATIC) {
+                    hasPutstatic = true;
+                    break;
+                }
+            }
+            assertTrue(hasPutstatic, "Static final setter should use PUTSTATIC");
+        }
+        
+        @Test
+        @DisplayName("Should handle static final long field")
+        void shouldHandleStaticFinalLongField() {
+            byte[] originalClass = generateClassWithField(
+                "com/example/Timing",
+                "TIMEOUT",
+                "J",
+                "Lcom/veld/annotation/Value;",
+                ACC_PRIVATE | ACC_STATIC | ACC_FINAL
+            );
+            
+            FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
+            ClassNode weavedClass = parseClass(result.getBytecode());
+            
+            MethodNode setter = findMethod(weavedClass, "__di_set_TIMEOUT");
+            assertNotNull(setter);
+            assertEquals("(J)V", setter.desc, "Setter should take long parameter");
+            assertTrue((setter.access & ACC_STATIC) != 0, "Setter should be static");
+        }
+    }
+    
+    @Nested
     @DisplayName("Bytecode Verification")
     class BytecodeVerification {
         
@@ -516,6 +729,15 @@ class FieldInjectorWeaverTest {
         for (MethodNode method : classNode.methods) {
             if (method.name.equals(methodName)) {
                 return method;
+            }
+        }
+        return null;
+    }
+    
+    private FieldNode findField(ClassNode classNode, String fieldName) {
+        for (FieldNode field : classNode.fields) {
+            if (field.name.equals(fieldName)) {
+                return field;
             }
         }
         return null;

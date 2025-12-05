@@ -12,37 +12,42 @@ import static org.objectweb.asm.Opcodes.*;
 /**
  * Bytecode weaver that adds synthetic setter methods for private field injection.
  * 
+ * <p>Supports all field modifiers:
+ * <ul>
+ *   <li>{@code private} - Instance setter with PUTFIELD</li>
+ *   <li>{@code private static} - Static setter with PUTSTATIC</li>
+ *   <li>{@code private final} - Removes final modifier + instance setter</li>
+ *   <li>{@code private static final} - Removes final modifier + static setter</li>
+ * </ul>
+ * 
  * <p>For each field annotated with @Inject or @Value, this weaver generates a
  * synthetic method {@code __di_set_<fieldName>} that allows the generated factory
  * to inject values without using reflection.
  * 
- * <p>Example transformation:
+ * <p>Example transformations:
  * <pre>
- * // Original class
- * public class MyService {
- *     &#64;Inject
- *     private Repository repository;
- * }
+ * // Instance field
+ * &#64;Inject private Repository repository;
+ * → public synthetic void __di_set_repository(Repository value) {
+ *       this.repository = value;
+ *   }
  * 
- * // After weaving - synthetic method added
- * public class MyService {
- *     &#64;Inject
- *     private Repository repository;
- *     
- *     // Generated synthetic method
- *     public synthetic void __di_set_repository(Repository value) {
- *         this.repository = value;
- *     }
- * }
- * </pre>
+ * // Static field
+ * &#64;Inject private static Config config;
+ * → public static synthetic void __di_set_config(Config value) {
+ *       ClassName.config = value;
+ *   }
  * 
- * <p>The generated factory then calls:
- * <pre>
- * instance.__di_set_repository(container.get(Repository.class));
+ * // Final field (modifier removed)
+ * &#64;Inject private final Service service;
+ * → &#64;Inject private Service service; // final removed
+ *   public synthetic void __di_set_service(Service value) {
+ *       this.service = value;
+ *   }
  * </pre>
  * 
  * <p>This approach maintains the "zero-reflection" principle while supporting
- * private field injection.
+ * all field types, similar to Lombok, Micronaut, and Quarkus.
  */
 public class FieldInjectorWeaver {
     
@@ -124,6 +129,7 @@ public class FieldInjectorWeaver {
         }
         
         List<String> addedSetters = new ArrayList<>();
+        List<String> modifiedFields = new ArrayList<>();
         
         // Generate synthetic setters for each injectable field
         for (FieldNode field : injectableFields) {
@@ -134,9 +140,15 @@ public class FieldInjectorWeaver {
                 continue;
             }
             
+            // Remove final modifier if present (required for injection)
+            if (isFinal(field)) {
+                removeFinalModifier(field);
+                modifiedFields.add(field.name + " (final removed)");
+            }
+            
             MethodNode setter = generateSetter(classNode.name, field);
             classNode.methods.add(setter);
-            addedSetters.add(setterName);
+            addedSetters.add(setterName + (isStatic(field) ? " (static)" : ""));
         }
         
         if (addedSetters.isEmpty()) {
@@ -152,6 +164,7 @@ public class FieldInjectorWeaver {
     
     /**
      * Finds all fields that have injection annotations.
+     * Supports private, private static, private final, and private static final.
      */
     private List<FieldNode> findInjectableFields(ClassNode classNode) {
         List<FieldNode> injectableFields = new ArrayList<>();
@@ -159,7 +172,7 @@ public class FieldInjectorWeaver {
         for (FieldNode field : classNode.fields) {
             if (hasInjectAnnotation(field)) {
                 // Only process private fields - public/protected/package-private
-                // can use direct PUTFIELD
+                // can use direct PUTFIELD/PUTSTATIC
                 if ((field.access & ACC_PRIVATE) != 0) {
                     injectableFields.add(field);
                 }
@@ -167,6 +180,36 @@ public class FieldInjectorWeaver {
         }
         
         return injectableFields;
+    }
+    
+    /**
+     * Removes the final modifier from a field to allow injection.
+     * This is necessary for final fields since PUTFIELD/PUTSTATIC
+     * cannot assign to final fields after initialization.
+     * 
+     * @param field the field to modify
+     * @return true if the field was modified (was final)
+     */
+    private boolean removeFinalModifier(FieldNode field) {
+        if ((field.access & ACC_FINAL) != 0) {
+            field.access &= ~ACC_FINAL;
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Checks if a field is static.
+     */
+    private boolean isStatic(FieldNode field) {
+        return (field.access & ACC_STATIC) != 0;
+    }
+    
+    /**
+     * Checks if a field is final.
+     */
+    private boolean isFinal(FieldNode field) {
+        return (field.access & ACC_FINAL) != 0;
     }
     
     /**
@@ -194,54 +237,94 @@ public class FieldInjectorWeaver {
     
     /**
      * Generates a synthetic setter method for a field.
+     * Handles both instance and static fields.
      * 
+     * <p>For instance fields:
      * <pre>
      * public synthetic void __di_set_fieldName(FieldType value) {
      *     this.fieldName = value;
+     * }
+     * </pre>
+     * 
+     * <p>For static fields:
+     * <pre>
+     * public static synthetic void __di_set_fieldName(FieldType value) {
+     *     ClassName.fieldName = value;
      * }
      * </pre>
      */
     private MethodNode generateSetter(String classInternalName, FieldNode field) {
         String setterName = SETTER_PREFIX + field.name;
         String setterDesc = "(" + field.desc + ")V";
+        boolean isStaticField = isStatic(field);
+        
+        // Method access: public synthetic, optionally static
+        int methodAccess = ACC_PUBLIC | ACC_SYNTHETIC;
+        if (isStaticField) {
+            methodAccess |= ACC_STATIC;
+        }
         
         MethodNode setter = new MethodNode(
-            ACC_PUBLIC | ACC_SYNTHETIC,  // public synthetic
+            methodAccess,
             setterName,
             setterDesc,
             null,  // no generic signature
             null   // no exceptions
         );
         
-        // Generate method body:
-        // this.field = value;
-        // return;
-        
         InsnList instructions = setter.instructions;
         
-        // ALOAD 0 - load 'this'
-        instructions.add(new VarInsnNode(ALOAD, 0));
-        
-        // Load the parameter based on its type
-        int loadOpcode = getLoadOpcode(field.desc);
-        instructions.add(new VarInsnNode(loadOpcode, 1));
-        
-        // PUTFIELD this.field = value
-        instructions.add(new FieldInsnNode(
-            PUTFIELD,
-            classInternalName,
-            field.name,
-            field.desc
-        ));
+        if (isStaticField) {
+            // Static field: ClassName.field = value;
+            // Load the parameter (index 0 for static methods)
+            int loadOpcode = getLoadOpcode(field.desc);
+            instructions.add(new VarInsnNode(loadOpcode, 0));
+            
+            // PUTSTATIC ClassName.field = value
+            instructions.add(new FieldInsnNode(
+                PUTSTATIC,
+                classInternalName,
+                field.name,
+                field.desc
+            ));
+        } else {
+            // Instance field: this.field = value;
+            // ALOAD 0 - load 'this'
+            instructions.add(new VarInsnNode(ALOAD, 0));
+            
+            // Load the parameter based on its type (index 1 for instance methods)
+            int loadOpcode = getLoadOpcode(field.desc);
+            instructions.add(new VarInsnNode(loadOpcode, 1));
+            
+            // PUTFIELD this.field = value
+            instructions.add(new FieldInsnNode(
+                PUTFIELD,
+                classInternalName,
+                field.name,
+                field.desc
+            ));
+        }
         
         // RETURN
         instructions.add(new InsnNode(RETURN));
         
         // Set max stack and locals (will be computed by ClassWriter)
-        setter.maxStack = 2;
-        setter.maxLocals = 2;
+        // For wide types (long, double), we need stack size 2
+        int stackSize = isWideType(field.desc) ? 2 : 1;
+        if (!isStaticField) {
+            stackSize++; // +1 for 'this'
+        }
+        setter.maxStack = stackSize;
+        setter.maxLocals = isStaticField ? (isWideType(field.desc) ? 2 : 1) : (isWideType(field.desc) ? 3 : 2);
         
         return setter;
+    }
+    
+    /**
+     * Checks if a type descriptor represents a wide type (long or double).
+     */
+    private boolean isWideType(String desc) {
+        return desc.equals("J") || desc.equals("D");
     }
     
     /**
