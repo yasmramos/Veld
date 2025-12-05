@@ -1,7 +1,7 @@
 # Veld DI Framework
 
 [![CI/CD](https://github.com/yasmramos/Veld/actions/workflows/ci.yml/badge.svg)](https://github.com/yasmramos/Veld/actions/workflows/ci.yml)
-[![Java](https://img.shields.io/badge/Java-11%2B-orange)](https://openjdk.java.net/)
+[![Java](https://img.shields.io/badge/Java-11--25-orange)](https://openjdk.java.net/)
 [![Maven](https://img.shields.io/badge/Maven-3.6%2B-blue)](https://maven.apache.org/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 [![GitHub Release](https://img.shields.io/github/v/release/yasmramos/Veld)](https://github.com/yasmramos/Veld/releases)
@@ -14,7 +14,7 @@ A lightweight, compile-time Dependency Injection framework for Java using pure A
 - **Pure Bytecode Generation**: Uses ASM to generate optimized factory classes at compile time
 - **Zero Reflection**: All dependency resolution happens via generated code, not reflection
 - **JSR-330 Compatible**: Full support for `javax.inject.*` annotations
-- **Jakarta Inject Compatible**: Full support for `jakarta.inject.*` annotations  
+- **Jakarta Inject Compatible**: Full support for `jakarta.inject.*` annotations
 - **Mixed Annotations**: Use Veld, JSR-330, and Jakarta annotations together seamlessly
 - **Scope Management**: Built-in Singleton and Prototype scopes
 - **Lazy Initialization**: `@Lazy` for deferred component creation
@@ -25,6 +25,11 @@ A lightweight, compile-time Dependency Injection framework for Java using pure A
 - **Lifecycle Callbacks**: `@PostConstruct` and `@PreDestroy` support
 - **Circular Dependency Detection**: Compile-time detection with clear error messages
 - **Lightweight**: Minimal runtime footprint
+
+### Java Platform Module System (JPMS)
+- **Full JPMS Support**: All modules include proper `module-info.java` descriptors
+- **Strong Encapsulation**: Clean module boundaries with explicit exports
+- **Java 11-25 Compatibility**: Tested and verified across all LTS versions
 
 ### EventBus
 - **Publish/Subscribe**: Lightweight event-driven architecture
@@ -47,66 +52,58 @@ A lightweight, compile-time Dependency Injection framework for Java using pure A
 - **Lifecycle Annotations**: `@PostInitialize`, `@OnStart`, `@OnStop`, `@DependsOn`
 - **Lifecycle Events**: `ContextRefreshedEvent`, `ContextStartedEvent`, `ContextStoppedEvent`, `ContextClosedEvent`
 
+## Requirements
+
+- **Java**: 11, 17, 21, or 25 (LTS versions recommended)
+- **Maven**: 3.6+
+
 ## Quick Start
 
 ### 1. Add Dependencies
 
 ```xml
-<dependencies>
-    <!-- Veld Annotations -->
-    <dependency>
-        <groupId>com.veld</groupId>
-        <artifactId>veld-annotations</artifactId>
-        <version>1.0.0-alpha.6</version>
-    </dependency>
-    
-    <!-- Veld Runtime -->
-    <dependency>
-        <groupId>com.veld</groupId>
-        <artifactId>veld-runtime</artifactId>
-        <version>1.0.0-alpha.6</version>
-    </dependency>
-    
-    <!-- Veld AOP (optional) -->
-    <dependency>
-        <groupId>com.veld</groupId>
-        <artifactId>veld-aop</artifactId>
-        <version>1.0.0-alpha.6</version>
-    </dependency>
-    
-    <!-- Veld Processor (compile-time only) -->
-    <dependency>
-        <groupId>com.veld</groupId>
-        <artifactId>veld-processor</artifactId>
-        <version>1.0.0-alpha.6</version>
-        <scope>provided</scope>
-    </dependency>
-</dependencies>
+<dependency>
+    <groupId>com.veld</groupId>
+    <artifactId>veld-annotations</artifactId>
+    <version>1.0.0-alpha.6</version>
+</dependency>
+<dependency>
+    <groupId>com.veld</groupId>
+    <artifactId>veld-runtime</artifactId>
+    <version>1.0.0-alpha.6</version>
+</dependency>
+<dependency>
+    <groupId>com.veld</groupId>
+    <artifactId>veld-aop</artifactId>
+    <version>1.0.0-alpha.6</version>
+</dependency>
+<dependency>
+    <groupId>com.veld</groupId>
+    <artifactId>veld-processor</artifactId>
+    <version>1.0.0-alpha.6</version>
+    <scope>provided</scope>
+</dependency>
 ```
 
 ### 2. Configure Annotation Processor
 
 ```xml
-<build>
-    <plugins>
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <version>3.11.0</version>
-            <configuration>
-                <source>11</source>
-                <target>11</target>
-                <annotationProcessorPaths>
-                    <path>
-                        <groupId>com.veld</groupId>
-                        <artifactId>veld-processor</artifactId>
-                        <version>1.0.0-alpha.6</version>
-                    </path>
-                </annotationProcessorPaths>
-            </configuration>
-        </plugin>
-    </plugins>
-</build>
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-compiler-plugin</artifactId>
+    <version>3.11.0</version>
+    <configuration>
+        <source>11</source>
+        <target>11</target>
+        <annotationProcessorPaths>
+            <path>
+                <groupId>com.veld</groupId>
+                <artifactId>veld-processor</artifactId>
+                <version>1.0.0-alpha.6</version>
+            </path>
+        </annotationProcessorPaths>
+    </configuration>
+</plugin>
 ```
 
 ### 3. Define Components
@@ -117,10 +114,9 @@ import com.veld.annotation.Singleton;
 
 @Singleton
 public class UserService {
-    
     @Inject
     UserRepository userRepository;
-    
+
     public User findUser(Long id) {
         return userRepository.findById(id);
     }
@@ -135,7 +131,6 @@ import com.veld.runtime.VeldContainer;
 public class Main {
     public static void main(String[] args) {
         VeldContainer container = new VeldContainer();
-        
         try {
             UserService userService = container.get(UserService.class);
             User user = userService.findUser(1L);
@@ -143,6 +138,31 @@ public class Main {
             container.close();
         }
     }
+}
+```
+
+## JPMS Module Configuration
+
+Veld is fully modularized with JPMS. Here are the module names:
+
+| Artifact | Module Name |
+|----------|-------------|
+| veld-annotations | `com.veld.annotation` |
+| veld-runtime | `com.veld.runtime` |
+| veld-aop | `com.veld.aop` |
+| veld-processor | `com.veld.processor` |
+
+### Example module-info.java
+
+```java
+module com.myapp {
+    requires com.veld.annotation;
+    requires com.veld.runtime;
+    requires com.veld.aop;
+    
+    // Open packages for dependency injection
+    opens com.myapp.services to com.veld.runtime;
+    opens com.myapp.repositories to com.veld.runtime;
 }
 ```
 
@@ -168,12 +188,11 @@ Veld supports annotations from three sources, which can be mixed freely:
 ### Example: Mixed Annotations
 
 ```java
-@Singleton  // Veld annotation (implies @Component)
+@Singleton // Veld annotation (implies @Component)
 public class PaymentService {
-    
     @javax.inject.Inject
     private LogService logService;
-    
+
     @jakarta.inject.Inject
     public void setConfig(ConfigService config) {
         this.config = config;
@@ -189,7 +208,7 @@ public class PaymentService {
 @Singleton
 public class OrderService {
     private final PaymentService paymentService;
-    
+
     @Inject
     public OrderService(PaymentService paymentService) {
         this.paymentService = paymentService;
@@ -203,7 +222,7 @@ public class OrderService {
 @Singleton
 public class UserService {
     @Inject
-    UserRepository userRepository;  // Must be non-private (no reflection)
+    UserRepository userRepository; // Must be non-private (no reflection)
 }
 ```
 
@@ -213,7 +232,7 @@ public class UserService {
 @Singleton
 public class NotificationService {
     private EmailService emailService;
-    
+
     @Inject
     public void setEmailService(EmailService emailService) {
         this.emailService = emailService;
@@ -237,7 +256,7 @@ public class UserRepositoryImpl implements IUserRepository {
 @Singleton
 public class UserService {
     @Inject
-    IUserRepository userRepository;  // Injects UserRepositoryImpl
+    IUserRepository userRepository; // Injects UserRepositoryImpl
 }
 ```
 
@@ -269,7 +288,6 @@ Components marked with `@Lazy` are not instantiated until first accessed:
 @Singleton
 @Lazy
 public class ExpensiveService {
-    
     public ExpensiveService() {
         // Heavy initialization - only happens when first requested
         loadLargeDataset();
@@ -284,10 +302,9 @@ Use `Provider<T>` for on-demand instance creation, especially useful with `@Prot
 ```java
 @Singleton
 public class ReportGenerator {
-    
     @Inject
     Provider<RequestContext> contextProvider;
-    
+
     public void generateReports() {
         // Each call creates a new RequestContext
         RequestContext ctx1 = contextProvider.get();
@@ -311,11 +328,10 @@ Handle missing dependencies gracefully without throwing exceptions:
 ```java
 @Singleton
 public class MyService {
-    
     @Inject
     @Optional
-    CacheService cache;  // Will be null if CacheService is not registered
-    
+    CacheService cache; // Will be null if CacheService is not registered
+
     public void doWork() {
         if (cache != null) {
             cache.put("key", "value");
@@ -329,10 +345,9 @@ public class MyService {
 ```java
 @Singleton
 public class MyService {
-    
     @Inject
-    java.util.Optional<MetricsService> metrics;  // Will be Optional.empty() if not found
-    
+    java.util.Optional<MetricsService> metrics; // Will be Optional.empty() if not found
+
     public void doWork() {
         metrics.ifPresent(m -> m.recordEvent("work.done"));
     }
@@ -402,13 +417,12 @@ public class DefaultDatabaseService implements DatabaseService {
 ```java
 @Singleton
 public class DatabaseService {
-    
     @PostConstruct
     public void init() {
         // Called after dependency injection
         connection = createConnection();
     }
-    
+
     @PreDestroy
     public void cleanup() {
         // Called when container closes
@@ -441,13 +455,12 @@ eventBus.postAsync(new EmailNotificationEvent(email));
 import com.veld.annotation.Subscribe;
 
 public class UserEventHandler {
-    
     @Subscribe
     public void onUserCreated(UserCreatedEvent event) {
         System.out.println("User created: " + event.getUser().getName());
     }
-    
-    @Subscribe(priority = 10)  // Higher priority = earlier execution
+
+    @Subscribe(priority = 10) // Higher priority = earlier execution
     public void onHighPriorityEvent(OrderEvent event) {
         // Executed before lower priority handlers
     }
@@ -471,7 +484,7 @@ public class EventHandler {
     public void onBaseEvent(BaseEvent event) {
         // Receives BaseEvent, UserEvent, and AdminEvent
     }
-    
+
     @Subscribe
     public void onUserEvent(UserEvent event) {
         // Receives UserEvent and AdminEvent only
@@ -502,32 +515,31 @@ import com.veld.runtime.lifecycle.*;
 // SmartLifecycle with phase ordering
 @Singleton
 public class DatabaseConnection implements SmartLifecycle {
-    
     private boolean running = false;
-    
+
     @Override
     public void start() {
         // Connect to database
         running = true;
     }
-    
+
     @Override
     public void stop() {
         // Close connections
         running = false;
     }
-    
+
     @Override
     public boolean isRunning() {
         return running;
     }
-    
+
     @Override
     public int getPhase() {
         // Lower values start first, stop last
         return -1000;
     }
-    
+
     @Override
     public boolean isAutoStartup() {
         return true;
@@ -540,13 +552,12 @@ public class DatabaseConnection implements SmartLifecycle {
 ```java
 @Singleton
 public class MetricsService implements InitializingBean, DisposableBean {
-    
     @Override
     public void afterPropertiesSet() throws Exception {
         // Called after all dependencies are injected
         initializeMetrics();
     }
-    
+
     @Override
     public void destroy() throws Exception {
         // Called when container is closing
@@ -561,17 +572,17 @@ public class MetricsService implements InitializingBean, DisposableBean {
 @Singleton
 @DependsOn("databaseConnection")
 public class CacheService {
-    
+
     @PostInitialize
     public void warmCache() {
         // Called after ALL beans are initialized
     }
-    
+
     @OnStart
     public void startCacheRefresh() {
         // Called when context starts
     }
-    
+
     @OnStop
     public void stopCacheRefresh() {
         // Called when context stops
@@ -583,13 +594,12 @@ public class CacheService {
 
 ```java
 public class LoggingBeanPostProcessor implements BeanPostProcessor {
-    
     @Override
     public Object postProcessBeforeInitialization(Object bean, String beanName) {
         System.out.println("Before init: " + beanName);
         return bean;
     }
-    
+
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) {
         System.out.println("After init: " + beanName);
@@ -604,22 +614,21 @@ public class LoggingBeanPostProcessor implements BeanPostProcessor {
 ```java
 @Singleton
 public class LifecycleMonitor {
-    
     @Subscribe
     public void onRefreshed(ContextRefreshedEvent event) {
         System.out.println("Container initialized with " + event.getBeanCount() + " beans");
     }
-    
+
     @Subscribe
     public void onStarted(ContextStartedEvent event) {
         System.out.println("Application started");
     }
-    
+
     @Subscribe
     public void onStopped(ContextStoppedEvent event) {
         System.out.println("Application stopped");
     }
-    
+
     @Subscribe
     public void onClosed(ContextClosedEvent event) {
         System.out.println("Container closed after " + event.getUptime());
@@ -658,7 +667,7 @@ import com.veld.aop.*;
 
 @Aspect
 public class LoggingAspect {
-    
+
     @Around("execution(* com.example.service.*.*(..))")
     public Object logMethod(InvocationContext ctx) throws Exception {
         System.out.println("Entering: " + ctx.getMethod().getName());
@@ -671,17 +680,17 @@ public class LoggingAspect {
             throw e;
         }
     }
-    
+
     @Before("execution(public * com.example..*.*(..))")
     public void beforeMethod(JoinPoint jp) {
         System.out.println("Before: " + jp.getSignature());
     }
-    
+
     @After(value = "execution(* *.*(..))", type = AfterType.RETURNING)
     public void afterReturning(JoinPoint jp, Object result) {
         System.out.println("Returned: " + result);
     }
-    
+
     @After(value = "execution(* *.*(..))", type = AfterType.THROWING)
     public void afterThrowing(JoinPoint jp, Throwable error) {
         System.out.println("Exception: " + error.getMessage());
@@ -721,7 +730,7 @@ public void slowOperation() { }
 
 // Argument validation
 @Validated
-public void saveUser(User user) { }  // Validates user != null
+public void saveUser(User user) { } // Validates user != null
 
 // Transaction management
 @Transactional(propagation = Propagation.REQUIRED)
@@ -756,78 +765,82 @@ Veld/
 ├── pom.xml                     # Parent POM
 ├── CHANGELOG.md                # Version history
 ├── veld-annotations/           # Annotation definitions
-│   └── src/main/java/
-│       └── com/veld/annotation/
-│           ├── Component.java
-│           ├── Inject.java
-│           ├── Singleton.java
-│           ├── Prototype.java
-│           ├── Lazy.java
-│           ├── Optional.java
-│           ├── Named.java
-│           ├── Subscribe.java          # EventBus
-│           ├── Aspect.java             # AOP
-│           ├── Around.java
-│           ├── Before.java
-│           ├── After.java
-│           ├── Pointcut.java
-│           ├── Interceptor.java
-│           ├── AroundInvoke.java
-│           ├── InterceptorBinding.java
-│           └── ...
+│   ├── src/main/java/
+│   │   ├── module-info.java    # JPMS module descriptor
+│   │   └── com/veld/annotation/
+│   │       ├── Component.java
+│   │       ├── Inject.java
+│   │       ├── Singleton.java
+│   │       ├── Prototype.java
+│   │       ├── Lazy.java
+│   │       ├── Optional.java
+│   │       ├── Named.java
+│   │       ├── Subscribe.java  # EventBus
+│   │       ├── Aspect.java     # AOP
+│   │       ├── Around.java
+│   │       ├── Before.java
+│   │       ├── After.java
+│   │       ├── Pointcut.java
+│   │       ├── Interceptor.java
+│   │       ├── AroundInvoke.java
+│   │       ├── InterceptorBinding.java
+│   │       └── ...
 ├── veld-runtime/               # Runtime container
-│   └── src/main/java/
-│       └── com/veld/runtime/
-│           ├── VeldContainer.java
-│           ├── ComponentRegistry.java
-│           ├── Provider.java
-│           └── event/
-│               ├── EventBus.java
-│               └── DeadEvent.java
+│   ├── src/main/java/
+│   │   ├── module-info.java    # JPMS module descriptor
+│   │   └── com/veld/runtime/
+│   │       ├── VeldContainer.java
+│   │       ├── ComponentRegistry.java
+│   │       ├── Provider.java
+│   │       └── event/
+│   │           ├── EventBus.java
+│   │           └── DeadEvent.java
 ├── veld-aop/                   # AOP module
-│   └── src/main/java/
-│       └── com/veld/aop/
-│           ├── JoinPoint.java
-│           ├── InvocationContext.java
-│           ├── MethodInvocation.java
-│           ├── MethodInterceptor.java
-│           ├── Advice.java
-│           ├── InterceptorRegistry.java
-│           ├── PointcutExpression.java
-│           ├── CompositePointcut.java
-│           ├── ProxyFactory.java
-│           ├── ProxyMethodHandler.java
-│           └── interceptor/
-│               ├── Logged.java
-│               ├── LoggingInterceptor.java
-│               ├── Timed.java
-│               ├── TimingInterceptor.java
-│               ├── Validated.java
-│               ├── ValidationInterceptor.java
-│               ├── Transactional.java
-│               └── TransactionInterceptor.java
+│   ├── src/main/java/
+│   │   ├── module-info.java    # JPMS module descriptor
+│   │   └── com/veld/aop/
+│   │       ├── JoinPoint.java
+│   │       ├── InvocationContext.java
+│   │       ├── MethodInvocation.java
+│   │       ├── MethodInterceptor.java
+│   │       ├── Advice.java
+│   │       ├── InterceptorRegistry.java
+│   │       ├── PointcutExpression.java
+│   │       ├── CompositePointcut.java
+│   │       ├── ProxyFactory.java
+│   │       ├── ProxyMethodHandler.java
+│   │       └── interceptor/
+│   │           ├── Logged.java
+│   │           ├── LoggingInterceptor.java
+│   │           ├── Timed.java
+│   │           ├── TimingInterceptor.java
+│   │           ├── Validated.java
+│   │           ├── ValidationInterceptor.java
+│   │           ├── Transactional.java
+│   │           └── TransactionInterceptor.java
 ├── veld-processor/             # Compile-time annotation processor
+│   ├── src/main/java/
+│   │   ├── module-info.java    # JPMS module descriptor
+│   │   └── com/veld/processor/
+│   │       ├── VeldProcessor.java
+│   │       ├── AnnotationHelper.java
+│   │       └── ...
+├── veld-weaver/                # Bytecode weaver Maven plugin
 │   └── src/main/java/
-│       └── com/veld/processor/
-│           ├── VeldProcessor.java
-│           ├── AnnotationHelper.java
+│       └── com/veld/weaver/
 │           └── ...
 └── veld-example/               # Example application
-    └── src/main/java/
-        └── com/veld/example/
-            ├── Main.java
-            ├── aop/
-            │   ├── LoggingAspect.java
-            │   ├── PerformanceAspect.java
-            │   ├── CalculatorService.java
-            │   └── ProductService.java
-            └── ...
+    ├── src/main/java/
+    │   ├── module-info.java    # JPMS module descriptor
+    │   └── com/veld/example/
+    │       ├── Main.java
+    │       ├── aop/
+    │       │   ├── LoggingAspect.java
+    │       │   ├── PerformanceAspect.java
+    │       │   ├── CalculatorService.java
+    │       │   └── ProductService.java
+    │       └── ...
 ```
-
-## Requirements
-
-- **Java**: 11 or higher
-- **Maven**: 3.6+
 
 ## Build
 
@@ -879,6 +892,22 @@ public class UserService$$VeldFactory implements ComponentFactory<UserService> {
     }
 }
 ```
+
+## Compatibility Matrix
+
+| Java Version | Status | Notes |
+|--------------|--------|-------|
+| Java 11 | ✅ Supported | Minimum required version |
+| Java 17 | ✅ Supported | LTS - Recommended |
+| Java 21 | ✅ Supported | LTS - Recommended |
+| Java 25 | ✅ Supported | LTS - Latest |
+
+### Dependencies
+
+- **ASM**: 9.8 (supports Java 25 bytecode)
+- **Mockito**: 5.20.0 (for testing)
+- **ByteBuddy**: 1.17.4 (for testing, Java 25 compatible)
+- **JUnit**: 5.11.3
 
 ## Changelog
 
