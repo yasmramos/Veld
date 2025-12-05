@@ -17,6 +17,12 @@ import com.veld.benchmark.dagger.DaggerPrototypeComponent;
 import com.veld.benchmark.dagger.PrototypeComponent;
 import com.veld.benchmark.guice.GuicePrototypeModule;
 import com.veld.benchmark.spring.SpringPrototypeConfig;
+import com.veld.benchmark.veld.FastBenchmarkHelper;
+import com.veld.benchmark.veld.VeldBenchmarkHelper;
+import com.veld.benchmark.veld.VeldSimpleService;
+import com.veld.benchmark.veld.VeldComplexService;
+import com.veld.runtime.VeldContainer;
+import com.veld.runtime.fast.FastContainer;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -37,12 +43,16 @@ import java.util.concurrent.TimeUnit;
 @Measurement(iterations = 5, time = 1)
 public class PrototypeBenchmark {
     
+    private VeldContainer veldContainer;
+    private FastContainer fastContainer;
     private AnnotationConfigApplicationContext springContext;
     private Injector guiceInjector;
     private PrototypeComponent daggerComponent;
     
     @Setup(Level.Trial)
     public void setup() {
+        veldContainer = VeldBenchmarkHelper.createPrototypeContainer();
+        fastContainer = FastBenchmarkHelper.createPrototypeContainer();
         springContext = new AnnotationConfigApplicationContext(SpringPrototypeConfig.class);
         guiceInjector = Guice.createInjector(new GuicePrototypeModule());
         daggerComponent = DaggerPrototypeComponent.create();
@@ -56,6 +66,18 @@ public class PrototypeBenchmark {
     }
     
     // ==================== SIMPLE PROTOTYPE ====================
+    
+    @Benchmark
+    public void veldPrototypeSimple(Blackhole bh) {
+        Service service = veldContainer.get(VeldSimpleService.class);
+        bh.consume(service);
+    }
+    
+    @Benchmark
+    public void veldFastPrototypeSimple(Blackhole bh) {
+        Service service = fastContainer.get(VeldSimpleService.class);
+        bh.consume(service);
+    }
     
     @Benchmark
     public void springPrototypeSimple(Blackhole bh) {

@@ -16,9 +16,11 @@ import com.veld.benchmark.dagger.BenchmarkComponent;
 import com.veld.benchmark.dagger.DaggerBenchmarkComponent;
 import com.veld.benchmark.guice.GuiceModule;
 import com.veld.benchmark.spring.SpringConfig;
+import com.veld.benchmark.veld.FastBenchmarkHelper;
 import com.veld.benchmark.veld.VeldBenchmarkHelper;
 import com.veld.benchmark.veld.VeldSimpleService;
 import com.veld.runtime.VeldContainer;
+import com.veld.runtime.fast.FastContainer;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -40,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 public class ThroughputBenchmark {
     
     private VeldContainer veldContainer;
+    private FastContainer fastContainer;
     private AnnotationConfigApplicationContext springContext;
     private Injector guiceInjector;
     private BenchmarkComponent daggerComponent;
@@ -47,6 +50,7 @@ public class ThroughputBenchmark {
     @Setup(Level.Trial)
     public void setup() {
         veldContainer = VeldBenchmarkHelper.createSimpleContainer();
+        fastContainer = FastBenchmarkHelper.createSimpleContainer();
         springContext = new AnnotationConfigApplicationContext(SpringConfig.class);
         guiceInjector = Guice.createInjector(new GuiceModule());
         daggerComponent = DaggerBenchmarkComponent.create();
@@ -64,6 +68,12 @@ public class ThroughputBenchmark {
     @Benchmark
     public void veldThroughput(Blackhole bh) {
         Service service = veldContainer.get(VeldSimpleService.class);
+        bh.consume(service);
+    }
+    
+    @Benchmark
+    public void veldFastThroughput(Blackhole bh) {
+        Service service = fastContainer.get(VeldSimpleService.class);
         bh.consume(service);
     }
     
@@ -91,6 +101,13 @@ public class ThroughputBenchmark {
     @Threads(4)
     public void veldConcurrentThroughput(Blackhole bh) {
         Service service = veldContainer.get(VeldSimpleService.class);
+        bh.consume(service);
+    }
+    
+    @Benchmark
+    @Threads(4)
+    public void veldFastConcurrentThroughput(Blackhole bh) {
+        Service service = fastContainer.get(VeldSimpleService.class);
         bh.consume(service);
     }
     

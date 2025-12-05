@@ -13,6 +13,7 @@ module com.veld.runtime {
     exports com.veld.runtime;
     exports com.veld.runtime.condition;
     exports com.veld.runtime.event;
+    exports com.veld.runtime.fast;
     exports com.veld.runtime.lifecycle;
     exports com.veld.runtime.lifecycle.event;
     exports com.veld.runtime.value;

@@ -913,7 +913,7 @@ public class VeldProcessor extends AbstractProcessor {
     
     private void generateRegistry() {
         try {
-            // Generate VeldRegistry bytecode
+            // Generate VeldRegistry bytecode (standard container)
             RegistryGenerator registryGen = new RegistryGenerator(discoveredComponents);
             byte[] registryBytecode = registryGen.generate();
             writeClassFile(registryGen.getRegistryClassName(), registryBytecode);
@@ -924,6 +924,18 @@ public class VeldProcessor extends AbstractProcessor {
             byte[] bootstrapBytecode = bootstrapGen.generate();
             writeClassFile(bootstrapGen.getClassName(), bootstrapBytecode);
             note("Generated Veld bootstrap class (pure ASM bytecode)");
+            
+            // Generate VeldFastRegistry bytecode (ultra-fast container)
+            FastRegistryGenerator fastRegistryGen = new FastRegistryGenerator(discoveredComponents);
+            byte[] fastRegistryBytecode = fastRegistryGen.generate();
+            writeClassFile(fastRegistryGen.getRegistryClassName(), fastRegistryBytecode);
+            note("Generated VeldFastRegistry (ultra-fast array-based lookups)");
+            
+            // Generate VeldFast bootstrap class bytecode
+            FastBootstrapGenerator fastBootstrapGen = new FastBootstrapGenerator();
+            byte[] fastBootstrapBytecode = fastBootstrapGen.generate();
+            writeClassFile(fastBootstrapGen.getBootstrapClassName(), fastBootstrapBytecode);
+            note("Generated VeldFast bootstrap class");
         } catch (IOException e) {
             error(null, "Failed to generate VeldRegistry: " + e.getMessage());
         }
