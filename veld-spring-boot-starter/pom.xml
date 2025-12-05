@@ -17,8 +17,8 @@
     <description>Spring Boot Starter for Veld Framework - Zero Reflection Dependency Injection</description>
 
     <properties>
-        <spring.boot.version>3.4.1</spring.boot.version>
-        <spring.boot.starter.version>3.4.1</spring.boot.starter.version>
+        <spring.boot.version>2.7.18</spring.boot.version>
+        <spring.boot.starter.version>2.7.18</spring.boot.starter.version>
     </properties>
 
     <dependencies>

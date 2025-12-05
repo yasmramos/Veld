@@ -61,6 +61,10 @@
         <javax.inject.version>1</javax.inject.version>
         <jakarta.inject.version>2.0.1</jakarta.inject.version>
         <jacoco.version>0.8.12</jacoco.version>
+        
+        <!-- Spring Boot versions -->
+        <spring-boot.version>2.7.18</spring-boot.version>
+        <spring.version>5.3.30</spring.version>
     </properties>
 
     <dependencyManagement>
@@ -126,6 +130,22 @@
                 <groupId>jakarta.inject</groupId>
                 <artifactId>jakarta.inject-api</artifactId>
                 <version>${jakarta.inject.version}</version>
+            </dependency>
+
+            <!-- Spring Boot -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            
+            <!-- Veld Spring Boot Starter -->
+            <dependency>
+                <groupId>com.veld</groupId>
+                <artifactId>veld-runtime</artifactId>
+                <version>${project.version}</version>
             </dependency>
 
             <!-- Testing -->
