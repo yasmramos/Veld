@@ -5,26 +5,29 @@ import com.veld.runtime.condition.ConditionContext;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
- * The main dependency injection container for Veld.
- * Manages component lifecycle and provides dependency resolution.
+ * Ultra-fast dependency injection container for Veld.
  * 
- * Usage (simple):
+ * <p>Performance optimizations:
+ * <ul>
+ *   <li>Array-based singleton storage instead of ConcurrentHashMap
+ *   <li>IdentityHashMap for O(1) Class-to-index lookups
+ *   <li>Double-check locking for lazy singleton initialization
+ *   <li>Pre-sized arrays to avoid resizing
+ * </ul>
+ * 
+ * <p>Usage:
  * <pre>
  *   VeldContainer container = new VeldContainer();
+ *   MyService service = container.get(MyService.class);
  * </pre>
- * 
- * The container automatically discovers and loads the generated VeldRegistry
- * using MethodHandle for zero-reflection instantiation. The generated bootstrap
- * class provides direct access without any reflective operations.
  */
 public class VeldContainer {
 
@@ -36,20 +39,20 @@ public class VeldContainer {
     
     private final ComponentRegistry registry;
     private final Set<String> activeProfiles;
-    private final Map<String, Object> singletons = new ConcurrentHashMap<>();
+    
+    // Ultra-fast singleton storage - array indexed by component index
+    private final Object[] singletons;
+    
+    // Locks for double-check locking on lazy singletons
+    private final Object[] locks;
+    
+    // Pre-computed index cache for common lookups
+    private final IdentityHashMap<Class<?>, Integer> indexCache;
+    
     private volatile boolean closed = false;
 
     /**
      * Creates a new container that automatically loads the generated registry.
-     * This is the recommended way to create a VeldContainer.
-     * 
-     * Uses MethodHandle to invoke the generated bootstrap class, avoiding
-     * traditional reflection APIs (Constructor.newInstance, etc.).
-     * 
-     * Active profiles are resolved from:
-     * 1. System property: -Dveld.profiles.active=dev,test
-     * 2. Environment variable: VELD_PROFILES_ACTIVE=dev,test
-     * 3. Default profile "default" if none specified
      * 
      * @throws VeldException if the registry cannot be loaded
      */
@@ -66,32 +69,63 @@ public class VeldContainer {
     public VeldContainer(Set<String> activeProfiles) {
         this.activeProfiles = activeProfiles;
         this.registry = loadGeneratedRegistry(activeProfiles);
+        
+        int count = registry.getComponentCount();
+        this.singletons = new Object[count];
+        this.locks = new Object[count];
+        this.indexCache = new IdentityHashMap<>(count * 2);
+        
+        // Initialize locks for each component
+        for (int i = 0; i < count; i++) {
+            locks[i] = new Object();
+        }
+        
+        // Build index cache for all registered types
+        buildIndexCache();
+        
+        // Initialize eager singletons
         initializeSingletons();
     }
     
     /**
      * Creates a new container with the given registry.
-     * Use this constructor for testing or custom registry implementations.
      *
-     * @param registry the component registry (generated at compile time)
+     * @param registry the component registry
      */
     public VeldContainer(ComponentRegistry registry) {
         this.registry = registry;
         this.activeProfiles = null;
+        
+        int count = registry.getComponentCount();
+        this.singletons = new Object[count];
+        this.locks = new Object[count];
+        this.indexCache = new IdentityHashMap<>(count * 2);
+        
+        for (int i = 0; i < count; i++) {
+            locks[i] = new Object();
+        }
+        
+        buildIndexCache();
         initializeSingletons();
+    }
+    
+    /**
+     * Builds the index cache from registry for ultra-fast lookups.
+     */
+    private void buildIndexCache() {
+        for (ComponentFactory<?> factory : registry.getAllFactories()) {
+            int index = factory.getIndex();
+            if (index >= 0) {
+                indexCache.put(factory.getComponentType(), index);
+            }
+        }
     }
     
     /**
      * Creates a new container with the specified active profiles.
      * 
-     * <p>Example usage:
-     * <pre>{@code
-     * VeldContainer container = VeldContainer.withProfiles("dev", "local");
-     * }</pre>
-     * 
      * @param profiles the profiles to activate
      * @return a new container with the specified profiles active
-     * @throws VeldException if the registry cannot be loaded
      */
     public static VeldContainer withProfiles(String... profiles) {
         Set<String> profileSet = new HashSet<>(Arrays.asList(profiles));
@@ -107,7 +141,6 @@ public class VeldContainer {
         if (activeProfiles != null) {
             return new HashSet<>(activeProfiles);
         }
-        // If null, profiles were resolved from environment
         return new ConditionContext(getClass().getClassLoader()).getActiveProfiles();
     }
     
@@ -121,33 +154,10 @@ public class VeldContainer {
         return getActiveProfiles().contains(profile);
     }
     
-    /**
-     * Loads the generated VeldRegistry using MethodHandle and wraps it
-     * with ConditionalRegistry to evaluate @Conditional annotations.
-     * 
-     * This approach uses java.lang.invoke.MethodHandle which is:
-     * - NOT traditional reflection (no Constructor.newInstance)
-     * - Optimized by the JVM after first invocation
-     * - Type-safe with compile-time method signatures
-     * - The standard way to invoke methods dynamically in modern Java
-     * 
-     * The generated Veld bootstrap class provides a static createRegistry()
-     * method that directly instantiates VeldRegistry without reflection.
-     * 
-     * The ConditionalRegistry wrapper evaluates:
-     * - @ConditionalOnProperty - checks system properties/env vars
-     * - @ConditionalOnClass - checks classpath for required classes
-     * - @ConditionalOnMissingBean - checks for absence of beans
-     * - @Profile - checks active profiles
-     * 
-     * @param activeProfiles the profiles to activate, or null to resolve from environment
-     */
     private static ComponentRegistry loadGeneratedRegistry(Set<String> activeProfiles) {
         try {
             MethodHandle handle = getCreateRegistryHandle();
             ComponentRegistry generatedRegistry = (ComponentRegistry) handle.invoke();
-            
-            // Wrap with ConditionalRegistry to evaluate conditions
             return new ConditionalRegistry(generatedRegistry, activeProfiles);
         } catch (VeldException e) {
             throw e;
@@ -156,10 +166,6 @@ public class VeldContainer {
         }
     }
     
-    /**
-     * Gets or creates the MethodHandle for createRegistry().
-     * Uses double-checked locking for thread-safe lazy initialization.
-     */
     private static MethodHandle getCreateRegistryHandle() {
         MethodHandle handle = createRegistryHandle;
         if (handle == null) {
@@ -174,61 +180,154 @@ public class VeldContainer {
         return handle;
     }
     
-    /**
-     * Looks up the MethodHandle for Veld.createRegistry() static method.
-     */
     private static MethodHandle lookupCreateRegistryHandle() {
         try {
-            // Load the generated bootstrap class
             Class<?> bootstrapClass = Class.forName(BOOTSTRAP_CLASS);
-            
-            // Get a MethodHandle for the static createRegistry() method
             MethodHandles.Lookup lookup = MethodHandles.publicLookup();
             MethodType methodType = MethodType.methodType(ComponentRegistry.class);
-            
             return lookup.findStatic(bootstrapClass, CREATE_REGISTRY_METHOD, methodType);
-            
         } catch (ClassNotFoundException e) {
             throw new VeldException(
                 "Veld bootstrap class not found. Make sure the veld-processor annotation processor " +
                 "is configured and at least one @Component class exists.", e);
         } catch (NoSuchMethodException e) {
             throw new VeldException(
-                "createRegistry() method not found in bootstrap class. " +
-                "This indicates a version mismatch between veld-runtime and veld-processor.", e);
+                "createRegistry() method not found in bootstrap class.", e);
         } catch (IllegalAccessException e) {
             throw new VeldException(
-                "Cannot access createRegistry() method. Check module permissions.", e);
+                "Cannot access createRegistry() method.", e);
         }
     }
 
     /**
      * Pre-initializes all non-lazy singleton components.
-     * Lazy singletons are initialized on first access.
      */
     private void initializeSingletons() {
-        for (ComponentFactory<?> factory : registry.getAllFactories()) {
+        List<ComponentFactory<?>> factories = registry.getAllFactories();
+        for (int i = 0; i < factories.size(); i++) {
+            ComponentFactory<?> factory = factories.get(i);
             if (factory.getScope() == Scope.SINGLETON && !factory.isLazy()) {
-                getOrCreateSingleton(factory);
+                getOrCreateSingleton(i, factory);
             }
         }
     }
 
     /**
      * Gets a component by its type.
+     * Ultra-fast path: IdentityHashMap lookup → array access.
      *
      * @param type the component type
      * @param <T> the component type
      * @return the component instance
-     * @throws VeldException if no component found for the type
+     * @throws VeldException if no component found
      */
+    @SuppressWarnings("unchecked")
     public <T> T get(Class<T> type) {
         checkNotClosed();
+        
+        // Fast path: check index cache first
+        Integer index = indexCache.get(type);
+        if (index != null) {
+            return getByIndex(index);
+        }
+        
+        // Fallback: use registry lookup (handles interfaces and supertypes)
         ComponentFactory<T> factory = registry.getFactory(type);
         if (factory == null) {
             throw new VeldException("No component found for type: " + type.getName());
         }
+        
+        int factoryIndex = factory.getIndex();
+        if (factoryIndex >= 0) {
+            // Cache for future lookups
+            indexCache.put(type, factoryIndex);
+            return getByIndex(factoryIndex);
+        }
+        
+        // Legacy path for non-indexed factories
         return getInstance(factory);
+    }
+    
+    /**
+     * Gets the index for a component type.
+     * Use with {@link #fastGet(int)} for ultra-fast access.
+     *
+     * @param type the component type
+     * @return the component index, or -1 if not found
+     */
+    public int indexFor(Class<?> type) {
+        Integer index = indexCache.get(type);
+        if (index != null) {
+            return index;
+        }
+        return registry.getIndex(type);
+    }
+    
+    /**
+     * Gets a component by its numeric index.
+     * Fastest possible access - direct array lookup.
+     * Use {@link #indexFor(Class)} to get the index once, then use this for repeated access.
+     *
+     * <p>Example:
+     * <pre>
+     *   int idx = container.indexFor(MyService.class);
+     *   // In hot loop:
+     *   MyService service = container.fastGet(idx);
+     * </pre>
+     *
+     * @param index the component index (from {@link #indexFor(Class)})
+     * @param <T> the component type
+     * @return the component instance
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T fastGet(int index) {
+        // Ultra-fast path for singletons: single array access
+        Object instance = singletons[index];
+        if (instance != null) {
+            return (T) instance;
+        }
+        
+        // Slow path: check scope and create if needed
+        return getByIndexSlow(index);
+    }
+    
+    /**
+     * Gets a component by its numeric index (internal, used by fastGet).
+     */
+    @SuppressWarnings("unchecked")
+    private <T> T getByIndex(int index) {
+        // Fast path: singleton already exists
+        Object instance = singletons[index];
+        if (instance != null) {
+            return (T) instance;
+        }
+        return getByIndexSlow(index);
+    }
+    
+    /**
+     * Slow path for component creation by index.
+     */
+    @SuppressWarnings("unchecked")
+    private <T> T getByIndexSlow(int index) {
+        Scope scope = registry.getScope(index);
+        
+        if (scope == Scope.SINGLETON) {
+            // Double-check locking for thread-safe lazy initialization
+            synchronized (locks[index]) {
+                Object instance = singletons[index];
+                if (instance == null) {
+                    instance = registry.create(index, this);
+                    registry.invokePostConstruct(index, instance);
+                    singletons[index] = instance;
+                }
+                return (T) instance;
+            }
+        } else {
+            // Prototype - create new instance each time
+            T instance = registry.create(index, this);
+            registry.invokePostConstruct(index, instance);
+            return instance;
+        }
     }
 
     /**
@@ -237,11 +336,18 @@ public class VeldContainer {
      * @param name the component name
      * @param <T> the expected type
      * @return the component instance
-     * @throws VeldException if no component found for the name
+     * @throws VeldException if no component found
      */
     @SuppressWarnings("unchecked")
     public <T> T get(String name) {
         checkNotClosed();
+        
+        int index = registry.getIndex(name);
+        if (index >= 0) {
+            return getByIndex(index);
+        }
+        
+        // Fallback for non-indexed
         ComponentFactory<?> factory = registry.getFactory(name);
         if (factory == null) {
             throw new VeldException("No component found with name: " + name);
@@ -267,6 +373,12 @@ public class VeldContainer {
         if (!type.isAssignableFrom(factory.getComponentType())) {
             throw new VeldException("Component '" + name + "' is not of type: " + type.getName());
         }
+        
+        int index = factory.getIndex();
+        if (index >= 0) {
+            return getByIndex(index);
+        }
+        
         @SuppressWarnings("unchecked")
         T instance = (T) getInstance(factory);
         return instance;
@@ -279,13 +391,25 @@ public class VeldContainer {
      * @param <T> the component type
      * @return list of component instances
      */
-    @SuppressWarnings("unchecked")
     public <T> List<T> getAll(Class<T> type) {
         checkNotClosed();
+        
+        int[] indices = registry.getIndicesForType(type);
+        if (indices.length > 0) {
+            List<T> result = new ArrayList<>(indices.length);
+            for (int index : indices) {
+                result.add(getByIndex(index));
+            }
+            return result;
+        }
+        
+        // Fallback
         List<ComponentFactory<? extends T>> factories = registry.getFactoriesForType(type);
-        return factories.stream()
-                .map(factory -> (T) getInstance(factory))
-                .collect(Collectors.toList());
+        List<T> result = new ArrayList<>(factories.size());
+        for (ComponentFactory<? extends T> factory : factories) {
+            result.add(getInstance(factory));
+        }
+        return result;
     }
 
     /**
@@ -295,6 +419,10 @@ public class VeldContainer {
      * @return true if a component exists
      */
     public boolean contains(Class<?> type) {
+        Integer index = indexCache.get(type);
+        if (index != null) {
+            return true;
+        }
         return registry.getFactory(type) != null;
     }
 
@@ -310,18 +438,20 @@ public class VeldContainer {
     
     /**
      * Gets a Provider for the specified type.
-     * The Provider allows lazy access to the component - it's only created when get() is called.
-     * 
-     * For @Singleton components, the Provider always returns the same instance.
-     * For @Prototype components, each call to get() creates a new instance.
      *
      * @param type the component type
      * @param <T> the component type
      * @return a Provider for the component
-     * @throws VeldException if no component found for the type
      */
     public <T> Provider<T> getProvider(Class<T> type) {
         checkNotClosed();
+        
+        Integer index = indexCache.get(type);
+        if (index != null) {
+            final int idx = index;
+            return () -> getByIndex(idx);
+        }
+        
         ComponentFactory<T> factory = registry.getFactory(type);
         if (factory == null) {
             throw new VeldException("No component found for type: " + type.getName());
@@ -336,7 +466,6 @@ public class VeldContainer {
      * @param name the component name
      * @param <T> the component type
      * @return a Provider for the component
-     * @throws VeldException if no component found
      */
     public <T> Provider<T> getProvider(Class<T> type, String name) {
         checkNotClosed();
@@ -347,6 +476,12 @@ public class VeldContainer {
         if (!type.isAssignableFrom(factory.getComponentType())) {
             throw new VeldException("Component '" + name + "' is not of type: " + type.getName());
         }
+        
+        int index = factory.getIndex();
+        if (index >= 0) {
+            return () -> getByIndex(index);
+        }
+        
         @SuppressWarnings("unchecked")
         ComponentFactory<T> typedFactory = (ComponentFactory<T>) factory;
         return () -> getInstance(typedFactory);
@@ -354,29 +489,18 @@ public class VeldContainer {
     
     /**
      * Gets a lazy instance wrapper for the specified type.
-     * The instance is not created until first access through the LazyHolder.
-     * This is used internally for @Lazy injection points.
      *
      * @param type the component type
      * @param <T> the component type
-     * @return a LazyHolder that provides the component on first access
-     * @throws VeldException if no component found for the type
+     * @return the component on first access
      */
     public <T> T getLazy(Class<T> type) {
         checkNotClosed();
-        ComponentFactory<T> factory = registry.getFactory(type);
-        if (factory == null) {
-            throw new VeldException("No component found for type: " + type.getName());
-        }
-        
-        // For singletons, just return the instance (will be lazy-created if needed)
-        // For prototypes, we return a proxy-like behavior through the instance
-        return getInstance(factory);
+        return get(type);
     }
     
     /**
      * Tries to get a component by its type, returning null if not found.
-     * This is used for @Optional dependency injection.
      *
      * @param type the component type
      * @param <T> the component type
@@ -384,16 +508,28 @@ public class VeldContainer {
      */
     public <T> T tryGet(Class<T> type) {
         checkNotClosed();
+        
+        Integer index = indexCache.get(type);
+        if (index != null) {
+            return getByIndex(index);
+        }
+        
         ComponentFactory<T> factory = registry.getFactory(type);
         if (factory == null) {
             return null;
         }
+        
+        int factoryIndex = factory.getIndex();
+        if (factoryIndex >= 0) {
+            indexCache.put(type, factoryIndex);
+            return getByIndex(factoryIndex);
+        }
+        
         return getInstance(factory);
     }
     
     /**
      * Tries to get a component by its name, returning null if not found.
-     * This is used for @Optional dependency injection with @Named.
      *
      * @param name the component name
      * @param <T> the expected type
@@ -402,6 +538,12 @@ public class VeldContainer {
     @SuppressWarnings("unchecked")
     public <T> T tryGet(String name) {
         checkNotClosed();
+        
+        int index = registry.getIndex(name);
+        if (index >= 0) {
+            return getByIndex(index);
+        }
+        
         ComponentFactory<?> factory = registry.getFactory(name);
         if (factory == null) {
             return null;
@@ -411,38 +553,28 @@ public class VeldContainer {
     
     /**
      * Gets a component wrapped in an Optional.
-     * Returns Optional.empty() if the component is not found.
-     * This is used for Optional&lt;T&gt; dependency injection.
      *
      * @param type the component type
      * @param <T> the component type
-     * @return Optional containing the component, or Optional.empty() if not found
+     * @return Optional containing the component
      */
     public <T> java.util.Optional<T> getOptional(Class<T> type) {
         checkNotClosed();
-        ComponentFactory<T> factory = registry.getFactory(type);
-        if (factory == null) {
-            return java.util.Optional.empty();
-        }
-        return java.util.Optional.of(getInstance(factory));
+        T instance = tryGet(type);
+        return java.util.Optional.ofNullable(instance);
     }
     
     /**
      * Gets a component by name wrapped in an Optional.
-     * Returns Optional.empty() if the component is not found.
      *
      * @param name the component name
      * @param <T> the expected type
-     * @return Optional containing the component, or Optional.empty() if not found
+     * @return Optional containing the component
      */
-    @SuppressWarnings("unchecked")
     public <T> java.util.Optional<T> getOptional(String name) {
         checkNotClosed();
-        ComponentFactory<?> factory = registry.getFactory(name);
-        if (factory == null) {
-            return java.util.Optional.empty();
-        }
-        return java.util.Optional.of((T) getInstance(factory));
+        T instance = tryGet(name);
+        return java.util.Optional.ofNullable(instance);
     }
 
     /**
@@ -454,38 +586,53 @@ public class VeldContainer {
         }
         closed = true;
 
-        // Invoke pre-destroy on all singletons
-        for (ComponentFactory<?> factory : registry.getAllFactories()) {
+        List<ComponentFactory<?>> factories = registry.getAllFactories();
+        for (int i = 0; i < factories.size(); i++) {
+            ComponentFactory<?> factory = factories.get(i);
             if (factory.getScope() == Scope.SINGLETON) {
-                Object instance = singletons.get(factory.getComponentName());
+                Object instance = singletons[i];
                 if (instance != null) {
-                    invokePreDestroy(factory, instance);
+                    registry.invokePreDestroy(i, instance);
                 }
             }
         }
-        singletons.clear();
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T> void invokePreDestroy(ComponentFactory<T> factory, Object instance) {
-        factory.invokePreDestroy((T) instance);
+        Arrays.fill(singletons, null);
     }
 
     private <T> T getInstance(ComponentFactory<T> factory) {
         if (factory.getScope() == Scope.SINGLETON) {
-            return getOrCreateSingleton(factory);
+            int index = factory.getIndex();
+            if (index >= 0) {
+                return getByIndex(index);
+            }
+            return getOrCreateSingleton(index, factory);
         }
         return createPrototype(factory);
     }
 
     @SuppressWarnings("unchecked")
-    private <T> T getOrCreateSingleton(ComponentFactory<T> factory) {
-        String name = factory.getComponentName();
-        return (T) singletons.computeIfAbsent(name, k -> {
-            T instance = factory.create(this);
-            factory.invokePostConstruct(instance);
-            return instance;
-        });
+    private <T> T getOrCreateSingleton(int index, ComponentFactory<T> factory) {
+        if (index >= 0 && index < singletons.length) {
+            Object instance = singletons[index];
+            if (instance != null) {
+                return (T) instance;
+            }
+            
+            synchronized (locks[index]) {
+                instance = singletons[index];
+                if (instance == null) {
+                    instance = factory.create(this);
+                    factory.invokePostConstruct((T) instance);
+                    singletons[index] = instance;
+                }
+                return (T) instance;
+            }
+        }
+        
+        // Legacy fallback for unindexed factories
+        T instance = factory.create(this);
+        factory.invokePostConstruct(instance);
+        return instance;
     }
 
     private <T> T createPrototype(ComponentFactory<T> factory) {
@@ -502,9 +649,8 @@ public class VeldContainer {
     
     /**
      * Returns information about components excluded due to failing conditions.
-     * Only available if the container uses a ConditionalRegistry.
      * 
-     * @return list of excluded component names, or empty list if not applicable
+     * @return list of excluded component names
      */
     public List<String> getExcludedComponents() {
         if (registry instanceof ConditionalRegistry) {

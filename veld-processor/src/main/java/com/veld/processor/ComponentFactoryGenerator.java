@@ -50,9 +50,15 @@ public final class ComponentFactoryGenerator {
     private static final String SYNTHETIC_SETTER_PREFIX = "__di_set_";
     
     private final ComponentInfo component;
+    private final int componentIndex;
     
     public ComponentFactoryGenerator(ComponentInfo component) {
+        this(component, -1);
+    }
+    
+    public ComponentFactoryGenerator(ComponentInfo component, int componentIndex) {
         this.component = component;
+        this.componentIndex = componentIndex;
     }
     
     /**
@@ -110,6 +116,9 @@ public final class ComponentFactoryGenerator {
         if (component.hasImplementedInterfaces()) {
             generateGetImplementedInterfaces(cw);
         }
+        
+        // getIndex() method for ultra-fast array-based lookups
+        generateGetIndex(cw);
         
         // Bridge methods for type erasure
         generateBridgeMethods(cw, factoryInternal, componentInternal);
@@ -673,6 +682,27 @@ public final class ComponentFactoryGenerator {
                 "([L" + OBJECT + ";)L" + LIST + ";", false);
         mv.visitInsn(ARETURN);
         
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    
+    private void generateGetIndex(ClassWriter cw) {
+        // public int getIndex()
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "getIndex", "()I", null, null);
+        mv.visitCode();
+        
+        // Push the component index constant
+        if (componentIndex >= -1 && componentIndex <= 5) {
+            mv.visitInsn(ICONST_0 + componentIndex);
+        } else if (componentIndex >= Byte.MIN_VALUE && componentIndex <= Byte.MAX_VALUE) {
+            mv.visitIntInsn(BIPUSH, componentIndex);
+        } else if (componentIndex >= Short.MIN_VALUE && componentIndex <= Short.MAX_VALUE) {
+            mv.visitIntInsn(SIPUSH, componentIndex);
+        } else {
+            mv.visitLdcInsn(componentIndex);
+        }
+        
+        mv.visitInsn(IRETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();
     }

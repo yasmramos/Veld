@@ -16,20 +16,27 @@ import com.veld.runtime.VeldContainer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Manual ComponentRegistry implementation for benchmarks.
- * Allows programmatic registration of components without annotation processing.
+ * Ultra-optimized manual ComponentRegistry implementation for benchmarks.
+ * Uses IdentityHashMap and indexed lookups for maximum performance.
  */
 public class ManualVeldRegistry implements ComponentRegistry {
     
     private final List<ComponentFactory<?>> factories = new ArrayList<>();
-    private final Map<Class<?>, ComponentFactory<?>> byType = new HashMap<>();
+    private final IdentityHashMap<Class<?>, Integer> typeIndices = new IdentityHashMap<>();
+    private final Map<String, Integer> nameIndices = new HashMap<>();
+    private final IdentityHashMap<Class<?>, ComponentFactory<?>> byType = new IdentityHashMap<>();
     private final Map<String, ComponentFactory<?>> byName = new HashMap<>();
+    
+    // Pre-computed arrays for fast access
+    private Scope[] scopes = new Scope[0];
+    private boolean[] lazyFlags = new boolean[0];
     
     /**
      * Registers a singleton component.
@@ -42,8 +49,9 @@ public class ManualVeldRegistry implements ComponentRegistry {
      * Registers a singleton component with a name.
      */
     public <T> ManualVeldRegistry singleton(Class<T> type, String name, Function<VeldContainer, T> creator) {
-        ComponentFactory<T> factory = new SimpleFactory<>(type, name, Scope.SINGLETON, creator);
-        register(factory);
+        int index = factories.size();
+        ComponentFactory<T> factory = new IndexedFactory<>(type, name, Scope.SINGLETON, creator, index);
+        register(factory, type, index);
         return this;
     }
     
@@ -58,16 +66,89 @@ public class ManualVeldRegistry implements ComponentRegistry {
      * Registers a prototype component with a name.
      */
     public <T> ManualVeldRegistry prototype(Class<T> type, String name, Function<VeldContainer, T> creator) {
-        ComponentFactory<T> factory = new SimpleFactory<>(type, name, Scope.PROTOTYPE, creator);
-        register(factory);
+        int index = factories.size();
+        ComponentFactory<T> factory = new IndexedFactory<>(type, name, Scope.PROTOTYPE, creator, index);
+        register(factory, type, index);
         return this;
     }
     
-    private <T> void register(ComponentFactory<T> factory) {
+    private <T> void register(ComponentFactory<T> factory, Class<T> type, int index) {
         factories.add(factory);
-        byType.put(factory.getComponentType(), factory);
+        typeIndices.put(type, index);
+        nameIndices.put(factory.getComponentName(), index);
+        byType.put(type, factory);
         byName.put(factory.getComponentName(), factory);
+        
+        // Rebuild arrays
+        int size = factories.size();
+        scopes = new Scope[size];
+        lazyFlags = new boolean[size];
+        for (int i = 0; i < size; i++) {
+            ComponentFactory<?> f = factories.get(i);
+            scopes[i] = f.getScope();
+            lazyFlags[i] = f.isLazy();
+        }
     }
+    
+    // ==================== Ultra-Fast Index-Based Methods ====================
+    
+    @Override
+    public int getIndex(Class<?> type) {
+        Integer idx = typeIndices.get(type);
+        return idx != null ? idx : -1;
+    }
+    
+    @Override
+    public int getIndex(String name) {
+        Integer idx = nameIndices.get(name);
+        return idx != null ? idx : -1;
+    }
+    
+    @Override
+    public int getComponentCount() {
+        return factories.size();
+    }
+    
+    @Override
+    public Scope getScope(int index) {
+        return scopes[index];
+    }
+    
+    @Override
+    public boolean isLazy(int index) {
+        return lazyFlags[index];
+    }
+    
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T> T create(int index, VeldContainer container) {
+        return (T) factories.get(index).create(container);
+    }
+    
+    @Override
+    public int[] getIndicesForType(Class<?> type) {
+        Integer idx = typeIndices.get(type);
+        if (idx != null) {
+            return new int[] { idx };
+        }
+        return new int[0];
+    }
+    
+    @Override
+    public void invokePostConstruct(int index, Object instance) {
+        @SuppressWarnings("unchecked")
+        ComponentFactory<Object> factory = (ComponentFactory<Object>) factories.get(index);
+        factory.invokePostConstruct(instance);
+    }
+    
+    @Override
+    public void invokePreDestroy(int index, Object instance) {
+        @SuppressWarnings("unchecked")
+        ComponentFactory<Object> factory = (ComponentFactory<Object>) factories.get(index);
+        factory.invokePreDestroy(instance);
+    }
+    
+    // ==================== Legacy Methods (for compatibility) ====================
     
     @Override
     public List<ComponentFactory<?>> getAllFactories() {
@@ -95,19 +176,27 @@ public class ManualVeldRegistry implements ComponentRegistry {
     }
     
     /**
-     * Simple ComponentFactory implementation.
+     * Indexed ComponentFactory implementation with getIndex() support.
      */
-    private static class SimpleFactory<T> implements ComponentFactory<T> {
+    private static class IndexedFactory<T> implements ComponentFactory<T> {
         private final Class<T> type;
         private final String name;
         private final Scope scope;
         private final Function<VeldContainer, T> creator;
+        private final int index;
         
-        SimpleFactory(Class<T> type, String name, Scope scope, Function<VeldContainer, T> creator) {
+        IndexedFactory(Class<T> type, String name, Scope scope, 
+                       Function<VeldContainer, T> creator, int index) {
             this.type = type;
             this.name = name;
             this.scope = scope;
             this.creator = creator;
+            this.index = index;
+        }
+        
+        @Override
+        public int getIndex() {
+            return index;
         }
         
         @Override

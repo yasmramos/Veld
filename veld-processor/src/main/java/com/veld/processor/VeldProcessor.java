@@ -902,10 +902,14 @@ public class VeldProcessor extends AbstractProcessor {
     
     private void generateFactory(ComponentInfo info) {
         try {
-            ComponentFactoryGenerator generator = new ComponentFactoryGenerator(info);
+            // Use the current index based on position in discoveredComponents
+            // The component was just added, so index = size - 1
+            int componentIndex = discoveredComponents.size() - 1;
+            ComponentFactoryGenerator generator = new ComponentFactoryGenerator(info, componentIndex);
             byte[] bytecode = generator.generate();
             
             writeClassFile(info.getFactoryClassName(), bytecode);
+            note("  -> Factory index: " + componentIndex);
         } catch (IOException e) {
             error(null, "Failed to generate factory for " + info.getClassName() + ": " + e.getMessage());
         }

@@ -107,4 +107,14 @@ public interface ComponentFactory<T> {
     default List<String> getImplementedInterfaces() {
         return Collections.emptyList();
     }
+    
+    /**
+     * Returns the numeric index of this component in the registry.
+     * Used for ultra-fast array-based lookups.
+     *
+     * @return the component index (0-based), or -1 if not indexed
+     */
+    default int getIndex() {
+        return -1;
+    }
 }
