@@ -243,4 +243,375 @@ class VeldContainerTest {
             assertFalse(container.contains("unknown"));
         }
     }
+    
+    @Nested
+    @DisplayName("Get By Type And Name")
+    class GetByTypeAndName {
+        
+        @Test
+        @DisplayName("Should get component by type and name")
+        void shouldGetComponentByTypeAndName() {
+            TestService testService = new TestService();
+            
+            when(mockFactory.getComponentType()).thenReturn((Class) TestService.class);
+            when(mockFactory.getComponentName()).thenReturn("testService");
+            when(mockFactory.getScope()).thenReturn(Scope.SINGLETON);
+            when(mockFactory.create(any())).thenReturn(testService);
+            doReturn(mockFactory).when(mockRegistry).getFactory("testService");
+            when(mockRegistry.getAllFactories()).thenReturn(List.of(mockFactory));
+            
+            container = new VeldContainer(mockRegistry);
+            TestService result = container.get(TestService.class, "testService");
+            
+            assertNotNull(result);
+        }
+        
+        @Test
+        @DisplayName("Should throw when name not found")
+        void shouldThrowWhenNameNotFound() {
+            when(mockRegistry.getFactory("unknown")).thenReturn(null);
+            container = new VeldContainer(mockRegistry);
+            
+            assertThrows(VeldException.class, () -> 
+                container.get(TestService.class, "unknown"));
+        }
+        
+        @Test
+        @DisplayName("Should throw when type mismatch")
+        void shouldThrowWhenTypeMismatch() {
+            when(mockFactory.getComponentType()).thenReturn((Class) String.class);
+            doReturn(mockFactory).when(mockRegistry).getFactory("stringService");
+            container = new VeldContainer(mockRegistry);
+            
+            assertThrows(VeldException.class, () -> 
+                container.get(TestService.class, "stringService"));
+        }
+    }
+    
+    @Nested
+    @DisplayName("GetAll Tests")
+    class GetAllTests {
+        
+        @Test
+        @DisplayName("Should get all components of type")
+        void shouldGetAllComponentsOfType() {
+            TestService testService = new TestService();
+            
+            when(mockFactory.getComponentType()).thenReturn((Class) TestService.class);
+            when(mockFactory.getComponentName()).thenReturn("testService");
+            when(mockFactory.getScope()).thenReturn(Scope.SINGLETON);
+            when(mockFactory.create(any())).thenReturn(testService);
+            when(mockRegistry.getFactoriesForType(TestService.class)).thenReturn(List.of(mockFactory));
+            when(mockRegistry.getAllFactories()).thenReturn(List.of(mockFactory));
+            
+            container = new VeldContainer(mockRegistry);
+            List<TestService> services = container.getAll(TestService.class);
+            
+            assertEquals(1, services.size());
+        }
+        
+        @Test
+        @DisplayName("Should return empty list when no components")
+        void shouldReturnEmptyListWhenNoComponents() {
+            when(mockRegistry.getFactoriesForType(TestService.class)).thenReturn(List.of());
+            container = new VeldContainer(mockRegistry);
+            
+            List<TestService> services = container.getAll(TestService.class);
+            
+            assertTrue(services.isEmpty());
+        }
+    }
+    
+    @Nested
+    @DisplayName("Provider Tests")
+    class ProviderTests {
+        
+        @Test
+        @DisplayName("Should get provider for type")
+        void shouldGetProviderForType() {
+            TestService testService = new TestService();
+            
+            when(mockFactory.getComponentType()).thenReturn((Class) TestService.class);
+            when(mockFactory.getComponentName()).thenReturn("testService");
+            when(mockFactory.getScope()).thenReturn(Scope.SINGLETON);
+            when(mockFactory.create(any())).thenReturn(testService);
+            doReturn(mockFactory).when(mockRegistry).getFactory(TestService.class);
+            when(mockRegistry.getAllFactories()).thenReturn(List.of(mockFactory));
+            
+            container = new VeldContainer(mockRegistry);
+            Provider<TestService> provider = container.getProvider(TestService.class);
+            
+            assertNotNull(provider);
+            assertNotNull(provider.get());
+        }
+        
+        @Test
+        @DisplayName("Should throw when provider for unknown type")
+        void shouldThrowWhenProviderForUnknownType() {
+            when(mockRegistry.getFactory(TestService.class)).thenReturn(null);
+            container = new VeldContainer(mockRegistry);
+            
+            assertThrows(VeldException.class, () -> 
+                container.getProvider(TestService.class));
+        }
+        
+        @Test
+        @DisplayName("Should get provider by type and name")
+        void shouldGetProviderByTypeAndName() {
+            TestService testService = new TestService();
+            
+            when(mockFactory.getComponentType()).thenReturn((Class) TestService.class);
+            when(mockFactory.getComponentName()).thenReturn("testService");
+            when(mockFactory.getScope()).thenReturn(Scope.SINGLETON);
+            when(mockFactory.create(any())).thenReturn(testService);
+            doReturn(mockFactory).when(mockRegistry).getFactory("testService");
+            when(mockRegistry.getAllFactories()).thenReturn(List.of(mockFactory));
+            
+            container = new VeldContainer(mockRegistry);
+            Provider<TestService> provider = container.getProvider(TestService.class, "testService");
+            
+            assertNotNull(provider.get());
+        }
+        
+        @Test
+        @DisplayName("Should throw when provider name not found")
+        void shouldThrowWhenProviderNameNotFound() {
+            when(mockRegistry.getFactory("unknown")).thenReturn(null);
+            container = new VeldContainer(mockRegistry);
+            
+            assertThrows(VeldException.class, () -> 
+                container.getProvider(TestService.class, "unknown"));
+        }
+        
+        @Test
+        @DisplayName("Should throw when provider type mismatch")
+        void shouldThrowWhenProviderTypeMismatch() {
+            when(mockFactory.getComponentType()).thenReturn((Class) String.class);
+            doReturn(mockFactory).when(mockRegistry).getFactory("stringService");
+            container = new VeldContainer(mockRegistry);
+            
+            assertThrows(VeldException.class, () -> 
+                container.getProvider(TestService.class, "stringService"));
+        }
+    }
+    
+    @Nested
+    @DisplayName("TryGet Tests")
+    class TryGetTests {
+        
+        @Test
+        @DisplayName("Should return component when exists by type")
+        void shouldReturnComponentWhenExistsByType() {
+            TestService testService = new TestService();
+            
+            when(mockFactory.getComponentType()).thenReturn((Class) TestService.class);
+            when(mockFactory.getComponentName()).thenReturn("testService");
+            when(mockFactory.getScope()).thenReturn(Scope.SINGLETON);
+            when(mockFactory.create(any())).thenReturn(testService);
+            doReturn(mockFactory).when(mockRegistry).getFactory(TestService.class);
+            when(mockRegistry.getAllFactories()).thenReturn(List.of(mockFactory));
+            
+            container = new VeldContainer(mockRegistry);
+            TestService result = container.tryGet(TestService.class);
+            
+            assertNotNull(result);
+        }
+        
+        @Test
+        @DisplayName("Should return null when not exists by type")
+        void shouldReturnNullWhenNotExistsByType() {
+            when(mockRegistry.getFactory(TestService.class)).thenReturn(null);
+            container = new VeldContainer(mockRegistry);
+            
+            TestService result = container.tryGet(TestService.class);
+            
+            assertNull(result);
+        }
+        
+        @Test
+        @DisplayName("Should return component when exists by name")
+        void shouldReturnComponentWhenExistsByName() {
+            TestService testService = new TestService();
+            
+            when(mockFactory.getComponentType()).thenReturn((Class) TestService.class);
+            when(mockFactory.getComponentName()).thenReturn("testService");
+            when(mockFactory.getScope()).thenReturn(Scope.SINGLETON);
+            when(mockFactory.create(any())).thenReturn(testService);
+            doReturn(mockFactory).when(mockRegistry).getFactory("testService");
+            when(mockRegistry.getAllFactories()).thenReturn(List.of(mockFactory));
+            
+            container = new VeldContainer(mockRegistry);
+            TestService result = container.tryGet("testService");
+            
+            assertNotNull(result);
+        }
+        
+        @Test
+        @DisplayName("Should return null when not exists by name")
+        void shouldReturnNullWhenNotExistsByName() {
+            when(mockRegistry.getFactory("unknown")).thenReturn(null);
+            container = new VeldContainer(mockRegistry);
+            
+            TestService result = container.tryGet("unknown");
+            
+            assertNull(result);
+        }
+    }
+    
+    @Nested
+    @DisplayName("GetOptional Tests")
+    class GetOptionalTests {
+        
+        @Test
+        @DisplayName("Should return Optional with component when exists by type")
+        void shouldReturnOptionalWithComponentByType() {
+            TestService testService = new TestService();
+            
+            when(mockFactory.getComponentType()).thenReturn((Class) TestService.class);
+            when(mockFactory.getComponentName()).thenReturn("testService");
+            when(mockFactory.getScope()).thenReturn(Scope.SINGLETON);
+            when(mockFactory.create(any())).thenReturn(testService);
+            doReturn(mockFactory).when(mockRegistry).getFactory(TestService.class);
+            when(mockRegistry.getAllFactories()).thenReturn(List.of(mockFactory));
+            
+            container = new VeldContainer(mockRegistry);
+            java.util.Optional<TestService> result = container.getOptional(TestService.class);
+            
+            assertTrue(result.isPresent());
+        }
+        
+        @Test
+        @DisplayName("Should return empty Optional when not exists by type")
+        void shouldReturnEmptyOptionalByType() {
+            when(mockRegistry.getFactory(TestService.class)).thenReturn(null);
+            container = new VeldContainer(mockRegistry);
+            
+            java.util.Optional<TestService> result = container.getOptional(TestService.class);
+            
+            assertTrue(result.isEmpty());
+        }
+        
+        @Test
+        @DisplayName("Should return Optional with component when exists by name")
+        void shouldReturnOptionalWithComponentByName() {
+            TestService testService = new TestService();
+            
+            when(mockFactory.getComponentType()).thenReturn((Class) TestService.class);
+            when(mockFactory.getComponentName()).thenReturn("testService");
+            when(mockFactory.getScope()).thenReturn(Scope.SINGLETON);
+            when(mockFactory.create(any())).thenReturn(testService);
+            doReturn(mockFactory).when(mockRegistry).getFactory("testService");
+            when(mockRegistry.getAllFactories()).thenReturn(List.of(mockFactory));
+            
+            container = new VeldContainer(mockRegistry);
+            java.util.Optional<TestService> result = container.getOptional("testService");
+            
+            assertTrue(result.isPresent());
+        }
+        
+        @Test
+        @DisplayName("Should return empty Optional when not exists by name")
+        void shouldReturnEmptyOptionalByName() {
+            when(mockRegistry.getFactory("unknown")).thenReturn(null);
+            container = new VeldContainer(mockRegistry);
+            
+            java.util.Optional<TestService> result = container.getOptional("unknown");
+            
+            assertTrue(result.isEmpty());
+        }
+    }
+    
+    @Nested
+    @DisplayName("GetLazy Tests")
+    class GetLazyTests {
+        
+        @Test
+        @DisplayName("Should get lazy instance")
+        void shouldGetLazyInstance() {
+            TestService testService = new TestService();
+            
+            when(mockFactory.getComponentType()).thenReturn((Class) TestService.class);
+            when(mockFactory.getComponentName()).thenReturn("testService");
+            when(mockFactory.getScope()).thenReturn(Scope.SINGLETON);
+            when(mockFactory.create(any())).thenReturn(testService);
+            doReturn(mockFactory).when(mockRegistry).getFactory(TestService.class);
+            when(mockRegistry.getAllFactories()).thenReturn(List.of(mockFactory));
+            
+            container = new VeldContainer(mockRegistry);
+            TestService result = container.getLazy(TestService.class);
+            
+            assertNotNull(result);
+        }
+        
+        @Test
+        @DisplayName("Should throw when lazy type not found")
+        void shouldThrowWhenLazyTypeNotFound() {
+            when(mockRegistry.getFactory(TestService.class)).thenReturn(null);
+            container = new VeldContainer(mockRegistry);
+            
+            assertThrows(VeldException.class, () -> 
+                container.getLazy(TestService.class));
+        }
+    }
+    
+    @Nested
+    @DisplayName("Lazy Initialization Tests")
+    class LazyInitializationTests {
+        
+        @Test
+        @DisplayName("Should not initialize lazy singleton on container creation")
+        void shouldNotInitializeLazySingletonOnCreation() {
+            when(mockFactory.getComponentType()).thenReturn((Class) TestService.class);
+            when(mockFactory.getComponentName()).thenReturn("testService");
+            when(mockFactory.getScope()).thenReturn(Scope.SINGLETON);
+            when(mockFactory.isLazy()).thenReturn(true);
+            when(mockRegistry.getAllFactories()).thenReturn(List.of(mockFactory));
+            
+            container = new VeldContainer(mockRegistry);
+            
+            verify(mockFactory, never()).create(any());
+        }
+        
+        @Test
+        @DisplayName("Should initialize lazy singleton on first access")
+        void shouldInitializeLazySingletonOnFirstAccess() {
+            TestService testService = new TestService();
+            
+            when(mockFactory.getComponentType()).thenReturn((Class) TestService.class);
+            when(mockFactory.getComponentName()).thenReturn("testService");
+            when(mockFactory.getScope()).thenReturn(Scope.SINGLETON);
+            when(mockFactory.isLazy()).thenReturn(true);
+            when(mockFactory.create(any())).thenReturn(testService);
+            doReturn(mockFactory).when(mockRegistry).getFactory(TestService.class);
+            when(mockRegistry.getAllFactories()).thenReturn(List.of(mockFactory));
+            
+            container = new VeldContainer(mockRegistry);
+            container.get(TestService.class);
+            
+            verify(mockFactory).create(any());
+        }
+    }
+    
+    @Nested
+    @DisplayName("Excluded Components Tests")
+    class ExcludedComponentsTests {
+        
+        @Test
+        @DisplayName("Should return empty list for regular registry")
+        void shouldReturnEmptyListForRegularRegistry() {
+            container = new VeldContainer(mockRegistry);
+            
+            List<String> excluded = container.getExcludedComponents();
+            
+            assertTrue(excluded.isEmpty());
+        }
+        
+        @Test
+        @DisplayName("Should return false for wasExcluded with regular registry")
+        void shouldReturnFalseForWasExcludedWithRegularRegistry() {
+            container = new VeldContainer(mockRegistry);
+            
+            assertFalse(container.wasExcluded("anyComponent"));
+        }
+    }
 }
