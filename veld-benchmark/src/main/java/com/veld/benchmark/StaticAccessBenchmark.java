@@ -3,18 +3,16 @@ package com.veld.benchmark;
 import com.veld.benchmark.common.Service;
 import com.veld.benchmark.dagger.BenchmarkComponent;
 import com.veld.benchmark.dagger.DaggerBenchmarkComponent;
+import com.veld.benchmark.veld.Veld;
 import com.veld.benchmark.veld.VeldSimpleService;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Benchmark comparing Veld static access vs Dagger.
- * Uses invokeExact for minimal reflection overhead.
+ * Benchmark comparing Veld DIRECT static access vs Dagger.
+ * Both use direct static method calls - no reflection, no MethodHandle.
  */
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -25,24 +23,18 @@ import java.util.concurrent.TimeUnit;
 public class StaticAccessBenchmark {
     
     private BenchmarkComponent daggerComponent;
-    private MethodHandle veldGetter;
     
     @Setup(Level.Trial)
-    public void setup() throws Throwable {
+    public void setup() {
         daggerComponent = DaggerBenchmarkComponent.create();
-        
-        Class<?> veldClass = Class.forName("com.veld.generated.Veld");
-        veldGetter = MethodHandles.lookup()
-            .findStatic(veldClass, "veldSimpleService", 
-                MethodType.methodType(VeldSimpleService.class));
-        
-        // Warmup to initialize singleton
-        veldGetter.invoke();
+        // Warmup - trigger <clinit>
+        Veld.veldSimpleService();
     }
     
     @Benchmark
-    public void veldStaticAccess(Blackhole bh) throws Throwable {
-        VeldSimpleService service = (VeldSimpleService) veldGetter.invokeExact();
+    public void veldStaticAccess(Blackhole bh) {
+        // DIRECT static call - same as Dagger, no MethodHandle
+        VeldSimpleService service = Veld.veldSimpleService();
         bh.consume(service);
     }
     
