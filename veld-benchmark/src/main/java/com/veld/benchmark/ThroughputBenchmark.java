@@ -47,6 +47,9 @@ public class ThroughputBenchmark {
     private Injector guiceInjector;
     private BenchmarkComponent daggerComponent;
     
+    // Pre-computed index for ultra-fast access
+    private int serviceIndex;
+    
     @Setup(Level.Trial)
     public void setup() {
         veldContainer = VeldBenchmarkHelper.createSimpleContainer();
@@ -54,6 +57,11 @@ public class ThroughputBenchmark {
         springContext = new AnnotationConfigApplicationContext(SpringConfig.class);
         guiceInjector = Guice.createInjector(new GuiceModule());
         daggerComponent = DaggerBenchmarkComponent.create();
+        
+        // Pre-compute index for ultra-fast benchmarks
+        serviceIndex = fastContainer.indexFor(VeldSimpleService.class);
+        // Ensure singleton is initialized (eager)
+        fastContainer.get(VeldSimpleService.class);
     }
     
     @TearDown(Level.Trial)
@@ -74,6 +82,16 @@ public class ThroughputBenchmark {
     @Benchmark
     public void veldFastThroughput(Blackhole bh) {
         Service service = fastContainer.get(VeldSimpleService.class);
+        bh.consume(service);
+    }
+    
+    /**
+     * Ultra-fast direct array access using pre-computed index.
+     * This is the fastest possible - direct array[index] access.
+     */
+    @Benchmark
+    public void veldUltraFastThroughput(Blackhole bh) {
+        Service service = fastContainer.fastGet(serviceIndex);
         bh.consume(service);
     }
     
@@ -108,6 +126,16 @@ public class ThroughputBenchmark {
     @Threads(4)
     public void veldFastConcurrentThroughput(Blackhole bh) {
         Service service = fastContainer.get(VeldSimpleService.class);
+        bh.consume(service);
+    }
+    
+    /**
+     * Ultra-fast concurrent throughput - direct array access.
+     */
+    @Benchmark
+    @Threads(4)
+    public void veldUltraFastConcurrentThroughput(Blackhole bh) {
+        Service service = fastContainer.fastGet(serviceIndex);
         bh.consume(service);
     }
     
