@@ -150,13 +150,13 @@ class VeldBootstrapGeneratorTest {
         }
 
         @Test
-        @DisplayName("should generate Java 11 compatible bytecode")
-        void shouldGenerateJava11CompatibleBytecode() {
+        @DisplayName("should generate Java 17 compatible bytecode")
+        void shouldGenerateJava17CompatibleBytecode() {
             VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
-            assertEquals(Opcodes.V11, cn.version);
+            assertEquals(Opcodes.V17, cn.version);
         }
     }
 
@@ -298,14 +298,14 @@ class VeldBootstrapGeneratorTest {
     class MethodCountTests {
 
         @Test
-        @DisplayName("should generate exactly three methods")
-        void shouldGenerateExactlyThreeMethods() {
+        @DisplayName("should generate exactly four methods")
+        void shouldGenerateExactlyFourMethods() {
             VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
-            // Should have: <init>, createContainer, createRegistry
-            assertEquals(3, cn.methods.size());
+            // Should have: <clinit>, <init>, createContainer, createRegistry
+            assertEquals(4, cn.methods.size());
         }
 
         @Test

@@ -28,7 +28,7 @@ public class StaticAccessBenchmark {
     private MethodHandle veldGetter;
     
     @Setup(Level.Trial)
-    public void setup() throws Exception {
+    public void setup() throws Throwable {
         daggerComponent = DaggerBenchmarkComponent.create();
         
         Class<?> veldClass = Class.forName("com.veld.generated.Veld");

@@ -249,17 +249,17 @@ class RegistryGeneratorTest {
         }
 
         @Test
-        @DisplayName("should generate allFactories field")
-        void shouldGenerateAllFactoriesField() {
+        @DisplayName("should generate factories field")
+        void shouldGenerateFactoriesField() {
             RegistryGenerator generator = new RegistryGenerator(new ArrayList<>());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
-            assertTrue(hasField(cn, "allFactories"));
+            assertTrue(hasField(cn, "factories"));
             
-            FieldNode field = getField(cn, "allFactories");
+            FieldNode field = getField(cn, "factories");
             assertNotNull(field);
-            assertEquals("Ljava/util/List;", field.desc);
+            assertEquals("[Lcom/veld/runtime/ComponentFactory;", field.desc);
             assertTrue((field.access & Opcodes.ACC_PRIVATE) != 0);
             assertTrue((field.access & Opcodes.ACC_FINAL) != 0);
         }
@@ -289,11 +289,18 @@ class RegistryGeneratorTest {
             
             List<String> fieldNames = getFieldNames(cn);
             
+            // Static fields for ultra-fast lookup
+            assertTrue(fieldNames.contains("TYPE_INDICES"));
+            assertTrue(fieldNames.contains("NAME_INDICES"));
+            assertTrue(fieldNames.contains("SCOPES"));
+            assertTrue(fieldNames.contains("LAZY_FLAGS"));
+            assertTrue(fieldNames.contains("SUPERTYPE_INDICES"));
+            // Instance fields
+            assertTrue(fieldNames.contains("factories"));
             assertTrue(fieldNames.contains("factoriesByType"));
             assertTrue(fieldNames.contains("factoriesByName"));
-            assertTrue(fieldNames.contains("allFactories"));
             assertTrue(fieldNames.contains("factoriesBySupertype"));
-            assertEquals(4, fieldNames.size());
+            assertEquals(9, fieldNames.size());
         }
     }
 
@@ -520,14 +527,14 @@ class RegistryGeneratorTest {
         }
 
         @Test
-        @DisplayName("should generate Java 11 compatible bytecode")
-        void shouldGenerateJava11CompatibleBytecode() {
+        @DisplayName("should generate Java 17 compatible bytecode")
+        void shouldGenerateJava17CompatibleBytecode() {
             RegistryGenerator generator = new RegistryGenerator(new ArrayList<>());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
-            // Java 11 = version 55
-            assertEquals(Opcodes.V11, cn.version);
+            // Java 17 = version 61
+            assertEquals(Opcodes.V17, cn.version);
         }
 
         @Test
