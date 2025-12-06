@@ -120,7 +120,7 @@ public class VeldContainer {
     private void buildIndexCache() {
         for (ComponentFactory<?> factory : registry.getAllFactories()) {
             int index = factory.getIndex();
-            if (index >= 0) {
+            if (index >= 0 && index < singletons.length) {
                 indexCache.put(factory.getComponentType(), index);
             }
         }
@@ -258,7 +258,7 @@ public class VeldContainer {
         }
         
         int factoryIndex = factory.getIndex();
-        if (factoryIndex >= 0) {
+        if (factoryIndex >= 0 && factoryIndex < singletons.length) {
             indexCache.put(type, factoryIndex);
             T instance = getByIndex(factoryIndex);
             if (factory.getScope() == Scope.SINGLETON) {
@@ -277,6 +277,10 @@ public class VeldContainer {
      */
     @SuppressWarnings("unchecked")
     private <T> T getByIndex(int index) {
+        // Bounds check for safety
+        if (index < 0 || index >= singletons.length) {
+            return getByIndexSlow(index);
+        }
         // Fast path: singleton already exists
         Object instance = singletons[index];
         if (instance != null) {
@@ -290,6 +294,16 @@ public class VeldContainer {
      */
     @SuppressWarnings("unchecked")
     private <T> T getByIndexSlow(int index) {
+        // Bounds check
+        if (index < 0 || index >= singletons.length) {
+            // Create without caching (for tests with mocked registry)
+            T instance = registry.create(index, this);
+            if (instance != null) {
+                registry.invokePostConstruct(index, instance);
+            }
+            return instance;
+        }
+        
         Scope scope = registry.getScope(index);
         
         if (scope == Scope.SINGLETON) {
@@ -324,7 +338,7 @@ public class VeldContainer {
         checkNotClosed();
         
         int index = registry.getIndex(name);
-        if (index >= 0) {
+        if (index >= 0 && index < singletons.length) {
             return getByIndex(index);
         }
         
@@ -356,7 +370,7 @@ public class VeldContainer {
         }
         
         int index = factory.getIndex();
-        if (index >= 0) {
+        if (index >= 0 && index < singletons.length) {
             return getByIndex(index);
         }
         
@@ -376,7 +390,7 @@ public class VeldContainer {
         checkNotClosed();
         
         int[] indices = registry.getIndicesForType(type);
-        if (indices.length > 0) {
+        if (indices != null && indices.length > 0) {
             List<T> result = new ArrayList<>(indices.length);
             for (int index : indices) {
                 result.add(getByIndex(index));
@@ -459,7 +473,7 @@ public class VeldContainer {
         }
         
         int index = factory.getIndex();
-        if (index >= 0) {
+        if (index >= 0 && index < singletons.length) {
             return () -> getByIndex(index);
         }
         
@@ -501,7 +515,7 @@ public class VeldContainer {
         }
         
         int factoryIndex = factory.getIndex();
-        if (factoryIndex >= 0) {
+        if (factoryIndex >= 0 && factoryIndex < singletons.length) {
             indexCache.put(type, factoryIndex);
             return getByIndex(factoryIndex);
         }
@@ -521,7 +535,7 @@ public class VeldContainer {
         checkNotClosed();
         
         int index = registry.getIndex(name);
-        if (index >= 0) {
+        if (index >= 0 && index < singletons.length) {
             return getByIndex(index);
         }
         
@@ -571,19 +585,30 @@ public class VeldContainer {
         for (int i = 0; i < factories.size(); i++) {
             ComponentFactory<?> factory = factories.get(i);
             if (factory.getScope() == Scope.SINGLETON) {
-                Object instance = singletons[i];
+                Object instance = null;
+                if (i < singletons.length) {
+                    instance = singletons[i];
+                } else {
+                    // Check singletonCache for unindexed singletons
+                    instance = singletonCache.get(factory.getComponentType());
+                }
                 if (instance != null) {
-                    registry.invokePreDestroy(i, instance);
+                    @SuppressWarnings("unchecked")
+                    ComponentFactory<Object> f = (ComponentFactory<Object>) factory;
+                    f.invokePreDestroy(instance);
                 }
             }
         }
-        Arrays.fill(singletons, null);
+        if (singletons.length > 0) {
+            Arrays.fill(singletons, null);
+        }
+        singletonCache.clear();
     }
 
     private <T> T getInstance(ComponentFactory<T> factory) {
         if (factory.getScope() == Scope.SINGLETON) {
             int index = factory.getIndex();
-            if (index >= 0) {
+            if (index >= 0 && index < singletons.length) {
                 return getByIndex(index);
             }
             return getOrCreateSingleton(index, factory);
@@ -610,10 +635,22 @@ public class VeldContainer {
             }
         }
         
-        // Legacy fallback for unindexed factories
-        T instance = factory.create(this);
-        factory.invokePostConstruct(instance);
-        return instance;
+        // Legacy fallback for unindexed factories - use singletonCache
+        Class<T> type = factory.getComponentType();
+        Object cached = singletonCache.get(type);
+        if (cached != null) {
+            return (T) cached;
+        }
+        synchronized (this) {
+            cached = singletonCache.get(type);
+            if (cached != null) {
+                return (T) cached;
+            }
+            T instance = factory.create(this);
+            factory.invokePostConstruct(instance);
+            singletonCache.put(type, instance);
+            return instance;
+        }
     }
 
     private <T> T createPrototype(ComponentFactory<T> factory) {
