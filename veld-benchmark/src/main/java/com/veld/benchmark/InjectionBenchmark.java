@@ -30,8 +30,6 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Benchmarks measuring dependency injection/lookup time.
- * 
- * This measures the time to retrieve components from an already-initialized container.
  */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
@@ -41,52 +39,30 @@ import java.util.concurrent.TimeUnit;
 @Measurement(iterations = 5, time = 1)
 public class InjectionBenchmark {
     
-    // Containers - initialized once per benchmark
     private VeldContainer veldContainer;
     private AnnotationConfigApplicationContext springContext;
     private Injector guiceInjector;
     private BenchmarkComponent daggerComponent;
     
-    // Pre-computed indices for fast access
-    private int simpleServiceIndex;
-    private int complexServiceIndex;
-    private int loggerIndex;
-    
     @Setup(Level.Trial)
     public void setup() {
-        // Uses generated registry from annotation processor
         veldContainer = new VeldContainer();
         springContext = new AnnotationConfigApplicationContext(SpringConfig.class);
         guiceInjector = Guice.createInjector(new GuiceModule());
         daggerComponent = DaggerBenchmarkComponent.create();
-        
-        // Pre-compute indices for fast benchmarks
-        simpleServiceIndex = veldContainer.indexFor(VeldSimpleService.class);
-        complexServiceIndex = veldContainer.indexFor(VeldComplexService.class);
-        loggerIndex = veldContainer.indexFor(Logger.class);
     }
     
     @TearDown(Level.Trial)
     public void teardown() {
-        if (veldContainer != null) {
-            veldContainer.close();
-        }
-        if (springContext != null) {
-            springContext.close();
-        }
+        if (veldContainer != null) veldContainer.close();
+        if (springContext != null) springContext.close();
     }
     
-    // ==================== SIMPLE INJECTION (1 dependency) ====================
+    // ==================== SIMPLE INJECTION ====================
     
     @Benchmark
     public void veldSimpleInjection(Blackhole bh) {
         Service service = veldContainer.get(VeldSimpleService.class);
-        bh.consume(service);
-    }
-    
-    @Benchmark
-    public void veldFastSimpleInjection(Blackhole bh) {
-        Service service = veldContainer.fastGet(simpleServiceIndex);
         bh.consume(service);
     }
     
@@ -108,17 +84,11 @@ public class InjectionBenchmark {
         bh.consume(service);
     }
     
-    // ==================== COMPLEX INJECTION (3 dependencies) ====================
+    // ==================== COMPLEX INJECTION ====================
     
     @Benchmark
     public void veldComplexInjection(Blackhole bh) {
         Service service = veldContainer.get(VeldComplexService.class);
-        bh.consume(service);
-    }
-    
-    @Benchmark
-    public void veldFastComplexInjection(Blackhole bh) {
-        Service service = veldContainer.fastGet(complexServiceIndex);
         bh.consume(service);
     }
     
@@ -140,7 +110,7 @@ public class InjectionBenchmark {
         bh.consume(service);
     }
     
-    // ==================== DEEP INJECTION (nested dependencies) ====================
+    // ==================== DEEP INJECTION ====================
     
     @Benchmark
     public void springDeepInjection(Blackhole bh) {
@@ -160,17 +130,11 @@ public class InjectionBenchmark {
         bh.consume(service);
     }
     
-    // ==================== RAW LOOKUP (Logger - singleton) ====================
+    // ==================== LOGGER LOOKUP ====================
     
     @Benchmark
     public void veldLoggerLookup(Blackhole bh) {
         Logger logger = veldContainer.get(Logger.class);
-        bh.consume(logger);
-    }
-    
-    @Benchmark
-    public void veldFastLoggerLookup(Blackhole bh) {
-        Logger logger = veldContainer.fastGet(loggerIndex);
         bh.consume(logger);
     }
     

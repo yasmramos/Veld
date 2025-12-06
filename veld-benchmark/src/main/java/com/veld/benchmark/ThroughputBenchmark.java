@@ -26,9 +26,6 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Benchmarks measuring throughput (operations per second).
- * 
- * This measures how many dependency lookups can be performed per second,
- * which is important for high-throughput applications.
  */
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -43,52 +40,26 @@ public class ThroughputBenchmark {
     private Injector guiceInjector;
     private BenchmarkComponent daggerComponent;
     
-    // Pre-computed index for ultra-fast access
-    private int serviceIndex;
-    
     @Setup(Level.Trial)
     public void setup() {
-        // Uses generated registry from annotation processor
         veldContainer = new VeldContainer();
         springContext = new AnnotationConfigApplicationContext(SpringConfig.class);
         guiceInjector = Guice.createInjector(new GuiceModule());
         daggerComponent = DaggerBenchmarkComponent.create();
         
-        // Pre-compute index for ultra-fast benchmarks
-        serviceIndex = veldContainer.indexFor(VeldSimpleService.class);
-        // Ensure singleton is initialized (eager)
+        // Ensure singleton is initialized
         veldContainer.get(VeldSimpleService.class);
     }
     
     @TearDown(Level.Trial)
     public void teardown() {
-        if (veldContainer != null) {
-            veldContainer.close();
-        }
-        if (springContext != null) {
-            springContext.close();
-        }
+        if (veldContainer != null) veldContainer.close();
+        if (springContext != null) springContext.close();
     }
     
-    // ==================== THROUGHPUT BENCHMARKS ====================
-    
-    /**
-     * Standard Veld lookup using get(Class).
-     * Uses IdentityHashMap lookup + array access.
-     */
     @Benchmark
     public void veldThroughput(Blackhole bh) {
         Service service = veldContainer.get(VeldSimpleService.class);
-        bh.consume(service);
-    }
-    
-    /**
-     * Ultra-fast Veld lookup using pre-computed index.
-     * Direct array[index] access - fastest possible.
-     */
-    @Benchmark
-    public void veldFastThroughput(Blackhole bh) {
-        Service service = veldContainer.fastGet(serviceIndex);
         bh.consume(service);
     }
     
@@ -110,19 +81,10 @@ public class ThroughputBenchmark {
         bh.consume(service);
     }
     
-    // ==================== CONCURRENT THROUGHPUT ====================
-    
     @Benchmark
     @Threads(4)
     public void veldConcurrentThroughput(Blackhole bh) {
         Service service = veldContainer.get(VeldSimpleService.class);
-        bh.consume(service);
-    }
-    
-    @Benchmark
-    @Threads(4)
-    public void veldFastConcurrentThroughput(Blackhole bh) {
-        Service service = veldContainer.fastGet(serviceIndex);
         bh.consume(service);
     }
     

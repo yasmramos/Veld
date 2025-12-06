@@ -49,6 +49,9 @@ public class VeldContainer {
     // Pre-computed index cache for common lookups
     private final IdentityHashMap<Class<?>, Integer> indexCache;
     
+    // Direct singleton cache by type for ultra-fast get()
+    private final IdentityHashMap<Class<?>, Object> singletonCache;
+    
     private volatile boolean closed = false;
 
     /**
@@ -74,6 +77,7 @@ public class VeldContainer {
         this.singletons = new Object[count];
         this.locks = new Object[count];
         this.indexCache = new IdentityHashMap<>(count * 2);
+        this.singletonCache = new IdentityHashMap<>(count * 2);
         
         // Initialize locks for each component
         for (int i = 0; i < count; i++) {
@@ -100,6 +104,7 @@ public class VeldContainer {
         this.singletons = new Object[count];
         this.locks = new Object[count];
         this.indexCache = new IdentityHashMap<>(count * 2);
+        this.singletonCache = new IdentityHashMap<>(count * 2);
         
         for (int i = 0; i < count; i++) {
             locks[i] = new Object();
@@ -214,7 +219,7 @@ public class VeldContainer {
 
     /**
      * Gets a component by its type.
-     * Ultra-fast path: IdentityHashMap lookup → array access.
+     * Ultra-fast path: direct singleton cache lookup.
      *
      * @param type the component type
      * @param <T> the component type
@@ -223,12 +228,27 @@ public class VeldContainer {
      */
     @SuppressWarnings("unchecked")
     public <T> T get(Class<T> type) {
+        // Ultra-fast path: check singleton cache directly
+        Object cached = singletonCache.get(type);
+        if (cached != null) {
+            return (T) cached;
+        }
+        return getSlowPath(type);
+    }
+    
+    @SuppressWarnings("unchecked")
+    private <T> T getSlowPath(Class<T> type) {
         checkNotClosed();
         
-        // Fast path: check index cache first
+        // Check index cache
         Integer index = indexCache.get(type);
         if (index != null) {
-            return getByIndex(index);
+            T instance = getByIndex(index);
+            // Cache singleton for ultra-fast future lookups
+            if (registry.getScope(index) == Scope.SINGLETON) {
+                singletonCache.put(type, instance);
+            }
+            return instance;
         }
         
         // Fallback: use registry lookup (handles interfaces and supertypes)
@@ -239,60 +259,21 @@ public class VeldContainer {
         
         int factoryIndex = factory.getIndex();
         if (factoryIndex >= 0) {
-            // Cache for future lookups
             indexCache.put(type, factoryIndex);
-            return getByIndex(factoryIndex);
+            T instance = getByIndex(factoryIndex);
+            if (factory.getScope() == Scope.SINGLETON) {
+                singletonCache.put(type, instance);
+            }
+            return instance;
         }
         
-        // Legacy path for non-indexed factories
         return getInstance(factory);
     }
     
-    /**
-     * Gets the index for a component type.
-     * Use with {@link #fastGet(int)} for ultra-fast access.
-     *
-     * @param type the component type
-     * @return the component index, or -1 if not found
-     */
-    public int indexFor(Class<?> type) {
-        Integer index = indexCache.get(type);
-        if (index != null) {
-            return index;
-        }
-        return registry.getIndex(type);
-    }
+
     
     /**
-     * Gets a component by its numeric index.
-     * Fastest possible access - direct array lookup.
-     * Use {@link #indexFor(Class)} to get the index once, then use this for repeated access.
-     *
-     * <p>Example:
-     * <pre>
-     *   int idx = container.indexFor(MyService.class);
-     *   // In hot loop:
-     *   MyService service = container.fastGet(idx);
-     * </pre>
-     *
-     * @param index the component index (from {@link #indexFor(Class)})
-     * @param <T> the component type
-     * @return the component instance
-     */
-    @SuppressWarnings("unchecked")
-    public <T> T fastGet(int index) {
-        // Ultra-fast path for singletons: single array access
-        Object instance = singletons[index];
-        if (instance != null) {
-            return (T) instance;
-        }
-        
-        // Slow path: check scope and create if needed
-        return getByIndexSlow(index);
-    }
-    
-    /**
-     * Gets a component by its numeric index (internal, used by fastGet).
+     * Gets a component by its numeric index (internal).
      */
     @SuppressWarnings("unchecked")
     private <T> T getByIndex(int index) {

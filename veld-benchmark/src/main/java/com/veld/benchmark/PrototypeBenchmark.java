@@ -27,9 +27,6 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Benchmarks measuring prototype (new instance) creation time.
- * 
- * This measures the time to create new instances of components,
- * which is important for request-scoped dependencies in web applications.
  */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
@@ -44,28 +41,18 @@ public class PrototypeBenchmark {
     private Injector guiceInjector;
     private PrototypeComponent daggerComponent;
     
-    // Pre-computed index for fast access
-    private int prototypeIndex;
-    
     @Setup(Level.Trial)
     public void setup() {
         veldContainer = new VeldContainer();
         springContext = new AnnotationConfigApplicationContext(SpringPrototypeConfig.class);
         guiceInjector = Guice.createInjector(new GuicePrototypeModule());
         daggerComponent = DaggerPrototypeComponent.create();
-        
-        // Pre-compute index for fast benchmarks
-        prototypeIndex = veldContainer.indexFor(VeldPrototypeService.class);
     }
     
     @TearDown(Level.Trial)
     public void teardown() {
-        if (veldContainer != null) {
-            veldContainer.close();
-        }
-        if (springContext != null) {
-            springContext.close();
-        }
+        if (veldContainer != null) veldContainer.close();
+        if (springContext != null) springContext.close();
     }
     
     // ==================== SIMPLE PROTOTYPE ====================
@@ -73,12 +60,6 @@ public class PrototypeBenchmark {
     @Benchmark
     public void veldPrototypeSimple(Blackhole bh) {
         Service service = veldContainer.get(VeldPrototypeService.class);
-        bh.consume(service);
-    }
-    
-    @Benchmark
-    public void veldFastPrototypeSimple(Blackhole bh) {
-        Service service = veldContainer.fastGet(prototypeIndex);
         bh.consume(service);
     }
     
