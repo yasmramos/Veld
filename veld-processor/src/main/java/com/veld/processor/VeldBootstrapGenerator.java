@@ -89,6 +89,8 @@ public class VeldBootstrapGenerator implements Opcodes {
         }
         
         // === CONTAINER API ===
+        generateCreateContainer(cw);
+        generateCreateRegistry(cw);
         generateGetByClass(cw);
         generateGetAllByClass(cw);
         generateContains(cw);
@@ -222,6 +224,46 @@ public class VeldBootstrapGenerator implements Opcodes {
             this.typeInternal = typeInternal;
             this.component = component;
         }
+    }
+    
+    /**
+     * Generates createContainer() - returns this Veld class as the container.
+     */
+    private void generateCreateContainer(ClassWriter cw) {
+        MethodVisitor mv = cw.visitMethod(
+            ACC_PUBLIC | ACC_STATIC,
+            "createContainer",
+            "()Ljava/lang/Object;",
+            null,
+            null
+        );
+        mv.visitCode();
+        // Return the Veld class itself as the container
+        mv.visitLdcInsn(org.objectweb.asm.Type.getObjectType(VELD_CLASS));
+        mv.visitInsn(ARETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    
+    /**
+     * Generates createRegistry() - returns ComponentRegistry.
+     */
+    private void generateCreateRegistry(ClassWriter cw) {
+        MethodVisitor mv = cw.visitMethod(
+            ACC_PUBLIC | ACC_STATIC,
+            "createRegistry",
+            "()Lcom/veld/runtime/ComponentRegistry;",
+            null,
+            null
+        );
+        mv.visitCode();
+        // Create and return a new ComponentRegistry
+        mv.visitTypeInsn(NEW, "com/veld/runtime/ComponentRegistry");
+        mv.visitInsn(DUP);
+        mv.visitMethodInsn(INVOKESPECIAL, "com/veld/runtime/ComponentRegistry", "<init>", "()V", false);
+        mv.visitInsn(ARETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
     }
     
     /**
