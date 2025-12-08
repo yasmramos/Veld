@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * - Health indicator is available
  * - Service lifecycle is managed properly
  */
-@SpringBootTest(classes = TestApplication.class)
+@SpringBootTest(classes = VeldSpringBootStarterIntegrationTest.TestApplication.class)
 class VeldSpringBootStarterIntegrationTest {
 
     @Autowired(required = false)
