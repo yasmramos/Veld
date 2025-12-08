@@ -60,7 +60,7 @@ public class InjectionBenchmark {
     
     @Benchmark
     public void veldSimpleInjection(Blackhole bh) {
-        Service service = Veld.get(VeldSimpleService.class);
+        Service service = Veld.veldSimpleService();
         bh.consume(service);
     }
     
@@ -86,7 +86,7 @@ public class InjectionBenchmark {
     
     @Benchmark
     public void veldComplexInjection(Blackhole bh) {
-        Service service = Veld.get(VeldComplexService.class);
+        Service service = Veld.veldComplexService();
         bh.consume(service);
     }
     
@@ -132,7 +132,7 @@ public class InjectionBenchmark {
     
     @Benchmark
     public void veldLoggerLookup(Blackhole bh) {
-        Logger logger = Veld.get(VeldLogger.class);
+        Logger logger = Veld.veldLogger();
         bh.consume(logger);
     }
     

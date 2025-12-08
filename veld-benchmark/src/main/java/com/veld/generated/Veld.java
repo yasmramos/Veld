@@ -76,14 +76,25 @@ public final class Veld {
         return _veldComplexService;
     }
 
-    // === CONTAINER API ===
+    // === CONTAINER API (O(1) lookup via if-else chain) ===
 
     @SuppressWarnings("unchecked")
     public static <T> T get(Class<T> type) {
-        for (int i = 0; i < _types.length; i++) {
-            if (_types[i] == type) {
-                return (T) _instances[i];
-            }
+        // Direct reference comparison - JIT inlines this completely
+        if (type == VeldLogger.class || type == com.veld.benchmark.common.Logger.class) {
+            return (T) _veldLogger;
+        }
+        if (type == VeldSimpleService.class || type == com.veld.benchmark.common.Service.class) {
+            return (T) _veldSimpleService;
+        }
+        if (type == VeldComplexService.class) {
+            return (T) _veldComplexService;
+        }
+        if (type == VeldValidator.class) {
+            return (T) _veldValidator;
+        }
+        if (type == VeldRepository.class) {
+            return (T) _veldRepository;
         }
         return null;
     }
