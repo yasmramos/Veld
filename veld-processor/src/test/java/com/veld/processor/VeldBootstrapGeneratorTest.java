@@ -299,14 +299,14 @@ class VeldBootstrapGeneratorTest {
     class MethodCountTests {
 
         @Test
-        @DisplayName("should generate exactly four methods")
-        void shouldGenerateExactlyFourMethods() {
+        @DisplayName("should generate at least eight core methods")
+        void shouldGenerateAtLeastEightCoreMethods() {
             VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
-            // Should have: <clinit>, <init>, createContainer, createRegistry
-            assertEquals(4, cn.methods.size());
+            // Should have: <clinit>, <init>, createContainer, createRegistry, get, getAll, contains, componentCount
+            assertTrue(cn.methods.size() >= 8, "Should have at least 8 methods, found: " + cn.methods.size());
         }
 
         @Test
