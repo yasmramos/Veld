@@ -21,6 +21,13 @@
     </properties>
 
     <dependencies>
+        <!-- Veld Annotations -->
+        <dependency>
+            <groupId>com.veld</groupId>
+            <artifactId>veld-annotations</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Veld Spring Boot Starter -->
         <dependency>
             <groupId>com.veld</groupId>
