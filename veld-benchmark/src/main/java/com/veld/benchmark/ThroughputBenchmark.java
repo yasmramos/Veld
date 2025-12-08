@@ -17,7 +17,7 @@ import com.veld.benchmark.dagger.DaggerBenchmarkComponent;
 import com.veld.benchmark.guice.GuiceModule;
 import com.veld.benchmark.spring.SpringConfig;
 import com.veld.benchmark.veld.VeldSimpleService;
-import com.veld.runtime.VeldContainer;
+import com.veld.generated.Veld;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -35,31 +35,25 @@ import java.util.concurrent.TimeUnit;
 @Measurement(iterations = 5, time = 1)
 public class ThroughputBenchmark {
     
-    private VeldContainer veldContainer;
     private AnnotationConfigApplicationContext springContext;
     private Injector guiceInjector;
     private BenchmarkComponent daggerComponent;
     
     @Setup(Level.Trial)
     public void setup() {
-        veldContainer = new VeldContainer();
         springContext = new AnnotationConfigApplicationContext(SpringConfig.class);
         guiceInjector = Guice.createInjector(new GuiceModule());
         daggerComponent = DaggerBenchmarkComponent.create();
-        
-        // Ensure singleton is initialized
-        veldContainer.get(VeldSimpleService.class);
     }
     
     @TearDown(Level.Trial)
     public void teardown() {
-        if (veldContainer != null) veldContainer.close();
         if (springContext != null) springContext.close();
     }
     
     @Benchmark
     public void veldThroughput(Blackhole bh) {
-        Service service = veldContainer.get(VeldSimpleService.class);
+        Service service = Veld.get(VeldSimpleService.class);
         bh.consume(service);
     }
     
@@ -84,7 +78,7 @@ public class ThroughputBenchmark {
     @Benchmark
     @Threads(4)
     public void veldConcurrentThroughput(Blackhole bh) {
-        Service service = veldContainer.get(VeldSimpleService.class);
+        Service service = Veld.get(VeldSimpleService.class);
         bh.consume(service);
     }
     

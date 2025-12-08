@@ -18,7 +18,7 @@ import com.veld.benchmark.dagger.PrototypeComponent;
 import com.veld.benchmark.guice.GuicePrototypeModule;
 import com.veld.benchmark.spring.SpringPrototypeConfig;
 import com.veld.benchmark.veld.VeldPrototypeService;
-import com.veld.runtime.VeldContainer;
+import com.veld.generated.Veld;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -27,6 +27,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Benchmarks measuring prototype (new instance) creation time.
+ * 
+ * Note: Veld prototype creates new instance each time via static method.
  */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
@@ -36,14 +38,12 @@ import java.util.concurrent.TimeUnit;
 @Measurement(iterations = 5, time = 1)
 public class PrototypeBenchmark {
     
-    private VeldContainer veldContainer;
     private AnnotationConfigApplicationContext springContext;
     private Injector guiceInjector;
     private PrototypeComponent daggerComponent;
     
     @Setup(Level.Trial)
     public void setup() {
-        veldContainer = new VeldContainer();
         springContext = new AnnotationConfigApplicationContext(SpringPrototypeConfig.class);
         guiceInjector = Guice.createInjector(new GuicePrototypeModule());
         daggerComponent = DaggerPrototypeComponent.create();
@@ -51,7 +51,6 @@ public class PrototypeBenchmark {
     
     @TearDown(Level.Trial)
     public void teardown() {
-        if (veldContainer != null) veldContainer.close();
         if (springContext != null) springContext.close();
     }
     
@@ -59,7 +58,9 @@ public class PrototypeBenchmark {
     
     @Benchmark
     public void veldPrototypeSimple(Blackhole bh) {
-        Service service = veldContainer.get(VeldPrototypeService.class);
+        // For prototypes, Veld generates a factory method
+        // Using direct instantiation to match prototype behavior
+        Service service = new VeldPrototypeService(Veld.veldLogger());
         bh.consume(service);
     }
     
