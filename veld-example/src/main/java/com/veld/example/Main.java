@@ -182,6 +182,25 @@ public class Main {
     
     private static void demonstratePrototype() {
         System.out.println("\n→ Getting RequestContext three times (should be different instances):");
+        
+        // Debug: check what's registered
+        try {
+            java.lang.reflect.Field typesField = veldClass.getDeclaredField("_types");
+            typesField.setAccessible(true);
+            Class<?>[] types = (Class<?>[]) typesField.get(null);
+            java.lang.reflect.Field scopesField = veldClass.getDeclaredField("_scopes");
+            scopesField.setAccessible(true);
+            int[] scopes = (int[]) scopesField.get(null);
+            System.out.println("  DEBUG: Registered types (" + types.length + "):");
+            for (int i = 0; i < types.length; i++) {
+                System.out.println("    [" + i + "] " + types[i].getName() + " (scope=" + scopes[i] + ")");
+            }
+            System.out.println("  DEBUG: Looking for: " + RequestContext.class.getName());
+            System.out.println("  DEBUG: contains(RequestContext.class) = " + contains(RequestContext.class));
+        } catch (Exception e) {
+            System.out.println("  DEBUG ERROR: " + e);
+        }
+        
         RequestContext req1 = get(RequestContext.class);
         RequestContext req2 = get(RequestContext.class);
         RequestContext req3 = get(RequestContext.class);
