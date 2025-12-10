@@ -53,14 +53,14 @@ Veld is a **compile-time Dependency Injection framework** that generates pure by
 <dependencies>
     <!-- Core annotations -->
     <dependency>
-        <groupId>com.veld</groupId>
+        <groupId>io.github.yasmramos</groupId>
         <artifactId>veld-annotations</artifactId>
         <version>1.0.0-alpha.6</version>
     </dependency>
     
     <!-- Runtime utilities (optional) -->
     <dependency>
-        <groupId>com.veld</groupId>
+        <groupId>io.github.yasmramos</groupId>
         <artifactId>veld-runtime</artifactId>
         <version>1.0.0-alpha.6</version>
     </dependency>
@@ -73,7 +73,7 @@ Veld is a **compile-time Dependency Injection framework** that generates pure by
 <build>
     <plugins>
         <plugin>
-            <groupId>com.veld</groupId>
+            <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-maven-plugin</artifactId>
             <version>1.0.0-alpha.6</version>
             <extensions>true</extensions>
@@ -90,8 +90,8 @@ Veld is a **compile-time Dependency Injection framework** that generates pure by
 ### 3. Define Components
 
 ```java
-import com.veld.annotation.Component;
-import com.veld.annotation.Inject;
+import io.github.yasmramos.annotation.Component;
+import io.github.yasmramos.annotation.Inject;
 
 @Component
 public class LogService {
@@ -132,7 +132,7 @@ public class UserService {
 ### 4. Use Your Components
 
 ```java
-import com.veld.generated.Veld;
+import io.github.yasmramos.generated.Veld;
 
 public class Main {
     public static void main(String[] args) {
@@ -330,7 +330,7 @@ Use Veld alongside Spring Boot:
 
 ```xml
 <dependency>
-    <groupId>com.veld</groupId>
+    <groupId>io.github.yasmramos</groupId>
     <artifactId>veld-spring-boot-starter</artifactId>
     <version>1.0.0-alpha.6</version>
 </dependency>

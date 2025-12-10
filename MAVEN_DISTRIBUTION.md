@@ -12,14 +12,14 @@ Add Veld to your `pom.xml`:
 <dependencies>
     <!-- Core Veld Framework -->
     <dependency>
-        <groupId>com.veld</groupId>
+        <groupId>io.github.yasmramos</groupId>
         <artifactId>veld-annotations</artifactId>
         <version>1.0.0</version>
     </dependency>
     
     <!-- Runtime utilities -->
     <dependency>
-        <groupId>com.veld</groupId>
+        <groupId>io.github.yasmramos</groupId>
         <artifactId>veld-runtime</artifactId>
         <version>1.0.0</version>
     </dependency>
@@ -34,7 +34,7 @@ For annotation processing:
 <build>
     <plugins>
         <plugin>
-            <groupId>com.veld</groupId>
+            <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-maven-plugin</artifactId>
             <version>1.0.0</version>
             <extensions>true</extensions>
@@ -47,9 +47,9 @@ For annotation processing:
 
 ```gradle
 dependencies {
-    implementation 'com.veld:veld-annotations:1.0.0'
-    implementation 'com.veld:veld-runtime:1.0.0'
-    annotationProcessor 'com.veld:veld-maven-plugin:1.0.0'
+    implementation 'io.github.yasmramos:veld-annotations:1.0.0'
+    implementation 'io.github.yasmramos:veld-runtime:1.0.0'
+    annotationProcessor 'io.github.yasmramos:veld-maven-plugin:1.0.0'
 }
 ```
 
@@ -228,7 +228,7 @@ Veld/
 ## 🔗 Useful Links
 
 ### Maven Central
-- **Search**: https://search.maven.org/artifact/com.veld/veld-annotations
+- **Search**: https://search.maven.org/artifact/io.github.yasmramos/veld-annotations
 - **Repository**: https://repo1.maven.org/maven2/com/veld/
 - **Staging**: https://s01.oss.sonatype.org/#stagingRepositories
 
@@ -337,4 +337,4 @@ For release issues:
 
 **Last Updated**: 2025-12-11  
 **Version**: 1.0.0  
-**Maven Central**: https://search.maven.org/artifact/com.veld/veld-annotations
+**Maven Central**: https://search.maven.org/artifact/io.github.yasmramos/veld-annotations

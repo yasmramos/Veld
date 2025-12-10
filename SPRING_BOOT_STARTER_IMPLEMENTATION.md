@@ -36,7 +36,7 @@
 ### META-INF/spring.factories
 ```properties
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-com.veld.boot.starter.autoconfigure.VeldAutoConfiguration
+io.github.yasmramos.boot.starter.autoconfigure.VeldAutoConfiguration
 ```
 
 ### Metadatos de Configuración
@@ -122,7 +122,7 @@ mvn clean install
 ### 2. Usar en Proyecto Spring Boot
 ```xml
 <dependency>
-    <groupId>com.veld</groupId>
+    <groupId>io.github.yasmramos</groupId>
     <artifactId>veld-spring-boot-starter</artifactId>
     <version>1.0.0-alpha.6</version>
 </dependency>

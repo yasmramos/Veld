@@ -17,7 +17,7 @@ El **Veld Spring Boot Starter** proporciona integración automática entre el fr
 
 ```xml
 <dependency>
-    <groupId>com.veld</groupId>
+    <groupId>io.github.yasmramos</groupId>
     <artifactId>veld-spring-boot-starter</artifactId>
     <version>1.0.0-alpha.6</version>
 </dependency>
@@ -63,9 +63,9 @@ veld.spring-integration.health-indicator=true
 #### 1. Bean de Veld
 
 ```java
-import com.veld.annotations.Component;
-import com.veld.annotations.Inject;
-import com.veld.annotations.PostConstruct;
+import io.github.yasmramos.annotations.Component;
+import io.github.yasmramos.annotations.Inject;
+import io.github.yasmramos.annotations.PostConstruct;
 
 @Component("userService")
 public class UserService {
@@ -202,7 +202,7 @@ GET /actuator/metrics/veld.components.count
 
 ```properties
 # Habilitar logging detallado
-logging.level.com.veld=DEBUG
+logging.level.io.github.yasmramos=DEBUG
 ```
 
 #### Conflicto con Spring DI
@@ -216,7 +216,7 @@ logging.level.com.veld=DEBUG
 
 ```bash
 # Verificar logs
-curl /actuator/loggers/com.veld
+curl /actuator/loggers/io.github.yasmramos
 
 # Health check directo
 curl /actuator/health/veld
@@ -227,7 +227,7 @@ curl /actuator/health/veld
 1. **Agregar dependencia**:
 ```xml
 <dependency>
-    <groupId>com.veld</groupId>
+    <groupId>io.github.yasmramos</groupId>
     <artifactId>veld-spring-boot-starter</artifactId>
 </dependency>
 ```

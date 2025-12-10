@@ -18,7 +18,7 @@ Esta guía te ayudará a migrar gradualmente desde Spring Dependency Injection a
 ```xml
 <!-- Agregar al pom.xml -->
 <dependency>
-    <groupId>com.veld</groupId>
+    <groupId>io.github.yasmramos</groupId>
     <artifactId>veld-spring-boot-starter</artifactId>
     <version>1.0.0-alpha.6</version>
 </dependency>

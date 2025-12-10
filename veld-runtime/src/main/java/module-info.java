@@ -2,23 +2,23 @@
  * Veld Runtime Module.
  * Provides the minimal runtime container for the Veld DI Framework.
  */
-module com.veld.runtime {
+module io.github.yasmramos.runtime {
     // Required JDK modules
     requires java.logging;
     
     // Required Veld modules
-    requires transitive com.veld.annotation;
+    requires transitive io.github.yasmramos.annotation;
     
     // Export all runtime packages
     exports com.veld;
-    exports com.veld.runtime;
-    exports com.veld.runtime.condition;
-    exports com.veld.runtime.event;
-    exports com.veld.runtime.lifecycle;
-    exports com.veld.runtime.lifecycle.event;
-    exports com.veld.runtime.value;
+    exports io.github.yasmramos.runtime;
+    exports io.github.yasmramos.runtime.condition;
+    exports io.github.yasmramos.runtime.event;
+    exports io.github.yasmramos.runtime.lifecycle;
+    exports io.github.yasmramos.runtime.lifecycle.event;
+    exports io.github.yasmramos.runtime.value;
     
     // Open packages for reflection (needed for DI and lifecycle callbacks)
-    opens com.veld.runtime;
-    opens com.veld.runtime.lifecycle;
+    opens io.github.yasmramos.runtime;
+    opens io.github.yasmramos.runtime.lifecycle;
 }

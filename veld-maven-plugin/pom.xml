@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.veld</groupId>
+        <groupId>io.github.yasmramos</groupId>
         <artifactId>veld-parent</artifactId>
         <version>1.0.0-alpha.6</version>
     </parent>
@@ -24,21 +24,21 @@
     <dependencies>
         <!-- Veld Processor (contains annotation processor) -->
         <dependency>
-            <groupId>com.veld</groupId>
+            <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-processor</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Veld Weaver (contains weaving logic) -->
         <dependency>
-            <groupId>com.veld</groupId>
+            <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-weaver</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Veld Annotations -->
         <dependency>
-            <groupId>com.veld</groupId>
+            <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-annotations</artifactId>
             <version>${project.version}</version>
         </dependency>
