@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Syntax Highlighting</title>
+    <link rel="stylesheet" href="docs/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Syntax Highlighting Test</h1>
+        
+        <h2>Java Code Example</h2>
+        <pre><code>package com.example.service;
+
+import com.veld.annotation.Component;
+import com.veld.annotation.Inject;
+import com.veld.annotation.Value;
+
+@Component
+public class UserService {
+    
+    @Inject
+    private DatabaseService database;
+    
+    @Value("${app.name:VeldApp}")
+    private String appName;
+    
+    public User getUser(String id) {
+        // Query the database
+        return database.findById(id);
+    }
+    
+    public void createUser(User user) {
+        database.save(user);
+        System.out.println("User created: " + user.getName());
+    }
+}</code></pre>
+
+        <h2>Another Example</h2>
+        <pre><code>import com.veld.runtime.VeldContainer;
+
+public class Main {
+    public static void main(String[] args) {
+        VeldContainer container = new VeldContainer();
+        container.scan("com.example");
+        container.start();
+        
+        UserService userService = container.getBean(UserService.class);
+        userService.createUser(new User("John", "john@example.com"));
+    }
+}</code></pre>
+    </div>
+    
+    <script src="docs/js/main.js"></script>
+</body>
+</html>
