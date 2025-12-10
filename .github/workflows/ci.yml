@@ -36,11 +36,14 @@ jobs:
       - name: Build Example and Starter Modules
         run: mvn clean install -DskipTests -B -pl veld-example,veld-spring-boot-starter,veld-spring-boot-example,veld-benchmark
 
-      - name: Run Tests
-        run: mvn test -B
+      - name: Run Tests (Core Modules)
+        run: mvn test -B -pl veld-annotations,veld-runtime,veld-processor,veld-aop,veld-weaver,veld-maven-plugin
+
+      - name: Run Tests (Example Modules)
+        run: mvn test -B -pl veld-example,veld-spring-boot-starter,veld-spring-boot-example
 
       - name: Generate Coverage Report
-        run: mvn jacoco:report-aggregate -B
+        run: mvn jacoco:report-aggregate -B -pl veld-example
         continue-on-error: true
 
       - name: Upload Coverage Report
@@ -52,7 +55,7 @@ jobs:
           retention-days: 30
 
       - name: Package JARs
-        run: mvn package -DskipTests -B
+        run: mvn package -DskipTests -B -pl veld-annotations,veld-runtime,veld-processor,veld-aop,veld-weaver,veld-maven-plugin,veld-example
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
@@ -90,8 +93,11 @@ jobs:
       - name: Build All Modules
         run: mvn clean install -DskipTests -B -pl veld-example,veld-spring-boot-starter,veld-spring-boot-example,veld-benchmark
 
-      - name: Run Tests and Verify
-        run: mvn verify -B
+      - name: Run Tests and Verify (Core)
+        run: mvn verify -B -pl veld-annotations,veld-runtime,veld-processor,veld-aop,veld-weaver,veld-maven-plugin
+
+      - name: Run Tests and Verify (Example)
+        run: mvn verify -B -pl veld-example,veld-spring-boot-starter,veld-spring-boot-example
 
       - name: Run Example Application
         run: mvn -pl veld-example exec:java -Dexec.mainClass="com.veld.example.Main" -B
@@ -126,11 +132,14 @@ jobs:
       - name: Build All Modules
         run: mvn clean install -DskipTests -B -pl veld-example,veld-spring-boot-starter,veld-spring-boot-example,veld-benchmark
 
-      - name: Run Tests
-        run: mvn test -B
+      - name: Run Tests (Core)
+        run: mvn test -B -pl veld-annotations,veld-runtime,veld-processor,veld-aop,veld-weaver,veld-maven-plugin
+
+      - name: Run Tests (Example)
+        run: mvn test -B -pl veld-example,veld-spring-boot-starter,veld-spring-boot-example
 
       - name: Verify
-        run: mvn verify -B -DskipTests
+        run: mvn verify -B -DskipTests -pl veld-annotations,veld-runtime,veld-processor,veld-aop,veld-weaver,veld-maven-plugin,veld-example
 
   # Release job - only on main branch tags
   release:
