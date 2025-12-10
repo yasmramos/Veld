@@ -24,7 +24,7 @@ import java.util.*;
  */
 public class VeldBootstrapGenerator implements Opcodes {
     
-    private static final String VELD_CLASS = "com/veld/generated/Veld";
+    private static final String VELD_CLASS = "io/github/yasmramos/generated/Veld";
     private static final String LIST_CLASS = "java/util/List";
     private static final String ARRAYLIST_CLASS = "java/util/ArrayList";
     private static final String COLLECTIONS_CLASS = "java/util/Collections";
@@ -343,15 +343,15 @@ public class VeldBootstrapGenerator implements Opcodes {
         MethodVisitor mv = cw.visitMethod(
             ACC_PUBLIC | ACC_STATIC,
             "createRegistry",
-            "()Lcom/veld/runtime/ComponentRegistry;",
+            "()Lio/github/yasmramos/runtime/ComponentRegistry;",
             null,
             null
         );
         mv.visitCode();
         // Create and return a new ComponentRegistry
-        mv.visitTypeInsn(NEW, "com/veld/runtime/ComponentRegistry");
+        mv.visitTypeInsn(NEW, "io/github/yasmramos/runtime/ComponentRegistry");
         mv.visitInsn(DUP);
-        mv.visitMethodInsn(INVOKESPECIAL, "com/veld/runtime/ComponentRegistry", "<init>", "()V", false);
+        mv.visitMethodInsn(INVOKESPECIAL, "io/github/yasmramos/runtime/ComponentRegistry", "<init>", "()V", false);
         mv.visitInsn(ARETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();
