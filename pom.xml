@@ -6,12 +6,26 @@
 
     <groupId>com.veld</groupId>
     <artifactId>veld-parent</artifactId>
-    <version>1.0.0-alpha.6</version>
+    <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Veld Framework</name>
-    <description>Dependency Injection Framework using pure ASM bytecode generation - No Reflection</description>
+    <description>Ultra-fast Dependency Injection Framework using pure ASM bytecode generation - Zero Reflection</description>
     <url>https://github.com/yasmramos/Veld</url>
+
+    <!-- Project Information -->
+    <organization>
+        <name>Veld Team</name>
+        <url>https://github.com/yasmramos</url>
+    </organization>
+    <developers>
+        <developer>
+            <id>yasmramos</id>
+            <name>Yasmin Ramos</name>
+            <email>yasmramos@github.com</email>
+            <url>https://github.com/yasmramos</url>
+        </developer>
+    </developers>
 
     <licenses>
         <license>
@@ -28,11 +42,24 @@
     </scm>
 
     <distributionManagement>
+        <!-- Maven Central Repository -->
+        <repository>
+            <id>ossrh</id>
+            <name>Nexus Staging Repository</name>
+            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+        <!-- GitHub Packages (for internal releases) -->
         <repository>
             <id>github</id>
             <name>GitHub yasmramos Apache Maven Packages</name>
             <url>https://maven.pkg.github.com/yasmramos/Veld</url>
         </repository>
+        <!-- Snapshot Repository -->
+        <snapshotRepository>
+            <id>ossrh</id>
+            <name>OSS RH Snapshots</name>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+        </snapshotRepository>
     </distributionManagement>
 
     <modules>
@@ -53,6 +80,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- Dependencies versions -->
         <junit.version>5.11.3</junit.version>
@@ -66,6 +94,20 @@
         <!-- Spring Boot versions -->
         <spring-boot.version>2.7.18</spring-boot.version>
         <spring.version>5.3.30</spring.version>
+        
+        <!-- Maven plugins versions -->
+        <maven.compiler.plugin.version>3.11.0</maven.compiler.plugin.version>
+        <maven.surefire.plugin.version>3.2.2</maven.surefire.plugin.version>
+        <maven.source.plugin.version>3.3.1</maven.source.plugin.version>
+        <maven.javadoc.plugin.version>3.6.3</maven.javadoc.plugin.version>
+        <maven.gpg.plugin.version>3.2.5</maven.gpg.plugin.version>
+        <maven.nexus.staging.plugin.version>1.6.13</maven.nexus.staging.plugin.version>
+        <maven.release.plugin.version>3.0.1</maven.release.plugin.version>
+        <maven.assembly.plugin.version>3.7.0</maven.assembly.plugin.version>
+        
+        <!-- Release properties -->
+        <maven.compiler.release>17</maven.compiler.release>
+        <skipTests>false</skipTests>
     </properties>
 
     <dependencyManagement>
@@ -180,25 +222,150 @@
 
     <build>
         <plugins>
+            <!-- Maven Compiler Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
+                <version>${maven.compiler.plugin.version}</version>
                 <configuration>
                     <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
+                    <release>${maven.compiler.release}</release>
+                    <compilerArgs>
+                        <arg>-Xlint:all</arg>
+                        <arg>-Xlint:-processing</arg>
+                        <arg>-Xlint:-unchecked</arg>
+                    </compilerArgs>
+                    <showWarnings>true</showWarnings>
+                    <showDeprecation>true</showDeprecation>
                 </configuration>
             </plugin>
 
+            <!-- Maven Surefire Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.2.2</version>
+                <version>${maven.surefire.plugin.version}</version>
                 <configuration>
-                    <argLine>@{argLine} -Dnet.bytebuddy.experimental=true --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED</argLine>
+                    <argLine>@{argLine} -Dnet.bytebuddy.experimental=true 
+                        --add-opens java.base/java.lang=ALL-UNNAMED 
+                        --add-opens java.base/java.lang.reflect=ALL-UNNAMED 
+                        --add-opens java.base/java.util=ALL-UNNAMED 
+                        --add-opens java.base/java.lang.invoke=ALL-UNNAMED 
+                        --add-opens java.base/java.util.concurrent=ALL-UNNAMED
+                    </argLine>
+                    <skipTests>${skipTests}</skipTests>
+                    <testFailureIgnore>false</testFailureIgnore>
+                    <failIfNoTests>false</failIfNoTests>
                 </configuration>
             </plugin>
 
+            <!-- Generate Source JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>${maven.source.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Generate Javadoc JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven.javadoc.plugin.version}</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <detectJavaApiLink>false</detectJavaApiLink>
+                    <author>true</author>
+                    <version>true</version>
+                    <use>true</use>
+                    <windowtitle>Veld Framework API</windowtitle>
+                    <doctitle>Veld Framework - Ultra-fast Dependency Injection</doctitle>
+                    <bottom>
+                        <![CDATA[
+                        <i>Copyright &copy; 2025 Veld Team. All rights reserved.</i>
+                        ]]>
+                    </bottom>
+                    <failOnError>true</failOnError>
+                    <additionalOptions>
+                        <additionalOption>-Xdoclint:none</additionalOption>
+                    </additionalOptions>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- GPG Signing Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>${maven.gpg.plugin.version}</version>
+                <configuration>
+                    <skip>${skipGpg}</skip>
+                    <keyname>${gpg.keyname}</keyname>
+                    <passphraseServerId>${gpg.keyname}</passphraseServerId>
+                    <gpgArguments>
+                        <arg>--no-tty</arg>
+                        <arg>--pinentry-mode</arg>
+                        <arg>loopback</arg>
+                    </gpgArguments>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Nexus Staging Plugin for Maven Central -->
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>${maven.nexus.staging.plugin.version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                    <skipStaging>true</skipStaging>
+                </configuration>
+            </plugin>
+
+            <!-- Maven Release Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>${maven.release.plugin.version}</version>
+                <configuration>
+                    <tagNameFormat>@{project.version}</tagNameFormat>
+                    <pushChanges>false</pushChanges>
+                    <localCheckout>true</localCheckout>
+                    <scmCommentPrefix>[maven-release-plugin]</scmCommentPrefix>
+                    <scmReleaseCommitComment>Release @{project.version}</scmReleaseCommitComment>
+                    <scmTagCommitComment>Tag @{project.version}</scmTagCommitComment>
+                    <resume>false</resume>
+                    <arguments>-DskipTests</arguments>
+                </configuration>
+            </plugin>
+
+            <!-- JaCoCo Coverage Plugin -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -254,7 +421,47 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- Project Reports Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+                <version>3.4.5</version>
+                <configuration>
+                    <dependencyDetailsEnabled>true</dependencyDetailsEnabled>
+                    <dependencyLocationsEnabled>true</dependencyLocationsEnabled>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
+
+    <!-- Reporting section for Maven Central -->
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven.javadoc.plugin.version}</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <detectJavaApiLink>false</detectJavaApiLink>
+                    <author>true</author>
+                    <version>true</version>
+                    <use>true</use>
+                    <windowtitle>Veld Framework API</windowtitle>
+                    <doctitle>Veld Framework - Ultra-fast Dependency Injection</doctitle>
+                    <bottom>
+                        <![CDATA[
+                        <i>Copyright &copy; 2025 Veld Team. All rights reserved.</i>
+                        ]]>
+                    </bottom>
+                    <failOnError>true</failOnError>
+                    <additionalOptions>
+                        <additionalOption>-Xdoclint:none</additionalOption>
+                    </additionalOptions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
 </project>
 
