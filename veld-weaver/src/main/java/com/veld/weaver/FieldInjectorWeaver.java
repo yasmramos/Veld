@@ -164,16 +164,18 @@ public class FieldInjectorWeaver {
     
     /**
      * Finds all fields that have injection annotations.
-     * Supports private, private static, private final, and private static final.
+     * Generates synthetic setters for non-public fields so they can be accessed
+     * from Veld.java (which is in a different package: com.veld.generated).
      */
     private List<FieldNode> findInjectableFields(ClassNode classNode) {
         List<FieldNode> injectableFields = new ArrayList<>();
         
         for (FieldNode field : classNode.fields) {
             if (hasInjectAnnotation(field)) {
-                // Only process private fields - public/protected/package-private
-                // can use direct PUTFIELD/PUTSTATIC
-                if ((field.access & ACC_PRIVATE) != 0) {
+                // Generate synthetic setters for all non-public fields
+                // (private, package-private, protected) since Veld.java is in
+                // com.veld.generated and cannot access non-public members
+                if ((field.access & ACC_PUBLIC) == 0) {
                     injectableFields.add(field);
                 }
             }
