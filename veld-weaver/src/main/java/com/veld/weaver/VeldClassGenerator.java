@@ -167,11 +167,10 @@ public class VeldClassGenerator implements Opcodes {
                     "(Ljava/lang/Object;)V", false);
             }
             
-            // @PostConstruct callback
+            // @PostConstruct callback (via reflection for package-private access)
             if (comp.postConstructMethod != null) {
                 mv.visitFieldInsn(GETSTATIC, VELD_CLASS, fieldName, fieldType);
-                mv.visitMethodInsn(INVOKEVIRTUAL, comp.internalName, comp.postConstructMethod, 
-                    comp.postConstructDescriptor, false);
+                generateReflectiveMethodCall(mv, comp.postConstructMethod);
             }
         }
         
@@ -233,6 +232,38 @@ public class VeldClassGenerator implements Opcodes {
         mv.visitInsn(RETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();
+    }
+    
+    /**
+     * Generates bytecode to invoke a no-arg method via reflection with setAccessible(true).
+     * This allows calling package-private @PostConstruct/@PreDestroy methods.
+     * Stack: [..., instance] -> [...]
+     * 
+     * Equivalent to:
+     *   Method m = instance.getClass().getDeclaredMethod(methodName);
+     *   m.setAccessible(true);
+     *   m.invoke(instance);
+     */
+    private void generateReflectiveMethodCall(MethodVisitor mv, String methodName) {
+        // Stack: [instance]
+        mv.visitInsn(DUP);  // [instance, instance]
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", 
+            "()Ljava/lang/Class;", false);  // [instance, Class]
+        mv.visitLdcInsn(methodName);  // [instance, Class, methodName]
+        mv.visitInsn(ICONST_0);  // [instance, Class, methodName, 0]
+        mv.visitTypeInsn(ANEWARRAY, "java/lang/Class");  // [instance, Class, methodName, Class[0]]
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getDeclaredMethod",
+            "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", false);  // [instance, Method]
+        mv.visitInsn(DUP);  // [instance, Method, Method]
+        mv.visitInsn(ICONST_1);  // [instance, Method, Method, true]
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "setAccessible",
+            "(Z)V", false);  // [instance, Method]
+        mv.visitInsn(SWAP);  // [Method, instance]
+        mv.visitInsn(ICONST_0);  // [Method, instance, 0]
+        mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");  // [Method, instance, Object[0]]
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "invoke",
+            "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", false);  // [result]
+        mv.visitInsn(POP);  // []
     }
     
     private void loadDependency(MethodVisitor mv, String typeName) {
@@ -428,11 +459,10 @@ public class VeldClassGenerator implements Opcodes {
                 "(Ljava/lang/Object;)V", false);
         }
         
-        // @PostConstruct callback
+        // @PostConstruct callback (via reflection for package-private access)
         if (comp.postConstructMethod != null) {
             mv.visitVarInsn(ALOAD, 0);
-            mv.visitMethodInsn(INVOKEVIRTUAL, comp.internalName, comp.postConstructMethod, 
-                comp.postConstructDescriptor, false);
+            generateReflectiveMethodCall(mv, comp.postConstructMethod);
         }
         
         mv.visitVarInsn(ALOAD, 0);
@@ -629,8 +659,7 @@ public class VeldClassGenerator implements Opcodes {
                 String fieldType = "L" + comp.internalName + ";";
                 
                 mv.visitFieldInsn(GETSTATIC, VELD_CLASS, fieldName, fieldType);
-                mv.visitMethodInsn(INVOKEVIRTUAL, comp.internalName, comp.preDestroyMethod, 
-                    comp.preDestroyDescriptor, false);
+                generateReflectiveMethodCall(mv, comp.preDestroyMethod);
             }
         }
         
