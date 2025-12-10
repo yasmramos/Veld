@@ -79,11 +79,4 @@
         </plugins>
     </build>
 
-    <repositories>
-        <repository>
-            <id>github</id>
-            <name>GitHub yasmramos Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/yasmramos/Veld</url>
-        </repository>
-    </repositories>
 </project>
