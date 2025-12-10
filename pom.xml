@@ -70,9 +70,9 @@
     </modules>
 
     <properties>
-        <java.version>17</java.version>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <java.version>11</java.version>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
@@ -100,7 +100,7 @@
         <maven.assembly.plugin.version>3.7.0</maven.assembly.plugin.version>
         
         <!-- Release properties -->
-        <maven.compiler.release>17</maven.compiler.release>
+        <maven.compiler.release>11</maven.compiler.release>
         <skipTests>false</skipTests>
         <skipGpg>true</skipGpg>
     </properties>
@@ -248,6 +248,7 @@
                         --add-opens java.base/java.util=ALL-UNNAMED 
                         --add-opens java.base/java.lang.invoke=ALL-UNNAMED 
                         --add-opens java.base/java.util.concurrent=ALL-UNNAMED
+                        --add-opens java.base/java.net=ALL-UNNAMED
                     </argLine>
                     <skipTests>${skipTests}</skipTests>
                     <testFailureIgnore>false</testFailureIgnore>
@@ -329,7 +330,8 @@
                 </executions>
             </plugin>
 
-            <!-- Nexus Staging Plugin for Maven Central -->
+            <!-- Nexus Staging Plugin for Maven Central - Temporarily disabled -->
+            <!--
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
@@ -342,6 +344,7 @@
                     <skipStaging>true</skipStaging>
                 </configuration>
             </plugin>
+            -->
 
             <!-- Maven Release Plugin -->
             <plugin>
