@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>veld-example</artifactId>
-    <packaging>veld-jar</packaging>
+    
     <name>Veld Example</name>
     <description>Example module demonstrating Veld DI framework capabilities</description>
 
