@@ -11,8 +11,8 @@ class ComponentFactoryTest {
     void testDefaultMethods() {
         ComponentFactory<String> factory = new ComponentFactory<>() {
             @Override public int getIndex() { return 0; }
-            @Override public String getName() { return "test"; }
-            @Override public Class<String> getType() { return String.class; }
+            @Override public String getComponentName() { return "test"; }
+            @Override public Class<String> getComponentType() { return String.class; }
             @Override public Scope getScope() { return Scope.SINGLETON; }
             @Override public boolean isLazy() { return false; }
             @Override public String create() { return "value"; }
@@ -20,11 +20,9 @@ class ComponentFactoryTest {
             @Override public void invokePreDestroy(String instance) {}
         };
 
-        assertFalse(factory.isPrimary());
-        assertNull(factory.getQualifier());
-        assertArrayEquals(new Class<?>[0], factory.getInterfaces());
-        assertArrayEquals(new String[0], factory.getProfiles());
-        assertTrue(factory.getConditions().isEmpty());
+        assertFalse(factory.hasConditions());
+        assertTrue(factory.evaluateConditions(null));
+        assertEquals(0, factory.getImplementedInterfaces().size());
     }
 
     @Test
@@ -34,8 +32,8 @@ class ComponentFactoryTest {
 
         ComponentFactory<String> factory = new ComponentFactory<>() {
             @Override public int getIndex() { return 0; }
-            @Override public String getName() { return "test"; }
-            @Override public Class<String> getType() { return String.class; }
+            @Override public String getComponentName() { return "test"; }
+            @Override public Class<String> getComponentType() { return String.class; }
             @Override public Scope getScope() { return Scope.SINGLETON; }
             @Override public boolean isLazy() { return false; }
             @Override public String create() { return "value"; }
@@ -59,33 +57,37 @@ class ComponentFactoryTest {
     void testPrimaryFactory() {
         ComponentFactory<String> factory = new ComponentFactory<>() {
             @Override public int getIndex() { return 0; }
-            @Override public String getName() { return "primary"; }
-            @Override public Class<String> getType() { return String.class; }
+            @Override public String getComponentName() { return "primary"; }
+            @Override public Class<String> getComponentType() { return String.class; }
             @Override public Scope getScope() { return Scope.SINGLETON; }
             @Override public boolean isLazy() { return false; }
             @Override public String create() { return "primary"; }
             @Override public void invokePostConstruct(String instance) {}
             @Override public void invokePreDestroy(String instance) {}
-            @Override public boolean isPrimary() { return true; }
         };
 
-        assertTrue(factory.isPrimary());
+        // Primary functionality is not part of ComponentFactory interface
+        // This test validates that a basic factory can be created
+        assertEquals("primary", factory.getComponentName());
+        assertEquals(String.class, factory.getComponentType());
     }
 
     @Test
     void testQualifiedFactory() {
         ComponentFactory<String> factory = new ComponentFactory<>() {
             @Override public int getIndex() { return 0; }
-            @Override public String getName() { return "qualified"; }
-            @Override public Class<String> getType() { return String.class; }
+            @Override public String getComponentName() { return "qualified"; }
+            @Override public Class<String> getComponentType() { return String.class; }
             @Override public Scope getScope() { return Scope.SINGLETON; }
             @Override public boolean isLazy() { return false; }
             @Override public String create() { return "qualified"; }
             @Override public void invokePostConstruct(String instance) {}
             @Override public void invokePreDestroy(String instance) {}
-            @Override public String getQualifier() { return "myQualifier"; }
         };
 
-        assertEquals("myQualifier", factory.getQualifier());
+        // Qualifier functionality is not part of ComponentFactory interface
+        // This test validates that a basic factory can be created with a specific name
+        assertEquals("qualified", factory.getComponentName());
+        assertEquals(String.class, factory.getComponentType());
     }
 }
