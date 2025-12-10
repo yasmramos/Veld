@@ -115,7 +115,7 @@ class VeldBootstrapGeneratorTest {
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
-            assertEquals("io/github/yasmramos/generated/Veld", cn.name);
+            assertEquals("io/github/yasmramos/Veld", cn.name);
         }
 
         @Test
@@ -278,7 +278,7 @@ class VeldBootstrapGeneratorTest {
             
             MethodNode method = getMethod(cn, "createRegistry");
             assertNotNull(method);
-            assertEquals("()Lio/github/yasmramos/runtime/ComponentRegistry;", method.desc);
+            assertEquals("()Lcom/veld/runtime/ComponentRegistry;", method.desc);
         }
 
         @Test
