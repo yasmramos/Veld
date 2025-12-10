@@ -18,10 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * - Health indicator is available
  * - Service lifecycle is managed properly
  */
-@SpringBootTest(
-    classes = VeldSpringBootStarterIntegrationTest.TestApplication.class,
-    properties = {"veld.container.auto-start=false"}
-)
+@SpringBootTest(classes = VeldSpringBootStarterIntegrationTest.TestApplication.class)
 class VeldSpringBootStarterIntegrationTest {
 
     @Autowired(required = false)
@@ -29,9 +26,10 @@ class VeldSpringBootStarterIntegrationTest {
 
     @Test
     void testVeldServiceInitialization() {
-        // Service should be null when auto-start is disabled and Veld class doesn't exist
-        // This validates the conditional configuration works correctly
-        assertNull(veldService, "Veld service should not be created when auto-start is disabled");
+        // With TestVeldComponent and processor configured, Veld class should be generated
+        assertNotNull(veldService, "Veld service should be available");
+        assertTrue(veldService.isInitialized(), "Veld service should be initialized");
+        assertTrue(veldService.isHealthy(), "Veld service should be healthy");
     }
 
     @Test

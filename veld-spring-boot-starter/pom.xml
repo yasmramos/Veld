@@ -92,6 +92,12 @@
             <version>${spring.framework.version}</version>
             <scope>test</scope>
         </dependency>
+        <!-- Veld Processor for test compilation -->
+        <dependency>
+            <groupId>com.veld</groupId>
+            <artifactId>veld-processor</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -103,6 +109,13 @@
                 <configuration>
                     <source>11</source>
                     <target>11</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>com.veld</groupId>
+                            <artifactId>veld-processor</artifactId>
+                            <version>${project.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
         </plugins>
