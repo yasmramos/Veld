@@ -1,74 +1,84 @@
 package io.github.yasmramos;
 
+import java.lang.reflect.Method;
+import java.util.Collections;
 import java.util.List;
 
 /**
  * Main entry point for Veld dependency injection.
  * 
- * This is a compile-time stub that gets replaced by the weaver with the actual
- * generated implementation containing all registered components.
- * 
- * Usage:
- * <pre>
- * MyService service = Veld.get(MyService.class);
- * </pre>
+ * Delegates to the generated implementation at compile-time.
  */
 public final class Veld {
     
+    private static final String GENERATED_CLASS = "io.github.yasmramos.generated.Veld";
+    private static Class<?> generatedVeld;
+    private static boolean initialized = false;
+    
     private Veld() {}
     
-    /**
-     * Gets a component instance by type.
-     * 
-     * @param type the component class or interface
-     * @param <T> the component type
-     * @return the component instance
-     * @throws IllegalStateException if Veld was not properly initialized by the weaver
-     */
+    private static void ensureInitialized() {
+        if (!initialized) {
+            try {
+                generatedVeld = Class.forName(GENERATED_CLASS);
+                initialized = true;
+            } catch (ClassNotFoundException e) {
+                throw new IllegalStateException(
+                    "Veld not initialized. Ensure veld-processor is in annotation processor path.");
+            }
+        }
+    }
+    
     @SuppressWarnings("unchecked")
     public static <T> T get(Class<T> type) {
-        throw new IllegalStateException(
-            "Veld not initialized. Ensure veld-maven-plugin is configured with <extensions>true</extensions>");
+        ensureInitialized();
+        try {
+            Method method = generatedVeld.getMethod("get", Class.class);
+            return (T) method.invoke(null, type);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get component: " + type.getName(), e);
+        }
     }
     
-    /**
-     * Gets all components assignable to the given type.
-     * 
-     * @param type the base class or interface
-     * @param <T> the component type
-     * @return list of matching component instances
-     */
+    @SuppressWarnings("unchecked")
     public static <T> List<T> getAll(Class<T> type) {
-        throw new IllegalStateException(
-            "Veld not initialized. Ensure veld-maven-plugin is configured with <extensions>true</extensions>");
+        ensureInitialized();
+        try {
+            Method method = generatedVeld.getMethod("getAll", Class.class);
+            return (List<T>) method.invoke(null, type);
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
     }
     
-    /**
-     * Checks if a component of the given type is registered.
-     * 
-     * @param type the component class or interface
-     * @return true if a component is registered for this type
-     */
     public static boolean contains(Class<?> type) {
-        throw new IllegalStateException(
-            "Veld not initialized. Ensure veld-maven-plugin is configured with <extensions>true</extensions>");
+        ensureInitialized();
+        try {
+            Method method = generatedVeld.getMethod("contains", Class.class);
+            return (Boolean) method.invoke(null, type);
+        } catch (Exception e) {
+            return false;
+        }
     }
     
-    /**
-     * Returns the total number of registered components.
-     * 
-     * @return component count
-     */
     public static int componentCount() {
-        throw new IllegalStateException(
-            "Veld not initialized. Ensure veld-maven-plugin is configured with <extensions>true</extensions>");
+        ensureInitialized();
+        try {
+            Method method = generatedVeld.getMethod("componentCount");
+            return (Integer) method.invoke(null);
+        } catch (Exception e) {
+            return 0;
+        }
     }
     
-    /**
-     * Shuts down the container, calling @PreDestroy on all singleton components.
-     */
     public static void shutdown() {
-        throw new IllegalStateException(
-            "Veld not initialized. Ensure veld-maven-plugin is configured with <extensions>true</extensions>");
+        if (initialized && generatedVeld != null) {
+            try {
+                Method method = generatedVeld.getMethod("shutdown");
+                method.invoke(null);
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
     }
 }
