@@ -20,8 +20,8 @@ class VeldClassGeneratorNamedTest {
         @Test
         @DisplayName("Should parse componentName from metadata line")
         void shouldParseComponentNameFromMetadata() {
-            // Format: className|scope|lazy|ctorDeps|fields|methods|interfaces|postConstruct|pcDesc|preDestroy|pdDesc|hasSubscribe|componentName
-            String line = "com.example.MyService|SINGLETON|false||||com.example.Service|||||||myService";
+            // Format: className||scope||lazy||ctorDeps||fields||methods||interfaces||lifecycle||preDestroy||hasSubscribe||componentName
+            String line = "com.example.MyService||SINGLETON||false||||||||com.example.Service||||||false||myService";
             
             VeldClassGenerator.ComponentMeta meta = VeldClassGenerator.ComponentMeta.parse(line);
             
@@ -33,7 +33,7 @@ class VeldClassGeneratorNamedTest {
         @Test
         @DisplayName("Should handle null componentName when not provided")
         void shouldHandleNullComponentName() {
-            String line = "com.example.MyService|SINGLETON|false||||com.example.Service||||||";
+            String line = "com.example.MyService||SINGLETON||false||||||||com.example.Service||||||false||";
             
             VeldClassGenerator.ComponentMeta meta = VeldClassGenerator.ComponentMeta.parse(line);
             
@@ -44,7 +44,7 @@ class VeldClassGeneratorNamedTest {
         @Test
         @DisplayName("Should handle empty componentName")
         void shouldHandleEmptyComponentName() {
-            String line = "com.example.MyService|SINGLETON|false||||com.example.Service|||||||";
+            String line = "com.example.MyService||SINGLETON||false||||||||com.example.Service||||||false||";
             
             VeldClassGenerator.ComponentMeta meta = VeldClassGenerator.ComponentMeta.parse(line);
             
@@ -126,13 +126,18 @@ class VeldClassGeneratorNamedTest {
         @Test
         @DisplayName("Should create ComponentMeta with all fields")
         void shouldCreateComponentMetaWithAllFields() {
+            VeldClassGenerator.FieldInjectionMeta field1 = new VeldClassGenerator.FieldInjectionMeta(
+                "field1", "com.example.Field", "Lcom/example/Field;", "private", false, false);
+            VeldClassGenerator.MethodInjectionMeta method1 = new VeldClassGenerator.MethodInjectionMeta(
+                "setMethod", "(Lcom/example/Arg;)V", List.of("com.example.Arg"));
+            
             VeldClassGenerator.ComponentMeta meta = new VeldClassGenerator.ComponentMeta(
                 "com.example.TestService",
                 "SINGLETON",
                 true,
                 List.of("com.example.Dep1", "com.example.Dep2"),
-                List.of("field1:Lcom/example/Field;"),
-                List.of("setMethod:(Lcom/example/Arg;)V"),
+                List.of(field1),
+                List.of(method1),
                 List.of("com.example.Interface1"),
                 "init", "()V",
                 "destroy", "()V",
@@ -144,7 +149,7 @@ class VeldClassGeneratorNamedTest {
             assertEquals("com/example/TestService", meta.internalName);
             assertEquals("SINGLETON", meta.scope);
             assertTrue(meta.lazy);
-            assertEquals(2, meta.ctorDeps.size());
+            assertEquals(2, meta.constructorDeps.size());
             assertEquals(1, meta.fieldInjections.size());
             assertEquals(1, meta.methodInjections.size());
             assertEquals(1, meta.interfaces.size());
