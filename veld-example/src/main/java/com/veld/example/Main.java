@@ -182,34 +182,9 @@ public class Main {
     
     private static void demonstratePrototype() {
         System.out.println("\n→ Getting RequestContext three times (should be different instances):");
-        
-        // Debug: check what's registered
-        try {
-            java.lang.reflect.Field typesField = veldClass.getDeclaredField("_types");
-            typesField.setAccessible(true);
-            Class<?>[] types = (Class<?>[]) typesField.get(null);
-            java.lang.reflect.Field scopesField = veldClass.getDeclaredField("_scopes");
-            scopesField.setAccessible(true);
-            int[] scopes = (int[]) scopesField.get(null);
-            System.out.println("  DEBUG: Registered types (" + types.length + "):");
-            for (int i = 0; i < types.length; i++) {
-                System.out.println("    [" + i + "] " + types[i].getName() + " (scope=" + scopes[i] + ")");
-            }
-            System.out.println("  DEBUG: Looking for: " + RequestContext.class.getName());
-            System.out.println("  DEBUG: contains(RequestContext.class) = " + contains(RequestContext.class));
-        } catch (Exception e) {
-            System.out.println("  DEBUG ERROR: " + e);
-        }
-        
         RequestContext req1 = get(RequestContext.class);
         RequestContext req2 = get(RequestContext.class);
         RequestContext req3 = get(RequestContext.class);
-        
-        if (req1 == null || req2 == null || req3 == null) {
-            System.out.println("  ERROR: get(RequestContext.class) returned null! Prototype support may not be working.");
-            System.out.println("  req1=" + req1 + ", req2=" + req2 + ", req3=" + req3);
-            return;
-        }
         System.out.println("  req1: Instance #" + req1.getInstanceNumber() + ", ID: " + req1.getRequestId());
         System.out.println("  req2: Instance #" + req2.getInstanceNumber() + ", ID: " + req2.getRequestId());
         System.out.println("  req3: Instance #" + req3.getInstanceNumber() + ", ID: " + req3.getRequestId());
@@ -220,10 +195,6 @@ public class Main {
         EmailNotification email1 = get(EmailNotification.class);
         EmailNotification email2 = get(EmailNotification.class);
         
-        if (email1 == null || email2 == null) {
-            System.out.println("  ERROR: get(EmailNotification.class) returned null!");
-            return;
-        }
         System.out.println("  email1: Notification #" + email1.getNotificationNumber());
         System.out.println("  email2: Notification #" + email2.getNotificationNumber());
         System.out.println("  Different instances? " + (email1 != email2 ? "YES ✓" : "NO ✗"));

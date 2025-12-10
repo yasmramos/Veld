@@ -63,7 +63,9 @@ public class VeldSourceGenerator {
         // Generate lookup arrays
         sb.append("    // === LOOKUP ARRAYS ===\n");
         sb.append("    private static final Class<?>[] _types;\n");
-        sb.append("    private static final Object[] _instances;\n\n");
+        sb.append("    private static final Object[] _instances;\n");
+        sb.append("    private static final int[] _scopes;\n");
+        sb.append("    private static final int[] _protoIdx;\n\n");
         
         // Static initializer
         sb.append("    // === STATIC INITIALIZER (JVM guarantees thread-safety) ===\n");
@@ -121,6 +123,31 @@ public class VeldSourceGenerator {
             sb.append("\n");
         }
         sb.append("        };\n");
+        
+        // Build prototype index map
+        Map<String, Integer> protoIdxMap = new HashMap<>();
+        for (int p = 0; p < prototypes.size(); p++) {
+            protoIdxMap.put(prototypes.get(p).getClassName(), p);
+        }
+        
+        sb.append("        _scopes = new int[] {\n");
+        for (int i = 0; i < mappings.size(); i++) {
+            TypeMapping m = mappings.get(i);
+            sb.append("            ").append(m.component.getScope() == Scope.SINGLETON ? "0" : "1");
+            if (i < mappings.size() - 1) sb.append(",");
+            sb.append("\n");
+        }
+        sb.append("        };\n");
+        
+        sb.append("        _protoIdx = new int[] {\n");
+        for (int i = 0; i < mappings.size(); i++) {
+            TypeMapping m = mappings.get(i);
+            Integer idx = protoIdxMap.get(m.component.getClassName());
+            sb.append("            ").append(idx != null ? idx : -1);
+            if (i < mappings.size() - 1) sb.append(",");
+            sb.append("\n");
+        }
+        sb.append("        };\n");
         sb.append("    }\n\n");
         
         // Private constructor
@@ -159,22 +186,37 @@ public class VeldSourceGenerator {
         }
         
         // Generate container API
-        generateContainerAPI(sb);
+        generateContainerAPI(sb, prototypes);
         
         sb.append("}\n");
         
         return sb.toString();
     }
     
-    private void generateContainerAPI(StringBuilder sb) {
+    private void generateContainerAPI(StringBuilder sb, List<ComponentInfo> prototypes) {
         sb.append("    // === CONTAINER API ===\n\n");
+        
+        // _createPrototype switch method
+        sb.append("    private static Object _createPrototype(int idx) {\n");
+        sb.append("        switch (idx) {\n");
+        for (int i = 0; i < prototypes.size(); i++) {
+            sb.append("            case ").append(i).append(": return ")
+              .append(getMethodName(prototypes.get(i))).append("();\n");
+        }
+        sb.append("            default: return null;\n");
+        sb.append("        }\n");
+        sb.append("    }\n\n");
         
         // get(Class)
         sb.append("    @SuppressWarnings(\"unchecked\")\n");
         sb.append("    public static <T> T get(Class<T> type) {\n");
         sb.append("        for (int i = 0; i < _types.length; i++) {\n");
         sb.append("            if (_types[i] == type) {\n");
-        sb.append("                return (T) _instances[i];\n");
+        sb.append("                if (_scopes[i] == 0) {\n");
+        sb.append("                    return (T) _instances[i];\n");
+        sb.append("                } else {\n");
+        sb.append("                    return (T) _createPrototype(_protoIdx[i]);\n");
+        sb.append("                }\n");
         sb.append("            }\n");
         sb.append("        }\n");
         sb.append("        return null;\n");
