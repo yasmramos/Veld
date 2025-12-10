@@ -10,7 +10,7 @@ module io.github.yasmramos.runtime {
     requires transitive io.github.yasmramos.annotation;
     
     // Export all runtime packages
-    exports com.veld;
+    exports io.github.yasmramos;
     exports io.github.yasmramos.runtime;
     exports io.github.yasmramos.runtime.condition;
     exports io.github.yasmramos.runtime.event;
