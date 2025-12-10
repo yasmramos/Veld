@@ -1020,7 +1020,10 @@ public class VeldProcessor extends AbstractProcessor {
         sb.append("||");
         
         // hasSubscribeMethods: true/false
-        sb.append(comp.hasSubscribeMethods());
+        sb.append(comp.hasSubscribeMethods()).append("||");
+        
+        // componentName (for @Named lookup)
+        sb.append(comp.getComponentName());
         
         return sb.toString();
     }
