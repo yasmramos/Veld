@@ -12,9 +12,14 @@ import java.util.List;
 
 class VeldClassGeneratorTest {
 
+    // Format: className||scope||lazy||ctorDeps||fields||methods||ifaces||postConstruct||preDestroy||subscribe||componentName
+    // Indices:    0        1      2       3        4       5        6          7             8          9           10
+    // Total: 11 campos (0-10), 10 separadores ||
+
     @Test
     void testParseBasicMeta() {
-        String line = "com.example.UserService||SINGLETON||false||||||||||";
+        // Empty fields from 3 to 10 (8 empty fields = 8 separadores after lazy)
+        String line = "com.example.UserService||SINGLETON||false||||||||||||||||";
         ComponentMeta meta = ComponentMeta.parse(line);
         
         assertEquals("com.example.UserService", meta.className);
@@ -25,7 +30,7 @@ class VeldClassGeneratorTest {
 
     @Test
     void testParseLazyComponent() {
-        String line = "com.example.LazyService||PROTOTYPE||true||||||||||";
+        String line = "com.example.LazyService||PROTOTYPE||true||||||||||||||||";
         ComponentMeta meta = ComponentMeta.parse(line);
         
         assertEquals("PROTOTYPE", meta.scope);
@@ -34,7 +39,8 @@ class VeldClassGeneratorTest {
 
     @Test
     void testParseWithConstructorDeps() {
-        String line = "com.example.Svc||SINGLETON||false||com.Dep1,com.Dep2|||||||||";
+        // ctorDeps in parts[3], rest empty
+        String line = "com.example.Svc||SINGLETON||false||com.Dep1,com.Dep2||||||||||||||";
         ComponentMeta meta = ComponentMeta.parse(line);
         
         assertEquals(2, meta.constructorDeps.size());
@@ -44,8 +50,8 @@ class VeldClassGeneratorTest {
 
     @Test
     void testParseWithFieldInjections() {
-        // Format: name~depType~descriptor~visibility~isOptional~isProvider
-        String line = "com.example.Svc||SINGLETON||false||@field1~com.Dep1~Lcom/Dep1;~private~false~false@field2~com.Dep2~Lcom/Dep2;~private~true~false||||||||";
+        // fields in parts[4]
+        String line = "com.example.Svc||SINGLETON||false||||@field1~com.Dep1~Lcom/Dep1;~private~false~false@field2~com.Dep2~Lcom/Dep2;~private~true~false||||||||||||";
         ComponentMeta meta = ComponentMeta.parse(line);
         
         assertEquals(2, meta.fieldInjections.size());
@@ -59,8 +65,8 @@ class VeldClassGeneratorTest {
 
     @Test
     void testParseWithMethodInjections() {
-        // Format: name~descriptor~deps
-        String line = "com.example.Svc||SINGLETON||false|||@setDep~(Lcom/Dep;)V~com.Dep|||||||";
+        // methods in parts[5]
+        String line = "com.example.Svc||SINGLETON||false||||||@setDep~(Lcom/Dep;)V~com.Dep||||||||||";
         ComponentMeta meta = ComponentMeta.parse(line);
         
         assertEquals(1, meta.methodInjections.size());
@@ -70,7 +76,8 @@ class VeldClassGeneratorTest {
 
     @Test
     void testParseWithInterfaces() {
-        String line = "com.example.Svc||SINGLETON||false||||com.IService,com.IRepository||||||";
+        // interfaces in parts[6]
+        String line = "com.example.Svc||SINGLETON||false||||||||com.IService,com.IRepository||||||||";
         ComponentMeta meta = ComponentMeta.parse(line);
         
         assertEquals(2, meta.interfaces.size());
@@ -80,7 +87,8 @@ class VeldClassGeneratorTest {
 
     @Test
     void testParseWithPostConstruct() {
-        String line = "com.example.Svc||SINGLETON||false|||||init~()V|||||";
+        // postConstruct in parts[7]
+        String line = "com.example.Svc||SINGLETON||false||||||||||init~()V||||||";
         ComponentMeta meta = ComponentMeta.parse(line);
         
         assertEquals("init", meta.postConstructMethod);
@@ -89,7 +97,8 @@ class VeldClassGeneratorTest {
 
     @Test
     void testParseWithPreDestroy() {
-        String line = "com.example.Svc||SINGLETON||false||||||cleanup~()V||||";
+        // preDestroy in parts[8]
+        String line = "com.example.Svc||SINGLETON||false||||||||||||cleanup~()V||||";
         ComponentMeta meta = ComponentMeta.parse(line);
         
         assertEquals("cleanup", meta.preDestroyMethod);
@@ -98,7 +107,8 @@ class VeldClassGeneratorTest {
 
     @Test
     void testParseWithSubscribeMethods() {
-        String line = "com.example.Svc||SINGLETON||false|||||||true||";
+        // subscribe in parts[9]
+        String line = "com.example.Svc||SINGLETON||false||||||||||||||true||";
         ComponentMeta meta = ComponentMeta.parse(line);
         
         assertTrue(meta.hasSubscribeMethods);
@@ -106,7 +116,8 @@ class VeldClassGeneratorTest {
 
     @Test
     void testParseWithComponentName() {
-        String line = "com.example.Svc||SINGLETON||false||||||||myService";
+        // componentName in parts[10]
+        String line = "com.example.Svc||SINGLETON||false||||||||||||||||myService";
         ComponentMeta meta = ComponentMeta.parse(line);
         
         assertEquals("myService", meta.componentName);
