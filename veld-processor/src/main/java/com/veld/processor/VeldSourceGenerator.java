@@ -74,30 +74,10 @@ public class VeldSourceGenerator {
         // Topologically sort singletons
         List<ComponentInfo> sorted = topologicalSort(singletons);
         
-        // Initialize singletons (constructor injection only - field/method injection 
-        // is handled by factories at runtime via Veld.get())
+        // Initialize singletons using factories (factory handles constructor, field, and method injection)
         for (ComponentInfo comp : sorted) {
             sb.append("        ").append(getFieldName(comp)).append(" = new ")
-              .append(comp.getClassName()).append("(");
-            
-            InjectionPoint constructor = comp.getConstructorInjection();
-            if (constructor != null && !constructor.getDependencies().isEmpty()) {
-                List<String> args = new ArrayList<>();
-                for (InjectionPoint.Dependency dep : constructor.getDependencies()) {
-                    ComponentInfo depComp = findComponentByType(dep.getTypeName().replace('.', '/'));
-                    if (depComp != null) {
-                        if (depComp.getScope() == Scope.SINGLETON) {
-                            args.add(getFieldName(depComp));
-                        } else {
-                            args.add(getMethodName(depComp) + "()");
-                        }
-                    } else {
-                        args.add("null");
-                    }
-                }
-                sb.append(String.join(", ", args));
-            }
-            sb.append(");\n");
+              .append(comp.getClassName()).append("$$VeldFactory().create();\n");
         }
         
         sb.append("\n");
@@ -163,26 +143,12 @@ public class VeldSourceGenerator {
             sb.append("    }\n\n");
         }
         
-        // Generate prototype getters (constructor injection only)
+        // Generate prototype getters using factories
         for (ComponentInfo comp : prototypes) {
             sb.append("    public static ").append(comp.getClassName()).append(" ")
               .append(getMethodName(comp)).append("() {\n");
-            sb.append("        return new ").append(comp.getClassName()).append("(");
-            
-            InjectionPoint constructor = comp.getConstructorInjection();
-            if (constructor != null && !constructor.getDependencies().isEmpty()) {
-                List<String> args = new ArrayList<>();
-                for (InjectionPoint.Dependency dep : constructor.getDependencies()) {
-                    ComponentInfo depComp = findComponentByType(dep.getTypeName().replace('.', '/'));
-                    if (depComp != null) {
-                        args.add(getMethodName(depComp) + "()");
-                    } else {
-                        args.add("null");
-                    }
-                }
-                sb.append(String.join(", ", args));
-            }
-            sb.append(");\n");
+            sb.append("        return new ").append(comp.getClassName())
+              .append("$$VeldFactory().create();\n");
             sb.append("    }\n\n");
         }
         
