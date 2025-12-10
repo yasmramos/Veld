@@ -66,6 +66,7 @@ public class FieldInjectorWeaver {
     
     /**
      * Weaves all class files in the specified directory.
+     * Also generates Veld.class from component metadata.
      * 
      * @param classesDirectory the directory containing compiled .class files
      * @return list of weaving results
@@ -78,11 +79,44 @@ public class FieldInjectorWeaver {
             return results;
         }
         
+        // First, weave all classes to add synthetic setters
         Files.walk(classesDirectory)
             .filter(path -> path.toString().endsWith(".class"))
             .forEach(this::weaveClassFile);
         
+        // Then generate Veld.class from metadata (after synthetic setters exist)
+        generateVeldClass(classesDirectory);
+        
         return new ArrayList<>(results);
+    }
+    
+    /**
+     * Generates Veld.class from component metadata.
+     * This must be called AFTER weaving so synthetic setters exist.
+     */
+    private void generateVeldClass(Path classesDirectory) throws IOException {
+        List<VeldClassGenerator.ComponentMeta> components = 
+            VeldClassGenerator.readMetadata(classesDirectory);
+        
+        if (components.isEmpty()) {
+            return; // No components found
+        }
+        
+        VeldClassGenerator generator = new VeldClassGenerator(components);
+        Map<String, byte[]> allClasses = generator.generateAll();
+        
+        // Write all generated classes (Veld.class + $VeldLifecycle helpers)
+        for (Map.Entry<String, byte[]> entry : allClasses.entrySet()) {
+            String className = entry.getKey();
+            byte[] bytecode = entry.getValue();
+            
+            Path classPath = classesDirectory.resolve(className + ".class");
+            Files.createDirectories(classPath.getParent());
+            Files.write(classPath, bytecode);
+            
+            results.add(WeavingResult.modified(className, bytecode, 
+                List.of("Generated " + className)));
+        }
     }
     
     /**
@@ -164,16 +198,18 @@ public class FieldInjectorWeaver {
     
     /**
      * Finds all fields that have injection annotations.
-     * Supports private, private static, private final, and private static final.
+     * Generates synthetic setters for non-public fields so they can be accessed
+     * from Veld.java (which is in a different package: com.veld.generated).
      */
     private List<FieldNode> findInjectableFields(ClassNode classNode) {
         List<FieldNode> injectableFields = new ArrayList<>();
         
         for (FieldNode field : classNode.fields) {
             if (hasInjectAnnotation(field)) {
-                // Only process private fields - public/protected/package-private
-                // can use direct PUTFIELD/PUTSTATIC
-                if ((field.access & ACC_PRIVATE) != 0) {
+                // Generate synthetic setters for all non-public fields
+                // (private, package-private, protected) since Veld.java is in
+                // com.veld.generated and cannot access non-public members
+                if ((field.access & ACC_PUBLIC) == 0) {
                     injectableFields.add(field);
                 }
             }
