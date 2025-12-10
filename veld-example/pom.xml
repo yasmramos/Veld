@@ -66,35 +66,27 @@
 
     <build>
         <plugins>
-            <!-- Standard Maven Compiler - SINGLE PHASE, SIMPLE CONFIGURATION -->
+            <!-- Disable default maven-compiler-plugin - Veld plugin handles compilation -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
-                <configuration>
-                    <source>11</source>
-                    <target>11</target>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>com.veld</groupId>
-                            <artifactId>veld-processor</artifactId>
-                            <version>${project.version}</version>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <phase>none</phase>
+                    </execution>
+                </executions>
             </plugin>
 
-            <!-- Veld Weaver Plugin - adds synthetic setters and generates Veld.class -->
+            <!-- Veld Unified Plugin - handles compilation, annotation processing, and weaving -->
             <plugin>
                 <groupId>com.veld</groupId>
-                <artifactId>veld-weaver</artifactId>
+                <artifactId>veld-maven-plugin</artifactId>
                 <version>${project.version}</version>
                 <executions>
                     <execution>
-                        <id>weave</id>
-                        <phase>process-classes</phase>
                         <goals>
-                            <goal>weave</goal>
+                            <goal>compile</goal>
                         </goals>
                     </execution>
                 </executions>

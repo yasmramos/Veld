@@ -45,6 +45,7 @@
         <module>veld-example</module>
         <module>veld-spring-boot-starter</module>
         <module>veld-spring-boot-example</module>
+        <module>veld-maven-plugin</module>
     </modules>
 
     <properties>
@@ -145,6 +146,13 @@
             <dependency>
                 <groupId>com.veld</groupId>
                 <artifactId>veld-processor</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Veld Weaver -->
+            <dependency>
+                <groupId>com.veld</groupId>
+                <artifactId>veld-weaver</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
