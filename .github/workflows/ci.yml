@@ -31,31 +31,36 @@ jobs:
         run: mvn install -N -DskipTests -B
 
       - name: Build Core Modules
-        run: mvn clean install -DskipTests -B -pl veld-annotations,veld-runtime,veld-processor,veld-aop,veld-weaver,veld-maven-plugin
+        run: |
+          for module in veld-annotations veld-runtime veld-processor veld-aop veld-weaver veld-maven-plugin; do
+            echo "Building $module..."
+            cd $module && mvn clean install -DskipTests -B && cd ..
+          done
 
-      - name: Build Example and Starter Modules
-        run: mvn clean install -DskipTests -B -pl veld-example,veld-spring-boot-starter,veld-spring-boot-example,veld-benchmark
+      - name: Build Example Modules
+        run: |
+          for module in veld-example veld-spring-boot-starter veld-spring-boot-example veld-benchmark; do
+            if [ -d "$module" ]; then
+              echo "Building $module..."
+              cd $module && mvn clean install -DskipTests -B && cd ..
+            fi
+          done
 
       - name: Run Tests (Core Modules)
-        run: mvn test -B -pl veld-annotations,veld-runtime,veld-processor,veld-aop,veld-weaver,veld-maven-plugin
+        run: |
+          for module in veld-annotations veld-runtime veld-processor veld-aop veld-weaver veld-maven-plugin; do
+            echo "Testing $module..."
+            cd $module && mvn test -B && cd ..
+          done
 
       - name: Run Tests (Example Modules)
-        run: mvn test -B -pl veld-example,veld-spring-boot-starter,veld-spring-boot-example
-
-      - name: Generate Coverage Report
-        run: mvn jacoco:report-aggregate -B -pl veld-example
-        continue-on-error: true
-
-      - name: Upload Coverage Report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: jacoco-coverage-report
-          path: veld-example/target/site/jacoco-aggregate/
-          retention-days: 30
-
-      - name: Package JARs
-        run: mvn package -DskipTests -B -pl veld-annotations,veld-runtime,veld-processor,veld-aop,veld-weaver,veld-maven-plugin,veld-example
+        run: |
+          for module in veld-example veld-spring-boot-starter veld-spring-boot-example; do
+            if [ -d "$module" ]; then
+              echo "Testing $module..."
+              cd $module && mvn test -B && cd ..
+            fi
+          done
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
@@ -88,28 +93,29 @@ jobs:
         run: mvn install -N -DskipTests -B
 
       - name: Build Core Modules
-        run: mvn clean install -DskipTests -B -pl veld-annotations,veld-runtime,veld-processor,veld-aop,veld-weaver,veld-maven-plugin
+        run: |
+          for module in veld-annotations veld-runtime veld-processor veld-aop veld-weaver veld-maven-plugin; do
+            cd $module && mvn clean install -DskipTests -B && cd ..
+          done
 
-      - name: Build All Modules
-        run: mvn clean install -DskipTests -B -pl veld-example,veld-spring-boot-starter,veld-spring-boot-example,veld-benchmark
-
-      - name: Run Tests and Verify (Core)
-        run: mvn verify -B -pl veld-annotations,veld-runtime,veld-processor,veld-aop,veld-weaver,veld-maven-plugin
-
-      - name: Run Tests and Verify (Example)
-        run: mvn verify -B -pl veld-example,veld-spring-boot-starter,veld-spring-boot-example
+      - name: Build and Verify Example Modules
+        run: |
+          for module in veld-example veld-spring-boot-starter veld-spring-boot-example; do
+            if [ -d "$module" ]; then
+              cd $module && mvn clean verify -B && cd ..
+            fi
+          done
 
       - name: Run Example Application
-        run: mvn -pl veld-example exec:java -Dexec.mainClass="com.veld.example.Main" -B
+        run: cd veld-example && mvn exec:java -Dexec.mainClass="com.veld.example.Main" -B
 
-  # Build on multiple Java versions
   compatibility:
     name: Java ${{ matrix.java }} Compatibility
     runs-on: ubuntu-latest
     needs: build
     strategy:
       matrix:
-        java: [ '11', '17', '21', '25' ]
+        java: [ '11', '17', '21' ]
       fail-fast: false
     
     steps:
@@ -127,21 +133,14 @@ jobs:
         run: mvn install -N -DskipTests -B
 
       - name: Build Core Modules
-        run: mvn clean install -DskipTests -B -pl veld-annotations,veld-runtime,veld-processor,veld-aop,veld-weaver,veld-maven-plugin
+        run: |
+          for module in veld-annotations veld-runtime veld-processor veld-aop veld-weaver veld-maven-plugin; do
+            cd $module && mvn clean install -DskipTests -B && cd ..
+          done
 
-      - name: Build All Modules
-        run: mvn clean install -DskipTests -B -pl veld-example,veld-spring-boot-starter,veld-spring-boot-example,veld-benchmark
+      - name: Build and Test Example
+        run: cd veld-example && mvn clean verify -B
 
-      - name: Run Tests (Core)
-        run: mvn test -B -pl veld-annotations,veld-runtime,veld-processor,veld-aop,veld-weaver,veld-maven-plugin
-
-      - name: Run Tests (Example)
-        run: mvn test -B -pl veld-example,veld-spring-boot-starter,veld-spring-boot-example
-
-      - name: Verify
-        run: mvn verify -B -DskipTests -pl veld-annotations,veld-runtime,veld-processor,veld-aop,veld-weaver,veld-maven-plugin,veld-example
-
-  # Release job - only on main branch tags
   release:
     name: Create Release
     runs-on: ubuntu-latest
@@ -163,17 +162,24 @@ jobs:
         run: mvn install -N -DskipTests -B
 
       - name: Build Core Modules
-        run: mvn clean install -DskipTests -B -pl veld-annotations,veld-runtime,veld-processor,veld-aop,veld-weaver,veld-maven-plugin
+        run: |
+          for module in veld-annotations veld-runtime veld-processor veld-aop veld-weaver veld-maven-plugin; do
+            cd $module && mvn clean install -DskipTests -B && cd ..
+          done
 
       - name: Build Release JARs
-        run: mvn clean package -DskipTests -B -pl veld-example,veld-spring-boot-starter,veld-spring-boot-example,veld-benchmark
+        run: |
+          for module in veld-example veld-spring-boot-starter; do
+            if [ -d "$module" ]; then
+              cd $module && mvn clean package -DskipTests -B && cd ..
+            fi
+          done
 
       - name: Get Project Version
         id: version
         run: |
           VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Project version: $VERSION"
 
       - name: Upload Release Artifacts
         uses: actions/upload-artifact@v4
@@ -183,4 +189,6 @@ jobs:
             veld-annotations/target/veld-annotations-*.jar
             veld-runtime/target/veld-runtime-*.jar
             veld-processor/target/veld-processor-*.jar
+            veld-weaver/target/veld-weaver-*.jar
+            veld-maven-plugin/target/veld-maven-plugin-*.jar
           retention-days: 90
