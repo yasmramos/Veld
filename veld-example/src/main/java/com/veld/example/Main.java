@@ -278,12 +278,7 @@ public class Main {
         
         EventBus eventBus = EventBus.getInstance();
         
-        System.out.println("→ Registering event handlers:");
-        OrderEventHandler orderHandler = get(OrderEventHandler.class);
-        NotificationHandler notificationHandler = get(NotificationHandler.class);
-        
-        eventBus.register(orderHandler);
-        eventBus.register(notificationHandler);
+        System.out.println("→ Event handlers auto-registered via @Subscribe");
         
         EventDemoService eventService = get(EventDemoService.class);
         
