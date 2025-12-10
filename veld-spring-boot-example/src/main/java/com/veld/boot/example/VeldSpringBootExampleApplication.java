@@ -1,8 +1,8 @@
 package com.veld.boot.example;
 
-import com.veld.annotations.Component;
-import com.veld.annotations.Inject;
-import com.veld.annotations.PostConstruct;
+import com.veld.annotation.Component;
+import com.veld.annotation.Inject;
+import com.veld.annotation.PostConstruct;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 

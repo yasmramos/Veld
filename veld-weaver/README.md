@@ -58,9 +58,9 @@ public class MyService {
 ```java
 // Generated factory calls synthetic setter
 public class MyService$$VeldFactory implements ComponentFactory<MyService> {
-    public MyService create(VeldContainer container) {
+    public MyService create(Veld container) {
         MyService instance = new MyService();
-        instance.__di_set_repository(container.get(Repository.class));
+        instance.__di_set_repository(Veld.get(Repository.class));
         return instance;
     }
 }

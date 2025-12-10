@@ -53,7 +53,7 @@ class ConditionalRegistryTest {
         }
 
         @Override
-        public T create(VeldContainer container) {
+        public T create() {
             try {
                 return type.getDeclaredConstructor().newInstance();
             } catch (Exception e) {

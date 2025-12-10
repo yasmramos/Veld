@@ -18,7 +18,7 @@
 
     <properties>
         <spring.boot.version>2.7.18</spring.boot.version>
-        <spring.boot.starter.version>2.7.18</spring.boot.starter.version>
+        <spring.framework.version>5.3.31</spring.framework.version>
     </properties>
 
     <dependencies>
@@ -62,7 +62,7 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
-            <version>${spring.boot.version}</version>
+            <version>${spring.framework.version}</version>
         </dependency>
 
         <!-- Spring Boot Actuator (for health checks) -->
@@ -89,7 +89,13 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
-            <version>${spring.boot.version}</version>
+            <version>${spring.framework.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Veld Processor for test compilation -->
+        <dependency>
+            <groupId>com.veld</groupId>
+            <artifactId>veld-processor</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -103,6 +109,13 @@
                 <configuration>
                     <source>11</source>
                     <target>11</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>com.veld</groupId>
+                            <artifactId>veld-processor</artifactId>
+                            <version>${project.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
         </plugins>

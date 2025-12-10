@@ -69,12 +69,12 @@
                 <h2>🏗️ Core API</h2>
                 
                 <div class="card">
-                    <h3>VeldContainer</h3>
+                    <h3>Veld</h3>
                     <p>Main container class for managing Veld components and dependency injection.</p>
                     
                     <h4>Constructor</h4>
-<pre><code>public VeldContainer()
-public VeldContainer(VeldConfiguration configuration)</code></pre>
+<pre><code>public Veld()
+public Veld(VeldConfiguration configuration)</code></pre>
 
                     <h4>Methods</h4>
                     <table>
@@ -130,7 +130,7 @@ public VeldContainer(VeldConfiguration configuration)</code></pre>
                     </table>
 
                     <h4>Usage Example</h4>
-<pre><code>VeldContainer container = new VeldContainer();
+<pre><code>// Use the generated Veld class;
 container.start();
 
 // Get beans
@@ -200,7 +200,7 @@ container.shutdown();</code></pre>
     .profile("production")
     .build();
 
-VeldContainer container = new VeldContainer(config);
+Veld container = new Veld(config);
 container.start();</code></pre>
                 </div>
             </section>

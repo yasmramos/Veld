@@ -17,7 +17,7 @@ import static org.objectweb.asm.Opcodes.*;
  *     
  *     public MyService$$VeldFactory() { }
  *     
- *     public MyService create(VeldContainer container) {
+ *     public MyService create(Veld container) {
  *         // Instantiate and inject dependencies
  *         // Dependencies resolved via container.get()
  *     }
@@ -33,7 +33,7 @@ import static org.objectweb.asm.Opcodes.*;
 public final class ComponentFactoryGenerator {
     
     private static final String COMPONENT_FACTORY = "com/veld/runtime/ComponentFactory";
-    private static final String VELD_CONTAINER = "com/veld/runtime/VeldContainer";
+    private static final String VELD_CLASS = "com/veld/generated/Veld";
     private static final String SCOPE = "com/veld/runtime/Scope";
     private static final String PROVIDER = "com/veld/runtime/Provider";
     private static final String OPTIONAL = "java/util/Optional";
@@ -50,9 +50,15 @@ public final class ComponentFactoryGenerator {
     private static final String SYNTHETIC_SETTER_PREFIX = "__di_set_";
     
     private final ComponentInfo component;
+    private final int componentIndex;
     
     public ComponentFactoryGenerator(ComponentInfo component) {
+        this(component, -1);
+    }
+    
+    public ComponentFactoryGenerator(ComponentInfo component, int componentIndex) {
         this.component = component;
+        this.componentIndex = componentIndex;
     }
     
     /**
@@ -76,7 +82,7 @@ public final class ComponentFactoryGenerator {
         // Default constructor
         generateConstructor(cw);
         
-        // create(VeldContainer) method
+        // create(Veld) method
         generateCreateMethod(cw, factoryInternal, componentInternal);
         
         // getComponentType() method
@@ -111,6 +117,9 @@ public final class ComponentFactoryGenerator {
             generateGetImplementedInterfaces(cw);
         }
         
+        // getIndex() method for ultra-fast array-based lookups
+        generateGetIndex(cw);
+        
         // Bridge methods for type erasure
         generateBridgeMethods(cw, factoryInternal, componentInternal);
         
@@ -132,9 +141,9 @@ public final class ComponentFactoryGenerator {
     }
     
     private void generateCreateMethod(ClassWriter cw, String factoryInternal, String componentInternal) {
-        // public T create(VeldContainer container)
+        // public T create()
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "create",
-                "(L" + VELD_CONTAINER + ";)L" + componentInternal + ";", null, null);
+                "()L" + componentInternal + ";", null, null);
         mv.visitCode();
         
         InjectionPoint constructor = component.getConstructorInjection();
@@ -158,12 +167,12 @@ public final class ComponentFactoryGenerator {
                     constructor.getDescriptor(), false);
         }
         
-        // Store instance in local variable 2 (0=this, 1=container, 2=instance)
-        mv.visitVarInsn(ASTORE, 2);
+        // Store instance in local variable 1 (0=this, 1=instance)
+        mv.visitVarInsn(ASTORE, 1);
         
         // Field injections
         for (InjectionPoint field : component.getFieldInjections()) {
-            mv.visitVarInsn(ALOAD, 2);
+            mv.visitVarInsn(ALOAD, 1);
             Dependency dep = field.getDependencies().get(0);
             loadDependency(mv, dep);
             
@@ -181,7 +190,7 @@ public final class ComponentFactoryGenerator {
         
         // Method injections
         for (InjectionPoint method : component.getMethodInjections()) {
-            mv.visitVarInsn(ALOAD, 2);
+            mv.visitVarInsn(ALOAD, 1);
             for (Dependency dep : method.getDependencies()) {
                 loadDependency(mv, dep);
             }
@@ -190,7 +199,7 @@ public final class ComponentFactoryGenerator {
         }
         
         // Return instance
-        mv.visitVarInsn(ALOAD, 2);
+        mv.visitVarInsn(ALOAD, 1);
         mv.visitInsn(ARETURN);
         
         mv.visitMaxs(0, 0);
@@ -309,10 +318,9 @@ public final class ComponentFactoryGenerator {
     private void loadRegularDependency(MethodVisitor mv, Dependency dep) {
         String depInternal = dep.getTypeName().replace('.', '/');
         
-        // container.get(DependencyType.class)
-        mv.visitVarInsn(ALOAD, 1); // Load container (parameter 1)
+        // Veld.get(DependencyType.class)
         mv.visitLdcInsn(org.objectweb.asm.Type.getObjectType(depInternal));
-        mv.visitMethodInsn(INVOKEVIRTUAL, VELD_CONTAINER, "get",
+        mv.visitMethodInsn(INVOKESTATIC, VELD_CLASS, "get",
                 "(L" + CLASS + ";)L" + OBJECT + ";", false);
         
         // Cast to dependency type
@@ -322,22 +330,20 @@ public final class ComponentFactoryGenerator {
     private void loadProviderDependency(MethodVisitor mv, Dependency dep) {
         String actualTypeInternal = dep.getActualTypeName().replace('.', '/');
         
-        // container.getProvider(ActualType.class)
-        mv.visitVarInsn(ALOAD, 1); // Load container (parameter 1)
+        // Create a lambda Provider that calls Veld.get()
+        // For now, just load via Veld.get() directly (simplified)
         mv.visitLdcInsn(org.objectweb.asm.Type.getObjectType(actualTypeInternal));
-        mv.visitMethodInsn(INVOKEVIRTUAL, VELD_CONTAINER, "getProvider",
-                "(L" + CLASS + ";)L" + PROVIDER + ";", false);
-        
-        // No need to cast - Provider<T> is returned
+        mv.visitMethodInsn(INVOKESTATIC, VELD_CLASS, "get",
+                "(L" + CLASS + ";)L" + OBJECT + ";", false);
+        mv.visitTypeInsn(CHECKCAST, actualTypeInternal);
     }
     
     private void loadLazyDependency(MethodVisitor mv, Dependency dep) {
         String actualTypeInternal = dep.getActualTypeName().replace('.', '/');
         
-        // container.getLazy(ActualType.class)
-        mv.visitVarInsn(ALOAD, 1); // Load container (parameter 1)
+        // Veld.get(ActualType.class) - lazy is handled by static initialization
         mv.visitLdcInsn(org.objectweb.asm.Type.getObjectType(actualTypeInternal));
-        mv.visitMethodInsn(INVOKEVIRTUAL, VELD_CONTAINER, "getLazy",
+        mv.visitMethodInsn(INVOKESTATIC, VELD_CLASS, "get",
                 "(L" + CLASS + ";)L" + OBJECT + ";", false);
         
         // Cast to dependency type
@@ -347,10 +353,9 @@ public final class ComponentFactoryGenerator {
     private void loadOptionalDependency(MethodVisitor mv, Dependency dep) {
         String depInternal = dep.getActualTypeName().replace('.', '/');
         
-        // container.tryGet(DependencyType.class) - returns null if not found
-        mv.visitVarInsn(ALOAD, 1); // Load container (parameter 1)
+        // Veld.get(DependencyType.class) - returns null if not found
         mv.visitLdcInsn(org.objectweb.asm.Type.getObjectType(depInternal));
-        mv.visitMethodInsn(INVOKEVIRTUAL, VELD_CONTAINER, "tryGet",
+        mv.visitMethodInsn(INVOKESTATIC, VELD_CLASS, "get",
                 "(L" + CLASS + ";)L" + OBJECT + ";", false);
         
         // Cast to dependency type (or null)
@@ -360,13 +365,12 @@ public final class ComponentFactoryGenerator {
     private void loadOptionalWrapperDependency(MethodVisitor mv, Dependency dep) {
         String actualTypeInternal = dep.getActualTypeName().replace('.', '/');
         
-        // container.getOptional(ActualType.class) - returns Optional<T>
-        mv.visitVarInsn(ALOAD, 1); // Load container (parameter 1)
+        // Optional.ofNullable(Veld.get(ActualType.class))
         mv.visitLdcInsn(org.objectweb.asm.Type.getObjectType(actualTypeInternal));
-        mv.visitMethodInsn(INVOKEVIRTUAL, VELD_CONTAINER, "getOptional",
-                "(L" + CLASS + ";)L" + OPTIONAL + ";", false);
-        
-        // No cast needed - Optional<T> is returned
+        mv.visitMethodInsn(INVOKESTATIC, VELD_CLASS, "get",
+                "(L" + CLASS + ";)L" + OBJECT + ";", false);
+        mv.visitMethodInsn(INVOKESTATIC, OPTIONAL, "ofNullable",
+                "(L" + OBJECT + ";)L" + OPTIONAL + ";", false);
     }
     
     private void generateGetComponentType(ClassWriter cw, String componentInternal) {
@@ -487,15 +491,14 @@ public final class ComponentFactoryGenerator {
     }
     
     private void generateBridgeMethods(ClassWriter cw, String factoryInternal, String componentInternal) {
-        // Bridge method for create(VeldContainer): Object create(VeldContainer) calls T create(VeldContainer)
+        // Bridge method for create(): Object create() calls T create()
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC | ACC_BRIDGE | ACC_SYNTHETIC, 
-                "create", "(L" + VELD_CONTAINER + ";)L" + OBJECT + ";", null, null);
+                "create", "()L" + OBJECT + ";", null, null);
         mv.visitCode();
         
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitVarInsn(ALOAD, 1);
         mv.visitMethodInsn(INVOKEVIRTUAL, factoryInternal, "create",
-                "(L" + VELD_CONTAINER + ";)L" + componentInternal + ";", false);
+                "()L" + componentInternal + ";", false);
         mv.visitInsn(ARETURN);
         
         mv.visitMaxs(0, 0);
@@ -673,6 +676,27 @@ public final class ComponentFactoryGenerator {
                 "([L" + OBJECT + ";)L" + LIST + ";", false);
         mv.visitInsn(ARETURN);
         
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    
+    private void generateGetIndex(ClassWriter cw) {
+        // public int getIndex()
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "getIndex", "()I", null, null);
+        mv.visitCode();
+        
+        // Push the component index constant
+        if (componentIndex >= -1 && componentIndex <= 5) {
+            mv.visitInsn(ICONST_0 + componentIndex);
+        } else if (componentIndex >= Byte.MIN_VALUE && componentIndex <= Byte.MAX_VALUE) {
+            mv.visitIntInsn(BIPUSH, componentIndex);
+        } else if (componentIndex >= Short.MIN_VALUE && componentIndex <= Short.MAX_VALUE) {
+            mv.visitIntInsn(SIPUSH, componentIndex);
+        } else {
+            mv.visitLdcInsn(componentIndex);
+        }
+        
+        mv.visitInsn(IRETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();
     }

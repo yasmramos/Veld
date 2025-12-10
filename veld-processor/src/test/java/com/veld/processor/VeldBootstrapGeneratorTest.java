@@ -78,7 +78,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("should generate valid bytecode")
         void shouldGenerateValidBytecode() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             
             byte[] bytecode = generator.generate();
             
@@ -89,7 +89,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("should return correct class name")
         void shouldReturnCorrectClassName() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             
             assertEquals("com.veld.generated.Veld", generator.getClassName());
         }
@@ -97,7 +97,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("should generate parseable bytecode")
         void shouldGenerateParseableBytecode() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             
             assertDoesNotThrow(() -> parseClass(bytecode));
@@ -111,7 +111,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("should generate class with correct name")
         void shouldGenerateClassWithCorrectName() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
@@ -121,7 +121,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("should generate public final class")
         void shouldGeneratePublicFinalClass() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
@@ -132,7 +132,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("should extend Object")
         void shouldExtendObject() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
@@ -142,7 +142,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("should not implement any interface")
         void shouldNotImplementAnyInterface() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
@@ -150,13 +150,13 @@ class VeldBootstrapGeneratorTest {
         }
 
         @Test
-        @DisplayName("should generate Java 11 compatible bytecode")
-        void shouldGenerateJava11CompatibleBytecode() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+        @DisplayName("should generate Java 17 compatible bytecode")
+        void shouldGenerateJava17CompatibleBytecode() {
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
-            assertEquals(Opcodes.V11, cn.version);
+            assertEquals(Opcodes.V17, cn.version);
         }
     }
 
@@ -167,7 +167,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("should generate private constructor")
         void shouldGeneratePrivateConstructor() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
@@ -182,7 +182,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("private constructor prevents instantiation")
         void privateConstructorPreventsInstantiation() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
@@ -201,7 +201,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("should generate createContainer method")
         void shouldGenerateCreateContainerMethod() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
@@ -211,7 +211,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("createContainer should be public static")
         void createContainerShouldBePublicStatic() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
@@ -222,33 +222,34 @@ class VeldBootstrapGeneratorTest {
         }
 
         @Test
-        @DisplayName("createContainer should return VeldContainer")
-        void createContainerShouldReturnVeldContainer() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+        @DisplayName("should generate get method for type lookup")
+        void shouldGenerateGetMethod() {
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
-            MethodNode method = getMethod(cn, "createContainer");
-            assertNotNull(method);
-            assertEquals("()Lcom/veld/runtime/VeldContainer;", method.desc);
+            MethodNode method = getMethod(cn, "get");
+            assertNotNull(method, "Should have get method");
+            assertTrue((method.access & Opcodes.ACC_PUBLIC) != 0, "Should be public");
+            assertTrue((method.access & Opcodes.ACC_STATIC) != 0, "Should be static");
         }
 
         @Test
-        @DisplayName("createContainer should have no parameters")
-        void createContainerShouldHaveNoParameters() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+        @DisplayName("should generate contains method")
+        void shouldGenerateContainsMethod() {
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
-            MethodNode method = getMethod(cn, "createContainer");
-            assertNotNull(method);
-            assertTrue(method.desc.startsWith("()"), "Should have no parameters");
+            MethodNode method = getMethod(cn, "contains");
+            assertNotNull(method, "Should have contains method");
+            assertTrue((method.access & Opcodes.ACC_STATIC) != 0, "Should be static");
         }
 
         @Test
         @DisplayName("should generate createRegistry method")
         void shouldGenerateCreateRegistryMethod() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
@@ -258,7 +259,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("createRegistry should be public static")
         void createRegistryShouldBePublicStatic() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
@@ -271,7 +272,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("createRegistry should return ComponentRegistry")
         void createRegistryShouldReturnComponentRegistry() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
@@ -283,7 +284,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("createRegistry should have no parameters")
         void createRegistryShouldHaveNoParameters() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
@@ -298,20 +299,20 @@ class VeldBootstrapGeneratorTest {
     class MethodCountTests {
 
         @Test
-        @DisplayName("should generate exactly three methods")
-        void shouldGenerateExactlyThreeMethods() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+        @DisplayName("should generate at least eight core methods")
+        void shouldGenerateAtLeastEightCoreMethods() {
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
-            // Should have: <init>, createContainer, createRegistry
-            assertEquals(3, cn.methods.size());
+            // Should have: <clinit>, <init>, createContainer, createRegistry, get, getAll, contains, componentCount
+            assertTrue(cn.methods.size() >= 8, "Should have at least 8 methods, found: " + cn.methods.size());
         }
 
         @Test
         @DisplayName("should generate all required methods")
         void shouldGenerateAllRequiredMethods() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
@@ -324,18 +325,19 @@ class VeldBootstrapGeneratorTest {
     }
 
     @Nested
-    @DisplayName("No Fields Tests")
-    class NoFieldsTests {
+    @DisplayName("Internal Fields Tests")
+    class InternalFieldsTests {
 
         @Test
-        @DisplayName("should not generate any fields")
-        void shouldNotGenerateAnyFields() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+        @DisplayName("should generate internal lookup fields")
+        void shouldGenerateInternalLookupFields() {
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
-            assertTrue(cn.fields == null || cn.fields.isEmpty(), 
-                "Bootstrap class should have no fields");
+            // Should have internal lookup arrays: _types, _instances, _scopes
+            assertTrue(cn.fields != null && cn.fields.size() >= 3, 
+                "Bootstrap class should have internal lookup fields");
         }
     }
 
@@ -346,7 +348,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("bytecode should have correct magic number")
         void bytecodeShouldHaveCorrectMagicNumber() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             
             // Java class file magic number: 0xCAFEBABE
@@ -359,7 +361,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("should generate reasonable bytecode size")
         void shouldGenerateReasonableBytecodeSize() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             
             // Simple bootstrap class should be between 300 bytes and 2KB
@@ -375,7 +377,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("should generate consistent bytecode on multiple calls")
         void shouldGenerateConsistentBytecode() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             
             byte[] bytecode1 = generator.generate();
             byte[] bytecode2 = generator.generate();
@@ -387,8 +389,8 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("different instances should generate same bytecode")
         void differentInstancesShouldGenerateSameBytecode() {
-            VeldBootstrapGenerator generator1 = new VeldBootstrapGenerator();
-            VeldBootstrapGenerator generator2 = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator1 = new VeldBootstrapGenerator(java.util.Collections.emptyList());
+            VeldBootstrapGenerator generator2 = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             
             byte[] bytecode1 = generator1.generate();
             byte[] bytecode2 = generator2.generate();
@@ -405,7 +407,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("createContainer should have method invocations")
         void createContainerShouldHaveMethodInvocations() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
@@ -421,7 +423,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("createRegistry should have method invocations")
         void createRegistryShouldHaveMethodInvocations() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
@@ -437,7 +439,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("constructor should call super()")
         void constructorShouldCallSuper() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
@@ -458,7 +460,7 @@ class VeldBootstrapGeneratorTest {
         @Test
         @DisplayName("getClassName should match generated class")
         void getClassNameShouldMatchGeneratedClass() {
-            VeldBootstrapGenerator generator = new VeldBootstrapGenerator();
+            VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             
             String expectedName = generator.getClassName();
             byte[] bytecode = generator.generate();

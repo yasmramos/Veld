@@ -15,7 +15,7 @@ import com.veld.benchmark.dagger.BenchmarkComponent;
 import com.veld.benchmark.dagger.DaggerBenchmarkComponent;
 import com.veld.benchmark.guice.GuiceModule;
 import com.veld.benchmark.spring.SpringConfig;
-import com.veld.runtime.VeldContainer;
+import com.veld.generated.Veld;
 import org.openjdk.jmh.annotations.*;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
@@ -24,8 +24,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * Benchmarks for measuring memory footprint.
  * 
- * This creates multiple container instances to measure memory consumption.
- * Run with: -prof gc to see GC statistics.
+ * Note: Veld uses static class - only one "container" exists.
+ * This benchmark measures the cost of accessing Veld vs creating new containers.
  */
 @BenchmarkMode(Mode.SingleShotTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -41,12 +41,14 @@ public class MemoryBenchmark {
     // ==================== VELD ====================
     
     @Benchmark
-    public Object[] veldMemory() {
-        Object[] containers = new Object[containerCount];
+    public Object veldMemory() {
+        // Veld is static - no container instances to create
+        // Just access the singleton to trigger class loading
+        Object result = null;
         for (int i = 0; i < containerCount; i++) {
-            containers[i] = VeldContainer.create();
+            result = Veld.veldSimpleService();
         }
-        return containers;
+        return result;
     }
     
     // ==================== SPRING ====================

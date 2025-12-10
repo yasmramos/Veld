@@ -215,7 +215,7 @@ public class AppConfig {
 
 import com.veld.annotation.Component;
 import com.veld.annotation.Inject;
-import com.veld.runtime.VeldContainer;
+import com.veld.runtime.Veld;
 import com.example.veld.service.MessageService;
 import com.example.veld.config.AppConfig;
 
@@ -238,7 +238,7 @@ public class Application {
     
     public static void main(String[] args) {
         // Create and start Veld container
-        VeldContainer container = new VeldContainer();
+        // Use the generated Veld class;
         container.start();
         
         // Get the application bean and run it

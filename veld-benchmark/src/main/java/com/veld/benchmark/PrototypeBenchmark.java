@@ -17,6 +17,8 @@ import com.veld.benchmark.dagger.DaggerPrototypeComponent;
 import com.veld.benchmark.dagger.PrototypeComponent;
 import com.veld.benchmark.guice.GuicePrototypeModule;
 import com.veld.benchmark.spring.SpringPrototypeConfig;
+import com.veld.benchmark.veld.VeldPrototypeService;
+import com.veld.generated.Veld;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -26,8 +28,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Benchmarks measuring prototype (new instance) creation time.
  * 
- * This measures the time to create new instances of components,
- * which is important for request-scoped dependencies in web applications.
+ * Note: Veld prototype creates new instance each time via static method.
  */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
@@ -50,12 +51,18 @@ public class PrototypeBenchmark {
     
     @TearDown(Level.Trial)
     public void teardown() {
-        if (springContext != null) {
-            springContext.close();
-        }
+        if (springContext != null) springContext.close();
     }
     
     // ==================== SIMPLE PROTOTYPE ====================
+    
+    @Benchmark
+    public void veldPrototypeSimple(Blackhole bh) {
+        // For prototypes, Veld generates a factory method
+        // Using direct instantiation to match prototype behavior
+        Service service = new VeldPrototypeService(Veld.veldLogger());
+        bh.consume(service);
+    }
     
     @Benchmark
     public void springPrototypeSimple(Blackhole bh) {

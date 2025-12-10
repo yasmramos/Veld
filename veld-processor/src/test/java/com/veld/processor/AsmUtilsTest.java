@@ -53,7 +53,6 @@ class AsmUtilsTest {
         @Test
         @DisplayName("should define Veld internal names correctly")
         void shouldDefineVeldInternalNamesCorrectly() {
-            assertEquals("com/veld/runtime/VeldContainer", AsmUtils.VELD_CONTAINER);
             assertEquals("com/veld/runtime/ComponentRegistry", AsmUtils.COMPONENT_REGISTRY);
             assertEquals("com/veld/runtime/ComponentFactory", AsmUtils.COMPONENT_FACTORY);
             assertEquals("com/veld/runtime/VeldException", AsmUtils.VELD_EXCEPTION);

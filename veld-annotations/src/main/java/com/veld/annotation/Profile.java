@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
  * specified profiles are active.
  * 
  * <p>A profile is a named logical grouping that may be activated programmatically
- * via {@code VeldContainer.setActiveProfiles()} or through the system property
+ * via {@code Veld.setActiveProfiles()} or through the system property
  * {@code veld.profiles.active} or environment variable {@code VELD_PROFILES_ACTIVE}.
  * 
  * <p>If a component is not annotated with {@code @Profile}, it belongs to the
@@ -47,7 +47,7 @@ import java.lang.annotation.Target;
  * <ul>
  *   <li>System property: {@code -Dveld.profiles.active=dev,test}</li>
  *   <li>Environment variable: {@code VELD_PROFILES_ACTIVE=dev,test}</li>
- *   <li>Programmatically: {@code VeldContainer.setActiveProfiles("dev", "test")}</li>
+ *   <li>Programmatically: {@code Veld.setActiveProfiles("dev", "test")}</li>
  * </ul>
  * 
  * @author Veld Framework

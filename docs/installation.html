@@ -638,11 +638,11 @@ public class TestService {
 // src/main/java/com/example/Application.java
 package com.example;
 
-import com.veld.runtime.VeldContainer;
+import com.veld.runtime.Veld;
 
 public class Application {
     public static void main(String[] args) {
-        VeldContainer container = new VeldContainer();
+        // Use the generated Veld class;
         container.start();
         
         TestComponent component = container.getBean(TestComponent.class);

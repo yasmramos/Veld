@@ -141,10 +141,10 @@
                 <scope>import</scope>
             </dependency>
             
-            <!-- Veld Spring Boot Starter -->
+            <!-- Veld Processor -->
             <dependency>
                 <groupId>com.veld</groupId>
-                <artifactId>veld-runtime</artifactId>
+                <artifactId>veld-processor</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -249,3 +249,4 @@
         </plugins>
     </build>
 </project>
+

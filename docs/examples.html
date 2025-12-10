@@ -125,7 +125,7 @@ public class Application {
     }
     
     public static void main(String[] args) {
-        VeldContainer container = new VeldContainer();
+        // Use the generated Veld class;
         container.start();
         
         Application app = container.getBean(Application.class);
@@ -936,7 +936,7 @@ public class UserServiceTest {
     @Before
     public void setUp() {
         // Create test container
-        VeldContainer container = new VeldContainer();
+        // Use the generated Veld class;
         container.register(TestConfig.class);
         container.start();
         
