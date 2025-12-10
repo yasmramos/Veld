@@ -97,6 +97,25 @@ public class VeldSourceGenerator {
                 sb.append(String.join(", ", args));
             }
             sb.append(");\n");
+            
+            // Field injections for singleton (only PUBLIC fields can be accessed from generated package)
+            for (InjectionPoint field : comp.getFieldInjections()) {
+                if (field.getVisibility() != InjectionPoint.Visibility.PUBLIC) continue;
+                if (!field.getDependencies().isEmpty()) {
+                    InjectionPoint.Dependency dep = field.getDependencies().get(0);
+                    ComponentInfo depComp = findComponentByType(dep.getTypeName().replace('.', '/'));
+                    if (depComp != null) {
+                        sb.append("        ").append(getFieldName(comp)).append(".")
+                          .append(field.getName()).append(" = ");
+                        if (depComp.getScope() == Scope.SINGLETON) {
+                            sb.append(getFieldName(depComp));
+                        } else {
+                            sb.append(getMethodName(depComp)).append("()");
+                        }
+                        sb.append(";\n");
+                    }
+                }
+            }
         }
         
         sb.append("\n");
@@ -166,7 +185,14 @@ public class VeldSourceGenerator {
         for (ComponentInfo comp : prototypes) {
             sb.append("    public static ").append(comp.getClassName()).append(" ")
               .append(getMethodName(comp)).append("() {\n");
-            sb.append("        return new ").append(comp.getClassName()).append("(");
+            
+            boolean hasFieldInjections = comp.hasFieldInjections();
+            if (hasFieldInjections) {
+                sb.append("        ").append(comp.getClassName()).append(" _instance = new ")
+                  .append(comp.getClassName()).append("(");
+            } else {
+                sb.append("        return new ").append(comp.getClassName()).append("(");
+            }
             
             InjectionPoint constructor = comp.getConstructorInjection();
             if (constructor != null && !constructor.getDependencies().isEmpty()) {
@@ -182,6 +208,24 @@ public class VeldSourceGenerator {
                 sb.append(String.join(", ", args));
             }
             sb.append(");\n");
+            
+            // Field injections for prototype (only PUBLIC fields can be accessed)
+            if (hasFieldInjections) {
+                boolean anyPublicFields = false;
+                for (InjectionPoint field : comp.getFieldInjections()) {
+                    if (field.getVisibility() != InjectionPoint.Visibility.PUBLIC) continue;
+                    if (!field.getDependencies().isEmpty()) {
+                        anyPublicFields = true;
+                        InjectionPoint.Dependency dep = field.getDependencies().get(0);
+                        ComponentInfo depComp = findComponentByType(dep.getTypeName().replace('.', '/'));
+                        if (depComp != null) {
+                            sb.append("        _instance.").append(field.getName()).append(" = ")
+                              .append(getMethodName(depComp)).append("();\n");
+                        }
+                    }
+                }
+                sb.append("        return _instance;\n");
+            }
             sb.append("    }\n\n");
         }
         
