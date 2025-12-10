@@ -74,10 +74,51 @@ public class VeldSourceGenerator {
         // Topologically sort singletons
         List<ComponentInfo> sorted = topologicalSort(singletons);
         
-        // Initialize singletons using factories (factory handles constructor, field, and method injection)
+        // Initialize singletons with constructor, field, and method injection
         for (ComponentInfo comp : sorted) {
-            sb.append("        ").append(getFieldName(comp)).append(" = new ")
-              .append(comp.getClassName()).append("$$VeldFactory().create();\n");
+            String fieldName = getFieldName(comp);
+            
+            // Constructor injection
+            sb.append("        ").append(fieldName).append(" = new ")
+              .append(comp.getClassName()).append("(");
+            
+            InjectionPoint constructor = comp.getConstructorInjection();
+            if (constructor != null && !constructor.getDependencies().isEmpty()) {
+                List<String> args = new ArrayList<>();
+                for (InjectionPoint.Dependency dep : constructor.getDependencies()) {
+                    args.add(getDependencyAccess(dep));
+                }
+                sb.append(String.join(", ", args));
+            }
+            sb.append(");\n");
+            
+            // Field injection
+            for (InjectionPoint field : comp.getFieldInjections()) {
+                if (!field.getDependencies().isEmpty()) {
+                    InjectionPoint.Dependency dep = field.getDependencies().get(0);
+                    String depAccess = getDependencyAccess(dep);
+                    
+                    // From Veld.java (different package), only PUBLIC fields are directly accessible
+                    if (field.getVisibility() == InjectionPoint.Visibility.PUBLIC) {
+                        sb.append("        ").append(fieldName).append(".")
+                          .append(field.getName()).append(" = ").append(depAccess).append(";\n");
+                    } else {
+                        // Non-public fields need synthetic setter
+                        sb.append("        ").append(fieldName).append(".__di_set_")
+                          .append(field.getName()).append("(").append(depAccess).append(");\n");
+                    }
+                }
+            }
+            
+            // Method injection
+            for (InjectionPoint method : comp.getMethodInjections()) {
+                sb.append("        ").append(fieldName).append(".").append(method.getName()).append("(");
+                List<String> args = new ArrayList<>();
+                for (InjectionPoint.Dependency dep : method.getDependencies()) {
+                    args.add(getDependencyAccess(dep));
+                }
+                sb.append(String.join(", ", args)).append(");\n");
+            }
         }
         
         sb.append("\n");
@@ -143,12 +184,52 @@ public class VeldSourceGenerator {
             sb.append("    }\n\n");
         }
         
-        // Generate prototype getters using factories
+        // Generate prototype getters with field/method injection
         for (ComponentInfo comp : prototypes) {
             sb.append("    public static ").append(comp.getClassName()).append(" ")
               .append(getMethodName(comp)).append("() {\n");
-            sb.append("        return new ").append(comp.getClassName())
-              .append("$$VeldFactory().create();\n");
+            
+            // Constructor
+            sb.append("        ").append(comp.getClassName()).append(" _instance = new ")
+              .append(comp.getClassName()).append("(");
+            InjectionPoint constructor = comp.getConstructorInjection();
+            if (constructor != null && !constructor.getDependencies().isEmpty()) {
+                List<String> args = new ArrayList<>();
+                for (InjectionPoint.Dependency dep : constructor.getDependencies()) {
+                    args.add(getDependencyAccess(dep));
+                }
+                sb.append(String.join(", ", args));
+            }
+            sb.append(");\n");
+            
+            // Field injection
+            for (InjectionPoint field : comp.getFieldInjections()) {
+                if (!field.getDependencies().isEmpty()) {
+                    InjectionPoint.Dependency dep = field.getDependencies().get(0);
+                    String depAccess = getDependencyAccess(dep);
+                    
+                    // From Veld.java (different package), only PUBLIC fields are directly accessible
+                    if (field.getVisibility() == InjectionPoint.Visibility.PUBLIC) {
+                        sb.append("        _instance.").append(field.getName())
+                          .append(" = ").append(depAccess).append(";\n");
+                    } else {
+                        sb.append("        _instance.__di_set_").append(field.getName())
+                          .append("(").append(depAccess).append(");\n");
+                    }
+                }
+            }
+            
+            // Method injection
+            for (InjectionPoint method : comp.getMethodInjections()) {
+                sb.append("        _instance.").append(method.getName()).append("(");
+                List<String> args = new ArrayList<>();
+                for (InjectionPoint.Dependency dep : method.getDependencies()) {
+                    args.add(getDependencyAccess(dep));
+                }
+                sb.append(String.join(", ", args)).append(");\n");
+            }
+            
+            sb.append("        return _instance;\n");
             sb.append("    }\n\n");
         }
         
@@ -331,5 +412,24 @@ public class VeldSourceGenerator {
     
     public String getFullClassName() {
         return PACKAGE + "." + CLASS_NAME;
+    }
+    
+    /**
+     * Gets the code to access a dependency (singleton field, prototype getter, or Veld.get()).
+     */
+    private String getDependencyAccess(InjectionPoint.Dependency dep) {
+        String depType = dep.getTypeName().replace('.', '/');
+        ComponentInfo depComp = findComponentByType(depType);
+        
+        if (depComp != null) {
+            if (depComp.getScope() == Scope.SINGLETON) {
+                return getFieldName(depComp);
+            } else {
+                return getMethodName(depComp) + "()";
+            }
+        }
+        
+        // Fallback to Veld.get() for unknown types
+        return "get(" + dep.getTypeName() + ".class)";
     }
 }

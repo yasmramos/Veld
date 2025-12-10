@@ -132,8 +132,8 @@ class FieldInjectorWeaverTest {
         }
         
         @Test
-        @DisplayName("Should NOT generate setter for protected field")
-        void shouldNotGenerateSetterForProtectedField() {
+        @DisplayName("Should generate setter for protected field (needed for cross-package access)")
+        void shouldGenerateSetterForProtectedField() {
             byte[] originalClass = generateClassWithField(
                 "com/example/TestService",
                 "repository",
@@ -144,12 +144,12 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertFalse(result.wasModified(), "Protected field should not need weaving");
+            assertTrue(result.wasModified(), "Protected field needs weaving for cross-package access");
         }
         
         @Test
-        @DisplayName("Should NOT generate setter for package-private field")
-        void shouldNotGenerateSetterForPackagePrivateField() {
+        @DisplayName("Should generate setter for package-private field (needed for cross-package access)")
+        void shouldGenerateSetterForPackagePrivateField() {
             byte[] originalClass = generateClassWithField(
                 "com/example/TestService",
                 "repository",
@@ -160,7 +160,7 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertFalse(result.wasModified(), "Package-private field should not need weaving");
+            assertTrue(result.wasModified(), "Package-private field needs weaving for cross-package access");
         }
     }
     
