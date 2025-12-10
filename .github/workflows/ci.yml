@@ -27,8 +27,14 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: maven
 
-      - name: Build and Install Modules
-        run: mvn clean install -DskipTests -B
+      - name: Install Parent POM
+        run: mvn install -N -DskipTests -B
+
+      - name: Build Core Modules
+        run: mvn clean install -DskipTests -B -pl veld-annotations,veld-runtime,veld-processor,veld-aop,veld-weaver,veld-maven-plugin
+
+      - name: Build Example and Starter Modules
+        run: mvn clean install -DskipTests -B -pl veld-example,veld-spring-boot-starter,veld-spring-boot-example,veld-benchmark
 
       - name: Run Tests
         run: mvn test -B
@@ -75,8 +81,14 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: maven
 
-      - name: Install All Modules
-        run: mvn clean install -DskipTests -B
+      - name: Install Parent POM
+        run: mvn install -N -DskipTests -B
+
+      - name: Build Core Modules
+        run: mvn clean install -DskipTests -B -pl veld-annotations,veld-runtime,veld-processor,veld-aop,veld-weaver,veld-maven-plugin
+
+      - name: Build All Modules
+        run: mvn clean install -DskipTests -B -pl veld-example,veld-spring-boot-starter,veld-spring-boot-example,veld-benchmark
 
       - name: Run Tests and Verify
         run: mvn verify -B
@@ -105,8 +117,14 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: maven
 
-      - name: Install Modules
-        run: mvn clean install -DskipTests -B
+      - name: Install Parent POM
+        run: mvn install -N -DskipTests -B
+
+      - name: Build Core Modules
+        run: mvn clean install -DskipTests -B -pl veld-annotations,veld-runtime,veld-processor,veld-aop,veld-weaver,veld-maven-plugin
+
+      - name: Build All Modules
+        run: mvn clean install -DskipTests -B -pl veld-example,veld-spring-boot-starter,veld-spring-boot-example,veld-benchmark
 
       - name: Run Tests
         run: mvn test -B
@@ -132,8 +150,14 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: maven
 
+      - name: Install Parent POM
+        run: mvn install -N -DskipTests -B
+
+      - name: Build Core Modules
+        run: mvn clean install -DskipTests -B -pl veld-annotations,veld-runtime,veld-processor,veld-aop,veld-weaver,veld-maven-plugin
+
       - name: Build Release JARs
-        run: mvn clean package -DskipTests -B
+        run: mvn clean package -DskipTests -B -pl veld-example,veld-spring-boot-starter,veld-spring-boot-example,veld-benchmark
 
       - name: Get Project Version
         id: version
