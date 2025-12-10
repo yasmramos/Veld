@@ -1,7 +1,6 @@
 package com.veld.boot.starter.service;
 
 import com.veld.boot.starter.config.VeldProperties;
-import com.veld.runtime.VeldContainer;
 import com.veld.runtime.VeldException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,19 +9,17 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Service that manages the lifecycle of Veld Container within Spring Boot applications.
+ * Service that manages Veld integration within Spring Boot applications.
  * 
  * This service:
  * <ul>
- *   <li>Initializes Veld Container on startup</li>
- *   <li>Provides integration hooks for Spring Boot features</li>
- *   <li>Manages container shutdown gracefully</li>
+ *   <li>Provides access to Veld managed components</li>
  *   <li>Bridges Veld beans to Spring ApplicationContext if enabled</li>
  *   <li>Provides health indicators</li>
  * </ul>
@@ -32,12 +29,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class VeldSpringBootService implements InitializingBean, DisposableBean, ApplicationContextAware {
 
     private static final Logger logger = LoggerFactory.getLogger(VeldSpringBootService.class);
+    private static final String VELD_CLASS = "com.veld.generated.Veld";
 
     private final VeldProperties properties;
-    private volatile VeldContainer container;
     private volatile ApplicationContext applicationContext;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final AtomicBoolean closed = new AtomicBoolean(false);
+    
+    // Cached method handles for Veld class
+    private volatile MethodHandle getByClassHandle;
+    private volatile MethodHandle containsHandle;
+    private volatile MethodHandle componentCountHandle;
 
     public VeldSpringBootService(VeldProperties properties) {
         this.properties = properties;
@@ -50,12 +52,7 @@ public class VeldSpringBootService implements InitializingBean, DisposableBean, 
             return;
         }
 
-        if (!properties.getContainer().isAutoStart()) {
-            logger.info("Veld auto-start is disabled");
-            return;
-        }
-
-        initializeVeldContainer();
+        initializeVeld();
     }
 
     @Override
@@ -69,28 +66,23 @@ public class VeldSpringBootService implements InitializingBean, DisposableBean, 
     }
 
     /**
-     * Initialize the Veld Container with configured properties
+     * Initialize Veld integration
      */
-    private void initializeVeldContainer() {
+    private void initializeVeld() {
         try {
             if (initialized.get()) {
-                logger.warn("Veld Container is already initialized");
+                logger.warn("Veld is already initialized");
                 return;
             }
 
-            Set<String> profiles = resolveActiveProfiles();
+            // Verify Veld class exists
+            Class.forName(VELD_CLASS);
             
-            logger.info("Initializing Veld Container with profiles: {}", profiles);
-            
-            if (profiles.isEmpty()) {
-                this.container = new VeldContainer();
-            } else {
-                this.container = new VeldContainer(profiles);
-            }
+            // Cache method handles
+            cacheMethodHandles();
 
             if (properties.getLogging().isEnabled()) {
-                logger.info("Veld Container initialized successfully with {} active components", 
-                           getComponentCount());
+                logger.info("Veld initialized successfully with {} components", getComponentCount());
             }
 
             initialized.set(true);
@@ -100,51 +92,45 @@ public class VeldSpringBootService implements InitializingBean, DisposableBean, 
                 bridgeBeansToSpring();
             }
 
+        } catch (ClassNotFoundException e) {
+            logger.warn("Veld generated class not found. Make sure @Component classes are annotated.");
         } catch (Exception e) {
-            logger.error("Failed to initialize Veld Container", e);
-            throw new VeldException("Failed to initialize Veld Container", e);
+            logger.error("Failed to initialize Veld", e);
+            throw new VeldException("Failed to initialize Veld", e);
         }
     }
-
-    /**
-     * Resolve active profiles from configuration
-     */
-    private Set<String> resolveActiveProfiles() {
-        String[] configuredProfiles = properties.getProfiles();
+    
+    private void cacheMethodHandles() throws Exception {
+        Class<?> veldClass = Class.forName(VELD_CLASS);
+        MethodHandles.Lookup lookup = MethodHandles.publicLookup();
         
-        if (configuredProfiles != null && configuredProfiles.length > 0) {
-            return new HashSet<>(Arrays.asList(configuredProfiles));
-        }
-        
-        // Fallback to default profile
-        return Set.of("default");
+        getByClassHandle = lookup.findStatic(veldClass, "get", 
+            MethodType.methodType(Object.class, Class.class));
+        containsHandle = lookup.findStatic(veldClass, "contains",
+            MethodType.methodType(boolean.class, Class.class));
+        componentCountHandle = lookup.findStatic(veldClass, "componentCount",
+            MethodType.methodType(int.class));
     }
 
     /**
      * Bridge Veld beans to Spring ApplicationContext
-     * This allows Spring components to autowire Veld beans
      */
     private void bridgeBeansToSpring() {
-        // TODO: Implement bean bridging logic
-        // This would involve registering Veld beans as Spring beans
-        // or creating proxy beans that delegate to Veld container
         logger.debug("Bean bridging to Spring context is not yet implemented");
     }
 
     /**
      * Get the number of managed components
      */
-    private int getComponentCount() {
-        // TODO: Implement component counting
-        // This would require access to the ComponentRegistry
+    public int getComponentCount() {
+        try {
+            if (componentCountHandle != null) {
+                return (int) componentCountHandle.invoke();
+            }
+        } catch (Throwable e) {
+            logger.debug("Could not get component count", e);
+        }
         return 0;
-    }
-
-    /**
-     * Get the Veld Container instance
-     */
-    public VeldContainer getContainer() {
-        return container;
     }
 
     /**
@@ -155,37 +141,36 @@ public class VeldSpringBootService implements InitializingBean, DisposableBean, 
     }
 
     /**
-     * Get a bean from the Veld container
+     * Get a bean from Veld by type
      */
-    public Object getBean(String name) {
-        if (container == null) {
-            throw new IllegalStateException("Veld Container is not initialized");
-        }
-        return container.getBean(name);
-    }
-
-    /**
-     * Get a bean from the Veld container by type
-     */
+    @SuppressWarnings("unchecked")
     public <T> T getBean(Class<T> type) {
-        if (container == null) {
-            throw new IllegalStateException("Veld Container is not initialized");
+        try {
+            if (getByClassHandle != null) {
+                return (T) getByClassHandle.invoke(type);
+            }
+        } catch (Throwable e) {
+            throw new VeldException("Failed to get bean of type: " + type.getName(), e);
         }
-        return container.getBean(type);
+        throw new IllegalStateException("Veld is not initialized");
     }
 
     /**
-     * Get a bean from the Veld container by name and type
+     * Check if Veld contains a bean of the given type
      */
-    public <T> T getBean(String name, Class<T> type) {
-        if (container == null) {
-            throw new IllegalStateException("Veld Container is not initialized");
+    public boolean contains(Class<?> type) {
+        try {
+            if (containsHandle != null) {
+                return (boolean) containsHandle.invoke(type);
+            }
+        } catch (Throwable e) {
+            logger.debug("Could not check contains", e);
         }
-        return container.getBean(name, type);
+        return false;
     }
 
     /**
-     * Close the Veld Container gracefully
+     * Close the Veld integration gracefully
      */
     public void close() {
         if (closed.get()) {
@@ -198,21 +183,18 @@ public class VeldSpringBootService implements InitializingBean, DisposableBean, 
             }
 
             try {
-                if (properties.getContainer().isAutoClose() && container != null) {
-                    logger.info("Closing Veld Container");
-                    container.close();
-                }
+                logger.info("Closing Veld Spring Boot integration");
                 closed.set(true);
             } catch (Exception e) {
-                logger.error("Error closing Veld Container", e);
+                logger.error("Error closing Veld integration", e);
             }
         }
     }
 
     /**
-     * Health check for Veld Container
+     * Health check for Veld
      */
     public boolean isHealthy() {
-        return initialized.get() && !closed.get() && container != null;
+        return initialized.get() && !closed.get();
     }
 }

@@ -17,7 +17,7 @@ import com.veld.benchmark.dagger.DaggerBenchmarkComponent;
 import com.veld.benchmark.guice.GuiceModule;
 import com.veld.benchmark.spring.SpringConfig;
 import com.veld.benchmark.veld.VeldSimpleService;
-import com.veld.runtime.VeldContainer;
+import com.veld.generated.Veld;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -26,9 +26,6 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Benchmarks measuring throughput (operations per second).
- * 
- * This measures how many dependency lookups can be performed per second,
- * which is important for high-throughput applications.
  */
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -38,14 +35,12 @@ import java.util.concurrent.TimeUnit;
 @Measurement(iterations = 5, time = 1)
 public class ThroughputBenchmark {
     
-    private VeldContainer veldContainer;
     private AnnotationConfigApplicationContext springContext;
     private Injector guiceInjector;
     private BenchmarkComponent daggerComponent;
     
     @Setup(Level.Trial)
     public void setup() {
-        veldContainer = VeldContainer.create();
         springContext = new AnnotationConfigApplicationContext(SpringConfig.class);
         guiceInjector = Guice.createInjector(new GuiceModule());
         daggerComponent = DaggerBenchmarkComponent.create();
@@ -53,22 +48,18 @@ public class ThroughputBenchmark {
     
     @TearDown(Level.Trial)
     public void teardown() {
-        if (springContext != null) {
-            springContext.close();
-        }
+        if (springContext != null) springContext.close();
     }
-    
-    // ==================== THROUGHPUT BENCHMARKS ====================
     
     @Benchmark
     public void veldThroughput(Blackhole bh) {
-        Service service = veldContainer.get(VeldSimpleService.class);
+        Service service = Veld.veldSimpleService();
         bh.consume(service);
     }
     
     @Benchmark
     public void springThroughput(Blackhole bh) {
-        Service service = springContext.getBean(Service.class);
+        Service service = springContext.getBean("simpleService", Service.class);
         bh.consume(service);
     }
     
@@ -84,19 +75,17 @@ public class ThroughputBenchmark {
         bh.consume(service);
     }
     
-    // ==================== CONCURRENT THROUGHPUT ====================
-    
     @Benchmark
     @Threads(4)
     public void veldConcurrentThroughput(Blackhole bh) {
-        Service service = veldContainer.get(VeldSimpleService.class);
+        Service service = Veld.veldSimpleService();
         bh.consume(service);
     }
     
     @Benchmark
     @Threads(4)
     public void springConcurrentThroughput(Blackhole bh) {
-        Service service = springContext.getBean(Service.class);
+        Service service = springContext.getBean("simpleService", Service.class);
         bh.consume(service);
     }
     

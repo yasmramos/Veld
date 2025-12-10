@@ -31,7 +31,6 @@ public final class AsmUtils implements Opcodes {
     public static final String RUNTIME_EXCEPTION = "java/lang/RuntimeException";
     
     // Veld specific
-    public static final String VELD_CONTAINER = "com/veld/runtime/VeldContainer";
     public static final String COMPONENT_REGISTRY = "com/veld/runtime/ComponentRegistry";
     public static final String COMPONENT_FACTORY = "com/veld/runtime/ComponentFactory";
     public static final String VELD_EXCEPTION = "com/veld/runtime/VeldException";
