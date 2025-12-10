@@ -84,6 +84,22 @@
                 </configuration>
             </plugin>
 
+            <!-- Veld Weaver Plugin - adds synthetic setters and generates Veld.class -->
+            <plugin>
+                <groupId>com.veld</groupId>
+                <artifactId>veld-weaver</artifactId>
+                <version>${project.version}</version>
+                <executions>
+                    <execution>
+                        <id>weave</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>weave</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- Exec Maven Plugin for running the example -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>

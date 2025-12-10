@@ -66,6 +66,7 @@ public class FieldInjectorWeaver {
     
     /**
      * Weaves all class files in the specified directory.
+     * Also generates Veld.class from component metadata.
      * 
      * @param classesDirectory the directory containing compiled .class files
      * @return list of weaving results
@@ -78,11 +79,39 @@ public class FieldInjectorWeaver {
             return results;
         }
         
+        // First, weave all classes to add synthetic setters
         Files.walk(classesDirectory)
             .filter(path -> path.toString().endsWith(".class"))
             .forEach(this::weaveClassFile);
         
+        // Then generate Veld.class from metadata (after synthetic setters exist)
+        generateVeldClass(classesDirectory);
+        
         return new ArrayList<>(results);
+    }
+    
+    /**
+     * Generates Veld.class from component metadata.
+     * This must be called AFTER weaving so synthetic setters exist.
+     */
+    private void generateVeldClass(Path classesDirectory) throws IOException {
+        List<VeldClassGenerator.ComponentMeta> components = 
+            VeldClassGenerator.readMetadata(classesDirectory);
+        
+        if (components.isEmpty()) {
+            return; // No components found
+        }
+        
+        VeldClassGenerator generator = new VeldClassGenerator(components);
+        byte[] bytecode = generator.generate();
+        
+        // Write Veld.class
+        Path veldClassPath = classesDirectory.resolve("com/veld/generated/Veld.class");
+        Files.createDirectories(veldClassPath.getParent());
+        Files.write(veldClassPath, bytecode);
+        
+        results.add(WeavingResult.modified("com/veld/generated/Veld", bytecode, 
+            List.of("Generated Veld.class with " + components.size() + " components")));
     }
     
     /**
