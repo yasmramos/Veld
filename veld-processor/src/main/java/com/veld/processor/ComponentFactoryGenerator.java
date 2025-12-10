@@ -33,7 +33,7 @@ import static org.objectweb.asm.Opcodes.*;
 public final class ComponentFactoryGenerator {
     
     private static final String COMPONENT_FACTORY = "com/veld/runtime/ComponentFactory";
-    private static final String VELD_CLASS = "com/veld/generated/Veld";
+    private static final String VELD_CLASS = "com/veld/Veld";
     private static final String SCOPE = "com/veld/runtime/Scope";
     private static final String PROVIDER = "com/veld/runtime/Provider";
     private static final String OPTIONAL = "java/util/Optional";
@@ -318,10 +318,18 @@ public final class ComponentFactoryGenerator {
     private void loadRegularDependency(MethodVisitor mv, Dependency dep) {
         String depInternal = dep.getTypeName().replace('.', '/');
         
-        // Veld.get(DependencyType.class)
-        mv.visitLdcInsn(org.objectweb.asm.Type.getObjectType(depInternal));
-        mv.visitMethodInsn(INVOKESTATIC, VELD_CLASS, "get",
-                "(L" + CLASS + ";)L" + OBJECT + ";", false);
+        if (dep.hasQualifier()) {
+            // Veld.get(DependencyType.class, "qualifierName")
+            mv.visitLdcInsn(org.objectweb.asm.Type.getObjectType(depInternal));
+            mv.visitLdcInsn(dep.getQualifierName());
+            mv.visitMethodInsn(INVOKESTATIC, VELD_CLASS, "get",
+                    "(L" + CLASS + ";L" + STRING + ";)L" + OBJECT + ";", false);
+        } else {
+            // Veld.get(DependencyType.class)
+            mv.visitLdcInsn(org.objectweb.asm.Type.getObjectType(depInternal));
+            mv.visitMethodInsn(INVOKESTATIC, VELD_CLASS, "get",
+                    "(L" + CLASS + ";)L" + OBJECT + ";", false);
+        }
         
         // Cast to dependency type
         mv.visitTypeInsn(CHECKCAST, depInternal);
