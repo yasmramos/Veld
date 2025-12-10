@@ -66,36 +66,103 @@ function initializeCodeHighlighting() {
     const codeBlocks = document.querySelectorAll('pre code');
     
     codeBlocks.forEach(block => {
-        // Simple Java highlighting
+        // Add copy button
+        addCopyButton(block.parentElement);
+        
+        // Apply Java highlighting
         const highlighted = highlightJava(block.textContent);
         block.innerHTML = highlighted;
     });
 }
 
-// Simple Java syntax highlighting
+// Add copy button to code blocks
+function addCopyButton(codeBlock) {
+    if (codeBlock.querySelector('.copy-button')) return; // Already has copy button
+    
+    const copyButton = document.createElement('button');
+    copyButton.className = 'copy-button';
+    copyButton.innerHTML = 'Copy';
+    copyButton.title = 'Copy code to clipboard';
+    
+    copyButton.addEventListener('click', async () => {
+        const code = codeBlock.querySelector('code').textContent;
+        try {
+            await navigator.clipboard.writeText(code);
+            copyButton.innerHTML = 'Copied!';
+            copyButton.style.background = 'var(--success-color)';
+            setTimeout(() => {
+                copyButton.innerHTML = 'Copy';
+                copyButton.style.background = 'var(--primary-color)';
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy code:', err);
+            copyButton.innerHTML = 'Failed';
+            copyButton.style.background = 'var(--error-color)';
+            setTimeout(() => {
+                copyButton.innerHTML = 'Copy';
+                copyButton.style.background = 'var(--primary-color)';
+            }, 2000);
+        }
+    });
+    
+    codeBlock.appendChild(copyButton);
+}
+
+// Enhanced Java syntax highlighting
 function highlightJava(code) {
-    // Keywords
-    const keywords = /\b(public|private|protected|static|final|abstract|class|interface|enum|extends|implements|import|package|return|if|else|for|while|do|switch|case|break|continue|default|try|catch|finally|throw|throws|new|this|super|void|int|double|float|boolean|char|byte|short|long|String|var|const|let|true|false|null)\b/g;
+    // Escape HTML first to prevent conflicts
+    let highlighted = code
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
     
-    // Strings
-    const strings = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g;
+    // Multi-line comments (before single-line to avoid conflicts)
+    highlighted = highlighted.replace(/\/\*[\s\S]*?\*\//g, '<span class="comment">$&</span>');
     
-    // Comments
-    const comments = /\/\/.*$|\/\*[\s\S]*?\*\//gm;
+    // Single-line comments
+    highlighted = highlighted.replace(/\/\/.*$/gm, '<span class="comment">$&</span>');
     
-    // Annotations
-    const annotations = /@[A-Za-z][A-Za-z0-9_]*/g;
+    // Annotations (@Component, @Inject, etc.)
+    highlighted = highlighted.replace(/@[A-Za-z][A-Za-z0-9_]*(?:\([^)]*\))?/g, '<span class="annotation">$&</span>');
+    
+    // String literals (handle escape sequences)
+    highlighted = highlighted.replace(/"(?:[^"\\]|\\.)*"/g, '<span class="string">$&</span>');
+    highlighted = highlighted.replace(/'(?:[^'\\]|\\.)*'/g, '<span class="string">$&</span>');
     
     // Numbers
-    const numbers = /\b\d+\.?\d*[fFdDlL]?\b/g;
+    highlighted = highlighted.replace(/\b\d+(?:\.\d+)?[fFdDlL]?\b/g, '<span class="number">$&</span>');
     
-    // Apply highlighting
-    let highlighted = code
-        .replace(comments, '<span class="comment">$&</span>')
-        .replace(annotations, '<span class="annotation">$&</span>')
-        .replace(strings, '<span class="string">$&</span>')
-        .replace(numbers, '<span class="number">$&</span>')
-        .replace(keywords, '<span class="keyword">$&</span>');
+    // Keywords (order matters - longer patterns first)
+    const keywords = [
+        'public', 'private', 'protected', 'static', 'final', 'abstract',
+        'class', 'interface', 'enum', 'extends', 'implements',
+        'import', 'package', 'return', 'if', 'else', 'else if',
+        'for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'default',
+        'try', 'catch', 'finally', 'throw', 'throws', 'throws',
+        'new', 'this', 'super', 'void', 'var', 'const', 'let',
+        'true', 'false', 'null', 'instanceof', 'typeof',
+        'int', 'double', 'float', 'boolean', 'char', 'byte', 'short', 'long', 'String'
+    ];
+    
+    keywords.forEach(keyword => {
+        const pattern = new RegExp(`\\b${keyword}\\b`, 'g');
+        highlighted = highlighted.replace(pattern, `<span class="keyword">${keyword}</span>`);
+    });
+    
+    // Class names (capitalized identifiers after keywords)
+    highlighted = highlighted.replace(/\b([A-Z][A-Za-z0-9_]*)\b(?=\s*[{(;])/g, '<span class="class-name">$1</span>');
+    
+    // Method calls (identifiers followed by parentheses)
+    highlighted = highlighted.replace(/\b([a-z][A-Za-z0-9_]*)\s*(?=\()/g, '<span class="method-name">$1</span>');
+    
+    // Package names (common patterns)
+    highlighted = highlighted.replace(/\b(com\.|org\.|java\.|javax\.|com\.veld\.)[a-z][A-Za-z0-9_.]*/g, '<span class="package">$&</span>');
+    
+    // Operators
+    highlighted = highlighted.replace(/([=+\-*/%&|^!<>]=?|&&|\|\||\+\+|--|<<|>>|>>>)/g, '<span class="operator">$1</span>');
+    
+    // Punctuation
+    highlighted = highlighted.replace(/([{}()[\];,.:])/g, '<span class="punctuation">$1</span>');
     
     return highlighted;
 }
