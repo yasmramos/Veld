@@ -58,11 +58,11 @@ import static org.objectweb.asm.Opcodes.*;
 public final class RegistryGenerator {
     
     private static final String REGISTRY_NAME = "io/github/yasmramos/VeldRegistry";
-    private static final String COMPONENT_REGISTRY = "com/veld/runtime/ComponentRegistry";
-    private static final String COMPONENT_FACTORY = "com/veld/runtime/ComponentFactory";
+    private static final String COMPONENT_REGISTRY = "io/github/yasmramos/runtime/ComponentRegistry";
+    private static final String COMPONENT_FACTORY = "io/github/yasmramos/runtime/ComponentFactory";
     private static final String VELD_CLASS = "io/github/yasmramos/Veld";
-    private static final String VELD_EXCEPTION = "com/veld/runtime/VeldException";
-    private static final String SCOPE = "com/veld/runtime/Scope";
+    private static final String VELD_EXCEPTION = "io/github/yasmramos/runtime/VeldException";
+    private static final String SCOPE = "io/github/yasmramos/runtime/Scope";
     private static final String OBJECT = "java/lang/Object";
     private static final String CLASS = "java/lang/Class";
     private static final String STRING = "java/lang/String";

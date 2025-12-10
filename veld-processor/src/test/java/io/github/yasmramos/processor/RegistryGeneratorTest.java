@@ -208,7 +208,7 @@ class RegistryGeneratorTest {
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
-            assertTrue(cn.interfaces.contains("com/veld/runtime/ComponentRegistry"));
+            assertTrue(cn.interfaces.contains("io/github/yasmramos/runtime/ComponentRegistry"));
         }
     }
 
@@ -259,7 +259,7 @@ class RegistryGeneratorTest {
             
             FieldNode field = getField(cn, "factories");
             assertNotNull(field);
-            assertEquals("[Lcom/veld/runtime/ComponentFactory;", field.desc);
+            assertEquals("[Lio/github/yasmramos/runtime/ComponentFactory;", field.desc);
             assertTrue((field.access & Opcodes.ACC_PRIVATE) != 0);
             assertTrue((field.access & Opcodes.ACC_FINAL) != 0);
         }
@@ -348,7 +348,7 @@ class RegistryGeneratorTest {
             // Find getFactory that takes Class parameter
             boolean hasGetFactoryByType = cn.methods.stream()
                 .anyMatch(m -> m.name.equals("getFactory") 
-                    && m.desc.equals("(Ljava/lang/Class;)Lcom/veld/runtime/ComponentFactory;"));
+                    && m.desc.equals("(Ljava/lang/Class;)Lio/github/yasmramos/runtime/ComponentFactory;"));
             
             assertTrue(hasGetFactoryByType, "Should have getFactory(Class) method");
         }
@@ -363,7 +363,7 @@ class RegistryGeneratorTest {
             // Find getFactory that takes String parameter
             boolean hasGetFactoryByName = cn.methods.stream()
                 .anyMatch(m -> m.name.equals("getFactory") 
-                    && m.desc.equals("(Ljava/lang/String;)Lcom/veld/runtime/ComponentFactory;"));
+                    && m.desc.equals("(Ljava/lang/String;)Lio/github/yasmramos/runtime/ComponentFactory;"));
             
             assertTrue(hasGetFactoryByName, "Should have getFactory(String) method");
         }
@@ -590,7 +590,7 @@ class RegistryGeneratorTest {
             
             MethodNode method = cn.methods.stream()
                 .filter(m -> m.name.equals("getFactory") 
-                    && m.desc.equals("(Ljava/lang/Class;)Lcom/veld/runtime/ComponentFactory;"))
+                    && m.desc.equals("(Ljava/lang/Class;)Lio/github/yasmramos/runtime/ComponentFactory;"))
                 .findFirst()
                 .orElse(null);
             

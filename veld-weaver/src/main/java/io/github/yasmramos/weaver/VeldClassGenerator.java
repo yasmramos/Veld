@@ -182,10 +182,10 @@ public class VeldClassGenerator implements Opcodes {
             
             // EventBus registration (if has @Subscribe methods)
             if (comp.hasSubscribeMethods) {
-                mv.visitMethodInsn(INVOKESTATIC, "com/veld/runtime/event/EventBus", "getInstance", 
-                    "()Lcom/veld/runtime/event/EventBus;", false);
+                mv.visitMethodInsn(INVOKESTATIC, "io/github/yasmramos/runtime/event/EventBus", "getInstance", 
+                    "()Lio/github/yasmramos/runtime/event/EventBus;", false);
                 mv.visitFieldInsn(GETSTATIC, VELD_CLASS, fieldName, fieldType);
-                mv.visitMethodInsn(INVOKEVIRTUAL, "com/veld/runtime/event/EventBus", "register", 
+                mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/runtime/event/EventBus", "register", 
                     "(Ljava/lang/Object;)V", false);
             }
             
@@ -508,10 +508,10 @@ public class VeldClassGenerator implements Opcodes {
         
         // EventBus registration (if has @Subscribe methods)
         if (comp.hasSubscribeMethods) {
-            mv.visitMethodInsn(INVOKESTATIC, "com/veld/runtime/event/EventBus", "getInstance", 
-                "()Lcom/veld/runtime/event/EventBus;", false);
+            mv.visitMethodInsn(INVOKESTATIC, "io/github/yasmramos/runtime/event/EventBus", "getInstance", 
+                "()Lio/github/yasmramos/runtime/event/EventBus;", false);
             mv.visitVarInsn(ALOAD, 0);
-            mv.visitMethodInsn(INVOKEVIRTUAL, "com/veld/runtime/event/EventBus", "register", 
+            mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/runtime/event/EventBus", "register", 
                 "(Ljava/lang/Object;)V", false);
         }
         

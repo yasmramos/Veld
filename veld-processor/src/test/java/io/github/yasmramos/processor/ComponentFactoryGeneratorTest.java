@@ -156,7 +156,7 @@ class ComponentFactoryGeneratorTest {
             byte[] bytecode = generator.generate();
             
             ClassNode cn = parseClass(bytecode);
-            assertTrue(cn.interfaces.contains("com/veld/runtime/ComponentFactory"));
+            assertTrue(cn.interfaces.contains("io/github/yasmramos/runtime/ComponentFactory"));
         }
     }
 
@@ -278,7 +278,7 @@ class ComponentFactoryGeneratorTest {
             
             MethodNode method = getMethod(cn, "getScope");
             assertNotNull(method);
-            assertEquals("()Lcom/veld/runtime/Scope;", method.desc);
+            assertEquals("()Lio/github/yasmramos/runtime/Scope;", method.desc);
         }
 
         @Test

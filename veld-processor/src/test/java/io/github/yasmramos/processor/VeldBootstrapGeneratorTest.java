@@ -278,7 +278,7 @@ class VeldBootstrapGeneratorTest {
             
             MethodNode method = getMethod(cn, "createRegistry");
             assertNotNull(method);
-            assertEquals("()Lcom/veld/runtime/ComponentRegistry;", method.desc);
+            assertEquals("()Lio/github/yasmramos/runtime/ComponentRegistry;", method.desc);
         }
 
         @Test
