@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component-set>
+  <components>
+    <component>
+      <role>org.apache.maven.lifecycle.mapping.LifecycleMapping</role>
+      <role-hint>veld-jar</role-hint>
+      <implementation>org.apache.maven.lifecycle.mapping.DefaultLifecycleMapping</implementation>
+      <configuration>
+        <lifecycles>
+          <lifecycle>
+            <id>default</id>
+            <phases>
+              <process-resources>org.apache.maven.plugins:maven-resources-plugin:3.3.1:resources</process-resources>
+              <compile>com.veld:veld-maven-plugin:1.0.0-alpha.6:compile</compile>
+              <process-test-resources>org.apache.maven.plugins:maven-resources-plugin:3.3.1:testResources</process-test-resources>
+              <test-compile>org.apache.maven.plugins:maven-compiler-plugin:3.11.0:testCompile</test-compile>
+              <test>org.apache.maven.plugins:maven-surefire-plugin:3.2.2:test</test>
+              <package>org.apache.maven.plugins:maven-jar-plugin:3.3.0:jar</package>
+              <install>org.apache.maven.plugins:maven-install-plugin:3.1.1:install</install>
+              <deploy>org.apache.maven.plugins:maven-deploy-plugin:3.1.1:deploy</deploy>
+            </phases>
+          </lifecycle>
+        </lifecycles>
+      </configuration>
+    </component>
+    
+    <component>
+      <role>org.apache.maven.artifact.handler.ArtifactHandler</role>
+      <role-hint>veld-jar</role-hint>
+      <implementation>org.apache.maven.artifact.handler.DefaultArtifactHandler</implementation>
+      <configuration>
+        <type>veld-jar</type>
+        <extension>jar</extension>
+        <packaging>veld-jar</packaging>
+        <language>java</language>
+        <addedToClasspath>true</addedToClasspath>
+      </configuration>
+    </component>
+  </components>
+</component-set>

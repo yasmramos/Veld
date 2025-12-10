@@ -11,6 +11,7 @@
     </parent>
 
     <artifactId>veld-example</artifactId>
+    <packaging>veld-jar</packaging>
     <name>Veld Example</name>
     <description>Example module demonstrating Veld DI framework capabilities</description>
 
@@ -66,30 +67,12 @@
 
     <build>
         <plugins>
-            <!-- Disable default maven-compiler-plugin - Veld plugin handles compilation -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>default-compile</id>
-                        <phase>none</phase>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <!-- Veld Unified Plugin - handles compilation, annotation processing, and weaving -->
+            <!-- Veld Maven Plugin as extension for custom lifecycle -->
             <plugin>
                 <groupId>com.veld</groupId>
                 <artifactId>veld-maven-plugin</artifactId>
                 <version>${project.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                    </execution>
-                </executions>
+                <extensions>true</extensions>
             </plugin>
 
             <!-- Exec Maven Plugin for running the example -->
