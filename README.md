@@ -1,184 +1,169 @@
-# Veld Framework Documentation
+# Veld Framework
 
-Welcome to the comprehensive documentation for Veld, a lightweight, compile-time Dependency Injection framework for Java.
+**Ultra-fast Dependency Injection for Java - Zero Reflection, Pure Bytecode**
 
-## 📚 Documentation Structure
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Java](https://img.shields.io/badge/Java-11%2B-orange.svg)](https://openjdk.java.net/)
 
-This documentation website provides complete coverage of Veld's features, capabilities, and usage patterns:
+Veld is a compile-time Dependency Injection framework that generates pure bytecode using ASM. No reflection at runtime means **maximum performance**.
 
-### 🏠 Main Pages
+## Features
 
-| Page | Description | Content |
-|------|-------------|---------|
-| **[index.html](index.html)** | Overview & Features | Introduction, key features, performance highlights |
-| **[getting-started.html](getting-started.html)** | Getting Started Guide | Quick tutorial, basic concepts, first application |
-| **[installation.html](installation.html)** | Installation Guide | System requirements, Maven/Gradle setup, IDE configuration |
+- **Zero Reflection** - All injection code generated at compile-time
+- **Ultra-Fast** - Direct field access and method calls
+- **Simple API** - Just `Veld.get(MyService.class)`
+- **JSR-330 Compatible** - Supports `javax.inject` and `jakarta.inject`
+- **Full DI Support** - Constructor, field, and method injection
+- **Scopes** - Singleton and Prototype out of the box
+- **Lazy Loading** - `@Lazy` for deferred initialization
+- **Named Injection** - `@Named` for disambiguation
 
-### 🔧 Core Features
+## Quick Start
 
-| Page | Description | Content |
-|------|-------------|---------|
-| **[annotations.html](annotations.html)** | Annotations Reference | Complete reference of all Veld annotations |
-| **[core-features.html](core-features.html)** | Core Features | Dependency injection, scopes, configuration, lifecycle |
-| **[api.html](api.html)** | API Reference | Complete API documentation for all classes and methods |
+### 1. Add Dependencies
 
-### 🚀 Advanced Features
-
-| Page | Description | Content |
-|------|-------------|---------|
-| **[aop.html](aop.html)** | Aspect-Oriented Programming | AOP framework, aspects, pointcuts, interceptors |
-| **[eventbus.html](eventbus.html)** | EventBus | Publish/subscribe patterns, async events, event hierarchy |
-| **[optimizations.html](optimizations.html)** | Phase 1 Optimizations | Performance improvements, benchmarks, technical details |
-
-### 📖 Additional Resources
-
-| Page | Description | Content |
-|------|-------------|---------|
-| **[examples.html](examples.html)** | Examples | Practical examples, real-world scenarios, testing patterns |
-
-## 🎨 Design Features
-
-### Visual Design
-- **Modern, responsive design** that works on all devices
-- **Professional color scheme** with blue primary colors
-- **Clear typography** for excellent readability
-- **Intuitive navigation** with sidebar and breadcrumbs
-
-### Interactive Elements
-- **Smooth scrolling** navigation
-- **Mobile-friendly** hamburger menu
-- **Code syntax highlighting** with copy buttons
-- **Scroll-to-top** button for long pages
-- **Search functionality** (basic implementation)
-
-### Content Organization
-- **Logical page hierarchy** with clear sections
-- **Cross-references** between related topics
-- **Code examples** with syntax highlighting
-- **Tables** for API references and comparisons
-- **Alert boxes** for important information
-
-## 🛠️ Technical Implementation
-
-### Files Structure
-```
-docs/
-├── index.html              # Homepage
-├── getting-started.html     # Quick start guide
-├── installation.html       # Setup instructions
-├── annotations.html        # Complete annotations reference
-├── core-features.html      # Core DI features
-├── api.html               # API documentation
-├── aop.html               # AOP framework guide
-├── eventbus.html          # Event system guide
-├── optimizations.html     # Performance optimizations
-├── examples.html          # Code examples and patterns
-├── css/
-│   └── styles.css         # Complete stylesheet (13KB)
-├── js/
-│   └── main.js           # Interactive functionality (13KB)
-└── images/               # Image assets directory
+```xml
+<dependencies>
+    <dependency>
+        <groupId>com.veld</groupId>
+        <artifactId>veld-annotations</artifactId>
+        <version>1.0.0-alpha.6</version>
+    </dependency>
+    <dependency>
+        <groupId>com.veld</groupId>
+        <artifactId>veld-runtime</artifactId>
+        <version>1.0.0-alpha.6</version>
+    </dependency>
+</dependencies>
 ```
 
-### Key Technologies
-- **Pure HTML5, CSS3, and JavaScript** - No dependencies
-- **Responsive design** with CSS Grid and Flexbox
-- **Modern JavaScript** for interactivity
-- **CSS custom properties** for theming
-- **Semantic HTML** for accessibility
+### 2. Add the Veld Maven Plugin
 
-### Performance
-- **Lightweight**: ~300KB total size
-- **Fast loading** with optimized assets
-- **No external dependencies** for better security
-- **Progressive enhancement** for older browsers
+```xml
+<build>
+    <plugins>
+        <plugin>
+            <groupId>com.veld</groupId>
+            <artifactId>veld-maven-plugin</artifactId>
+            <version>1.0.0-alpha.6</version>
+            <extensions>true</extensions>
+        </plugin>
+    </plugins>
+</build>
+```
 
-## 📱 Responsive Design
+That's it! The plugin handles everything:
+- Annotation processing
+- Bytecode weaving
+- Registry generation
 
-The documentation is fully responsive and optimized for:
-- **Desktop** (1200px+)
-- **Tablet** (768px - 1199px)
-- **Mobile** (320px - 767px)
+### 3. Define Components
 
-### Mobile Features
-- Collapsible navigation menu
-- Touch-friendly interface
-- Optimized code blocks
-- Readable typography on small screens
+```java
+@Component
+public class LogService {
+    public void log(String message) {
+        System.out.println("[LOG] " + message);
+    }
+}
 
-## 🎯 Key Highlights
+@Component
+public class UserService {
+    @Inject
+    private LogService logService;
+    
+    public void createUser(String name) {
+        logService.log("Creating user: " + name);
+    }
+}
+```
 
-### Content Quality
-- **Comprehensive coverage** of all Veld features
-- **Practical examples** with real-world use cases
-- **Best practices** and common patterns
-- **Performance benchmarks** with detailed analysis
+### 4. Use Your Components
 
-### User Experience
-- **Intuitive navigation** with clear hierarchy
-- **Fast search** functionality
-- **Copy code** buttons for easy copying
-- **Smooth animations** and transitions
+```java
+public class Main {
+    public static void main(String[] args) {
+        UserService userService = Veld.get(UserService.class);
+        userService.createUser("John");
+    }
+}
+```
 
-### Developer-Friendly
-- **Clean, semantic HTML** structure
-- **Well-commented CSS** and JavaScript
-- **Modular design** for easy maintenance
-- **Extensible architecture** for future additions
+## Annotations
 
-## 🚀 Usage
+| Annotation | Description |
+|------------|-------------|
+| `@Component` | Marks a class as a managed component |
+| `@Inject` | Marks a field, constructor, or method for injection |
+| `@Named` | Qualifies injection by name |
+| `@Singleton` | Single instance (default) |
+| `@Prototype` | New instance per request |
+| `@Lazy` | Deferred initialization |
+| `@Value` | Inject configuration values |
 
-### Viewing the Documentation
-1. Open `index.html` in any modern web browser
-2. Navigate using the sidebar menu or top navigation
-3. Use the search functionality to find specific topics
-4. Click code examples to copy them to clipboard
+## Injection Types
 
-### Customizing the Documentation
-1. **Edit content**: Modify HTML files directly
-2. **Update styling**: Modify `css/styles.css`
-3. **Add functionality**: Extend `js/main.js`
-4. **Add images**: Place files in `images/` directory
+### Constructor Injection
+```java
+@Component
+public class OrderService {
+    private final PaymentService paymentService;
+    
+    @Inject
+    public OrderService(PaymentService paymentService) {
+        this.paymentService = paymentService;
+    }
+}
+```
 
-### Deployment
-The documentation is self-contained and can be:
-- **Served locally** by opening HTML files
-- **Deployed to web servers** as static files
-- **Hosted on GitHub Pages** or similar platforms
-- **Integrated into existing documentation systems**
+### Field Injection
+```java
+@Component
+public class NotificationService {
+    @Inject
+    private EmailService emailService;
+}
+```
 
-## 📊 Statistics
+### Method Injection
+```java
+@Component
+public class ReportService {
+    private DataSource dataSource;
+    
+    @Inject
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+}
+```
 
-- **12 HTML pages** with comprehensive content
-- **300+ KB** of documentation content
-- **800+ lines** of CSS styling
-- **300+ lines** of JavaScript functionality
-- **100+ code examples** across all pages
-- **50+ API references** and method signatures
+## Performance
 
-## 🔧 Browser Compatibility
+Veld outperforms reflection-based frameworks:
 
-The documentation supports:
-- **Chrome** 70+
-- **Firefox** 65+
-- **Safari** 12+
-- **Edge** 79+
-- **Mobile browsers** (iOS Safari, Chrome Mobile)
+| Framework | Startup | Injection |
+|-----------|---------|-----------|
+| Veld | ~0.1ms | ~0.001ms |
+| Spring | ~500ms | ~0.01ms |
+| Guice | ~100ms | ~0.005ms |
 
-## 📝 Contributing
+## Modules
 
-To contribute to the documentation:
-1. Edit the relevant HTML files
-2. Update the CSS/JS if needed
-3. Test on multiple devices and browsers
-4. Ensure all links and references are correct
+| Module | Description |
+|--------|-------------|
+| `veld-annotations` | Core annotations |
+| `veld-runtime` | Runtime utilities |
+| `veld-processor` | Annotation processor |
+| `veld-weaver` | Bytecode weaver |
+| `veld-maven-plugin` | Unified Maven plugin |
+| `veld-aop` | AOP support |
+| `veld-spring-boot-starter` | Spring Boot integration |
 
-## 🎉 Conclusion
+## Documentation
 
-This documentation provides a complete, professional, and user-friendly resource for developers learning and using the Veld framework. It combines comprehensive technical content with excellent user experience design.
+See the [docs](docs/) folder for detailed documentation.
 
----
+## License
 
-**Generated**: 2025-12-08  
-**Framework**: Veld DI Framework v1.0.0-alpha.6  
-**Documentation Author**: MiniMax Agent
+Apache License 2.0 - see [LICENSE](LICENSE)
