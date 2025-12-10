@@ -20,7 +20,11 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest(
     classes = VeldSpringBootStarterIntegrationTest.TestApplication.class,
-    properties = {"veld.container.auto-start=false"}
+    properties = {
+        "veld.container.auto-start=false",
+        "veld.spring-integration.enabled=false",
+        "veld.spring-integration.health-indicator=false"
+    }
 )
 class VeldSpringBootStarterIntegrationTest {
 
