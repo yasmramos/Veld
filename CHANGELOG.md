@@ -159,7 +159,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Provider Injection
 - `Provider<T>` support for on-demand instance creation
 - Compatible with:
-  - `com.veld.runtime.Provider<T>`
+  - `io.github.yasmramos.runtime.Provider<T>`
   - `javax.inject.Provider<T>`
   - `jakarta.inject.Provider<T>`
 

@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.veld</groupId>
+        <groupId>io.github.yasmramos</groupId>
         <artifactId>veld-parent</artifactId>
         <version>1.0.0-alpha.6</version>
     </parent>
@@ -18,28 +18,28 @@
     <dependencies>
         <!-- Veld Annotations -->
         <dependency>
-            <groupId>com.veld</groupId>
+            <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-annotations</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Veld Runtime -->
         <dependency>
-            <groupId>com.veld</groupId>
+            <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-runtime</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Veld AOP -->
         <dependency>
-            <groupId>com.veld</groupId>
+            <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-aop</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Veld Processor (compile-time only) -->
         <dependency>
-            <groupId>com.veld</groupId>
+            <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-processor</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
@@ -69,7 +69,7 @@
         <plugins>
             <!-- Veld Maven Plugin as extension for custom lifecycle -->
             <plugin>
-                <groupId>com.veld</groupId>
+                <groupId>io.github.yasmramos</groupId>
                 <artifactId>veld-maven-plugin</artifactId>
                 <version>${project.version}</version>
                 <extensions>true</extensions>
@@ -81,7 +81,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
-                    <mainClass>com.veld.example.Main</mainClass>
+                    <mainClass>io.github.yasmramos.example.Main</mainClass>
                 </configuration>
             </plugin>
         </plugins>

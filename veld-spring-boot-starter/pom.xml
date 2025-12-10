@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.veld</groupId>
+        <groupId>io.github.yasmramos</groupId>
         <artifactId>veld-parent</artifactId>
         <version>1.0.0-alpha.6</version>
     </parent>
@@ -24,15 +24,15 @@
     <dependencies>
         <!-- Veld Core Dependencies -->
         <dependency>
-            <groupId>com.veld</groupId>
+            <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-runtime</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.veld</groupId>
+            <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-annotations</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.veld</groupId>
+            <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-aop</artifactId>
         </dependency>
 
@@ -94,7 +94,7 @@
         </dependency>
         <!-- Veld Processor for test compilation -->
         <dependency>
-            <groupId>com.veld</groupId>
+            <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-processor</artifactId>
             <scope>test</scope>
         </dependency>
@@ -111,7 +111,7 @@
                     <target>11</target>
                     <annotationProcessorPaths>
                         <path>
-                            <groupId>com.veld</groupId>
+                            <groupId>io.github.yasmramos</groupId>
                             <artifactId>veld-processor</artifactId>
                             <version>${project.version}</version>
                         </path>
