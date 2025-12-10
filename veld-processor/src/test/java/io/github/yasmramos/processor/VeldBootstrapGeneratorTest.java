@@ -91,7 +91,7 @@ class VeldBootstrapGeneratorTest {
         void shouldReturnCorrectClassName() {
             VeldBootstrapGenerator generator = new VeldBootstrapGenerator(java.util.Collections.emptyList());
             
-            assertEquals("io.github.yasmramos.generated.Veld", generator.getClassName());
+            assertEquals("io.github.yasmramos.Veld", generator.getClassName());
         }
 
         @Test
