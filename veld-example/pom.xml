@@ -67,13 +67,20 @@
 
     <build>
         <plugins>
-            <!-- Veld Maven Plugin as extension for custom lifecycle - DISABLED -->
-            <!-- <plugin>
-                <groupId>io.github.yasmramos</groupId>
-                <artifactId>veld-maven-plugin</artifactId>
-                <version>${project.version}</version>
-                <extensions>true</extensions>
-            </plugin> -->
+            <!-- Maven Compiler Plugin with annotation processor -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>io.github.yasmramos</groupId>
+                            <artifactId>veld-processor</artifactId>
+                            <version>${project.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
 
             <!-- Exec Maven Plugin for running the example -->
             <plugin>
