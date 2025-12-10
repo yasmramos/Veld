@@ -48,12 +48,6 @@
             <name>Nexus Staging Repository</name>
             <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
-        <!-- GitHub Packages (for internal releases) -->
-        <repository>
-            <id>github</id>
-            <name>GitHub yasmramos Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/yasmramos/Veld</url>
-        </repository>
         <!-- Snapshot Repository -->
         <snapshotRepository>
             <id>ossrh</id>
