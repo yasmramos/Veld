@@ -74,7 +74,8 @@ public class VeldSourceGenerator {
         // Topologically sort singletons
         List<ComponentInfo> sorted = topologicalSort(singletons);
         
-        // Initialize singletons
+        // Initialize singletons (constructor injection only - field/method injection 
+        // is handled by factories at runtime via Veld.get())
         for (ComponentInfo comp : sorted) {
             sb.append("        ").append(getFieldName(comp)).append(" = new ")
               .append(comp.getClassName()).append("(");
@@ -97,47 +98,6 @@ public class VeldSourceGenerator {
                 sb.append(String.join(", ", args));
             }
             sb.append(");\n");
-            
-            // Field injections for singleton (only PUBLIC fields can be accessed from generated package)
-            for (InjectionPoint field : comp.getFieldInjections()) {
-                if (field.getVisibility() != InjectionPoint.Visibility.PUBLIC) continue;
-                if (!field.getDependencies().isEmpty()) {
-                    InjectionPoint.Dependency dep = field.getDependencies().get(0);
-                    ComponentInfo depComp = findComponentByType(dep.getTypeName().replace('.', '/'));
-                    if (depComp != null) {
-                        sb.append("        ").append(getFieldName(comp)).append(".")
-                          .append(field.getName()).append(" = ");
-                        if (depComp.getScope() == Scope.SINGLETON) {
-                            sb.append(getFieldName(depComp));
-                        } else {
-                            sb.append(getMethodName(depComp)).append("()");
-                        }
-                        sb.append(";\n");
-                    }
-                }
-            }
-            
-            // Method injections for singleton (setters are typically public)
-            for (InjectionPoint method : comp.getMethodInjections()) {
-                if (!method.getDependencies().isEmpty()) {
-                    sb.append("        ").append(getFieldName(comp)).append(".")
-                      .append(method.getName()).append("(");
-                    List<String> args = new ArrayList<>();
-                    for (InjectionPoint.Dependency dep : method.getDependencies()) {
-                        ComponentInfo depComp = findComponentByType(dep.getTypeName().replace('.', '/'));
-                        if (depComp != null) {
-                            if (depComp.getScope() == Scope.SINGLETON) {
-                                args.add(getFieldName(depComp));
-                            } else {
-                                args.add(getMethodName(depComp) + "()");
-                            }
-                        } else {
-                            args.add("null");
-                        }
-                    }
-                    sb.append(String.join(", ", args)).append(");\n");
-                }
-            }
         }
         
         sb.append("\n");
@@ -203,19 +163,11 @@ public class VeldSourceGenerator {
             sb.append("    }\n\n");
         }
         
-        // Generate prototype getters
+        // Generate prototype getters (constructor injection only)
         for (ComponentInfo comp : prototypes) {
             sb.append("    public static ").append(comp.getClassName()).append(" ")
               .append(getMethodName(comp)).append("() {\n");
-            
-            boolean hasFieldInjections = comp.hasFieldInjections();
-            boolean hasMethodInjections = comp.hasMethodInjections();
-            if (hasFieldInjections || hasMethodInjections) {
-                sb.append("        ").append(comp.getClassName()).append(" _instance = new ")
-                  .append(comp.getClassName()).append("(");
-            } else {
-                sb.append("        return new ").append(comp.getClassName()).append("(");
-            }
+            sb.append("        return new ").append(comp.getClassName()).append("(");
             
             InjectionPoint constructor = comp.getConstructorInjection();
             if (constructor != null && !constructor.getDependencies().isEmpty()) {
@@ -231,39 +183,6 @@ public class VeldSourceGenerator {
                 sb.append(String.join(", ", args));
             }
             sb.append(");\n");
-            
-            // Field and method injections for prototype
-            if (hasFieldInjections || hasMethodInjections) {
-                for (InjectionPoint field : comp.getFieldInjections()) {
-                    if (field.getVisibility() != InjectionPoint.Visibility.PUBLIC) continue;
-                    if (!field.getDependencies().isEmpty()) {
-                        InjectionPoint.Dependency dep = field.getDependencies().get(0);
-                        ComponentInfo depComp = findComponentByType(dep.getTypeName().replace('.', '/'));
-                        if (depComp != null) {
-                            sb.append("        _instance.").append(field.getName()).append(" = ")
-                              .append(getMethodName(depComp)).append("();\n");
-                        }
-                    }
-                }
-                
-                // Method injections for prototype
-                for (InjectionPoint method : comp.getMethodInjections()) {
-                    if (!method.getDependencies().isEmpty()) {
-                        sb.append("        _instance.").append(method.getName()).append("(");
-                        List<String> args = new ArrayList<>();
-                        for (InjectionPoint.Dependency dep : method.getDependencies()) {
-                            ComponentInfo depComp = findComponentByType(dep.getTypeName().replace('.', '/'));
-                            if (depComp != null) {
-                                args.add(getMethodName(depComp) + "()");
-                            } else {
-                                args.add("null");
-                            }
-                        }
-                        sb.append(String.join(", ", args)).append(");\n");
-                    }
-                }
-                sb.append("        return _instance;\n");
-            }
             sb.append("    }\n\n");
         }
         
