@@ -82,21 +82,7 @@ class VeldSourceGeneratorTest {
     }
 
     private ComponentInfo createTestComponent(String className, Scope scope) {
-        return new ComponentInfo(
-            className,
-            scope,
-            false, // lazy
-            false, // primary
-            null,  // qualifier
-            Collections.emptyList(), // interfaces
-            Collections.emptyList(), // constructorParams
-            Collections.emptyList(), // fieldInjections
-            Collections.emptyList(), // methodInjections
-            null,  // postConstruct
-            null,  // preDestroy
-            Collections.emptyList(), // conditions
-            Collections.emptyList(), // profiles
-            null   // componentName
-        );
+        String simpleName = className.substring(className.lastIndexOf('.') + 1);
+        return new ComponentInfo(className, simpleName, scope, false);
     }
 }

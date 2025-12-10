@@ -1,4 +1,4 @@
-package com.veld.weaver;
+package io.github.yasmramos.weaver;
 
 import org.junit.jupiter.api.*;
 

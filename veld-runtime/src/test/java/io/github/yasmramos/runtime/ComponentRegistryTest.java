@@ -95,7 +95,7 @@ class ComponentRegistryTest {
         @SuppressWarnings("unchecked")
         public <T> ComponentFactory<T> getFactory(Class<T> type) {
             for (ComponentFactory<?> f : factories) {
-                if (f.getType() == type) {
+                if (f.getComponentType() == type) {
                     return (ComponentFactory<T>) f;
                 }
             }
@@ -105,7 +105,7 @@ class ComponentRegistryTest {
         @Override
         public ComponentFactory<?> getFactory(String name) {
             for (ComponentFactory<?> f : factories) {
-                if (f.getName().equals(name)) {
+                if (f.getComponentName().equals(name)) {
                     return f;
                 }
             }
@@ -117,7 +117,7 @@ class ComponentRegistryTest {
         public <T> List<ComponentFactory<? extends T>> getFactoriesForType(Class<T> type) {
             List<ComponentFactory<? extends T>> result = new ArrayList<>();
             for (ComponentFactory<?> f : factories) {
-                if (type.isAssignableFrom(f.getType())) {
+                if (type.isAssignableFrom(f.getComponentType())) {
                     result.add((ComponentFactory<? extends T>) f);
                 }
             }
@@ -143,8 +143,8 @@ class ComponentRegistryTest {
         }
 
         @Override public int getIndex() { return index; }
-        @Override public String getName() { return name; }
-        @Override public Class<T> getType() { return type; }
+        @Override public String getComponentName() { return name; }
+        @Override public Class<T> getComponentType() { return type; }
         @Override public Scope getScope() { return scope; }
         @Override public boolean isLazy() { return lazy; }
         @Override public T create() { return supplier.get(); }

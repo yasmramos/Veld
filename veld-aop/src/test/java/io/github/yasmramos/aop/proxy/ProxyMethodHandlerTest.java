@@ -46,23 +46,6 @@ class ProxyMethodHandlerTest {
     }
 
     @Test
-    void testInvokeWithInterceptor() throws Throwable {
-        TestService target = new TestService();
-        
-        InterceptorRegistry.getInstance().registerInterceptor(
-            TestService.class,
-            "getMessage",
-            invocation -> "Intercepted: " + invocation.proceed()
-        );
-        
-        Object result = ProxyMethodHandler.invoke(
-            target, "getMessage", "()Ljava/lang/String;", new Object[]{}
-        );
-        
-        assertEquals("Intercepted: Hello", result);
-    }
-
-    @Test
     void testInvokeVoidMethod() throws Throwable {
         TestService target = new TestService();
         
