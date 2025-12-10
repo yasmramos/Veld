@@ -15,10 +15,8 @@ import com.veld.aop.interceptor.ValidationInterceptor;
 import com.veld.aop.proxy.ProxyFactory;
 import com.veld.runtime.event.EventBus;
 import com.veld.runtime.lifecycle.LifecycleProcessor;
+import com.veld.Veld;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.util.Arrays;
 import java.util.List;
 
@@ -26,7 +24,7 @@ import java.util.List;
  * Main class demonstrating Veld DI framework capabilities.
  * 
  * This example shows:
- * 1. Static access via generated Veld class (Veld.userService(), Veld.get(Class))
+ * 1. Static access via Veld class (Veld.get(Class))
  * 2. Constructor injection
  * 3. Field injection
  * 4. Method injection
@@ -44,44 +42,17 @@ import java.util.List;
  * 16. AOP (Aspect-Oriented Programming)
  * 17. Advanced Lifecycle Management
  * 
- * Simple API: Just use Veld.get(Class) or Veld.serviceName()!
+ * Simple API: Just use Veld.get(Class)!
  * All bytecode generation happens at compile-time using ASM.
  */
 public class Main {
     
-    // Dynamic access to generated Veld class
-    private static Class<?> veldClass;
-    private static MethodHandle getByClassHandle;
-    private static MethodHandle containsHandle;
-    
-    static {
-        try {
-            veldClass = Class.forName("com.veld.generated.Veld");
-            MethodHandles.Lookup lookup = MethodHandles.publicLookup();
-            getByClassHandle = lookup.findStatic(veldClass, "get", 
-                MethodType.methodType(Object.class, Class.class));
-            containsHandle = lookup.findStatic(veldClass, "contains",
-                MethodType.methodType(boolean.class, Class.class));
-        } catch (Exception e) {
-            System.err.println("Warning: Veld class not found. Run annotation processor first.");
-        }
-    }
-    
-    @SuppressWarnings("unchecked")
     private static <T> T get(Class<T> type) {
-        try {
-            return (T) getByClassHandle.invoke(type);
-        } catch (Throwable e) {
-            throw new RuntimeException("Failed to get " + type.getName(), e);
-        }
+        return Veld.get(type);
     }
     
     private static boolean contains(Class<?> type) {
-        try {
-            return (boolean) containsHandle.invoke(type);
-        } catch (Throwable e) {
-            return false;
-        }
+        return Veld.contains(type);
     }
     
     public static void main(String[] args) {
@@ -90,12 +61,6 @@ public class Main {
         System.out.println("║        Pure ASM Bytecode Generation - Simple API         ║");
         System.out.println("╚══════════════════════════════════════════════════════════╝");
         System.out.println();
-        
-        if (veldClass == null) {
-            System.err.println("ERROR: Veld generated class not found!");
-            System.err.println("Make sure to run the annotation processor first.");
-            return;
-        }
         
         System.out.println("\n══════════════════════════════════════════════════════════");
         System.out.println("1. SINGLETON DEMONSTRATION");
@@ -185,7 +150,6 @@ public class Main {
         RequestContext req1 = get(RequestContext.class);
         RequestContext req2 = get(RequestContext.class);
         RequestContext req3 = get(RequestContext.class);
-        
         System.out.println("  req1: Instance #" + req1.getInstanceNumber() + ", ID: " + req1.getRequestId());
         System.out.println("  req2: Instance #" + req2.getInstanceNumber() + ", ID: " + req2.getRequestId());
         System.out.println("  req3: Instance #" + req3.getInstanceNumber() + ", ID: " + req3.getRequestId());

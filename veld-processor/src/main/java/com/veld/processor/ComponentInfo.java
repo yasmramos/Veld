@@ -32,6 +32,8 @@ public final class ComponentInfo {
     private String preDestroyMethod;             // Method name with @PreDestroy
     private String preDestroyDescriptor;
     
+    private boolean hasSubscribeMethods;          // Has @Subscribe methods (EventBus)
+    
     public ComponentInfo(String className, String componentName, Scope scope) {
         this(className, componentName, scope, false);
     }
@@ -128,6 +130,14 @@ public final class ComponentInfo {
     
     public boolean hasPreDestroy() {
         return preDestroyMethod != null;
+    }
+    
+    public boolean hasSubscribeMethods() {
+        return hasSubscribeMethods;
+    }
+    
+    public void setHasSubscribeMethods(boolean hasSubscribeMethods) {
+        this.hasSubscribeMethods = hasSubscribeMethods;
     }
     
     public boolean hasFieldInjections() {

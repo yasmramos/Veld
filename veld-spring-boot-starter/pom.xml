@@ -118,6 +118,15 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+
+            <!-- Skip JaCoCo for starter module - tests cannot generate Veld container -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

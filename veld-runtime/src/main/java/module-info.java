@@ -10,6 +10,7 @@ module com.veld.runtime {
     requires transitive com.veld.annotation;
     
     // Export all runtime packages
+    exports com.veld;
     exports com.veld.runtime;
     exports com.veld.runtime.condition;
     exports com.veld.runtime.event;

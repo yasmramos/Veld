@@ -41,6 +41,7 @@
         <module>veld-aop</module>
         <module>veld-processor</module>
         <module>veld-weaver</module>
+        <module>veld-maven-plugin</module>
         <module>veld-benchmark</module>
         <module>veld-example</module>
         <module>veld-spring-boot-starter</module>
@@ -48,9 +49,9 @@
     </modules>
 
     <properties>
-        <java.version>11</java.version>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- Dependencies versions -->
@@ -145,6 +146,13 @@
             <dependency>
                 <groupId>com.veld</groupId>
                 <artifactId>veld-processor</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Veld Weaver -->
+            <dependency>
+                <groupId>com.veld</groupId>
+                <artifactId>veld-weaver</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

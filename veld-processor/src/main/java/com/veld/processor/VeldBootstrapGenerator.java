@@ -28,6 +28,7 @@ public class VeldBootstrapGenerator implements Opcodes {
     private static final String LIST_CLASS = "java/util/List";
     private static final String ARRAYLIST_CLASS = "java/util/ArrayList";
     private static final String COLLECTIONS_CLASS = "java/util/Collections";
+    private static final String SYNTHETIC_SETTER_PREFIX = "__di_set_";
     
     private final List<ComponentInfo> components;
     
@@ -73,6 +74,9 @@ public class VeldBootstrapGenerator implements Opcodes {
         // private static final int[] _scopes; (0=singleton, 1=prototype)
         cw.visitField(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "_scopes",
             "[I", null, null).visitEnd();
+        // private static final int[] _protoIdx; (prototype index for each mapping, -1 if singleton)
+        cw.visitField(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "_protoIdx",
+            "[I", null, null).visitEnd();
         
         // Generate <clinit> with topologically sorted initialization
         generateStaticInit(cw, singletons, prototypes);
@@ -91,6 +95,7 @@ public class VeldBootstrapGenerator implements Opcodes {
         // === CONTAINER API ===
         generateCreateContainer(cw);
         generateCreateRegistry(cw);
+        generateCreatePrototype(cw, prototypes);
         generateGetByClass(cw);
         generateGetAllByClass(cw);
         generateContains(cw);
@@ -144,6 +149,30 @@ public class VeldBootstrapGenerator implements Opcodes {
             mv.visitMethodInsn(INVOKESPECIAL, comp.getInternalName(), "<init>", 
                 constructorDesc.toString(), false);
             mv.visitFieldInsn(PUTSTATIC, VELD_CLASS, fieldName, fieldType);
+            
+            // Field injections for this singleton
+            for (InjectionPoint field : comp.getFieldInjections()) {
+                mv.visitFieldInsn(GETSTATIC, VELD_CLASS, fieldName, fieldType);
+                loadDependencyForInjection(mv, field.getDependencies().get(0));
+                
+                if (field.requiresSyntheticSetter()) {
+                    String setterName = SYNTHETIC_SETTER_PREFIX + field.getName();
+                    String setterDesc = "(" + field.getDescriptor() + ")V";
+                    mv.visitMethodInsn(INVOKEVIRTUAL, comp.getInternalName(), setterName, setterDesc, false);
+                } else {
+                    mv.visitFieldInsn(PUTFIELD, comp.getInternalName(), field.getName(), field.getDescriptor());
+                }
+            }
+            
+            // Method injections for this singleton
+            for (InjectionPoint method : comp.getMethodInjections()) {
+                mv.visitFieldInsn(GETSTATIC, VELD_CLASS, fieldName, fieldType);
+                for (InjectionPoint.Dependency dep : method.getDependencies()) {
+                    loadDependencyForInjection(mv, dep);
+                }
+                mv.visitMethodInsn(INVOKEVIRTUAL, comp.getInternalName(), 
+                    method.getName(), method.getDescriptor(), false);
+            }
         }
         
         // === Initialize lookup arrays ===
@@ -167,6 +196,17 @@ public class VeldBootstrapGenerator implements Opcodes {
         pushInt(mv, mappingCount);
         mv.visitIntInsn(NEWARRAY, T_INT);
         mv.visitFieldInsn(PUTSTATIC, VELD_CLASS, "_scopes", "[I");
+        
+        // _protoIdx = new int[mappingCount];
+        pushInt(mv, mappingCount);
+        mv.visitIntInsn(NEWARRAY, T_INT);
+        mv.visitFieldInsn(PUTSTATIC, VELD_CLASS, "_protoIdx", "[I");
+        
+        // Build prototype index map
+        Map<String, Integer> prototypeIndexMap = new HashMap<>();
+        for (int p = 0; p < prototypes.size(); p++) {
+            prototypeIndexMap.put(prototypes.get(p).getInternalName(), p);
+        }
         
         // Fill arrays
         for (int i = 0; i < mappings.size(); i++) {
@@ -193,6 +233,13 @@ public class VeldBootstrapGenerator implements Opcodes {
             mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_scopes", "[I");
             pushInt(mv, i);
             pushInt(mv, m.component.getScope() == Scope.SINGLETON ? 0 : 1);
+            mv.visitInsn(IASTORE);
+            
+            // _protoIdx[i] = prototype index or -1
+            mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_protoIdx", "[I");
+            pushInt(mv, i);
+            Integer protoIdx = prototypeIndexMap.get(m.component.getInternalName());
+            pushInt(mv, protoIdx != null ? protoIdx : -1);
             mv.visitInsn(IASTORE);
         }
         
@@ -241,6 +288,50 @@ public class VeldBootstrapGenerator implements Opcodes {
         // Return the Veld class itself as the container
         mv.visitLdcInsn(org.objectweb.asm.Type.getObjectType(VELD_CLASS));
         mv.visitInsn(ARETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    
+    /**
+     * Generates _createPrototype(int index) - switch-based prototype factory.
+     */
+    private void generateCreatePrototype(ClassWriter cw, List<ComponentInfo> prototypes) {
+        MethodVisitor mv = cw.visitMethod(
+            ACC_PRIVATE | ACC_STATIC,
+            "_createPrototype",
+            "(I)Ljava/lang/Object;",
+            null,
+            null
+        );
+        mv.visitCode();
+        
+        if (prototypes.isEmpty()) {
+            mv.visitInsn(ACONST_NULL);
+            mv.visitInsn(ARETURN);
+        } else {
+            // tableswitch for prototype creation
+            Label defaultLabel = new Label();
+            Label[] caseLabels = new Label[prototypes.size()];
+            for (int i = 0; i < caseLabels.length; i++) {
+                caseLabels[i] = new Label();
+            }
+            
+            mv.visitVarInsn(ILOAD, 0);
+            mv.visitTableSwitchInsn(0, prototypes.size() - 1, defaultLabel, caseLabels);
+            
+            for (int i = 0; i < prototypes.size(); i++) {
+                mv.visitLabel(caseLabels[i]);
+                ComponentInfo comp = prototypes.get(i);
+                mv.visitMethodInsn(INVOKESTATIC, VELD_CLASS, getMethodName(comp),
+                    "()L" + comp.getInternalName() + ";", false);
+                mv.visitInsn(ARETURN);
+            }
+            
+            mv.visitLabel(defaultLabel);
+            mv.visitInsn(ACONST_NULL);
+            mv.visitInsn(ARETURN);
+        }
+        
         mv.visitMaxs(0, 0);
         mv.visitEnd();
     }
@@ -320,9 +411,12 @@ public class VeldBootstrapGenerator implements Opcodes {
         mv.visitInsn(AALOAD);
         mv.visitInsn(ARETURN);
         
-        // Prototype: need to call getter (complex, for now return null - TODO)
+        // Prototype: call _createPrototype(_protoIdx[i])
         mv.visitLabel(isPrototype);
-        mv.visitInsn(ACONST_NULL);
+        mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_protoIdx", "[I");
+        mv.visitVarInsn(ILOAD, 2);
+        mv.visitInsn(IALOAD);
+        mv.visitMethodInsn(INVOKESTATIC, VELD_CLASS, "_createPrototype", "(I)Ljava/lang/Object;", false);
         mv.visitInsn(ARETURN);
         
         mv.visitLabel(notEqual);
@@ -494,9 +588,32 @@ public class VeldBootstrapGenerator implements Opcodes {
         
         visiting.add(key);
         
+        // Constructor dependencies
         InjectionPoint constructor = comp.getConstructorInjection();
         if (constructor != null) {
             for (InjectionPoint.Dependency dep : constructor.getDependencies()) {
+                String depType = dep.getTypeName().replace('.', '/');
+                ComponentInfo depComp = byType.get(depType);
+                if (depComp != null && depComp.getScope() == Scope.SINGLETON) {
+                    visit(depComp, byType, visited, visiting, result);
+                }
+            }
+        }
+        
+        // Field injection dependencies
+        for (InjectionPoint field : comp.getFieldInjections()) {
+            for (InjectionPoint.Dependency dep : field.getDependencies()) {
+                String depType = dep.getTypeName().replace('.', '/');
+                ComponentInfo depComp = byType.get(depType);
+                if (depComp != null && depComp.getScope() == Scope.SINGLETON) {
+                    visit(depComp, byType, visited, visiting, result);
+                }
+            }
+        }
+        
+        // Method injection dependencies
+        for (InjectionPoint method : comp.getMethodInjections()) {
+            for (InjectionPoint.Dependency dep : method.getDependencies()) {
                 String depType = dep.getTypeName().replace('.', '/');
                 ComponentInfo depComp = byType.get(depType);
                 if (depComp != null && depComp.getScope() == Scope.SINGLETON) {
@@ -579,6 +696,35 @@ public class VeldBootstrapGenerator implements Opcodes {
         
         mv.visitMethodInsn(INVOKESPECIAL, comp.getInternalName(), "<init>", 
             constructorDesc.toString(), false);
+        
+        // Store in local var for field/method injection
+        mv.visitVarInsn(ASTORE, 0);
+        
+        // Field injections
+        for (InjectionPoint field : comp.getFieldInjections()) {
+            mv.visitVarInsn(ALOAD, 0);
+            loadDependencyForInjection(mv, field.getDependencies().get(0));
+            
+            if (field.requiresSyntheticSetter()) {
+                String setterName = SYNTHETIC_SETTER_PREFIX + field.getName();
+                String setterDesc = "(" + field.getDescriptor() + ")V";
+                mv.visitMethodInsn(INVOKEVIRTUAL, comp.getInternalName(), setterName, setterDesc, false);
+            } else {
+                mv.visitFieldInsn(PUTFIELD, comp.getInternalName(), field.getName(), field.getDescriptor());
+            }
+        }
+        
+        // Method injections
+        for (InjectionPoint method : comp.getMethodInjections()) {
+            mv.visitVarInsn(ALOAD, 0);
+            for (InjectionPoint.Dependency dep : method.getDependencies()) {
+                loadDependencyForInjection(mv, dep);
+            }
+            mv.visitMethodInsn(INVOKEVIRTUAL, comp.getInternalName(), 
+                method.getName(), method.getDescriptor(), false);
+        }
+        
+        mv.visitVarInsn(ALOAD, 0);
         mv.visitInsn(ARETURN);
         
         mv.visitMaxs(0, 0);
@@ -613,6 +759,22 @@ public class VeldBootstrapGenerator implements Opcodes {
     
     private String getFieldName(ComponentInfo comp) {
         return "_" + getMethodName(comp);
+    }
+    
+    /**
+     * Loads a dependency onto the stack for field/method injection.
+     * Uses Veld.get(Class) to resolve at runtime.
+     */
+    private void loadDependencyForInjection(MethodVisitor mv, InjectionPoint.Dependency dep) {
+        String depInternal = dep.getTypeName().replace('.', '/');
+        
+        // Veld.get(DependencyType.class)
+        mv.visitLdcInsn(org.objectweb.asm.Type.getObjectType(depInternal));
+        mv.visitMethodInsn(INVOKESTATIC, VELD_CLASS, "get",
+                "(Ljava/lang/Class;)Ljava/lang/Object;", false);
+        
+        // Cast to dependency type
+        mv.visitTypeInsn(CHECKCAST, depInternal);
     }
     
     public String getClassName() {
