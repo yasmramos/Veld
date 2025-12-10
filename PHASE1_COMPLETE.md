@@ -50,7 +50,7 @@ La **Fase 1** de optimizaciones de Veld ha sido **completamente implementada** y
                 <target>11</target>
                 <annotationProcessorPaths>
                     <path>
-                        <groupId>com.veld</groupId>
+                        <groupId>io.github.yasmramos</groupId>
                         <artifactId>veld-processor</artifactId>
                         <version>1.0.0-alpha.6</version>
                     </path>
@@ -69,7 +69,7 @@ cd veld-benchmark
 mvn clean compile
 
 # Ejecutar benchmark completo
-mvn exec:java -Dexec.mainClass="com.veld.benchmark.Phase1OptimizationBenchmark"
+mvn exec:java -Dexec.mainClass="io.github.yasmramos.benchmark.Phase1OptimizationBenchmark"
 ```
 
 ### Opción 3: Test de Validación

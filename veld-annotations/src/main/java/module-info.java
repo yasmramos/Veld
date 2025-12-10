@@ -2,7 +2,7 @@
  * Veld Annotations Module.
  * Provides all annotations for the Veld DI Framework.
  */
-module com.veld.annotation {
+module io.github.yasmramos.annotation {
     // Export annotation package for use by other modules
-    exports com.veld.annotation;
+    exports io.github.yasmramos.annotation;
 }
