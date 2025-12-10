@@ -925,11 +925,11 @@ public class VeldProcessor extends AbstractProcessor {
             writeClassFile(registryGen.getRegistryClassName(), registryBytecode);
             note("Generated VeldRegistry with " + discoveredComponents.size() + " components");
             
-            // Generate Veld.class bytecode (ULTRA-FAST static access with field/method injection)
-            VeldBootstrapGenerator bootstrapGen = new VeldBootstrapGenerator(discoveredComponents);
-            byte[] veldBytecode = bootstrapGen.generate();
-            writeClassFile(bootstrapGen.getClassName(), veldBytecode);
-            note("Generated Veld.class with static accessors and field/method injection");
+            // Generate Veld.java source code (ULTRA-FAST static access)
+            VeldSourceGenerator sourceGen = new VeldSourceGenerator(discoveredComponents);
+            String sourceCode = sourceGen.generate();
+            writeJavaSource(sourceGen.getFullClassName(), sourceCode);
+            note("Generated Veld.java with static accessors");
         } catch (IOException e) {
             error(null, "Failed to generate VeldRegistry: " + e.getMessage());
         }
