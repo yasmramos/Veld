@@ -116,6 +116,28 @@ public class VeldSourceGenerator {
                     }
                 }
             }
+            
+            // Method injections for singleton (setters are typically public)
+            for (InjectionPoint method : comp.getMethodInjections()) {
+                if (!method.getDependencies().isEmpty()) {
+                    sb.append("        ").append(getFieldName(comp)).append(".")
+                      .append(method.getName()).append("(");
+                    List<String> args = new ArrayList<>();
+                    for (InjectionPoint.Dependency dep : method.getDependencies()) {
+                        ComponentInfo depComp = findComponentByType(dep.getTypeName().replace('.', '/'));
+                        if (depComp != null) {
+                            if (depComp.getScope() == Scope.SINGLETON) {
+                                args.add(getFieldName(depComp));
+                            } else {
+                                args.add(getMethodName(depComp) + "()");
+                            }
+                        } else {
+                            args.add("null");
+                        }
+                    }
+                    sb.append(String.join(", ", args)).append(");\n");
+                }
+            }
         }
         
         sb.append("\n");
@@ -187,7 +209,8 @@ public class VeldSourceGenerator {
               .append(getMethodName(comp)).append("() {\n");
             
             boolean hasFieldInjections = comp.hasFieldInjections();
-            if (hasFieldInjections) {
+            boolean hasMethodInjections = comp.hasMethodInjections();
+            if (hasFieldInjections || hasMethodInjections) {
                 sb.append("        ").append(comp.getClassName()).append(" _instance = new ")
                   .append(comp.getClassName()).append("(");
             } else {
@@ -209,19 +232,34 @@ public class VeldSourceGenerator {
             }
             sb.append(");\n");
             
-            // Field injections for prototype (only PUBLIC fields can be accessed)
-            if (hasFieldInjections) {
-                boolean anyPublicFields = false;
+            // Field and method injections for prototype
+            if (hasFieldInjections || hasMethodInjections) {
                 for (InjectionPoint field : comp.getFieldInjections()) {
                     if (field.getVisibility() != InjectionPoint.Visibility.PUBLIC) continue;
                     if (!field.getDependencies().isEmpty()) {
-                        anyPublicFields = true;
                         InjectionPoint.Dependency dep = field.getDependencies().get(0);
                         ComponentInfo depComp = findComponentByType(dep.getTypeName().replace('.', '/'));
                         if (depComp != null) {
                             sb.append("        _instance.").append(field.getName()).append(" = ")
                               .append(getMethodName(depComp)).append("();\n");
                         }
+                    }
+                }
+                
+                // Method injections for prototype
+                for (InjectionPoint method : comp.getMethodInjections()) {
+                    if (!method.getDependencies().isEmpty()) {
+                        sb.append("        _instance.").append(method.getName()).append("(");
+                        List<String> args = new ArrayList<>();
+                        for (InjectionPoint.Dependency dep : method.getDependencies()) {
+                            ComponentInfo depComp = findComponentByType(dep.getTypeName().replace('.', '/'));
+                            if (depComp != null) {
+                                args.add(getMethodName(depComp) + "()");
+                            } else {
+                                args.add("null");
+                            }
+                        }
+                        sb.append(String.join(", ", args)).append(");\n");
                     }
                 }
                 sb.append("        return _instance;\n");
@@ -337,9 +375,32 @@ public class VeldSourceGenerator {
         
         visiting.add(key);
         
+        // Constructor dependencies
         InjectionPoint constructor = comp.getConstructorInjection();
         if (constructor != null) {
             for (InjectionPoint.Dependency dep : constructor.getDependencies()) {
+                String depType = dep.getTypeName().replace('.', '/');
+                ComponentInfo depComp = byType.get(depType);
+                if (depComp != null && depComp.getScope() == Scope.SINGLETON) {
+                    visit(depComp, byType, visited, visiting, result);
+                }
+            }
+        }
+        
+        // Field injection dependencies
+        for (InjectionPoint field : comp.getFieldInjections()) {
+            for (InjectionPoint.Dependency dep : field.getDependencies()) {
+                String depType = dep.getTypeName().replace('.', '/');
+                ComponentInfo depComp = byType.get(depType);
+                if (depComp != null && depComp.getScope() == Scope.SINGLETON) {
+                    visit(depComp, byType, visited, visiting, result);
+                }
+            }
+        }
+        
+        // Method injection dependencies
+        for (InjectionPoint method : comp.getMethodInjections()) {
+            for (InjectionPoint.Dependency dep : method.getDependencies()) {
                 String depType = dep.getTypeName().replace('.', '/');
                 ComponentInfo depComp = byType.get(depType);
                 if (depComp != null && depComp.getScope() == Scope.SINGLETON) {
