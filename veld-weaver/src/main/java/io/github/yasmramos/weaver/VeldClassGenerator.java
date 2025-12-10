@@ -90,6 +90,7 @@ public class VeldClassGenerator implements Opcodes {
         cw.visitField(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "_instances", "[Ljava/lang/Object;", null, null).visitEnd();
         cw.visitField(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "_scopes", "[I", null, null).visitEnd();
         cw.visitField(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "_protoIdx", "[I", null, null).visitEnd();
+        cw.visitField(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "_names", "[Ljava/lang/String;", null, null).visitEnd();
         
         generateStaticInit(cw, singletons, prototypes);
         generatePrivateConstructor(cw);
@@ -103,6 +104,7 @@ public class VeldClassGenerator implements Opcodes {
         
         generateCreatePrototype(cw, prototypes);
         generateGetByClass(cw);
+        generateGetByClassAndName(cw);
         generateGetAllByClass(cw);
         generateContains(cw);
         generateComponentCount(cw);
@@ -215,6 +217,10 @@ public class VeldClassGenerator implements Opcodes {
         mv.visitIntInsn(NEWARRAY, T_INT);
         mv.visitFieldInsn(PUTSTATIC, VELD_CLASS, "_protoIdx", "[I");
         
+        pushInt(mv, mappingCount);
+        mv.visitTypeInsn(ANEWARRAY, "java/lang/String");
+        mv.visitFieldInsn(PUTSTATIC, VELD_CLASS, "_names", "[Ljava/lang/String;");
+        
         Map<String, Integer> protoIdxMap = new HashMap<>();
         for (int i = 0; i < prototypes.size(); i++) {
             protoIdxMap.put(prototypes.get(i).internalName, i);
@@ -248,6 +254,16 @@ public class VeldClassGenerator implements Opcodes {
             Integer idx = protoIdxMap.get(m.component.internalName);
             pushInt(mv, idx != null ? idx : -1);
             mv.visitInsn(IASTORE);
+            
+            // Store component name for @Named lookup
+            mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_names", "[Ljava/lang/String;");
+            pushInt(mv, i);
+            if (m.component.componentName != null) {
+                mv.visitLdcInsn(m.component.componentName);
+            } else {
+                mv.visitInsn(ACONST_NULL);
+            }
+            mv.visitInsn(AASTORE);
         }
         
         mv.visitInsn(RETURN);
@@ -604,6 +620,97 @@ public class VeldClassGenerator implements Opcodes {
         mv.visitEnd();
     }
     
+    /**
+     * Generates: public static <T> T get(Class<T> type, String name)
+     * Looks up component by type AND name (for @Named qualifier support).
+     */
+    private void generateGetByClassAndName(ClassWriter cw) {
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "get",
+            "(Ljava/lang/Class;Ljava/lang/String;)Ljava/lang/Object;",
+            "<T:Ljava/lang/Object;>(Ljava/lang/Class<TT;>;Ljava/lang/String;)TT;", null);
+        mv.visitCode();
+        
+        // If name is null, delegate to get(Class)
+        mv.visitVarInsn(ALOAD, 1);
+        Label nameNotNull = new Label();
+        mv.visitJumpInsn(IFNONNULL, nameNotNull);
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitMethodInsn(INVOKESTATIC, VELD_CLASS, "get", "(Ljava/lang/Class;)Ljava/lang/Object;", false);
+        mv.visitInsn(ARETURN);
+        
+        mv.visitLabel(nameNotNull);
+        
+        // int len = _types.length
+        mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_types", "[Ljava/lang/Class;");
+        mv.visitInsn(ARRAYLENGTH);
+        mv.visitVarInsn(ISTORE, 2);  // len
+        
+        // int i = 0
+        mv.visitInsn(ICONST_0);
+        mv.visitVarInsn(ISTORE, 3);  // i
+        
+        Label loopStart = new Label();
+        Label loopEnd = new Label();
+        
+        mv.visitLabel(loopStart);
+        mv.visitVarInsn(ILOAD, 3);
+        mv.visitVarInsn(ILOAD, 2);
+        mv.visitJumpInsn(IF_ICMPGE, loopEnd);
+        
+        // if (_types[i] == type)
+        mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_types", "[Ljava/lang/Class;");
+        mv.visitVarInsn(ILOAD, 3);
+        mv.visitInsn(AALOAD);
+        mv.visitVarInsn(ALOAD, 0);
+        
+        Label notTypeMatch = new Label();
+        mv.visitJumpInsn(IF_ACMPNE, notTypeMatch);
+        
+        // if (name.equals(_names[i]))
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_names", "[Ljava/lang/String;");
+        mv.visitVarInsn(ILOAD, 3);
+        mv.visitInsn(AALOAD);
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "equals", "(Ljava/lang/Object;)Z", false);
+        
+        Label notNameMatch = new Label();
+        mv.visitJumpInsn(IFEQ, notNameMatch);
+        
+        // Check scope (0=singleton, 1=prototype)
+        mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_scopes", "[I");
+        mv.visitVarInsn(ILOAD, 3);
+        mv.visitInsn(IALOAD);
+        
+        Label isProto = new Label();
+        mv.visitJumpInsn(IFNE, isProto);
+        
+        // Singleton: return _instances[i]
+        mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_instances", "[Ljava/lang/Object;");
+        mv.visitVarInsn(ILOAD, 3);
+        mv.visitInsn(AALOAD);
+        mv.visitInsn(ARETURN);
+        
+        // Prototype: return _createPrototype(_protoIdx[i])
+        mv.visitLabel(isProto);
+        mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_protoIdx", "[I");
+        mv.visitVarInsn(ILOAD, 3);
+        mv.visitInsn(IALOAD);
+        mv.visitMethodInsn(INVOKESTATIC, VELD_CLASS, "_createPrototype", "(I)Ljava/lang/Object;", false);
+        mv.visitInsn(ARETURN);
+        
+        mv.visitLabel(notNameMatch);
+        mv.visitLabel(notTypeMatch);
+        mv.visitIincInsn(3, 1);
+        mv.visitJumpInsn(GOTO, loopStart);
+        
+        mv.visitLabel(loopEnd);
+        mv.visitInsn(ACONST_NULL);
+        mv.visitInsn(ARETURN);
+        
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    
     private void generateGetAllByClass(ClassWriter cw) {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "getAll",
             "(Ljava/lang/Class;)Ljava/util/List;",
@@ -778,13 +885,14 @@ public class VeldClassGenerator implements Opcodes {
         public final String preDestroyMethod;
         public final String preDestroyDescriptor;
         public final boolean hasSubscribeMethods;
+        public final String componentName;  // @Named value for qualifier lookup
         
         public ComponentMeta(String className, String scope, boolean lazy,
                             List<String> constructorDeps, List<FieldInjectionMeta> fieldInjections,
                             List<MethodInjectionMeta> methodInjections, List<String> interfaces,
                             String postConstructMethod, String postConstructDescriptor,
                             String preDestroyMethod, String preDestroyDescriptor,
-                            boolean hasSubscribeMethods) {
+                            boolean hasSubscribeMethods, String componentName) {
             this.className = className;
             this.internalName = className.replace('.', '/');
             this.scope = scope;
@@ -798,6 +906,7 @@ public class VeldClassGenerator implements Opcodes {
             this.preDestroyMethod = preDestroyMethod;
             this.preDestroyDescriptor = preDestroyDescriptor;
             this.hasSubscribeMethods = hasSubscribeMethods;
+            this.componentName = componentName;
         }
         
         public static ComponentMeta parse(String line) {
@@ -871,9 +980,15 @@ public class VeldClassGenerator implements Opcodes {
                 hasSubscribeMethods = Boolean.parseBoolean(parts[9]);
             }
             
+            // Parse componentName (index 10)
+            String componentName = null;
+            if (parts.length > 10 && !parts[10].isEmpty()) {
+                componentName = parts[10];
+            }
+            
             return new ComponentMeta(className, scope, lazy, ctorDeps, fields, methods, ifaces,
                 postConstructMethod, postConstructDescriptor, preDestroyMethod, preDestroyDescriptor,
-                hasSubscribeMethods);
+                hasSubscribeMethods, componentName);
         }
     }
     
