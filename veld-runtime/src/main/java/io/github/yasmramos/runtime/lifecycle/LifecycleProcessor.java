@@ -60,9 +60,9 @@ import java.util.stream.Collectors;
  */
 public class LifecycleProcessor {
     
-    // Private constructor to prevent instantiation
-    private LifecycleProcessor() {
-        throw new UnsupportedOperationException("LifecycleProcessor should not be instantiated");
+    // Package-private constructor for testing
+    LifecycleProcessor() {
+        // Allow instantiation for testing
     }
     
     private static final Logger LOGGER = Logger.getLogger(LifecycleProcessor.class.getName());
