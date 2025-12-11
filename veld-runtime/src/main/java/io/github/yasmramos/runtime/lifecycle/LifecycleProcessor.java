@@ -60,6 +60,11 @@ import java.util.stream.Collectors;
  */
 public class LifecycleProcessor {
     
+    // Private constructor to prevent instantiation
+    private LifecycleProcessor() {
+        throw new UnsupportedOperationException("LifecycleProcessor should not be instantiated");
+    }
+    
     private static final Logger LOGGER = Logger.getLogger(LifecycleProcessor.class.getName());
     
     private final List<BeanPostProcessor> postProcessors = new CopyOnWriteArrayList<>();

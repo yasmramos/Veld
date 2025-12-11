@@ -208,7 +208,7 @@ public final class VeldConcurrentRegistry {
         }
     }
     
-    private void cleanupThreadLocal() {
+    private static void cleanupThreadLocal() {
         // Periodic cleanup to prevent thread-local accumulation
         tlCache.remove();
         tlCache.set(new SoftReference<>(new LRUCache(TL_CACHE_SIZE)));

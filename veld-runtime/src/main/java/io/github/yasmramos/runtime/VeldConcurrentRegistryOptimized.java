@@ -31,9 +31,9 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 public final class VeldConcurrentRegistryOptimized {
     
     // === MAIN HASH TABLE (Optimized for clustering prevention) ===
-    private final Class<?>[] _htTypes;
-    private final Object[] _htInstances;
-    private final int _mask; // size - 1, for fast modulo
+    private Class<?>[] _htTypes;
+    private Object[] _htInstances;
+    private int _mask; // size - 1, for fast modulo
     private final int _resizeThreshold; // Load factor threshold
     
     // === HASH FUNCTION CONFIGURATION ===
@@ -219,7 +219,7 @@ public final class VeldConcurrentRegistryOptimized {
         }
     }
     
-    private void cleanupThreadLocal() {
+    private static void cleanupThreadLocal() {
         // Periodic cleanup to prevent thread-local accumulation
         _tlCache.remove();
         _tlCache.set(new SoftReference<>(new LRUCache(TL_CACHE_SIZE)));
@@ -232,7 +232,7 @@ public final class VeldConcurrentRegistryOptimized {
             return VALUE.getAcquire(self);
         } else {
             // Plain read for thread-local/immutable contexts
-            return self.value;
+            return self.getThreadLocal();
         }
     }
     
