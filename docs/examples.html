@@ -49,54 +49,34 @@
                 <li><a href="core-features.html">Core Features</a></li>
                 <li><a href="aop.html">Aspect-Oriented Programming</a></li>
                 <li><a href="eventbus.html">EventBus</a></li>
-                <li><a href="spring-boot.html">Spring Boot Integration</a></li>
-                <li><a href="optimizations.html">Phase 1 Optimizations</a></li>
-                <li><a href="api.html">API Reference</a></li>
+                <li><a href="optimizations.html">Optimizations</a></li>
                 <li><a href="examples.html" class="active">Examples</a></li>
             </ul>
         </nav>
 
-        <!-- Content -->
+        <!-- Main Content Area -->
         <div class="content">
-            <h1>🎯 Examples</h1>
-            
-            <div class="alert alert-info">
-                <strong>📚 Collection:</strong> Practical examples demonstrating Veld's capabilities in real-world scenarios. Each example includes complete code and explanations.
+            <div class="content-header">
+                <h1>💡 Practical Examples</h1>
+                <p class="subtitle">Real-world usage patterns and code examples</p>
             </div>
 
-            <!-- Basic Examples -->
-            <section>
-                <h2>🏗️ Basic Examples</h2>
-                
-                <div class="card">
-                    <h3>Simple Dependency Injection</h3>
-                    <p>A basic example showing constructor and field injection:</p>
+            <div class="content-body">
+                <section class="basic-examples">
+                    <h2>🏗️ Basic Examples</h2>
                     
-<pre><code>// Service layer
-@Component
-@Singleton
-public class UserService {
-    private final UserRepository userRepository;
-    
-    @Inject
-    public UserService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
-    
-    public User createUser(String name, String email) {
-        User user = new User(name, email);
-        return userRepository.save(user);
-    }
-    
-    public Optional&lt;User&gt; findUser(String id) {
-        return userRepository.findById(id);
-    }
-}
-
-// Repository layer
-@Component
+                    <div class="example-section">
+                        <h3>1. Simple Dependency Injection</h3>
+                        
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>UserRepository.java</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code>@Component
 @Singleton
 public class UserRepository {
+    
     private final Map&lt;String, User&gt; users = new ConcurrentHashMap&lt;&gt;();
     
     public User save(User user) {
@@ -107,41 +87,60 @@ public class UserRepository {
     public Optional&lt;User&gt; findById(String id) {
         return Optional.ofNullable(users.get(id));
     }
-}
-
-// Main application
-@Component
-public class Application {
     
-    @Inject
-    private UserService userService;
-    
-    public void run() {
-        User user = userService.createUser("John Doe", "john@example.com");
-        System.out.println("Created user: " + user);
-        
-        Optional&lt;User&gt; found = userService.findUser(user.getId());
-        System.out.println("Found user: " + found.orElse(null));
-    }
-    
-    public static void main(String[] args) {
-        // Use the generated Veld class;
-        container.start();
-        
-        Application app = container.getBean(Application.class);
-        app.run();
-        
-        container.shutdown();
+    public List&lt;User&gt; findAll() {
+        return new ArrayList&lt;&gt;(users.values());
     }
 }</code></pre>
-                </div>
+                        </div>
 
-                <div class="card">
-                    <h3>Configuration and @Value Injection</h3>
-                    <p>Using configuration properties with @Value annotation:</p>
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>UserService.java</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code>@Component
+public class UserService {
+    
+    private final UserRepository userRepository;
+    private final NotificationService notificationService;
+    
+    @Inject
+    public UserService(UserRepository userRepository, NotificationService notificationService) {
+        this.userRepository = userRepository;
+        this.notificationService = notificationService;
+    }
+    
+    public User createUser(String name, String email) {
+        User user = new User(name, email);
+        User saved = userRepository.save(user);
+        
+        // Notify about new user
+        notificationService.sendWelcomeEmail(saved);
+        
+        return saved;
+    }
+    
+    public Optional&lt;User&gt; getUser(String id) {
+        return userRepository.findById(id);
+    }
+}</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="configuration-examples">
+                    <h2>⚙️ Configuration Examples</h2>
                     
-<pre><code>// Configuration properties
-@Component
+                    <div class="example-section">
+                        <h3>2. External Configuration with @Value</h3>
+                        
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>DatabaseConfig.java</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code>@Component
 public class DatabaseConfig {
     
     @Value("${database.url}")
@@ -159,970 +158,747 @@ public class DatabaseConfig {
     @Value("${database.ssl.enabled:false}")
     private boolean sslEnabled;
     
-    // Validation
+    @Value("${database.timeout:30000}")
+    private Duration timeout;
+    
     @PostConstruct
     public void validate() {
         if (url == null || url.trim().isEmpty()) {
             throw new IllegalArgumentException("Database URL is required");
         }
-        if (poolSize &lt;= 0) {
-            throw new IllegalArgumentException("Pool size must be positive");
+        if (poolSize &lt;= 0 || poolSize &gt; 50) {
+            throw new IllegalArgumentException("Pool size must be between 1 and 50");
         }
     }
     
-    // Factory method
-    public Connection createConnection() throws SQLException {
-        Properties props = new Properties();
-        props.setProperty("user", username);
-        props.setProperty("password", password);
-        props.setProperty("ssl", sslEnabled ? "require" : "disable");
+    public HikariConfig createHikariConfig() {
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(url);
+        config.setUsername(username);
+        config.setPassword(password);
+        config.setMaximumPoolSize(poolSize);
+        config.setConnectionTimeout(timeout.toMillis());
+        config.setIdleTimeout(Duration.ofMinutes(10).toMillis());
+        config.setLeakDetectionThreshold(Duration.ofSeconds(60).toMillis());
         
-        return DriverManager.getConnection(url, props);
+        Properties props = new Properties();
+        props.setProperty("ssl", sslEnabled ? "require" : "disable");
+        config.setDataSourceProperties(props);
+        
+        return config;
     }
-}
+}</code></pre>
+                        </div>
 
-// Usage
-@Component
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>DatabaseService.java</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code>@Component
 @Singleton
 public class DatabaseService {
     
-    private final DatabaseConfig config;
-    private final ConnectionPool pool;
+    private final DataSource dataSource;
     
     @Inject
     public DatabaseService(DatabaseConfig config) {
-        this.config = config;
-        this.pool = new ConnectionPool(config.getPoolSize(), config);
+        HikariConfig hikariConfig = config.createHikariConfig();
+        this.dataSource = new HikariDataSource(hikariConfig);
+    }
+    
+    public void executeQuery(String sql) throws SQLException {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            // Process results
+            while (rs.next()) {
+                // Handle result set
+            }
+        }
+    }
+    
+    @PreDestroy
+    public void cleanup() {
+        if (dataSource instanceof HikariDataSource) {
+            ((HikariDataSource) dataSource).close();
+        }
+    }
+}</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="lifecycle-examples">
+                    <h2>🔄 Lifecycle Management Examples</h2>
+                    
+                    <div class="example-section">
+                        <h3>3. Lifecycle Callbacks</h3>
+                        
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>CacheManager.java</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code>@Component
+@Singleton
+public class CacheManager {
+    
+    private final Cache&lt;String, Object&gt; cache;
+    private final ScheduledExecutorService scheduler;
+    
+    @Inject
+    public CacheManager(@Value("${cache.max.size:1000}") int maxSize,
+                       @Value("${cache.expire.minutes:30}") int expireMinutes) {
+        this.cache = Caffeine.newBuilder()
+            .maximumSize(maxSize)
+            .expireAfterWrite(Duration.ofMinutes(expireMinutes))
+            .recordStats()
+            .build();
+            
+        this.scheduler = Executors.newScheduledThreadPool(2);
+    }
+    
+    @PostConstruct
+    public void initialize() {
+        System.out.println("Cache Manager initialized");
+        
+        // Start background tasks
+        scheduler.scheduleAtFixedRate(this::cleanupExpiredEntries, 
+            5, 5, TimeUnit.MINUTES);
+            
+        scheduler.scheduleAtFixedRate(this::logStats, 
+            1, 1, TimeUnit.MINUTES);
     }
     
     @PreDestroy
     public void shutdown() {
-        pool.shutdown();
-    }
-}</code></pre>
-
-                    <h4>Configuration File (application.properties)</h4>
-<pre><code># Database configuration
-database.url=jdbc:postgresql://localhost:5432/myapp
-database.username=app_user
-database.password=${DB_PASSWORD}
-database.pool.size=20
-database.ssl.enabled=true
-
-# Application settings
-app.name=MyVeldApp
-app.version=1.0.0
-app.debug=false</code></pre>
-                </div>
-            </section>
-
-            <!-- Advanced Examples -->
-            <section>
-                <h2>🚀 Advanced Examples</h2>
-                
-                <div class="card">
-                    <h3>Event-Driven Architecture</h3>
-                    <p>Building a complete event-driven system with EventBus:</p>
-                    
-<pre><code>// Event definitions
-public record UserRegisteredEvent(String userId, String email, Instant timestamp) {}
-public record OrderCreatedEvent(String orderId, String userId, List&lt;OrderItem&gt; items, BigDecimal total) {}
-public record EmailEvent(String to, String subject, String body) {}
-
-// Event publishers
-@Component
-@Singleton
-public class UserRegistrationService {
-    
-    @Inject
-    private UserRepository userRepository;
-    
-    @Inject
-    private EventBus eventBus;
-    
-    public User registerUser(String name, String email) {
-        User user = new User(name, email);
-        User saved = userRepository.save(user);
+        System.out.println("Cache Manager shutting down");
         
-        // Publish event
-        eventBus.publish(new UserRegisteredEvent(saved.getId(), email, Instant.now()));
-        
-        return saved;
-    }
-}
-
-@Component
-@Singleton
-public class OrderService {
-    
-    @Inject
-    private OrderRepository orderRepository;
-    
-    @Inject
-    private EventBus eventBus;
-    
-    public Order createOrder(String userId, List&lt;OrderItem&gt; items) {
-        BigDecimal total = items.stream()
-            .map(OrderItem::getTotal)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-            
-        Order order = new Order(userId, items, total);
-        Order saved = orderRepository.save(order);
-        
-        // Publish events
-        eventBus.publish(new OrderCreatedEvent(saved.getId(), userId, items, total));
-        
-        return saved;
-    }
-}
-
-// Event handlers
-@Component
-public class EmailNotificationHandler {
-    
-    @Inject
-    private;
-    
-    @ EmailService emailServiceSubscribe
-    public void handleUserRegistration(UserRegisteredEvent event) {
-        String welcomeMessage = "Welcome to our platform! Your account has been created.";
-        eventBus.publish(new EmailEvent(event.email(), "Welcome!", welcomeMessage));
-    }
-    
-    @Subscribe
-    public void handleOrderCreation(OrderCreatedEvent event) {
-        String orderMessage = String.format("Your order %s has been created. Total: $%.2f", 
-                                           event.orderId(), event.total());
-        // Get user email from user service
-        String userEmail = getUserEmail(event.userId());
-        eventBus.publish(new EmailEvent(userEmail, "Order Confirmation", orderMessage));
-    }
-}
-
-@Component
-public class AuditHandler {
-    
-    @Inject
-    private AuditLogger auditLogger;
-    
-    @Subscribe
-    public void auditUserRegistration(UserRegisteredEvent event) {
-        auditLogger.log("USER_REGISTERED", Map.of(
-            "userId", event.userId(),
-            "email", event.email(),
-            "timestamp", event.timestamp()
-        ));
-    }
-    
-    @Subscribe
-    public void auditOrderCreation(OrderCreatedEvent event) {
-        auditLogger.log("ORDER_CREATED", Map.of(
-            "orderId", event.orderId(),
-            "userId", event.userId(),
-            "total", event.total(),
-            "itemCount", event.items().size()
-        ));
-    }
-}</code></pre>
-                </div>
-
-                <div class="card">
-                    <h3>Aspect-Oriented Programming</h3>
-                    <p>Cross-cutting concerns with AOP:</p>
-                    
-<pre><code>// Logging Aspect
-@Aspect
-@Component
-@Singleton
-public class LoggingAspect {
-    
-    @Inject
-    private AuditLogger auditLogger;
-    
-    @Pointcut("execution(* com.example.service.*.*(..))")
-    public void serviceMethods() {}
-    
-    @Pointcut("execution(* com.example.controller.*.*(..))")
-    public void controllerMethods() {}
-    
-    @Before("serviceMethods() || controllerMethods()")
-    public void logMethodEntry(JoinPoint joinPoint) {
-        String methodName = joinPoint.getSignature().getName();
-        Object[] args = joinPoint.getArgs();
-        
-        auditLogger.debug("Method entry: " + methodName, Map.of(
-            "args", Arrays.toString(args),
-            "timestamp", Instant.now()
-        ));
-    }
-    
-    @After("serviceMethods() || controllerMethods()")
-    public void logMethodExit(JoinPoint joinPoint) {
-        String methodName = joinPoint.getSignature().getName();
-        auditLogger.debug("Method exit: " + methodName);
-    }
-}
-
-// Performance Monitoring Aspect
-@Aspect
-@Component
-@Singleton
-public class PerformanceAspect {
-    
-    @Pointcut("execution(* com.example.service.*.*(..))")
-    public void serviceMethods() {}
-    
-    @Around("serviceMethods()")
-    public Object monitorPerformance(ProceedingJoinPoint joinPoint) throws Throwable {
-        String methodName = joinPoint.getSignature().getName();
-        long startTime = System.nanoTime();
-        
+        scheduler.shutdown();
         try {
-            Object result = joinPoint.proceed();
-            return result;
-        } finally {
-            long duration = System.nanoTime() - startTime;
-            
-            if (duration &gt; 1_000_000) { // Log slow methods (&gt;1ms)
-                auditLogger.warn("Slow method execution", Map.of(
-                    "method", methodName,
-                    "duration_ms", duration / 1_000_000.0
-                ));
+            if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
             }
+        } catch (InterruptedException e) {
+            scheduler.shutdownNow();
+            Thread.currentThread().interrupt();
         }
-    }
-}
-
-// Transaction Management Aspect
-@Aspect
-@Component
-@Singleton
-public class TransactionAspect {
-    
-    @Pointcut("@annotation(Transactional)")
-    public void transactionalMethods() {}
-    
-    @Around("transactionalMethods()")
-    public Object manageTransaction(ProceedingJoinPoint joinPoint) throws Throwable {
-        TransactionManager.beginTransaction();
         
-        try {
-            Object result = joinPoint.proceed();
-            TransactionManager.commitTransaction();
-            return result;
-        } catch (Exception e) {
-            TransactionManager.rollbackTransaction();
-            throw e;
-        }
-    }
-}
-
-// Usage with annotations
-@Component
-@Singleton
-public class UserService {
-    
-    @Inject
-    private UserRepository userRepository;
-    
-    @Transactional
-    public User createUser(String name, String email) {
-        // This method will be logged and run in a transaction
-        User user = new User(name, email);
-        return userRepository.save(user);
+        // Cleanup cache
+        cache.cleanUp();
     }
     
-    public Optional&lt;User&gt; findUser(String id) {
-        // This method will only be logged
-        return userRepository.findById(id);
+    private void cleanupExpiredEntries() {
+        cache.cleanUp();
+    }
+    
+    private void logStats() {
+        CacheStats stats = cache.stats();
+        System.out.println("Cache stats: hitRate=" + stats.hitRate() + 
+                         ", size=" + cache.estimatedSize());
+    }
+    
+    public &lt;T&gt; T get(String key, Class&lt;T&gt; type) {
+        return type.cast(cache.getIfPresent(key));
+    }
+    
+    public void put(String key, Object value) {
+        cache.put(key, value);
     }
 }</code></pre>
-                </div>
-            </section>
+                        </div>
+                    </div>
+                </section>
 
-            <!-- Integration Examples -->
-            <section>
-                <h2>🔗 Integration Examples</h2>
-                
-                <div class="card">
-                    <h3>REST API with Veld</h3>
-                    <p>Building a complete REST API using Veld:</p>
+                <section class="thread-safety-examples">
+                    <h2>🧵 Thread Safety Examples</h2>
                     
-<pre><code>// REST Controller
-@Component
-@Path("/users")
-public class UserController {
+                    <div class="example-section">
+                        <h3>4. Concurrent Access Patterns</h3>
+                        
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>CounterService.java</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code>@Component
+@ThreadSafe
+public class CounterService {
     
-    @Inject
-    private UserService userService;
-    
-    @GET
-    @Path("/{id}")
-    public Response getUser(@PathParam("id") String id) {
-        return userService.findUser(id)
-            .map(user -&gt; Response.ok(user).build())
-            .orElse(Response.status(404).build());
-    }
-    
-    @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    public Response createUser(UserCreateRequest request) {
-        try {
-            User user = userService.createUser(request.getName(), request.getEmail());
-            return Response.status(201).entity(user).build();
-        } catch (Exception e) {
-            return Response.status(400)
-                .entity(new ErrorResponse("Failed to create user", e.getMessage()))
-                .build();
-        }
-    }
-    
-    @GET
-    @Path("/{id}/orders")
-    public Response getUserOrders(@PathParam("id") String id) {
-        List&lt;Order&gt; orders = userService.getUserOrders(id);
-        return Response.ok(orders).build();
-    }
-}
-
-// Request/Response DTOs
-@Component
-public class UserCreateRequest {
-    private String name;
-    private String email;
-    
-    // Getters and setters
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-}
-
-@Component
-public class ErrorResponse {
-    private String error;
-    private String message;
-    private Instant timestamp;
-    
-    public ErrorResponse(String error, String message) {
-        this.error = error;
-        this.message = message;
-        this.timestamp = Instant.now();
-    }
-    
-    // Getters
-    public String getError() { return error; }
-    public String getMessage() { return message; }
-    public Instant getTimestamp() { return timestamp; }
-}
-
-// Service layer with validation
-@Component
-@Singleton
-public class UserService {
-    
-    @Inject
-    private UserRepository userRepository;
-    
-    @Inject
-    private EmailService emailService;
-    
-    @Inject
-    private EventBus eventBus;
-    
-    public User createUser(String name, String email) {
-        // Validation
-        if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Name is required");
-        }
-        if (email == null || !isValidEmail(email)) {
-            throw new IllegalArgumentException("Valid email is required");
-        }
-        
-        // Check for duplicates
-        if (userRepository.findByEmail(email).isPresent()) {
-            throw new IllegalArgumentException("User with email already exists");
-        }
-        
-        // Create user
-        User user = new User(name.trim(), email.toLowerCase());
-        User saved = userRepository.save(user);
-        
-        // Send welcome email asynchronously
-        eventBus.publish(new EmailEvent(email, "Welcome!", 
-            "Welcome to our platform, " + name + "!"));
-        
-        return saved;
-    }
-    
-    private boolean isValidEmail(String email) {
-        return email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
-    }
-}</code></pre>
-                </div>
-
-                <div class="card">
-                    <h3>Database Integration with JPA</h3>
-                    <p>Using Veld with JPA/Hibernate:</p>
-                    
-<pre><code>// JPA Configuration
-@Component
-@Singleton
-public class JpaConfig {
-    
-    @Value("${database.url}")
-    private String url;
-    
-    @Value("${database.username}")
-    private String username;
-    
-    @Value("${database.password}")
-    private String password;
-    
-    @Inject
-    private DataSource dataSource;
-    
-    @Bean
-    public EntityManagerFactory entityManagerFactory() {
-        Properties jpaProperties = new Properties();
-        jpaProperties.setProperty("javax.persistence.jdbc.driver", "org.postgresql.Driver");
-        jpaProperties.setProperty("javax.persistence.jdbc.url", url);
-        jpaProperties.setProperty("javax.persistence.jdbc.user", username);
-        jpaProperties.setProperty("javax.persistence.jdbc.password", password);
-        
-        // Veld-specific optimizations
-        jpaProperties.setProperty("hibernate.hbm2ddl.auto", "update");
-        jpaProperties.setProperty("hibernate.show_sql", "false");
-        jpaProperties.setProperty("hibernate.format_sql", "true");
-        
-        LocalContainerEntityManagerFactoryBean factory = new LocalContainerEntityManagerFactoryBean();
-        factory.setDataSource(dataSource);
-        factory.setPackagesToScan("com.example.entity");
-        factory.setJpaProperties(jpaProperties);
-        factory.afterPropertiesSet();
-        
-        return factory.getObject();
-    }
-    
-    @Bean
-    public PlatformTransactionManager transactionManager(EntityManagerFactory emf) {
-        return new JpaTransactionManager(emf);
-    }
-}
-
-// JPA Repository with Veld
-@Component
-@Singleton
-public class UserRepository {
-    
-    @Inject
-    private EntityManagerFactory entityManagerFactory;
-    
-    public User save(User user) {
-        EntityManager em = entityManagerFactory.createEntityManager();
-        try {
-            em.getTransaction().begin();
-            User saved = em.merge(user);
-            em.getTransaction().commit();
-            return saved;
-        } catch (Exception e) {
-            if (em.getTransaction().isActive()) {
-                em.getTransaction().rollback();
-            }
-            throw e;
-        } finally {
-            em.close();
-        }
-    }
-    
-    public Optional&lt;User&gt; findById(String id) {
-        EntityManager em = entityManagerFactory.createEntityManager();
-        try {
-            User user = em.find(User.class, id);
-            return Optional.ofNullable(user);
-        } finally {
-            em.close();
-        }
-    }
-    
-    public Optional&lt;User&gt; findByEmail(String email) {
-        EntityManager em = entityManagerFactory.createEntityManager();
-        try {
-            TypedQuery&lt;User&gt; query = em.createQuery(
-                "SELECT u FROM User u WHERE u.email = :email", User.class);
-            query.setParameter("email", email);
-            return query.getResultStream().findFirst();
-        } finally {
-            em.close();
-        }
-    }
-}</code></pre>
-                </div>
-            </section>
-
-            <!-- Real-world Scenarios -->
-            <section>
-                <h2>🌍 Real-World Scenarios</h2>
-                
-                <div class="card">
-                    <h3>E-commerce Application</h3>
-                    <p>Complete e-commerce system with all Veld features:</p>
-                    
-<pre><code>// Domain entities
-@Entity
-@Table(name = "products")
-public class Product {
-    @Id
-    private String id;
-    private String name;
-    private String description;
-    private BigDecimal price;
-    private int stockQuantity;
-    private Instant createdAt;
-    
-    // Constructors, getters, setters
-}
-
-@Entity
-@Table(name = "orders")
-public class Order {
-    @Id
-    private String id;
-    private String userId;
-    private List&lt;OrderItem&gt; items;
-    private BigDecimal total;
-    private OrderStatus status;
-    private Instant createdAt;
-    
-    // Constructors, getters, setters
-}
-
-// Services
-@Component
-@Singleton
-public class ProductService {
-    
-    @Inject
-    private ProductRepository productRepository;
+    private final AtomicLong counter = new AtomicLong(0);
+    private final AtomicReference&lt;Map&lt;String, Long&gt;&gt; metrics = 
+        new AtomicReference&lt;&gt;(new ConcurrentHashMap&lt;&gt;());
     
     @Inject
     private CacheService cacheService;
     
-    @Inject
-    private EventBus eventBus;
-    
-    public Product createProduct(String name, String description, BigDecimal price) {
-        Product product = new Product(name, description, price);
-        Product saved = productRepository.save(product);
-        
-        // Clear cache and publish event
-        cacheService.evict("products:" + saved.getId());
-        eventBus.publish(new ProductCreatedEvent(saved));
-        
-        return saved;
+    public long incrementAndGet() {
+        return counter.incrementAndGet();
     }
     
-    @Cacheable("products")
-    public Optional&lt;Product&gt; findProduct(String id) {
-        return productRepository.findById(id);
+    public long decrementAndGet() {
+        return counter.decrementAndGet();
     }
     
-    @CacheEvict("products")
-    public void updateProduct(Product product) {
-        productRepository.save(product);
-        eventBus.publish(new ProductUpdatedEvent(product));
+    public long get() {
+        return counter.get();
     }
-}
+    
+    public void recordMetric(String name, long value) {
+        metrics.updateAndGet(map -&gt; {
+            map.put(name, map.getOrDefault(name, 0L) + value);
+            return map;
+        });
+    }
+    
+    public Map&lt;String, Long&gt; getMetrics() {
+        return new HashMap&lt;&gt;(metrics.get());
+    }
+}</code></pre>
+                        </div>
 
-@Component
-@Singleton
-public class OrderService {
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>ConcurrentProcessor.java</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code>@Component
+public class ConcurrentProcessor {
     
     @Inject
-    private OrderRepository orderRepository;
+    private CounterService counterService;
     
-    @Inject
-    private InventoryService inventoryService;
-    
-    @Inject
-    private PaymentService paymentService;
-    
-    @Inject
-    private EventBus eventBus;
-    
-    @Transactional
-    public Order createOrder(String userId, List&lt;String&gt; productIds) {
-        // Reserve inventory
-        List&lt;Product&gt; products = inventoryService.reserveProducts(productIds);
-        
-        // Calculate total
-        BigDecimal total = products.stream()
-            .map(Product::getPrice)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-        
-        // Create order
-        List&lt;OrderItem&gt; items = products.stream()
-            .map(product -&gt; new OrderItem(product.getId(), 1, product.getPrice()))
-            .collect(Collectors.toList());
+    public void processBatch(List&lt;String&gt; items) {
+        items.parallelStream().forEach(item -&gt; {
+            // Increment counter for each item
+            long current = counterService.incrementAndGet();
             
-        Order order = new Order(userId, items, total);
-        Order saved = orderRepository.save(order);
-        
-        // Process payment asynchronously
-        eventBus.publish(new PaymentRequiredEvent(saved.getId(), total));
-        
-        return saved;
+            // Process item
+            processItem(item);
+            
+            // Record metric
+            counterService.recordMetric("processed_items", 1);
+            
+            if (current % 1000 == 0) {
+                System.out.println("Processed " + current + " items");
+            }
+        });
     }
-}
+    
+    private void processItem(String item) {
+        // Business logic here
+    }
+}</code></pre>
+                        </div>
+                    </div>
+                </section>
 
-// Event handlers for complex business logic
-@Component
-public class InventoryEventHandler {
-    
-    @Inject
-    private InventoryService inventoryService;
-    
-    @Subscribe
-    public void handleOrderCreated(OrderCreatedEvent event) {
-        // Reserve inventory
-        inventoryService.reserveProducts(event.getProductIds());
-    }
-    
-    @Subscribe
-    public void handleOrderCancelled(OrderCancelledEvent event) {
-        // Release inventory
-        inventoryService.releaseProducts(event.getProductIds());
-    }
-}
-
-@Component
-public class NotificationEventHandler {
+                <section class="factory-pattern-examples">
+                    <h2>🎯 Factory Pattern Examples</h2>
+                    
+                    <div class="example-section">
+                        <h3>5. Factory Pattern Implementation</h3>
+                        
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>MessageFactory.java</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code>@Component
+public class MessageFactory {
     
     @Inject
     private EmailService emailService;
     
-    @Subscribe
-    public void handleOrderCreated(OrderCreatedEvent event) {
-        // Send order confirmation
-        String message = "Your order " + event.getOrderId() + " has been created.";
-        emailService.sendOrderConfirmation(event.getUserId(), message);
+    @Inject
+    private SMSService smsService;
+    
+    public Message createEmail(String to, String subject, String body) {
+        return new EmailMessage(to, subject, body);
     }
     
-    @Subscribe
-    public void handlePaymentCompleted(PaymentCompletedEvent event) {
-        // Send payment confirmation
-        String message = "Payment of $" + event.getAmount() + " completed successfully.";
-        emailService.sendPaymentConfirmation(event.getUserId(), message);
+    public Message createSMS(String to, String message) {
+        return new SMSMessage(to, message);
     }
-}</code></pre>
-                </div>
-
-                <div class="card">
-                    <h3>Microservices Communication</h3>
-                    <p>Service-to-service communication using EventBus:</p>
-                    
-<pre><code>// Service A: User Service
-@Component
-@Singleton
-public class UserService {
     
-    @Inject
-    private UserRepository userRepository;
-    
-    @Inject
-    private EventBus eventBus;
-    
-    public User registerUser(String name, String email) {
-        User user = new User(name, email);
-        User saved = userRepository.save(user);
-        
-        // Publish event for other services
-        eventBus.publish(new UserRegisteredEvent(saved.getId(), name, email));
-        
-        return saved;
+    public Message createMessage(MessageType type, String... params) {
+        return switch (type) {
+            case EMAIL -&gt; createEmail(params[0], params[1], params[2]);
+            case SMS -&gt; createSMS(params[0], params[1]);
+            default -&gt; throw new IllegalArgumentException("Unknown message type: " + type);
+        };
     }
 }
 
-// Service B: Notification Service
-@Component
+enum MessageType {
+    EMAIL, SMS
+}</code></pre>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>NotificationService.java</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code>@Component
 public class NotificationService {
     
     @Inject
-    private EmailService emailService;
+    private MessageFactory messageFactory;
     
-    @Subscribe
-    public void handleUserRegistered(UserRegisteredEvent event) {
-        // Send welcome email
-        String subject = "Welcome to our platform!";
-        String body = "Hello " + event.getName() + ",\n\nWelcome to our platform!";
+    public void sendWelcomeMessage(String userEmail, String userPhone) {
+        // Create email
+        Message welcomeEmail = messageFactory.createMessage(
+            MessageType.EMAIL, 
+            userEmail, 
+            "Welcome!", 
+            "Welcome to our platform!"
+        );
         
-        emailService.sendEmail(event.getEmail(), subject, body);
+        // Create SMS
+        Message welcomeSMS = messageFactory.createMessage(
+            MessageType.SMS,
+            userPhone,
+            "Welcome to our platform!"
+        );
         
-        // Schedule welcome call
-        eventBus.publish(new ScheduleWelcomeCallEvent(event.getUserId()));
+        // Send both
+        welcomeEmail.send();
+        welcomeSMS.send();
+    }
+}</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="event-system-examples">
+                    <h2>🔔 Event System Examples</h2>
+                    
+                    <div class="example-section">
+                        <h3>6. Event-Driven Architecture</h3>
+                        
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>Event Classes</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code>public abstract class DomainEvent {
+    private final String eventId;
+    private final Instant timestamp;
+    
+    public DomainEvent() {
+        this.eventId = UUID.randomUUID().toString();
+        this.timestamp = Instant.now();
+    }
+    
+    public String getEventId() { return eventId; }
+    public Instant getTimestamp() { return timestamp; }
+}
+
+public class UserCreatedEvent extends DomainEvent {
+    private final User user;
+    
+    public UserCreatedEvent(User user) {
+        this.user = user;
+    }
+    
+    public User getUser() { return user; }
+}
+
+public class OrderPlacedEvent extends DomainEvent {
+    private final Order order;
+    
+    public OrderPlacedEvent(Order order) {
+        this.order = order;
+    }
+    
+    public Order getOrder() { return order; }
+}</code></pre>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>Event Publisher and Handlers</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code>@Component
+public class EventPublisher {
+    
+    @Inject
+    private EventBus eventBus;
+    
+    public void publish(DomainEvent event) {
+        eventBus.publish(event);
+    }
+    
+    public void publishAsync(DomainEvent event) {
+        eventBus.publishAsync(event);
     }
 }
 
-// Service C: Analytics Service
 @Component
-public class AnalyticsService {
+public class EmailNotificationHandler {
     
     @Inject
-    private AnalyticsRepository analyticsRepository;
+    private EmailService emailService;
     
-    @Subscribe
-    public void trackUserRegistration(UserRegisteredEvent event) {
-        // Record analytics
-        analyticsRepository.recordEvent("user_registered", Map.of(
-            "timestamp", Instant.now(),
-            "userId", event.getUserId()
-        ));
+    @EventHandler
+    public void onUserCreated(UserCreatedEvent event) {
+        User user = event.getUser();
+        String subject = "Welcome " + user.getName();
+        String body = "Thank you for joining our platform!";
+        emailService.sendEmail(user.getEmail(), subject, body);
     }
     
-    @Subscribe
-    public void trackOrderCreated(OrderCreatedEvent event) {
-        // Record order analytics
-        analyticsRepository.recordEvent("order_created", Map.of(
-            "timestamp", Instant.now(),
-            "orderId", event.getOrderId(),
-            "userId", event.getUserId(),
-            "total", event.getTotal()
-        ));
+    @EventHandler
+    public void onOrderPlaced(OrderPlacedEvent event) {
+        Order order = event.getOrder();
+        String subject = "Order Confirmation #" + order.getId();
+        String body = "Your order has been placed successfully.";
+        emailService.sendEmail(order.getCustomerEmail(), subject, body);
     }
 }</code></pre>
-                </div>
-            </section>
+                        </div>
+                    </div>
+                </section>
 
-            <!-- Testing Examples -->
-            <section>
-                <h2>🧪 Testing Examples</h2>
-                
-                <div class="card">
-                    <h3>Unit Testing with Veld</h3>
-                    <p>Testing components in isolation:</p>
+                <section class="testing-examples">
+                    <h2>🧪 Testing Examples</h2>
                     
-<pre><code>// Test configuration
-@Configuration
+                    <div class="example-section">
+                        <h3>7. Unit Testing with Veld</h3>
+                        
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>Test Configuration</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code>@Configuration
+@TestConfiguration
 public class TestConfig {
     
     @Bean
     @Primary
     public UserRepository testUserRepository() {
-        UserRepository mock = mock(UserRepository.class);
-        
-        // Mock behavior
-        User testUser = new User("test-id", "Test User", "test@example.com");
-        when(mock.save(any(User.class))).thenReturn(testUser);
-        when(mock.findById("test-id")).thenReturn(Optional.of(testUser));
-        when(mock.findById("non-existent")).thenReturn(Optional.empty());
-        
-        return mock;
+        return new InMemoryUserRepository();
     }
     
     @Bean
     @Primary
     public EmailService testEmailService() {
-        return mock(EmailService.class);
+        return new MockEmailService();
     }
 }
 
-// Test class
 @Component
+@Primary
+public class MockEmailService implements EmailService {
+    
+    private final List&lt;EmailMessage&gt; sentEmails = new ArrayList&lt;&gt;();
+    
+    @Override
+    public void sendEmail(String to, String subject, String body) {
+        sentEmails.add(new EmailMessage(to, subject, body));
+    }
+    
+    public List&lt;EmailMessage&gt; getSentEmails() {
+        return new ArrayList&lt;&gt;(sentEmails);
+    }
+}
+
+@Component
+@Primary
+public class InMemoryUserRepository implements UserRepository {
+    
+    private final Map&lt;String, User&gt; users = new HashMap&lt;&gt;();
+    
+    @Override
+    public User save(User user) {
+        users.put(user.getId(), user);
+        return user;
+    }
+    
+    @Override
+    public Optional&lt;User&gt; findById(String id) {
+        return Optional.ofNullable(users.get(id));
+    }
+}</code></pre>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>UserServiceTest.java</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code>@Component
 public class UserServiceTest {
     
+    @Inject
     private UserService userService;
-    private UserRepository userRepository;
-    
-    @Before
-    public void setUp() {
-        // Create test container
-        // Use the generated Veld class;
-        container.register(TestConfig.class);
-        container.start();
-        
-        // Get service under test
-        userService = container.getBean(UserService.class);
-        userRepository = container.getBean(UserRepository.class);
-    }
+    @Inject
+    private MockEmailService emailService;
     
     @Test
     public void testCreateUser() {
-        // Arrange
-        String name = "John Doe";
-        String email = "john@example.com";
+        // Given
+        String name = "Test User";
+        String email = "test@example.com";
         
-        // Act
-        User result = userService.createUser(name, email);
+        // When
+        User user = userService.createUser(name, email);
         
-        // Assert
-        assertThat(result).isNotNull();
-        assertThat(result.getName()).isEqualTo(name);
-        assertThat(result.getEmail()).isEqualTo(email);
-        
-        // Verify repository was called
-        verify(userRepository).save(argThat(user -&gt; 
-            user.getName().equals(name) && user.getEmail().equals(email)));
-    }
-    
-    @Test
-    public void testFindExistingUser() {
-        // Act
-        Optional&lt;User&gt; result = userService.findUser("test-id");
-        
-        // Assert
-        assertThat(result).isPresent();
-        assertThat(result.get().getName()).isEqualTo("Test User");
-    }
-    
-    @Test
-    public void testFindNonExistentUser() {
-        // Act
-        Optional&lt;User&gt; result = userService.findUser("non-existent");
-        
-        // Assert
-        assertThat(result).isEmpty();
+        // Then
+        assertThat(user).isNotNull();
+        assertThat(user.getName()).isEqualTo(name);
+        assertThat(user.getEmail()).isEqualTo(email);
+        assertThat(emailService.getSentEmails()).hasSize(1);
+        assertThat(emailService.getSentEmails().get(0).getTo()).isEqualTo(email);
     }
 }</code></pre>
-                </div>
+                        </div>
+                    </div>
+                </section>
 
-                <div class="card">
-                    <h3>Integration Testing</h3>
-                    <p>Testing full application flows:</p>
+                <section class="integration-examples">
+                    <h2>🌟 Integration Examples</h2>
                     
-<pre><code>// Integration test configuration
-@Configuration
-@TestConfiguration
-public class IntegrationTestConfig {
+                    <div class="example-section">
+                        <h3>8. Spring Boot Integration</h3>
+                        
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>HybridService.java</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code>@SpringBootApplication
+public class VeldSpringBootApplication {
     
-    @Bean
-    @Primary
-    public DataSource testDataSource() {
-        // Use in-memory database for tests
-        return new HikariDataSource(new HikariConfig() {{
-            setJdbcUrl("jdbc:h2:mem:testdb");
-            setUsername("sa");
-            setPassword("");
-            setDriverClassName("org.h2.Driver");
-        }});
-    }
-    
-    @Bean
-    @Primary
-    public EventBus testEventBus() {
-        return new InMemoryEventBus(); // Synchronous for testing
+    public static void main(String[] args) {
+        SpringApplication.run(VeldSpringBootApplication.class, args);
     }
 }
 
-// Integration test
+// Hybrid service using both Veld and Spring
 @Component
-@SpringBootTest
-public class UserRegistrationIntegrationTest {
+public class HybridService {
     
     @Inject
-    private UserService userService;
+    private VeldComponent veldComponent; // From Veld
+    
+    @Autowired
+    private SpringComponent springComponent; // From Spring
+    
+    public void doComplexWork() {
+        // Use Veld component for ultra-fast operations
+        Object veldResult = veldComponent.processFast();
+        
+        // Use Spring component for enterprise features
+        Object springResult = springComponent.processWithTransaction();
+        
+        // Combine results
+        return combineResults(veldResult, springResult);
+    }
+}
+
+// Veld component
+@Component
+public class VeldComponent {
     
     @Inject
-    private UserRepository userRepository;
+    private FastCache cache;
     
-    @Inject
-    private TestEventCollector eventCollector;
+    public Object processFast() {
+        // Ultra-fast processing
+        return cache.get("fast-data");
+    }
+}
+
+// Spring component
+@Component
+public class SpringComponent {
     
-    @Test
-    public void testFullUserRegistrationFlow() {
-        // Arrange
-        String name = "Integration Test User";
-        String email = "integration@example.com";
-        
-        // Act
-        User user = userService.createUser(name, email);
-        
-        // Assert - User was saved
-        assertThat(user).isNotNull();
-        assertThat(user.getId()).isNotNull();
-        
-        // Assert - User can be retrieved
-        Optional&lt;User&gt; retrieved = userRepository.findById(user.getId());
-        assertThat(retrieved).isPresent();
-        assertThat(retrieved.get().getName()).isEqualTo(name);
-        
-        // Assert - Events were published
-        List&lt;Object&gt; events = eventCollector.getEvents();
-        assertThat(events).hasSize(2);
-        assertThat(events.get(0)).isInstanceOf(UserRegisteredEvent.class);
-        assertThat(events.get(1)).isInstanceOf(EmailEvent.class);
-        
-        // Verify event data
-        UserRegisteredEvent userEvent = (UserRegisteredEvent) events.get(0);
-        assertThat(userEvent.userId()).isEqualTo(user.getId());
-        assertThat(userEvent.email()).isEqualTo(email);
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    
+    @Transactional
+    public Object processWithTransaction() {
+        // Enterprise-grade processing with transactions
+        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM users", Long.class);
     }
 }</code></pre>
-                </div>
-            </section>
+                        </div>
+                    </div>
+                </section>
 
-            <!-- Best Practices -->
-            <section>
-                <h2>💡 Best Practices</h2>
-                
-                <div class="feature-grid">
-                    <div class="feature-card">
-                        <div class="feature-icon">🏗️</div>
-                        <h3>Layer Separation</h3>
-                        <p>Keep clear separation between controllers, services, and repositories for better maintainability.</p>
-                    </div>
+                <section class="performance-examples">
+                    <h2>🚀 Performance Examples</h2>
                     
-                    <div class="feature-card">
-                        <div class="feature-icon">🔒</div>
-                        <h3>Dependency Injection</h3>
-                        <p>Prefer constructor injection for mandatory dependencies and field injection for optional ones.</p>
+                    <div class="example-section">
+                        <h3>9. High-Performance Caching</h3>
+                        
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span>PerformanceService.java</span>
+                                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            </div>
+                            <pre><code>@Component
+@Singleton
+public class PerformanceService {
+    
+    @Inject
+    private Cache&lt;String, ExpensiveResult&gt; cache;
+    
+    public ExpensiveResult computeExpensiveOperation(String key, Supplier&lt;ExpensiveResult&gt; computation) {
+        // Check cache first
+        ExpensiveResult cached = cache.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        
+        // Compute if not cached
+        ExpensiveResult result = computation.get();
+        cache.put(key, result);
+        
+        return result;
+    }
+    
+    public List&lt;ExpensiveResult&gt; processBatch(List&lt;String&gt; keys) {
+        return keys.parallelStream()
+            .map(key -&gt; computeExpensiveOperation(key, () -&gt; expensiveComputation(key)))
+            .collect(Collectors.toList());
+    }
+    
+    private ExpensiveResult expensiveComputation(String key) {
+        // Simulate expensive computation
+        try {
+            Thread.sleep(100); // Simulate I/O or heavy computation
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Computation interrupted", e);
+        }
+        return new ExpensiveResult(key, System.currentTimeMillis());
+    }
+}</code></pre>
+                        </div>
                     </div>
-                    
-                    <div class="feature-card">
-                        <div class="feature-icon">📝</div>
-                        <h3>Event-Driven Design</h3>
-                        <p>Use EventBus for loose coupling between components and to handle cross-cutting concerns.</p>
-                    </div>
-                    
-                    <div class="feature-card">
-                        <div class="feature-icon">🧪</div>
-                        <h3>Testing Strategy</h3>
-                        <p>Write unit tests for individual components and integration tests for full workflows.</p>
-                    </div>
-                </div>
-            </section>
+                </section>
 
-            <!-- Download Examples -->
-            <section>
-                <h2>📥 Download Examples</h2>
-                
-                <div class="card">
-                    <h3>Complete Example Projects</h3>
-                    <p>Download full example projects from our GitHub repository:</p>
+                <section class="best-practices">
+                    <h2>💡 Best Practices</h2>
                     
-                    <div class="hero-actions">
-                        <a href="https://github.com/yasmramos/Veld/tree/main/veld-example" class="btn btn-primary" target="_blank">
-                            Basic Examples
+                    <div class="example-section">
+                        <h3>10. Design Patterns and Best Practices</h3>
+                        
+                        <div class="code-grid">
+                            <div class="practice-card good">
+                                <h4>✅ Good: Constructor injection with final fields</h4>
+                                <div class="code-block small">
+                                    <pre><code>@Component
+public class GoodService {
+    
+    private final UserRepository userRepository;
+    private final NotificationService notification;
+    
+    @Inject
+    public GoodService(UserRepository userRepository, NotificationService notification) {
+        this.userRepository = userRepository;
+        this.notification = notification;
+    }
+    
+    // Business methods...
+}</code></pre>
+                                </div>
+                            </div>
+
+                            <div class="practice-card bad">
+                                <h4>❌ Avoid: Field injection (harder to test)</h4>
+                                <div class="code-block small">
+                                    <pre><code>@Component
+public class BadService {
+    
+    @Inject
+    private UserRepository userRepository; // Circular dependency risk
+}</code></pre>
+                                </div>
+                            </div>
+
+                            <div class="practice-card good">
+                                <h4>✅ Good: Immutable configuration</h4>
+                                <div class="code-block small">
+                                    <pre><code>@Component
+@Immutable
+public class AppConfig {
+    
+    private final String apiKey;
+    private final int timeout;
+    private final boolean debugMode;
+    
+    @Inject
+    public AppConfig(@Value("${api.key}") String apiKey,
+                    @Value("${api.timeout:5000}") int timeout,
+                    @Value("${api.debug:false}") boolean debugMode) {
+        this.apiKey = apiKey;
+        this.timeout = timeout;
+        this.debugMode = debugMode;
+    }
+}</code></pre>
+                                </div>
+                            </div>
+
+                            <div class="practice-card good">
+                                <h4>✅ Good: Proper lifecycle management</h4>
+                                <div class="code-block small">
+                                    <pre><code>@Component
+public class ResourceManager {
+    
+    private ExpensiveResource resource;
+    
+    @PostConstruct
+    public void initialize() {
+        this.resource = ExpensiveResource.create();
+    }
+    
+    @PreDestroy
+    public void cleanup() {
+        if (resource != null) {
+            resource.close();
+        }
+    }
+}</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="conclusion">
+                    <h2>🎉 Conclusion</h2>
+                    <p>These examples demonstrate Veld's flexibility, performance, and ease of use in real-world scenarios. Each example showcases different aspects of the framework while maintaining the ultra-fast performance characteristics.</p>
+                    
+                    <div class="next-steps-grid">
+                        <a href="core-features.html" class="next-step">
+                            <h3>📚 Core Features</h3>
+                            <p>Learn more about Veld's architecture and performance</p>
                         </a>
-                        <a href="https://github.com/yasmramos/Veld/tree/main/veld-spring-boot-example" class="btn btn-secondary" target="_blank">
-                            Spring Boot Integration
+                        <a href="annotations.html" class="next-step">
+                            <h3>📋 Annotations Reference</h3>
+                            <p>Explore all available annotations and their usage</p>
                         </a>
-                        <a href="https://github.com/yasmramos/Veld/tree/main/veld-benchmark" class="btn btn-secondary" target="_blank">
-                            Performance Benchmarks
+                        <a href="aop.html" class="next-step">
+                            <h3>🔧 AOP Guide</h3>
+                            <p>Advanced aspect-oriented programming features</p>
                         </a>
                     </div>
-                </div>
-
-                <div class="alert alert-info">
-                    <strong>🔗 More Examples:</strong> Check our GitHub repository for additional examples, including microservices, event sourcing, and advanced AOP patterns.
-                </div>
-            </section>
+                </section>
+            </div>
         </div>
     </main>
 
     <!-- Scroll to Top Button -->
-    <button id="scroll-to-top" class="scroll-to-top" onclick="scrollToTop()">↑</button>
+    <button id="scrollTop" class="scroll-top" onclick="scrollToTop()">↑</button>
 
-    <!-- Scripts -->
     <script src="js/main.js"></script>
 </body>
 </html>
