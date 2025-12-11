@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Code Display</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container" style="margin: 2rem auto;">
+        <h1>Test Code Display</h1>
+        
+        <h2>1. Simple Component</h2>
+        <div class="code-block">
+            <div class="code-header">
+                <span>CacheManager.java</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre><code>@Component
+@Singleton
+public class CacheManager {
+    
+    private final Cache&lt;String, Object&gt; cache;
+    private final ScheduledExecutorService scheduler;
+    
+    @Inject
+    public CacheManager(@Value("${cache.max.size:1000}") int maxSize,
+                       @Value("${cache.expire.minutes:30}") int expireMinutes) {
+        this.cache = Caffeine.newBuilder()
+            .maximumSize(maxSize)
+            .expireAfterWrite(Duration.ofMinutes(expireMinutes))
+            .recordStats()
+            .build();
+            
+        this.scheduler = Executors.newScheduledThreadPool(2);
+    }
+    
+    @PostConstruct
+    public void initialize() {
+        System.out.println("Cache Manager initialized");
+        
+        // Start background tasks
+        scheduler.scheduleAtFixedRate(this::cleanupExpiredEntries, 
+            5, 5, TimeUnit.MINUTES);
+            
+        scheduler.scheduleAtFixedRate(this::logStats, 
+            1, 1, TimeUnit.MINUTES);
+    }
+    
+    @PreDestroy
+    public void shutdown() {
+        System.out.println("Cache Manager shutting down");
+        
+        scheduler.shutdown();
+        try {
+            if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            scheduler.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+        
+        // Cleanup cache
+        cache.cleanUp();
+    }
+    
+    private void cleanupExpiredEntries() {
+        cache.cleanUp();
+    }
+    
+    private void logStats() {
+        CacheStats stats = cache.stats();
+        System.out.println("Cache stats: hitRate=" + stats.hitRate() + 
+                         ", size=" + cache.estimatedSize());
+    }
+    
+    public &lt;T&gt; T get(String key, Class&lt;T&gt; type) {
+        return type.cast(cache.getIfPresent(key));
+    }
+    
+    public void put(String key, Object value) {
+        cache.put(key, value);
+    }
+}</code></pre>
+        </div>
+
+        <h2>2. Component with Constructor Injection</h2>
+        <div class="code-block">
+            <div class="code-header">
+                <span>UserService.java</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre><code>@Component
+public class UserService {
+    
+    private final UserRepository userRepository;
+    private final NotificationService notificationService;
+    
+    @Inject
+    public UserService(UserRepository userRepository, NotificationService notificationService) {
+        this.userRepository = userRepository;
+        this.notificationService = notificationService;
+    }
+    
+    public User createUser(String name, String email) {
+        User user = new User(name, email);
+        User saved = userRepository.save(user);
+        
+        // Notify about new user
+        notificationService.sendWelcomeEmail(saved);
+        
+        return saved;
+    }
+    
+    public Optional&lt;User&gt; getUser(String id) {
+        return userRepository.findById(id);
+    }
+}</code></pre>
+        </div>
+
+        <h2>3. Configuration Class</h2>
+        <div class="code-block">
+            <div class="code-header">
+                <span>DatabaseConfig.java</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre><code>@Component
+public class DatabaseConfig {
+    
+    @Value("${database.url}")
+    private String url;
+    
+    @Value("${database.username}")
+    private String username;
+    
+    @Value("${database.password}")
+    private String password;
+    
+    @Value("${database.pool.size:10}")
+    private int poolSize;
+    
+    @Value("${database.ssl.enabled:false}")
+    private boolean sslEnabled;
+    
+    @Value("${database.timeout:30000}")
+    private Duration timeout;
+    
+    @PostConstruct
+    public void validate() {
+        if (url == null || url.trim().isEmpty()) {
+            throw new IllegalArgumentException("Database URL is required");
+        }
+        if (poolSize &lt;= 0 || poolSize &gt; 50) {
+            throw new IllegalArgumentException("Pool size must be between 1 and 50");
+        }
+    }
+    
+    public HikariConfig createHikariConfig() {
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(url);
+        config.setUsername(username);
+        config.setPassword(password);
+        config.setMaximumPoolSize(poolSize);
+        config.setConnectionTimeout(timeout.toMillis());
+        config.setIdleTimeout(Duration.ofMinutes(10).toMillis());
+        config.setLeakDetectionThreshold(Duration.ofSeconds(60).toMillis());
+        
+        Properties props = new Properties();
+        props.setProperty("ssl", sslEnabled ? "require" : "disable");
+        config.setDataSourceProperties(props);
+        
+        return config;
+    }
+}</code></pre>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

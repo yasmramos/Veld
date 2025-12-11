@@ -69,9 +69,12 @@ function initializeCodeHighlighting() {
         // Add copy button
         addCopyButton(block.parentElement);
         
-        // Apply Java highlighting
-        const highlighted = highlightJava(block.textContent);
-        block.innerHTML = highlighted;
+        // Only apply highlighting if the code doesn't already contain HTML tags
+        // This prevents double-escaping issues
+        if (!block.innerHTML.includes('<span')) {
+            const highlighted = highlightJava(block.textContent);
+            block.innerHTML = highlighted;
+        }
     });
 }
 
@@ -110,6 +113,11 @@ function addCopyButton(codeBlock) {
 
 // Enhanced Java syntax highlighting
 function highlightJava(code) {
+    // Check if code already contains HTML entities - if so, return as-is to avoid double escaping
+    if (code.includes('&lt;') || code.includes('&gt;') || code.includes('&amp;')) {
+        return code;
+    }
+    
     // Escape HTML first to prevent conflicts
     let highlighted = code
         .replace(/&/g, '&amp;')
@@ -315,7 +323,7 @@ function initializeAnchors() {
 
 // Copy code functionality
 function copyCode(button) {
-    const codeBlock = button.nextElementSibling;
+    const codeBlock = button.closest('.code-block').querySelector('pre code');
     const text = codeBlock.textContent;
     
     navigator.clipboard.writeText(text).then(() => {
@@ -327,35 +335,6 @@ function copyCode(button) {
         }, 2000);
     });
 }
-
-// Add copy buttons to code blocks
-function addCopyButtons() {
-    const codeBlocks = document.querySelectorAll('pre');
-    
-    codeBlocks.forEach(block => {
-        const copyButton = document.createElement('button');
-        copyButton.className = 'copy-code-btn';
-        copyButton.innerHTML = 'Copy';
-        copyButton.onclick = () => copyCode(copyButton);
-        
-        block.style.position = 'relative';
-        copyButton.style.position = 'absolute';
-        copyButton.style.top = '0.5rem';
-        copyButton.style.right = '0.5rem';
-        copyButton.style.background = 'var(--primary-color)';
-        copyButton.style.color = 'white';
-        copyButton.style.border = 'none';
-        copyButton.style.padding = '0.25rem 0.5rem';
-        copyButton.style.borderRadius = '4px';
-        copyButton.style.cursor = 'pointer';
-        copyButton.style.fontSize = '0.75rem';
-        
-        block.appendChild(copyButton);
-    });
-}
-
-// Initialize copy buttons after content loads
-setTimeout(addCopyButtons, 1000);
 
 // Theme toggle functionality (if needed)
 function toggleTheme() {
