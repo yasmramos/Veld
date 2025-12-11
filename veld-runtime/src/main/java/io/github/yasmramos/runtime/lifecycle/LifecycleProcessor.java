@@ -60,9 +60,9 @@ import java.util.stream.Collectors;
  */
 public class LifecycleProcessor {
     
-    // Package-private constructor for testing
-    LifecycleProcessor() {
-        // Allow instantiation for testing
+    // Private constructor to prevent direct instantiation
+    private LifecycleProcessor() {
+        throw new UnsupportedOperationException("LifecycleProcessor should not be instantiated directly. Use Veld DI framework.");
     }
     
     private static final Logger LOGGER = Logger.getLogger(LifecycleProcessor.class.getName());
