@@ -27,8 +27,8 @@ public final class VeldType {
     
     // === VARHANDLE FOR LAZY INITIALIZATION ===
     private static final VarHandle VALUE;
-    private static final AtomicReferenceFieldUpdater<VeldType, Object> VALUE_UPDATER = 
-        AtomicReferenceFieldUpdater.newUpdater(VeldType.class, Object.class, "value");
+    // Note: AtomicReferenceFieldUpdater requires specific class hierarchy
+    // We'll use VarHandle for atomic operations instead
     
     static {
         try {
