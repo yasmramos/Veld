@@ -27,13 +27,13 @@ public final class VeldType {
     
     // === VARHANDLE FOR LAZY INITIALIZATION ===
     private static final VarHandle VALUE;
-    private static final AtomicReferenceFieldUpdater<VeldTypeOptimized, Object> VALUE_UPDATER = 
-        AtomicReferenceFieldUpdater.newUpdater(VeldTypeOptimized.class, Object.class, "value");
+    private static final AtomicReferenceFieldUpdater<VeldType, Object> VALUE_UPDATER = 
+        AtomicReferenceFieldUpdater.newUpdater(VeldType.class, Object.class, "value");
     
     static {
         try {
             VALUE = MethodHandles.lookup()
-                .findVarHandle(VeldTypeOptimized.class, "value", Object.class);
+                .findVarHandle(VeldType.class, "value", Object.class);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException("Failed to initialize VarHandle", e);
         }
@@ -56,7 +56,7 @@ public final class VeldType {
         ThreadLocal.withInitial(() -> Boolean.FALSE);
     
     // === CONSTRUCTOR ===
-    public VeldTypeOptimized() {
+    public VeldType() {
         this.value = null;
     }
     
