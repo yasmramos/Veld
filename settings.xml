@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 
+         http://maven.apache.org/xsd/settings-1.0.0.xsd">
+
+    <profiles>
+        <profile>
+            <id>disable-depgraph</id>
+            <properties>
+                <depgraph.skip>true</depgraph.skip>
+                <depgraph.failOnError>false</depgraph.failOnError>
+            </properties>
+        </profile>
+        
+        <profile>
+            <id>veld-optimized</id>
+            <properties>
+                <skipTests>false</skipTests>
+                <failIfNoTests>false</failIfNoTests>
+                <maven.wagon.http.pool>false</maven.wagon.http.pool>
+                <maven.wagon.httpconnectionManager.ttlSeconds>120</maven.wagon.httpconnectionManager.ttlSeconds>
+            </properties>
+        </profile>
+    </profiles>
+
+    <activeProfiles>
+        <activeProfile>disable-depgraph</activeProfile>
+        <activeProfile>veld-optimized</activeProfile>
+    </activeProfiles>
+</settings>

@@ -429,17 +429,6 @@
                     <dependencyLocationsEnabled>true</dependencyLocationsEnabled>
                 </configuration>
             </plugin>
-
-            <!-- Dependency Graph Plugin - DISABLED DUE TO ERRORS -->
-            <plugin>
-                <groupId>com.github.ferstl</groupId>
-                <artifactId>depgraph-maven-plugin</artifactId>
-                <version>4.0.0</version>
-                <configuration>
-                    <skip>true</skip>
-                    <failOnError>false</failOnError>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
 
