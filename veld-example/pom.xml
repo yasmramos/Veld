@@ -70,7 +70,7 @@
             <!-- Veld Maven Plugin - TEMPORARILY DISABLED UNTIL COMPILED -->
             <!--
             <plugin>
-                <groupId>io.github.yasmramos.veld</groupId>
+                <groupId>io.github.yasmramos</groupId>
                 <artifactId>veld-maven-plugin</artifactId>
                 <version>${project.version}</version>
                 <extensions>true</extensions>

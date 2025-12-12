@@ -142,7 +142,7 @@
                         </path>
                         <!-- Veld annotation processor -->
                         <path>
-                            <groupId>io.github.yasmramos.veld</groupId>
+                            <groupId>io.github.yasmramos</groupId>
                             <artifactId>veld-processor</artifactId>
                             <version>${project.version}</version>
                         </path>

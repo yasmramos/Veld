@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.github.yasmramos.veld</groupId>
+    <groupId>io.github.yasmramos</groupId>
     <artifactId>veld-examples-benchmarks</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -30,27 +30,27 @@
         <dependencies>
             <!-- Veld Framework Dependencies (from local repository) -->
             <dependency>
-                <groupId>io.github.yasmramos.veld</groupId>
+                <groupId>io.github.yasmramos</groupId>
                 <artifactId>veld-annotations</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>
-                <groupId>io.github.yasmramos.veld</groupId>
+                <groupId>io.github.yasmramos</groupId>
                 <artifactId>veld-runtime</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>
-                <groupId>io.github.yasmramos.veld</groupId>
+                <groupId>io.github.yasmramos</groupId>
                 <artifactId>veld-aop</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>
-                <groupId>io.github.yasmramos.veld</groupId>
+                <groupId>io.github.yasmramos</groupId>
                 <artifactId>veld-processor</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>
-                <groupId>io.github.yasmramos.veld</groupId>
+                <groupId>io.github.yasmramos</groupId>
                 <artifactId>veld-weaver</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
             </dependency>
