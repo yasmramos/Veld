@@ -63,10 +63,9 @@
         <module>veld-processor</module>
         <module>veld-weaver</module>
         <module>veld-maven-plugin</module>
-        <module>veld-benchmark</module>
-        <module>veld-example</module>
         <module>veld-spring-boot-starter</module>
-        <module>veld-spring-boot-example</module>
+        <!-- veld-example and veld-benchmark excluded from parent build -->
+        <!-- These modules will be built separately after framework installation -->
     </modules>
 
     <properties>
