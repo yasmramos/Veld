@@ -20,6 +20,8 @@ jobs:
   benchmark:
     runs-on: ubuntu-latest
     
+    timeout-minutes: 20  # 20 minutos de timeout
+    
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -38,45 +40,106 @@ jobs:
       with:
         python-version: '3.9'
         
+    - name: Display versions
+      run: |
+        echo "=== System Information ==="
+        echo "Java version:"
+        java -version
+        echo "Maven version:"
+        mvn -version
+        echo "Available memory:"
+        free -h
+        
     - name: Create results directory
       run: mkdir -p veld-benchmark/results
       
-    # Phase 1: Build Veld Framework modules
+    # Phase 1: Test compilation first
+    - name: Test compilation with detailed output
+      run: |
+        echo "=== Testing Maven compilation ==="
+        mvn clean compile -X --batch-mode
+      env:
+        MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
+      timeout-minutes: 8
+      
+    # Phase 2: Build Veld Framework modules individually
     - name: Build Veld Annotations
-      run: mvn clean install -pl veld-annotations -am -DskipTests -q
-      
-    - name: Build Veld Runtime  
-      run: mvn clean install -pl veld-runtime -am -DskipTests -q
-      
-    - name: Build Veld Processor
-      run: mvn clean install -pl veld-processor -am -DskipTests -q
-      
-    # Phase 2: Build Benchmark module
-    - name: Build Benchmark Module
-      run: mvn clean package -pl veld-benchmark -am -DskipTests -q
+      run: |
+        echo "=== Building veld-annotations ==="
+        mvn clean install -pl veld-annotations -DskipTests
       env:
         MAVEN_OPTS: "-Ddepgraph.skip=true"
+      timeout-minutes: 5
+      
+    - name: Build Veld Runtime  
+      run: |
+        echo "=== Building veld-runtime ==="
+        mvn clean install -pl veld-runtime -am -DskipTests
+      env:
+        MAVEN_OPTS: "-Ddepgraph.skip=true"
+      timeout-minutes: 5
+      
+    - name: Build Veld Processor
+      run: |
+        echo "=== Building veld-processor ==="
+        mvn clean install -pl veld-processor -am -DskipTests
+      env:
+        MAVEN_OPTS: "-Ddepgraph.skip=true"
+      timeout-minutes: 5
+      
+    - name: Build Veld AOP
+      run: |
+        echo "=== Building veld-aop ==="
+        mvn clean install -pl veld-aop -am -DskipTests
+      env:
+        MAVEN_OPTS: "-Ddepgraph.skip=true"
+      timeout-minutes: 3
+      
+    # Phase 3: Build Benchmark module
+    - name: Build Benchmark Module
+      run: |
+        echo "=== Building veld-benchmark ==="
+        mvn clean package -pl veld-benchmark -am -DskipTests
+      env:
+        MAVEN_OPTS: "-Ddepgraph.skip=true"
+      timeout-minutes: 5
         
-    # Phase 3: Run Benchmarks
+    # Phase 4: Verify build success
+    - name: Verify benchmark JAR exists
+      run: |
+        echo "=== Verifying benchmark build ==="
+        if [ -f "veld-benchmark/target/veld-benchmark.jar" ]; then
+          echo "✅ Benchmark JAR built successfully"
+          ls -la veld-benchmark/target/veld-benchmark.jar
+        else
+          echo "❌ Benchmark JAR not found!"
+          echo "Checking target directory:"
+          ls -la veld-benchmark/target/ 2>/dev/null || echo "Target directory missing"
+          exit 1
+        fi
+      
+    # Phase 5: Run Benchmarks
     - name: Run Quick Benchmarks
       if: ${{ github.event.inputs.benchmark_mode == 'quick' || github.event.inputs.benchmark_mode == '' }}
       run: |
         cd veld-benchmark
         echo "🚀 Running QUICK benchmarks for development..."
-        java -jar target/veld-benchmark.jar \
+        java -Xmx1g -jar target/veld-benchmark.jar \
           -f 1 -wi 1 -i 2 \
           -rf json \
           -rff results/quick-benchmarks.json
+      timeout-minutes: 3
           
     - name: Run Full Benchmarks  
       if: ${{ github.event.inputs.benchmark_mode == 'full' }}
       run: |
         cd veld-benchmark
         echo "🏆 Running FULL benchmarks for publication..."
-        java -jar target/veld-benchmark.jar \
+        java -Xmx2g -jar target/veld-benchmark.jar \
           -f 5 -wi 5 -i 10 \
           -rf json \
           -rff results/full-benchmarks.json
+      timeout-minutes: 10
           
     - name: Run Selective Benchmarks
       if: ${{ github.event.inputs.benchmark_mode == '' }}
@@ -85,39 +148,72 @@ jobs:
         echo "🎯 Running SELECTIVE benchmarks..."
         
         # Startup performance
-        java -jar target/veld-benchmark.jar ".*Startup.*" \
+        echo "Running startup benchmarks..."
+        java -Xmx1g -jar target/veld-benchmark.jar ".*Startup.*" \
           -f 2 -wi 3 -i 5 \
           -rf json -rff results/startup-results.json
           
         # Injection performance  
-        java -jar target/veld-benchmark.jar ".*Injection.*" \
+        echo "Running injection benchmarks..."
+        java -Xmx1g -jar target/veld-benchmark.jar ".*Injection.*" \
           -f 2 -wi 3 -i 5 \
           -rf json -rff results/injection-results.json
           
         # Throughput performance
-        java -jar target/veld-benchmark.jar ".*Throughput.*" \
+        echo "Running throughput benchmarks..."
+        java -Xmx1g -jar target/veld-benchmark.jar ".*Throughput.*" \
           -f 2 -wi 3 -i 5 \
           -rf json -rff results/throughput-results.json
           
         # Memory performance
-        java -jar target/veld-benchmark.jar ".*Memory.*" \
+        echo "Running memory benchmarks..."
+        java -Xmx1g -jar target/veld-benchmark.jar ".*Memory.*" \
           -f 2 -wi 3 -i 5 \
           -rf json -rff results/memory-results.json
+      timeout-minutes: 5
           
-    # Phase 4: Analyze Results (if Python script exists)
+    # Phase 6: Debug build issues if benchmark fails
+    - name: Debug build issues
+      if: failure()
+      run: |
+        echo "=== Debugging build issues ==="
+        echo "Project structure:"
+        find . -name "pom.xml" -exec echo "Found POM: {}" \;
+        
+        echo "Java source structure:"
+        find . -path "*/src/main/java" -type d | head -10
+        
+        echo "Maven local repository:"
+        ls -la ~/.m2/repository/io/github/yasmramos/ 2>/dev/null || echo "No Veld artifacts in local repo"
+        
+        echo "Recent Maven logs:"
+        find ~/.m2/repository -name "*.log" -mtime -1 | head -5 | while read log; do
+          echo "=== $log ==="
+          tail -20 "$log"
+        done
+        
+    # Phase 7: Analyze Results (if Python script exists)
     - name: Generate Analysis Report
       if: always()
       run: |
-        if [ -f "veld-benchmark/scripts/analyze-strategic-results.py" ]; then
-          echo "📊 Generating analysis report..."
-          cd veld-benchmark
-          python3 scripts/analyze-strategic-results.py || echo "Analysis script failed, continuing..."
+        echo "=== Analyzing benchmark results ==="
+        if [ -d "veld-benchmark/results" ]; then
+          echo "Results directory contents:"
+          ls -la veld-benchmark/results/
+          
+          if [ -f "veld-benchmark/scripts/analyze-strategic-results.py" ]; then
+            echo "📊 Generating analysis report..."
+            cd veld-benchmark
+            python3 scripts/analyze-strategic-results.py || echo "Analysis script failed, continuing..."
+          else
+            echo "📊 Basic results summary:"
+            find veld-benchmark/results/ -name "*.json" -exec echo "✅ {}" \;
+          fi
         else
-          echo "📊 Basic results summary:"
-          find results/ -name "*.json" -exec echo "✅ {}" \;
+          echo "❌ No results directory found"
         fi
         
-    # Phase 5: Upload Results as Artifacts
+    # Phase 8: Upload Results as Artifacts
     - name: Upload Benchmark Results
       uses: actions/upload-artifact@v4
       if: always()
@@ -128,15 +224,17 @@ jobs:
           veld-benchmark/target/veld-benchmark.jar
         retention-days: 30
         
-    - name: Upload Benchmark JAR
+    - name: Upload Build Logs
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: veld-benchmark-executable-${{ github.run_number }}
-        path: veld-benchmark/target/veld-benchmark.jar
-        retention-days: 30
+        name: build-logs-${{ github.run_number }}
+        path: |
+          **/target/*.log
+          ~/.m2/repository/io/github/yasmramos/**/maven-metadata*.xml
+        retention-days: 7
         
-    # Phase 6: Summary
+    # Phase 9: Summary
     - name: Benchmark Summary
       if: always()
       run: |
@@ -158,5 +256,6 @@ jobs:
           echo "**Artifacts:** Benchmark results and executable JAR have been uploaded." >> $GITHUB_STEP_SUMMARY
         else
           echo "### ⚠️ No benchmark results generated" >> $GITHUB_STEP_SUMMARY
-          echo "Check the build logs for any errors during benchmark execution." >> $GITHUB_STEP_SUMMARY
+          echo "This usually indicates a compilation or build failure." >> $GITHUB_STEP_SUMMARY
+          echo "Check the build logs and uploaded artifacts for debugging information." >> $GITHUB_STEP_SUMMARY
         fi
