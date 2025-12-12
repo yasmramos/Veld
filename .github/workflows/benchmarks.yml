@@ -45,59 +45,112 @@ jobs:
     - name: Build complete Veld project
       run: |
         echo "=== CONSTRUYENDO PROYECTO VELD COMPLETO ==="
-        # Install all Veld modules in correct dependency order
-        # This ensures all dependencies are resolved for the benchmark module
+        # Install Veld modules step by step to avoid dependency resolution issues
         
-        # Install core modules first (annotations, runtime, processor)
-        mvn install -pl veld-annotations,veld-runtime,veld-aop,veld-processor,veld-weaver -am -DskipTests -q
+        # Step 1: Install parent POM first
+        echo "📦 Instalando parent POM..."
+        mvn install -N -DskipTests -q || {
+            echo "❌ Parent POM installation failed"
+            exit 1
+        }
         
-        # Verify installation was successful
-        if [ -f "veld-annotations/target/veld-annotations-*.jar" ]; then
-            echo "✅ veld-annotations installed successfully"
-        else
+        # Step 2: Install core modules individually in dependency order
+        echo "📦 Instalando veld-annotations..."
+        mvn install -pl veld-annotations -am -DskipTests -q || {
             echo "❌ veld-annotations installation failed"
-        fi
+            exit 1
+        }
         
-        if [ -f "veld-runtime/target/veld-runtime-*.jar" ]; then
-            echo "✅ veld-runtime installed successfully"
-        else
+        echo "📦 Instalando veld-runtime..."
+        mvn install -pl veld-runtime -am -DskipTests -q || {
             echo "❌ veld-runtime installation failed"
-        fi
+            exit 1
+        }
         
-        if [ -f "veld-processor/target/veld-processor-*.jar" ]; then
-            echo "✅ veld-processor installed successfully"
-        else
+        echo "📦 Instalando veld-aop..."
+        mvn install -pl veld-aop -am -DskipTests -q || {
+            echo "❌ veld-aop installation failed"
+            exit 1
+        }
+        
+        echo "📦 Instalando veld-processor..."
+        mvn install -pl veld-processor -am -DskipTests -q || {
             echo "❌ veld-processor installation failed"
-        fi
+            exit 1
+        }
         
-        echo "✅ Veld project built with all dependencies"
+        echo "📦 Instalando veld-weaver..."
+        mvn install -pl veld-weaver -am -DskipTests -q || {
+            echo "❌ veld-weaver installation failed"
+            exit 1
+        }
+        
+        # Verify all installations were successful
+        echo "🔍 Verificando instalaciones..."
+        local success=true
+        
+        for module in veld-annotations veld-runtime veld-aop veld-processor veld-weaver; do
+            if [ -f "$module/target/$module-*.jar" ]; then
+                echo "✅ $module installed successfully"
+            else
+                echo "❌ $module installation failed"
+                success=false
+            fi
+        done
+        
+        if [ "$success" = true ]; then
+            echo "✅ Veld project built with all dependencies"
+        else
+            echo "❌ Some modules failed to install"
+            exit 1
+        fi
           
     - name: Build and run JMH Benchmarks
       run: |
         echo "=== CONSTRUYENDO Y EJECUTANDO BENCHMARKS JMH COMPLETOS ==="
+        
         # Build benchmark module with all dependencies resolved
-        mvn install -pl veld-benchmark -am -DskipTests -q
+        echo "📦 Construyendo veld-benchmark..."
+        mvn install -pl veld-benchmark -am -DskipTests -q || {
+            echo "❌ veld-benchmark build failed"
+            echo "🔍 Debugging build failure..."
+            mvn install -pl veld-benchmark -am -DskipTests
+            exit 1
+        }
         
         # Verify benchmark module was built
         if [ -f "veld-benchmark/target/veld-benchmark-*.jar" ]; then
             echo "✅ veld-benchmark built successfully"
         else
-            echo "❌ veld-benchmark build failed"
+            echo "❌ veld-benchmark build failed - JAR not found"
+            echo "🔍 Checking target directory contents:"
+            ls -la veld-benchmark/target/ || echo "Target directory not found"
             exit 1
         fi
         
         # Run JMH benchmarks using the correct class
+        echo "🚀 Ejecutando JMH benchmarks..."
         cd veld-benchmark
         mvn exec:java \
           -Dexec.mainClass="io.github.yasmramos.benchmark.BenchmarkRunner" \
           -Dexec.args="Injection -f 1 -wi 1 -i 2 -rf json -rff benchmark-results.json" \
-          -q
+          -q || {
+            echo "⚠️ JMH benchmark execution failed, trying alternative approach..."
+            # Alternative: run directly with java
+            java -jar target/veld-benchmark.jar Injection -f 1 -wi 1 -i 2 -rf json -rff benchmark-results.json || {
+                echo "❌ Both benchmark execution methods failed"
+                exit 1
+            }
+        }
         
         # Check if benchmark results were generated
         if [ -f "benchmark-results.json" ]; then
             echo "✅ JMH benchmark results generated successfully"
+            echo "📊 Results file size: $(wc -c < benchmark-results.json) bytes"
         else
             echo "❌ JMH benchmark failed to generate results"
+            echo "🔍 Checking for any result files:"
+            ls -la *.json 2>/dev/null || echo "No JSON files found"
         fi
         
     - name: Run Additional JMH Benchmarks
@@ -105,28 +158,64 @@ jobs:
         echo "=== EJECUTANDO BENCHMARKS ADICIONALES ==="
         cd veld-benchmark
         
+        # Function to run benchmark with fallback
+        run_benchmark() {
+            local benchmark_name=$1
+            local output_file=$2
+            
+            echo "🚀 Ejecutando benchmark: $benchmark_name"
+            
+            # Try with Maven exec first
+            if mvn exec:java \
+                -Dexec.mainClass="io.github.yasmramos.benchmark.BenchmarkRunner" \
+                -Dexec.args="$benchmark_name -f 1 -wi 1 -i 2 -rf json -rff $output_file" \
+                -q; then
+                echo "✅ $benchmark_name benchmark completed successfully"
+            else
+                echo "⚠️ Maven exec failed for $benchmark_name, trying direct java..."
+                # Fallback to direct java execution
+                if java -jar target/veld-benchmark.jar "$benchmark_name" -f 1 -wi 1 -i 2 -rf json -rff "$output_file"; then
+                    echo "✅ $benchmark_name benchmark completed with direct java"
+                else
+                    echo "❌ $benchmark_name benchmark failed completely"
+                    return 1
+                fi
+            fi
+        }
+        
         # Run startup benchmarks
-        mvn exec:java \
-          -Dexec.mainClass="io.github.yasmramos.benchmark.BenchmarkRunner" \
-          -Dexec.args="Startup -f 1 -wi 1 -i 2 -rf json -rff startup-results.json" \
-          -q
+        run_benchmark "Startup" "startup-results.json"
         
         # Run throughput benchmarks
-        mvn exec:java \
-          -Dexec.mainClass="io.github.yasmramos.benchmark.BenchmarkRunner" \
-          -Dexec.args="Throughput -f 1 -wi 1 -i 2 -rf json -rff throughput-results.json" \
-          -q
+        run_benchmark "Throughput" "throughput-results.json"
         
         # Verify all benchmark results
         echo "=== VERIFICANDO RESULTADOS DE BENCHMARKS ==="
+        local success_count=0
+        local total_count=0
+        
         for result_file in benchmark-results.json startup-results.json throughput-results.json; do
+            total_count=$((total_count + 1))
             if [ -f "$result_file" ]; then
-                echo "✅ $result_file generated successfully"
-                echo "📊 File size: $(wc -c < "$result_file") bytes"
+                size=$(wc -c < "$result_file")
+                if [ "$size" -gt 100 ]; then
+                    echo "✅ $result_file generated successfully ($size bytes)"
+                    success_count=$((success_count + 1))
+                else
+                    echo "⚠️ $result_file generated but seems incomplete ($size bytes)"
+                fi
             else
                 echo "❌ $result_file not found"
             fi
         done
+        
+        echo "📊 Benchmark summary: $success_count/$total_count benchmarks completed successfully"
+        
+        if [ "$success_count" -ge 2 ]; then
+            echo "✅ Sufficient benchmark results generated"
+        else
+            echo "⚠️ Insufficient benchmark results, but continuing..."
+        fi
           
     - name: Generate benchmark reports
       run: |
