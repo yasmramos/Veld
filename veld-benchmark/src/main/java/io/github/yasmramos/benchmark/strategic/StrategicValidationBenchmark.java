@@ -12,6 +12,7 @@ package io.github.yasmramos.benchmark.strategic;
 import io.github.yasmramos.generated.Veld;
 import io.github.yasmramos.benchmark.veld.*;
 import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.annotations.GroupThreads;
 import org.openjdk.jmh.results.format.ResultFormatType;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -69,14 +70,14 @@ public class StrategicValidationBenchmark {
 
     @Benchmark
     @Group("concurrent")
-    @Threads(4)
+    @GroupThreads(4)
     public Object concurrentLookup(ScalabilityState state) {
         return Veld.get(state.randomServiceType()); // Random among 7 services
     }
 
     @Benchmark  
     @Group("single")
-    @Threads(1)
+    @GroupThreads(1)
     public Object singleThreadLookup() {
         return Veld.get(VeldSimpleService.class); // Always same (best case)
     }
@@ -94,7 +95,7 @@ public class StrategicValidationBenchmark {
 
     @Benchmark
     @Group("lazyContention")
-    @Threads(8)  // Maximum contention
+    @GroupThreads(8)  // Maximum contention
     public Object getLazyService(LazyContentionState state) {
         return state.getExpensiveService();
     }
@@ -159,7 +160,7 @@ public class StrategicValidationBenchmark {
      */
     @Benchmark
     @Group("hashCollision")
-    @Threads(4)
+    @GroupThreads(4)
     public Object worstCaseHashCollision() {
         // Force worst-case: services that hash to similar values
         // This tests the linear probing in array search
@@ -171,7 +172,7 @@ public class StrategicValidationBenchmark {
             VeldComplexService.class
         };
         
-        return Veld.get(worstTypes[Thread.currentThread().getId() % worstTypes.length]);
+        return Veld.get(worstTypes[(int)(Thread.currentThread().getId() % worstTypes.length)]);
     }
 
     // =============================================
@@ -185,7 +186,7 @@ public class StrategicValidationBenchmark {
      */
     @Benchmark
     @Group("varhandle")
-    @Threads(8)
+    @GroupThreads(8)
     public Object varHandleVsCasOverhead() {
         // Test both scenarios:
         // 1. Veld.get() - direct reference comparison (current implementation)
@@ -255,14 +256,14 @@ public class StrategicValidationBenchmark {
 
     @Benchmark
     @Group("efficiency")
-    @Threads(4)
+    @GroupThreads(4)
     public Object concurrentEfficiency(EfficiencyState state) {
         return Veld.get(state.randomServiceType());
     }
 
     @Benchmark
     @Group("efficiency")
-    @Threads(1)
+    @GroupThreads(1)
     public Object singleEfficiency(EfficiencyState state) {
         return Veld.get(state.randomServiceType());
     }

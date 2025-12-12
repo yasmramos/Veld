@@ -27,7 +27,8 @@ public class ExpensiveLazyService {
     private final String initializationData;
     
     // Simulate expensive initialization
-    public ExpensiveLazyService(@Inject VeldLogger logger) {
+    @Inject
+    public ExpensiveLazyService(VeldLogger logger) {
         this.logger = logger;
         
         // Expensive initialization to simulate real-world lazy service
