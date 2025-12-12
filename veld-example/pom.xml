@@ -67,13 +67,15 @@
 
     <build>
         <plugins>
-            <!-- Veld Maven Plugin -->
+            <!-- Veld Maven Plugin - TEMPORARILY DISABLED UNTIL COMPILED -->
+            <!--
             <plugin>
                 <groupId>io.github.yasmramos</groupId>
                 <artifactId>veld-maven-plugin</artifactId>
                 <version>${project.version}</version>
                 <extensions>true</extensions>
             </plugin>
+            -->
 
             <!-- Exec Maven Plugin for running the example -->
             <plugin>
