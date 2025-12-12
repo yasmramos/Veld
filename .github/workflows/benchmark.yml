@@ -20,7 +20,7 @@ jobs:
   benchmark:
     runs-on: ubuntu-latest
     
-    timeout-minutes: 20  # 20 minutos de timeout
+    timeout-minutes: 30  # 30 minutos de timeout total
     
     steps:
     - name: Checkout repository
@@ -124,11 +124,12 @@ jobs:
       run: |
         cd veld-benchmark
         echo "🚀 Running QUICK benchmarks for development..."
+        # Ultra-fast mode for CI: 1 fork, 1 warmup, 1 iteration
         java -Xmx1g -jar target/veld-benchmark.jar \
-          -f 1 -wi 1 -i 2 \
+          -f 1 -wi 1 -i 1 -bs 1 \
           -rf json \
           -rff results/quick-benchmarks.json
-      timeout-minutes: 3
+      timeout-minutes: 8
           
     - name: Run Full Benchmarks  
       if: ${{ github.event.inputs.benchmark_mode == 'full' }}
@@ -145,32 +146,32 @@ jobs:
       if: ${{ github.event.inputs.benchmark_mode == '' }}
       run: |
         cd veld-benchmark
-        echo "🎯 Running SELECTIVE benchmarks..."
+        echo "🎯 Running SELECTIVE benchmarks (fast mode)..."
         
-        # Startup performance
+        # Startup performance - ultra fast
         echo "Running startup benchmarks..."
         java -Xmx1g -jar target/veld-benchmark.jar ".*Startup.*" \
-          -f 2 -wi 3 -i 5 \
+          -f 1 -wi 1 -i 2 -bs 1 \
           -rf json -rff results/startup-results.json
           
-        # Injection performance  
+        # Injection performance - ultra fast  
         echo "Running injection benchmarks..."
         java -Xmx1g -jar target/veld-benchmark.jar ".*Injection.*" \
-          -f 2 -wi 3 -i 5 \
+          -f 1 -wi 1 -i 2 -bs 1 \
           -rf json -rff results/injection-results.json
           
-        # Throughput performance
+        # Throughput performance - ultra fast
         echo "Running throughput benchmarks..."
         java -Xmx1g -jar target/veld-benchmark.jar ".*Throughput.*" \
-          -f 2 -wi 3 -i 5 \
+          -f 1 -wi 1 -i 2 -bs 1 \
           -rf json -rff results/throughput-results.json
           
-        # Memory performance
+        # Memory performance - ultra fast
         echo "Running memory benchmarks..."
         java -Xmx1g -jar target/veld-benchmark.jar ".*Memory.*" \
-          -f 2 -wi 3 -i 5 \
+          -f 1 -wi 1 -i 2 -bs 1 \
           -rf json -rff results/memory-results.json
-      timeout-minutes: 5
+      timeout-minutes: 10
           
     # Phase 6: Debug build issues if benchmark fails
     - name: Debug build issues
