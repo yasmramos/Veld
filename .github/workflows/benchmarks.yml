@@ -44,12 +44,12 @@ jobs:
         
     - name: Build and compile
       run: |
-        ./mvnw clean compile -q
+        mvn clean compile -q
         
     - name: Run JMH Benchmarks
       run: |
         echo "=== EJECUTANDO BENCHMARKS JMH ==="
-        ./mvnw -pl veld-benchmark -am exec:java \
+        mvn -pl veld-benchmark -am exec:java \
           -Dexec.mainClass="com.veld.benchmark.Phase1OptimizationBenchmark" \
           -Dexec.args="--includeRegex=.* --timeoutPerIteration=60s" \
           -q
@@ -68,7 +68,7 @@ jobs:
     - name: Compile and run unit tests
       run: |
         echo "=== EJECUTANDO TESTS UNITARIOS ==="
-        ./mvnw test -q
+        mvn test -q
         
     - name: Upload benchmark results
       uses: actions/upload-artifact@v4
