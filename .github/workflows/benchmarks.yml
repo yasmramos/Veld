@@ -44,12 +44,10 @@ jobs:
         
     - name: Build and compile
       run: |
-        cd /workspace/Veld
         ./mvnw clean compile -q
         
     - name: Run JMH Benchmarks
       run: |
-        cd /workspace/Veld
         echo "=== EJECUTANDO BENCHMARKS JMH ==="
         ./mvnw -pl veld-benchmark -am exec:java \
           -Dexec.mainClass="com.veld.benchmark.Phase1OptimizationBenchmark" \
@@ -58,20 +56,17 @@ jobs:
           
     - name: Run Simple Benchmarks
       run: |
-        cd /workspace/Veld
         echo "=== EJECUTANDO BENCHMARKS SIMPLES ==="
         java -cp veld-benchmark/target/classes:veld-runtime/target/classes:veld-annotations/target/classes \
           com.veld.benchmark.SimpleBenchmark
           
     - name: Generate benchmark reports
       run: |
-        cd /workspace/Veld
         echo "=== GENERANDO REPORTES DE BENCHMARKS ==="
         python3 ../generate_benchmark_report.py
         
     - name: Compile and run unit tests
       run: |
-        cd /workspace/Veld
         echo "=== EJECUTANDO TESTS UNITARIOS ==="
         ./mvnw test -q
         
@@ -80,9 +75,9 @@ jobs:
       with:
         name: benchmark-results-java-${{ matrix.java-version }}
         path: |
-          /workspace/Veld/veld-benchmark/benchmark-results*.json
-          /workspace/Veld/benchmark-reports/
-          /workspace/Veld/jmh-standalone/benchmark-results*.json
+          veld-benchmark/benchmark-results*.json
+          benchmark-reports/
+          jmh-standalone/benchmark-results*.json
         retention-days: 30
         
     - name: Upload test results
@@ -90,7 +85,7 @@ jobs:
       with:
         name: test-results-java-${{ matrix.java-version }}
         path: |
-          /workspace/Veld/**/target/surefire-reports/
+          **/target/surefire-reports/
         retention-days: 7
         
     - name: Archive compilation artifacts
@@ -98,7 +93,7 @@ jobs:
       with:
         name: compilation-artifacts-java-${{ matrix.java-version }}
         path: |
-          /workspace/Veld/**/target/classes/
+          **/target/classes/
         retention-days: 7
 
   generate-final-report:
@@ -147,7 +142,6 @@ jobs:
       
     - name: Run performance analysis
       run: |
-        cd /workspace/Veld
         echo "=== ANÁLISIS DE RENDIMIENTO ==="
         python3 ../performance_analysis.py
         
