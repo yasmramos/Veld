@@ -87,7 +87,7 @@ jobs:
         
         # Verify all installations were successful
         echo "🔍 Verificando instalaciones..."
-        local success=true
+        success=true
         
         for module in veld-annotations veld-runtime veld-aop veld-processor veld-weaver; do
             if [ -f "$module/target/$module-*.jar" ]; then
@@ -98,7 +98,7 @@ jobs:
             fi
         done
         
-        if [ "$success" = true ]; then
+        if [ "$success" = "true" ]; then
             echo "✅ Veld project built with all dependencies"
         else
             echo "❌ Some modules failed to install"
@@ -191,8 +191,8 @@ jobs:
         
         # Verify all benchmark results
         echo "=== VERIFICANDO RESULTADOS DE BENCHMARKS ==="
-        local success_count=0
-        local total_count=0
+        success_count=0
+        total_count=0
         
         for result_file in benchmark-results.json startup-results.json throughput-results.json; do
             total_count=$((total_count + 1))
