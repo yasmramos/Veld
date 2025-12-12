@@ -1,0 +1,181 @@
+name: Veld DI Framework - Benchmarks & Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Ejecutar benchmarks diariamente a las 02:00 UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  benchmarks:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        java-version: [11, 17]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK ${{ matrix.java-version }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ matrix.java-version }}
+        distribution: 'temurin'
+        
+    - name: Cache Maven packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+        
+    - name: Cache JMH benchmarks
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.m2/repository/org/openjdk/jmh
+          ~/.m2/repository/org/apache/maven
+        key: ${{ runner.os }}-jmh-${{ hashFiles('**/pom.xml') }}
+        
+    - name: Build and compile
+      run: |
+        cd /workspace/Veld
+        ./mvnw clean compile -q
+        
+    - name: Run JMH Benchmarks
+      run: |
+        cd /workspace/Veld
+        echo "=== EJECUTANDO BENCHMARKS JMH ==="
+        ./mvnw -pl veld-benchmark -am exec:java \
+          -Dexec.mainClass="com.veld.benchmark.Phase1OptimizationBenchmark" \
+          -Dexec.args="--includeRegex=.* --timeoutPerIteration=60s" \
+          -q
+          
+    - name: Run Simple Benchmarks
+      run: |
+        cd /workspace/Veld
+        echo "=== EJECUTANDO BENCHMARKS SIMPLES ==="
+        java -cp veld-benchmark/target/classes:veld-runtime/target/classes:veld-annotations/target/classes \
+          com.veld.benchmark.SimpleBenchmark
+          
+    - name: Generate benchmark reports
+      run: |
+        cd /workspace/Veld
+        echo "=== GENERANDO REPORTES DE BENCHMARKS ==="
+        python3 ../generate_benchmark_report.py
+        
+    - name: Compile and run unit tests
+      run: |
+        cd /workspace/Veld
+        echo "=== EJECUTANDO TESTS UNITARIOS ==="
+        ./mvnw test -q
+        
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v3
+      with:
+        name: benchmark-results-java-${{ matrix.java-version }}
+        path: |
+          /workspace/Veld/veld-benchmark/benchmark-results*.json
+          /workspace/Veld/benchmark-reports/
+          /workspace/Veld/jmh-standalone/benchmark-results*.json
+        retention-days: 30
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-java-${{ matrix.java-version }}
+        path: |
+          /workspace/Veld/**/target/surefire-reports/
+        retention-days: 7
+        
+    - name: Archive compilation artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: compilation-artifacts-java-${{ matrix.java-version }}
+        path: |
+          /workspace/Veld/**/target/classes/
+        retention-days: 7
+
+  generate-final-report:
+    needs: benchmarks
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      
+    - name: Generate consolidated report
+      run: |
+        echo "=== GENERANDO REPORTE CONSOLIDADO ==="
+        python3 ../consolidate_benchmark_reports.py
+        
+    - name: Commit benchmark results
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add benchmark-reports/
+        git commit -m "🤖 Auto-update benchmark results" || echo "No changes to commit"
+        git push || echo "Could not push changes"
+        
+    - name: Upload consolidated results
+      uses: actions/upload-artifact@v3
+      with:
+        name: consolidated-benchmark-report
+        path: benchmark-reports/
+        retention-days: 90
+
+  performance-analysis:
+    needs: [benchmarks, generate-final-report]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      
+    - name: Run performance analysis
+      run: |
+        cd /workspace/Veld
+        echo "=== ANÁLISIS DE RENDIMIENTO ==="
+        python3 ../performance_analysis.py
+        
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          let comment = '## 📊 Benchmark Results\\n\\n';
+          
+          try {
+            const reportPath = 'benchmark-reports/consolidated-report.md';
+            if (fs.existsSync(reportPath)) {
+              const report = fs.readFileSync(reportPath, 'utf8');
+              comment += report;
+            } else {
+              comment += '❌ No benchmark report available';
+            }
+          } catch (error) {
+            comment += `❌ Error reading report: ${error.message}`;
+          }
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
