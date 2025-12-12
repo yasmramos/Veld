@@ -267,7 +267,7 @@ jobs:
         echo "✅ Reporte generado: build-report.md"
         
     - name: Archive build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: veld-build-artifacts
         path: |
@@ -277,7 +277,7 @@ jobs:
         retention-days: 30
         
     - name: Archive compilation results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: compilation-results
         path: |
@@ -295,7 +295,7 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Download build artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: veld-build-artifacts
         
@@ -320,7 +320,7 @@ jobs:
         echo "✅ Benchmarks completados"
         
     - name: Upload benchmark results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: benchmark-results
         path: |
