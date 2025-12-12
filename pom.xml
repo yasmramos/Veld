@@ -64,8 +64,8 @@
         <module>veld-weaver</module>
         <module>veld-maven-plugin</module>
         <module>veld-spring-boot-starter</module>
-        <!-- veld-example and veld-benchmark excluded from parent build -->
-        <!-- These modules will be built separately after framework installation -->
+        <module>veld-benchmark</module>
+        <module>veld-example</module>
     </modules>
 
     <properties>
@@ -169,6 +169,13 @@
                 <version>${jakarta.inject.version}</version>
             </dependency>
 
+            <!-- Depgraph Maven Plugin -->
+            <dependency>
+                <groupId>com.github.ferstl</groupId>
+                <artifactId>depgraph-maven-plugin</artifactId>
+                <version>4.0.1</version>
+            </dependency>
+
             <!-- Spring Boot -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -189,6 +196,20 @@
             <dependency>
                 <groupId>io.github.yasmramos</groupId>
                 <artifactId>veld-weaver</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Veld Example -->
+            <dependency>
+                <groupId>io.github.yasmramos</groupId>
+                <artifactId>veld-example</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Veld Benchmark -->
+            <dependency>
+                <groupId>io.github.yasmramos</groupId>
+                <artifactId>veld-benchmark</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -427,6 +448,16 @@
                 <configuration>
                     <dependencyDetailsEnabled>true</dependencyDetailsEnabled>
                     <dependencyLocationsEnabled>true</dependencyLocationsEnabled>
+                </configuration>
+            </plugin>
+
+            <!-- Depgraph Maven Plugin - Safe Configuration -->
+            <plugin>
+                <groupId>com.github.ferstl</groupId>
+                <artifactId>depgraph-maven-plugin</artifactId>
+                <version>4.0.1</version>
+                <configuration>
+                    <skip>true</skip>
                 </configuration>
             </plugin>
         </plugins>
