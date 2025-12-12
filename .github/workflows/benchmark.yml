@@ -1,0 +1,162 @@
+name: Benchmark Performance Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      benchmark_mode:
+        description: 'Benchmark mode'
+        required: true
+        default: 'quick'
+        type: choice
+        options:
+          - quick
+          - full
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for better analysis
+        
+    - name: Set up JDK 11
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: Install Python for analysis
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Create results directory
+      run: mkdir -p veld-benchmark/results
+      
+    # Phase 1: Build Veld Framework modules
+    - name: Build Veld Annotations
+      run: mvn clean install -pl veld-annotations -am -DskipTests -q
+      
+    - name: Build Veld Runtime  
+      run: mvn clean install -pl veld-runtime -am -DskipTests -q
+      
+    - name: Build Veld Processor
+      run: mvn clean install -pl veld-processor -am -DskipTests -q
+      
+    # Phase 2: Build Benchmark module
+    - name: Build Benchmark Module
+      run: mvn clean package -pl veld-benchmark -am -DskipTests -q
+      env:
+        MAVEN_OPTS: "-Ddepgraph.skip=true"
+        
+    # Phase 3: Run Benchmarks
+    - name: Run Quick Benchmarks
+      if: ${{ github.event.inputs.benchmark_mode == 'quick' || github.event.inputs.benchmark_mode == '' }}
+      run: |
+        cd veld-benchmark
+        echo "🚀 Running QUICK benchmarks for development..."
+        java -jar target/veld-benchmark.jar \
+          -f 1 -wi 1 -i 2 \
+          -rf json \
+          -rff results/quick-benchmarks.json
+          
+    - name: Run Full Benchmarks  
+      if: ${{ github.event.inputs.benchmark_mode == 'full' }}
+      run: |
+        cd veld-benchmark
+        echo "🏆 Running FULL benchmarks for publication..."
+        java -jar target/veld-benchmark.jar \
+          -f 5 -wi 5 -i 10 \
+          -rf json \
+          -rff results/full-benchmarks.json
+          
+    - name: Run Selective Benchmarks
+      if: ${{ github.event.inputs.benchmark_mode == '' }}
+      run: |
+        cd veld-benchmark
+        echo "🎯 Running SELECTIVE benchmarks..."
+        
+        # Startup performance
+        java -jar target/veld-benchmark.jar ".*Startup.*" \
+          -f 2 -wi 3 -i 5 \
+          -rf json -rff results/startup-results.json
+          
+        # Injection performance  
+        java -jar target/veld-benchmark.jar ".*Injection.*" \
+          -f 2 -wi 3 -i 5 \
+          -rf json -rff results/injection-results.json
+          
+        # Throughput performance
+        java -jar target/veld-benchmark.jar ".*Throughput.*" \
+          -f 2 -wi 3 -i 5 \
+          -rf json -rff results/throughput-results.json
+          
+        # Memory performance
+        java -jar target/veld-benchmark.jar ".*Memory.*" \
+          -f 2 -wi 3 -i 5 \
+          -rf json -rff results/memory-results.json
+          
+    # Phase 4: Analyze Results (if Python script exists)
+    - name: Generate Analysis Report
+      if: always()
+      run: |
+        if [ -f "veld-benchmark/scripts/analyze-strategic-results.py" ]; then
+          echo "📊 Generating analysis report..."
+          cd veld-benchmark
+          python3 scripts/analyze-strategic-results.py || echo "Analysis script failed, continuing..."
+        else
+          echo "📊 Basic results summary:"
+          find results/ -name "*.json" -exec echo "✅ {}" \;
+        fi
+        
+    # Phase 5: Upload Results as Artifacts
+    - name: Upload Benchmark Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: benchmark-results-${{ github.run_number }}
+        path: |
+          veld-benchmark/results/
+          veld-benchmark/target/veld-benchmark.jar
+        retention-days: 30
+        
+    - name: Upload Benchmark JAR
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: veld-benchmark-executable-${{ github.run_number }}
+        path: veld-benchmark/target/veld-benchmark.jar
+        retention-days: 30
+        
+    # Phase 6: Summary
+    - name: Benchmark Summary
+      if: always()
+      run: |
+        echo "## 🏁 Benchmark Execution Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Mode:** ${{ github.event.inputs.benchmark_mode || 'default (selective)' }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Java Version:** $(java -version 2>&1 | head -1)" >> $GITHUB_STEP_SUMMARY
+        echo "**Maven Version:** $(mvn -version | head -1)" >> $GITHUB_STEP_SUMMARY
+        echo "**Timestamp:** $(date)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -d "veld-benchmark/results" ] && [ "$(ls -A veld-benchmark/results/*.json 2>/dev/null)" ]; then
+          echo "### 📊 Results Generated:" >> $GITHUB_STEP_SUMMARY
+          find veld-benchmark/results/ -name "*.json" -exec basename {} \; | while read file; do
+            echo "- ✅ $file" >> $GITHUB_STEP_SUMMARY
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Artifacts:** Benchmark results and executable JAR have been uploaded." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ⚠️ No benchmark results generated" >> $GITHUB_STEP_SUMMARY
+          echo "Check the build logs for any errors during benchmark execution." >> $GITHUB_STEP_SUMMARY
+        fi
