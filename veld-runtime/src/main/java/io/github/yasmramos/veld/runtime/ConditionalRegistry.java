@@ -33,6 +33,34 @@ public final class ConditionalRegistry implements ComponentRegistry {
     private final List<String> excludedComponents = new ArrayList<>();
     
     /**
+     * Gets active profiles from system properties or environment variables.
+     * 
+     * @return array of active profile names
+     */
+    public static String[] getActiveProfiles() {
+        // Try system property first: veld.profiles.active
+        String profiles = System.getProperty("veld.profiles.active");
+        if (profiles != null && !profiles.trim().isEmpty()) {
+            return profiles.split(",");
+        }
+        
+        // Try environment variable: VELD_PROFILES_ACTIVE
+        profiles = System.getenv("VELD_PROFILES_ACTIVE");
+        if (profiles != null && !profiles.trim().isEmpty()) {
+            return profiles.split(",");
+        }
+        
+        // Try Spring-style property as fallback
+        profiles = System.getProperty("spring.profiles.active");
+        if (profiles != null && !profiles.trim().isEmpty()) {
+            return profiles.split(",");
+        }
+        
+        // No profiles active
+        return new String[0];
+    }
+    
+    /**
      * Creates a conditional registry from the original generated registry.
      * Evaluates all conditions and only registers components that pass.
      * 
