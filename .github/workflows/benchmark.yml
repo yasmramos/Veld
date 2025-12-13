@@ -22,7 +22,7 @@ jobs:
   benchmark:
     runs-on: ubuntu-latest
     
-    timeout-minutes: 30  # 30 minutos de timeout total
+    timeout-minutes: 45  # 45 minutos de timeout total para full benchmarks
     
     steps:
     - name: Checkout repository
@@ -154,7 +154,7 @@ jobs:
           -f 5 -wi 5 -i 10 \
           -rf json \
           -rff results/full-benchmarks.json
-      timeout-minutes: 10
+      timeout-minutes: 15
           
     - name: Run Selective Benchmarks
       if: ${{ github.event.inputs.benchmark_mode == 'selective' || github.event.inputs.benchmark_mode == '' }}
@@ -185,7 +185,7 @@ jobs:
         java -Xmx1g -jar target/veld-benchmark.jar ".*Memory.*" \
           -f 1 -wi 1 -i 2 -bs 1 \
           -rf json -rff results/memory-results.json
-      timeout-minutes: 10
+      timeout-minutes: 12
           
     # Phase 6: Debug build issues if benchmark fails
     - name: Debug build issues
@@ -348,8 +348,8 @@ jobs:
         echo "**Available Modes:**" >> BENCHMARK_RESULT.md
         echo "- **development:** Ultra-fast (1 fork, 0 warmup, 1 iteration) - ~1-2 min" >> BENCHMARK_RESULT.md
         echo "- **quick:** Fast (1 fork, 1 warmup, 1 iteration) - ~3-5 min" >> BENCHMARK_RESULT.md
-        echo "- **selective:** Individual benchmarks - ~6-8 min" >> BENCHMARK_RESULT.md
-        echo "- **full:** Complete benchmarks (5 forks, 5 warmup, 10 iterations) - ~8-12 min" >> BENCHMARK_RESULT.md
+        echo "- **selective:** Individual benchmarks - ~8-10 min" >> BENCHMARK_RESULT.md
+        echo "- **full:** Complete benchmarks (5 forks, 5 warmup, 10 iterations) - ~12-15 min" >> BENCHMARK_RESULT.md
         echo "" >> BENCHMARK_RESULT.md
         echo "**Run ID:** ${{ github.run_number }}" >> BENCHMARK_RESULT.md
         echo "**Repository:** ${{ github.repository }}" >> BENCHMARK_RESULT.md
@@ -411,7 +411,7 @@ jobs:
           echo "- **development:** Ultra-fast (1 fork, 0 warmup, 1 iteration) - ~1-2 min" >> $GITHUB_STEP_SUMMARY
           echo "- **quick:** Fast (1 fork, 1 warmup, 1 iteration) - ~3-5 min" >> $GITHUB_STEP_SUMMARY
           echo "- **selective:** Individual benchmarks (startup, injection, throughput, memory)" >> $GITHUB_STEP_SUMMARY
-          echo "- **full:** Complete benchmarks (5 forks, 5 warmup, 10 iterations) - ~8-12 min" >> $GITHUB_STEP_SUMMARY
+          echo "- **full:** Complete benchmarks (5 forks, 5 warmup, 10 iterations) - ~12-15 min" >> $GITHUB_STEP_SUMMARY
         else
           echo "### ⚠️ No benchmark results generated" >> $GITHUB_STEP_SUMMARY
           echo "This usually indicates a compilation or build failure." >> $GITHUB_STEP_SUMMARY

@@ -102,6 +102,18 @@ public class VeldClassGenerator implements Opcodes {
         cw.visitField(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "_tlCache", "Ljava/lang/ThreadLocal;", null, null).visitEnd();
         cw.visitField(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "_tlIdx", "Ljava/lang/ThreadLocal;", null, null).visitEnd();
         
+        // LifecycleProcessor singleton field
+        cw.visitField(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "_lifecycleProcessor", 
+            "Lio/github/yasmramos/veld/runtime/lifecycle/LifecycleProcessor;", null, null).visitEnd();
+        
+        // ConditionalRegistry field for conditional component filtering
+        cw.visitField(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "_conditionalRegistry", 
+            "Lio/github/yasmramos/veld/runtime/ConditionalRegistry;", null, null).visitEnd();
+        
+        // ValueResolver field for @Value annotation resolution
+        cw.visitField(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "_valueResolver", 
+            "Lio/github/yasmramos/veld/runtime/value/ValueResolver;", null, null).visitEnd();
+        
         generateStaticInit(cw, singletons, prototypes);
         generatePrivateConstructor(cw);
         
@@ -118,6 +130,8 @@ public class VeldClassGenerator implements Opcodes {
         generateGetAllByClass(cw);
         generateContains(cw);
         generateComponentCount(cw);
+        generateGetLifecycleProcessor(cw);
+        generateGetValueResolver(cw);
         generateShutdown(cw, singletons);
         
         cw.visitEnd();
@@ -148,16 +162,15 @@ public class VeldClassGenerator implements Opcodes {
             mv.visitMethodInsn(INVOKESPECIAL, comp.internalName, "<init>", ctorDesc.toString(), false);
             mv.visitFieldInsn(PUTSTATIC, VELD_CLASS, fieldName, fieldType);
             
-            // Field injections (skip @Value primitive fields - they're handled by factories)
+            // Field injections (handle both regular injections and @Value)
             for (FieldInjectionMeta field : comp.fieldInjections) {
-                // Skip primitive types and String (likely @Value injections)
-                if (isPrimitiveOrValueType(field.descriptor)) {
-                    continue;
-                }
-                
                 mv.visitFieldInsn(GETSTATIC, VELD_CLASS, fieldName, fieldType);
                 
-                if (field.isOptional) {
+                // Check if this is a @Value field (primitive or String types)
+                if (isPrimitiveOrValueType(field.descriptor)) {
+                    // Use ValueResolver to get the value
+                    loadValueFromResolver(mv, field);
+                } else if (field.isOptional) {
                     // Optional<T> injection - wrap in Optional.of() or Optional.empty()
                     loadOptionalDependency(mv, field.depType);
                 } else {
@@ -206,6 +219,15 @@ public class VeldClassGenerator implements Opcodes {
                     "(L" + comp.internalName + ";)V", false);
             }
         }
+        
+        // Initialize LifecycleProcessor singleton
+        initializeLifecycleProcessor(mv);
+        
+        // Initialize ConditionalRegistry (this will filter components based on conditions)
+        initializeConditionalRegistry(mv);
+        
+        // Initialize ValueResolver for @Value annotation support
+        initializeValueResolver(mv);
         
         // Initialize lookup arrays
         List<TypeMapping> mappings = buildTypeMappings();
@@ -373,6 +395,115 @@ public class VeldClassGenerator implements Opcodes {
         mv.visitEnd();
     }
     
+    /**
+     * Generates bytecode to initialize the LifecycleProcessor singleton.
+     */
+    private void initializeLifecycleProcessor(MethodVisitor mv) {
+        // Create LifecycleProcessor instance
+        mv.visitTypeInsn(NEW, "io/github/yasmramos/veld/runtime/lifecycle/LifecycleProcessor");
+        mv.visitInsn(DUP);
+        mv.visitMethodInsn(INVOKESPECIAL, "io/github/yasmramos/veld/runtime/lifecycle/LifecycleProcessor", 
+            "<init>", "()V", false);
+        
+        // Get EventBus instance and set it on LifecycleProcessor
+        mv.visitMethodInsn(INVOKESTATIC, "io/github/yasmramos/veld/runtime/event/EventBus", 
+            "getInstance", "()Lio/github/yasmramos/veld/runtime/event/EventBus;", false);
+        mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/lifecycle/LifecycleProcessor", 
+            "setEventBus", "(Lio/github/yasmramos/veld/runtime/event/EventBus;)V", false);
+        
+        // Store in static field
+        mv.visitFieldInsn(PUTSTATIC, VELD_CLASS, "_lifecycleProcessor", 
+            "Lio/github/yasmramos/veld/runtime/lifecycle/LifecycleProcessor;");
+        
+        // Register all beans with the LifecycleProcessor
+        registerBeansWithLifecycleProcessor(mv);
+    }
+    
+    /**
+     * Generates bytecode to register all beans with the LifecycleProcessor.
+     */
+    private void registerBeansWithLifecycleProcessor(MethodVisitor mv) {
+        for (ComponentMeta comp : components) {
+            String fieldName = getFieldName(comp);
+            String fieldType = "L" + comp.internalName + ";";
+            
+            // Get LifecycleProcessor instance
+            mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_lifecycleProcessor", 
+                "Lio/github/yasmramos/veld/runtime/lifecycle/LifecycleProcessor;");
+            
+            // Push bean name
+            mv.visitLdcInsn(comp.componentName != null ? comp.componentName : getMethodName(comp));
+            
+            // Get bean instance
+            mv.visitFieldInsn(GETSTATIC, VELD_CLASS, fieldName, fieldType);
+            
+            // Call registerBean
+            mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/lifecycle/LifecycleProcessor", 
+                "registerBean", "(Ljava/lang/Object;Ljava/lang/Object;)V", false);
+        }
+    }
+    
+    /**
+     * Generates bytecode to initialize the ConditionalRegistry.
+     * This will filter components based on conditions like @Profile, @ConditionalOnProperty, etc.
+     */
+    private void initializeConditionalRegistry(MethodVisitor mv) {
+        // Create VeldRegistry instance first (this is the original generated registry)
+        mv.visitTypeInsn(NEW, "veld/VeldRegistry");
+        mv.visitInsn(DUP);
+        mv.visitMethodInsn(INVOKESPECIAL, "veld/VeldRegistry", "<init>", "()V", false);
+        
+        // Create ConditionalRegistry with the original registry
+        mv.visitTypeInsn(NEW, "io/github/yasmramos/veld/runtime/ConditionalRegistry");
+        mv.visitInsn(DUP);
+        mv.visitSwap(); // Swap VeldRegistry instance to top of stack
+        
+        // Load active profiles from system property or environment variable
+        mv.visitMethodInsn(INVOKESTATIC, "io/github/yasmramos/veld/runtime/ConditionalRegistry", 
+            "getActiveProfiles", "()[Ljava/lang/String;", false);
+        
+        mv.visitMethodInsn(INVOKESPECIAL, "io/github/yasmramos/veld/runtime/ConditionalRegistry", 
+            "<init>", "(Lio/github/yasmramos/veld/runtime/ComponentRegistry;[Ljava/lang/String;)V", false);
+        
+        // Store in static field
+        mv.visitFieldInsn(PUTSTATIC, VELD_CLASS, "_conditionalRegistry", 
+            "Lio/github/yasmramos/veld/runtime/ConditionalRegistry;");
+    }
+    
+    /**
+     * Generates bytecode to initialize the ValueResolver singleton.
+     */
+    private void initializeValueResolver(MethodVisitor mv) {
+        // Get ValueResolver instance (singleton)
+        mv.visitMethodInsn(INVOKESTATIC, "io/github/yasmramos/veld/runtime/value/ValueResolver", 
+            "getInstance", "()Lio/github/yasmramos/veld/runtime/value/ValueResolver;", false);
+        
+        // Store in static field
+        mv.visitFieldInsn(PUTSTATIC, VELD_CLASS, "_valueResolver", 
+            "Lio/github/yasmramos/veld/runtime/value/ValueResolver;");
+    }
+    
+    /**
+     * Generates bytecode to load a value from ValueResolver for @Value fields.
+     */
+    private void loadValueFromResolver(MethodVisitor mv, FieldInjectionMeta field) {
+        // Get ValueResolver instance
+        mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_valueResolver", 
+            "Lio/github/yasmramos/veld/runtime/value/ValueResolver;");
+        
+        // For now, we'll use a placeholder value expression
+        // In a real implementation, we'd need to store the actual @Value expression
+        // from the annotation processing and use it here
+        mv.visitLdcInsn("${" + field.name + "}"); // placeholder - would be actual expression
+        
+        // Call resolve method (we'll need to extend this to support type conversion)
+        mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/value/ValueResolver", 
+            "resolve", "(Ljava/lang/String;)Ljava/lang/String;", false);
+        
+        // TODO: Add type conversion logic based on field.descriptor
+        // For now, this only handles String fields
+    }
+    
     private int computeHashSlot(String typeInternal, int mask, List<TypeMapping> allMappings, int upToIndex) {
         // Use a stable hash based on class name (same as Class.hashCode at runtime)
         int hash = typeInternal.replace('/', '.').hashCode();
@@ -510,7 +641,58 @@ public class VeldClassGenerator implements Opcodes {
                 mappings.add(new TypeMapping(iface.replace('.', '/'), comp));
             }
         }
+        
+        // Add LifecycleProcessor as a special managed component
+        mappings.add(new TypeMapping("io/github/yasmramos/veld/runtime/lifecycle/LifecycleProcessor", 
+            createLifecycleProcessorMeta()));
+        
+        // Add ValueResolver as a special managed component
+        mappings.add(new TypeMapping("io/github/yasmramos/veld/runtime/value/ValueResolver", 
+            createValueResolverMeta()));
+        
         return mappings;
+    }
+    
+    /**
+     * Creates a ComponentMeta for the LifecycleProcessor singleton.
+     */
+    private ComponentMeta createLifecycleProcessorMeta() {
+        return new ComponentMeta(
+            "io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor",
+            "SINGLETON",  // scope
+            false,        // lazy
+            new ArrayList<>(),  // constructorDeps
+            new ArrayList<>(),  // fieldInjections
+            new ArrayList<>(),  // methodInjections
+            new ArrayList<>(),  // interfaces
+            null,  // postConstructMethod
+            null,  // postConstructDescriptor
+            null,  // preDestroyMethod
+            null,  // preDestroyDescriptor
+            false, // hasSubscribeMethods
+            "lifecycleProcessor"  // componentName
+        );
+    }
+    
+    /**
+     * Creates a ComponentMeta for the ValueResolver singleton.
+     */
+    private ComponentMeta createValueResolverMeta() {
+        return new ComponentMeta(
+            "io.github.yasmramos.veld.runtime.value.ValueResolver",
+            "SINGLETON",  // scope
+            false,        // lazy
+            new ArrayList<>(),  // constructorDeps
+            new ArrayList<>(),  // fieldInjections
+            new ArrayList<>(),  // methodInjections
+            new ArrayList<>(),  // interfaces
+            null,  // postConstructMethod
+            null,  // postConstructDescriptor
+            null,  // preDestroyMethod
+            null,  // preDestroyDescriptor
+            false, // hasSubscribeMethods
+            "valueResolver"  // componentName
+        );
     }
     
     private List<ComponentMeta> topologicalSort(List<ComponentMeta> singletons) {
@@ -613,13 +795,14 @@ public class VeldClassGenerator implements Opcodes {
         mv.visitVarInsn(ASTORE, 0);
         
         for (FieldInjectionMeta field : comp.fieldInjections) {
-            // Skip @Value primitive fields
-            if (isPrimitiveOrValueType(field.descriptor)) {
-                continue;
-            }
-            
             mv.visitVarInsn(ALOAD, 0);
-            if (field.isOptional) {
+            
+            // Check if this is a @Value field (primitive or String types)
+            if (isPrimitiveOrValueType(field.descriptor)) {
+                // Use ValueResolver to get the value
+                loadValueFromResolver(mv, field);
+            } else if (field.isOptional) {
+                // Optional<T> injection - wrap in Optional.of() or Optional.empty()
                 loadOptionalDependency(mv, field.depType);
             } else {
                 loadDependency(mv, field.depType);
@@ -1082,22 +1265,37 @@ public class VeldClassGenerator implements Opcodes {
         mv.visitEnd();
     }
     
+    private void generateGetLifecycleProcessor(ClassWriter cw) {
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "getLifecycleProcessor",
+            "()Lio/github/yasmramos/veld/runtime/lifecycle/LifecycleProcessor;", null, null);
+        mv.visitCode();
+        mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_lifecycleProcessor",
+            "Lio/github/yasmramos/veld/runtime/lifecycle/LifecycleProcessor;");
+        mv.visitInsn(ARETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    
+    private void generateGetValueResolver(ClassWriter cw) {
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "getValueResolver",
+            "()Lio/github/yasmramos/veld/runtime/value/ValueResolver;", null, null);
+        mv.visitCode();
+        mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_valueResolver",
+            "Lio/github/yasmramos/veld/runtime/value/ValueResolver;");
+        mv.visitInsn(ARETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    
     private void generateShutdown(ClassWriter cw, List<ComponentMeta> singletons) {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "shutdown", "()V", null, null);
         mv.visitCode();
         
-        // Call @PreDestroy on all singletons (in reverse order)
-        for (int i = singletons.size() - 1; i >= 0; i--) {
-            ComponentMeta comp = singletons.get(i);
-            if (comp.preDestroyMethod != null) {
-                String fieldName = getFieldName(comp);
-                String fieldType = "L" + comp.internalName + ";";
-                
-                mv.visitFieldInsn(GETSTATIC, VELD_CLASS, fieldName, fieldType);
-                mv.visitMethodInsn(INVOKESTATIC, comp.internalName + "$VeldLifecycle", "preDestroy",
-                    "(L" + comp.internalName + ";)V", false);
-            }
-        }
+        // Use LifecycleProcessor for proper lifecycle management
+        mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_lifecycleProcessor",
+            "Lio/github/yasmramos/veld/runtime/lifecycle/LifecycleProcessor;");
+        mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/lifecycle/LifecycleProcessor",
+            "destroy", "()V", false);
         
         mv.visitInsn(RETURN);
         mv.visitMaxs(0, 0);
