@@ -10,10 +10,12 @@ on:
       benchmark_mode:
         description: 'Benchmark mode'
         required: true
-        default: 'quick'
+        default: 'full'
         type: choice
         options:
+          - development
           - quick
+          - selective
           - full
 
 jobs:
@@ -119,17 +121,29 @@ jobs:
         fi
       
     # Phase 5: Run Benchmarks
+    - name: Run Development Benchmarks
+      if: ${{ github.event.inputs.benchmark_mode == 'development' }}
+      run: |
+        cd veld-benchmark
+        echo "⚡ Running DEVELOPMENT benchmarks (ultra-fast)..."
+        # Ultra-fast mode for CI: 1 fork, 0 warmup, 1 iteration
+        java -Xmx512m -jar target/veld-benchmark.jar \
+          -f 1 -wi 0 -i 1 -bs 1 \
+          -rf json \
+          -rff results/development-benchmarks.json
+      timeout-minutes: 3
+          
     - name: Run Quick Benchmarks
-      if: ${{ github.event.inputs.benchmark_mode == 'quick' || github.event.inputs.benchmark_mode == '' }}
+      if: ${{ github.event.inputs.benchmark_mode == 'quick' }}
       run: |
         cd veld-benchmark
         echo "🚀 Running QUICK benchmarks for development..."
-        # Ultra-fast mode for CI: 1 fork, 1 warmup, 1 iteration
+        # Fast mode for CI: 1 fork, 1 warmup, 1 iteration
         java -Xmx1g -jar target/veld-benchmark.jar \
           -f 1 -wi 1 -i 1 -bs 1 \
           -rf json \
           -rff results/quick-benchmarks.json
-      timeout-minutes: 8
+      timeout-minutes: 5
           
     - name: Run Full Benchmarks  
       if: ${{ github.event.inputs.benchmark_mode == 'full' }}
@@ -143,7 +157,7 @@ jobs:
       timeout-minutes: 10
           
     - name: Run Selective Benchmarks
-      if: ${{ github.event.inputs.benchmark_mode == '' }}
+      if: ${{ github.event.inputs.benchmark_mode == 'selective' || github.event.inputs.benchmark_mode == '' }}
       run: |
         cd veld-benchmark
         echo "🎯 Running SELECTIVE benchmarks (fast mode)..."
@@ -242,7 +256,7 @@ jobs:
         echo "## 🏁 Benchmark Execution Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-        echo "**Mode:** ${{ github.event.inputs.benchmark_mode || 'default (selective)' }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Mode:** ${{ github.event.inputs.benchmark_mode || 'default (full)' }}" >> $GITHUB_STEP_SUMMARY
         echo "**Java Version:** $(java -version 2>&1 | head -1)" >> $GITHUB_STEP_SUMMARY
         echo "**Maven Version:** $(mvn -version | head -1)" >> $GITHUB_STEP_SUMMARY
         echo "**Timestamp:** $(date)" >> $GITHUB_STEP_SUMMARY
@@ -255,6 +269,12 @@ jobs:
           done
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Artifacts:** Benchmark results and executable JAR have been uploaded." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Available Modes:**" >> $GITHUB_STEP_SUMMARY
+          echo "- **development:** Ultra-fast (1 fork, 0 warmup, 1 iteration) - ~1-2 min" >> $GITHUB_STEP_SUMMARY
+          echo "- **quick:** Fast (1 fork, 1 warmup, 1 iteration) - ~3-5 min" >> $GITHUB_STEP_SUMMARY
+          echo "- **selective:** Individual benchmarks (startup, injection, throughput, memory)" >> $GITHUB_STEP_SUMMARY
+          echo "- **full:** Complete benchmarks (5 forks, 5 warmup, 10 iterations) - ~8-12 min" >> $GITHUB_STEP_SUMMARY
         else
           echo "### ⚠️ No benchmark results generated" >> $GITHUB_STEP_SUMMARY
           echo "This usually indicates a compilation or build failure." >> $GITHUB_STEP_SUMMARY
