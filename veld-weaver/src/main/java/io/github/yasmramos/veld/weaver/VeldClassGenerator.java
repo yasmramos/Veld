@@ -670,7 +670,8 @@ public class VeldClassGenerator implements Opcodes {
             null,  // preDestroyMethod
             null,  // preDestroyDescriptor
             false, // hasSubscribeMethods
-            "lifecycleProcessor"  // componentName
+            "lifecycleProcessor",  // componentName
+            new ArrayList<>()  // explicitDependencies
         );
     }
     
@@ -691,7 +692,8 @@ public class VeldClassGenerator implements Opcodes {
             null,  // preDestroyMethod
             null,  // preDestroyDescriptor
             false, // hasSubscribeMethods
-            "valueResolver"  // componentName
+            "valueResolver",  // componentName
+            new ArrayList<>()  // explicitDependencies
         );
     }
     
@@ -741,6 +743,14 @@ public class VeldClassGenerator implements Opcodes {
                 if (depComp != null && "SINGLETON".equals(depComp.scope)) {
                     visit(depComp, byType, visited, visiting, result);
                 }
+            }
+        }
+        
+        // Add explicit dependencies from @DependsOn
+        for (String explicitDep : comp.explicitDependencies) {
+            ComponentMeta depComp = byType.get(explicitDep.replace('.', '/'));
+            if (depComp != null && "SINGLETON".equals(depComp.scope)) {
+                visit(depComp, byType, visited, visiting, result);
             }
         }
         
@@ -1371,13 +1381,15 @@ public class VeldClassGenerator implements Opcodes {
         public final String preDestroyDescriptor;
         public final boolean hasSubscribeMethods;
         public final String componentName;  // @Named value for qualifier lookup
+        public final List<String> explicitDependencies;  // @DependsOn bean names
         
         public ComponentMeta(String className, String scope, boolean lazy,
                             List<String> constructorDeps, List<FieldInjectionMeta> fieldInjections,
                             List<MethodInjectionMeta> methodInjections, List<String> interfaces,
                             String postConstructMethod, String postConstructDescriptor,
                             String preDestroyMethod, String preDestroyDescriptor,
-                            boolean hasSubscribeMethods, String componentName) {
+                            boolean hasSubscribeMethods, String componentName,
+                            List<String> explicitDependencies) {
             this.className = className;
             this.internalName = className.replace('.', '/');
             this.scope = scope;
@@ -1392,6 +1404,7 @@ public class VeldClassGenerator implements Opcodes {
             this.preDestroyDescriptor = preDestroyDescriptor;
             this.hasSubscribeMethods = hasSubscribeMethods;
             this.componentName = componentName;
+            this.explicitDependencies = explicitDependencies != null ? explicitDependencies : new ArrayList<>();
         }
         
         public static ComponentMeta parse(String line) {
@@ -1471,9 +1484,15 @@ public class VeldClassGenerator implements Opcodes {
                 componentName = parts[10];
             }
             
+            // Parse explicitDependencies (index 11)
+            List<String> explicitDependencies = new ArrayList<>();
+            if (parts.length > 11 && !parts[11].isEmpty()) {
+                explicitDependencies.addAll(Arrays.asList(parts[11].split(",")));
+            }
+            
             return new ComponentMeta(className, scope, lazy, ctorDeps, fields, methods, ifaces,
                 postConstructMethod, postConstructDescriptor, preDestroyMethod, preDestroyDescriptor,
-                hasSubscribeMethods, componentName);
+                hasSubscribeMethods, componentName, explicitDependencies);
         }
     }
     

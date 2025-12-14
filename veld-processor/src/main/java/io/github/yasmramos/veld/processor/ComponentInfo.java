@@ -27,6 +27,9 @@ public final class ComponentInfo {
     // Conditional registration info
     private ConditionInfo conditionInfo;
     
+    // Explicit dependencies from @DependsOn annotation
+    private final List<String> explicitDependencies = new ArrayList<>();
+    
     private String postConstructMethod;          // Method name with @PostConstruct
     private String postConstructDescriptor;
     private String preDestroyMethod;             // Method name with @PreDestroy
@@ -216,5 +219,44 @@ public final class ComponentInfo {
      */
     public boolean hasConditions() {
         return conditionInfo != null && conditionInfo.hasConditions();
+    }
+    
+    // Explicit dependencies support (@DependsOn)
+    
+    /**
+     * Gets the explicit dependencies declared via @DependsOn.
+     * 
+     * @return list of bean names this component depends on
+     */
+    public List<String> getExplicitDependencies() {
+        return explicitDependencies;
+    }
+    
+    /**
+     * Adds an explicit dependency.
+     * 
+     * @param dependencyBeanName the name of the bean this component depends on
+     */
+    public void addExplicitDependency(String dependencyBeanName) {
+        this.explicitDependencies.add(dependencyBeanName);
+    }
+    
+    /**
+     * Sets all explicit dependencies at once.
+     * 
+     * @param dependencies list of bean names
+     */
+    public void setExplicitDependencies(List<String> dependencies) {
+        this.explicitDependencies.clear();
+        this.explicitDependencies.addAll(dependencies);
+    }
+    
+    /**
+     * Checks if this component has explicit dependencies.
+     * 
+     * @return true if @DependsOn is specified
+     */
+    public boolean hasExplicitDependencies() {
+        return !explicitDependencies.isEmpty();
     }
 }
