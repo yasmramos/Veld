@@ -45,19 +45,20 @@ jobs:
       run: |
         cd $GITHUB_WORKSPACE
         # Build all modules and install to local repository
-        mvn clean install -Dmaven.test.skip=true -Dmaven.source.skip=true -q
+        # Skip problematic plugins and use batch mode for faster execution
+        mvn clean install -Dmaven.test.skip=true -Dmaven.source.skip=true -Ddepgraph.skip=true -Djacoco.skip=true -B -q
         
     - name: Run Veld Examples
       run: |
         cd $GITHUB_WORKSPACE
-        # Execute the main example class
-        mvn exec:java -pl veld-example -Dexec.mainClass="io.github.yasmramos.veld.example.Main" -q
+        # Execute the main example class with robust configuration
+        mvn exec:java -pl veld-example -Dexec.mainClass="io.github.yasmramos.veld.example.Main" -B -q
         
     - name: Run @DependsOn Examples
       run: |
         cd $GITHUB_WORKSPACE
-        # Execute the @DependsOn demonstration
-        mvn exec:java -pl veld-example -Dexec.mainClass="io.github.yasmramos.veld.example.dependsOn.DependsOnDemo" -q
+        # Execute the @DependsOn demonstration with robust configuration
+        mvn exec:java -pl veld-example -Dexec.mainClass="io.github.yasmramos.veld.example.dependsOn.DependsOnDemo" -B -q
         
     - name: Test Compilation Success
       run: |
