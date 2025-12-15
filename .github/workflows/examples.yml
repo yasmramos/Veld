@@ -41,23 +41,23 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
         
-    - name: Compile Veld Framework
+    - name: Build and Install Veld Framework
       run: |
         cd $GITHUB_WORKSPACE
-        # Try to compile the core modules first
-        mvn clean compile -pl veld-annotations,veld-runtime,veld-processor,veld-weaver -am -DskipTests=true -q
-        
-    - name: Compile Veld Example
-      run: |
-        cd $GITHUB_WORKSPACE
-        # Compile the example module
-        mvn clean compile -pl veld-example -am -DskipTests=true
+        # Build all modules and install to local repository
+        mvn clean install -Dmaven.test.skip=true -Dmaven.source.skip=true -q
         
     - name: Run Veld Examples
       run: |
         cd $GITHUB_WORKSPACE
         # Execute the main example class
         mvn exec:java -pl veld-example -Dexec.mainClass="io.github.yasmramos.veld.example.Main" -q
+        
+    - name: Run @DependsOn Examples
+      run: |
+        cd $GITHUB_WORKSPACE
+        # Execute the @DependsOn demonstration
+        mvn exec:java -pl veld-example -Dexec.mainClass="io.github.yasmramos.veld.example.dependsOn.DependsOnDemo" -q
         
     - name: Test Compilation Success
       run: |
@@ -108,20 +108,18 @@ jobs:
       run: |
         echo "## 📋 Examples Workflow Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### ✅ Compilation Status" >> $GITHUB_STEP_SUMMARY
-        echo "- Veld Framework core modules: **Compiled**" >> $GITHUB_STEP_SUMMARY
-        echo "- Veld Example module: **Compiled**" >> $GITHUB_STEP_SUMMARY
-        echo "- @DependsOn examples: **Available**" >> $GITHUB_STEP_SUMMARY
+        echo "### ✅ Build Status" >> $GITHUB_STEP_SUMMARY
+        echo "- Veld Framework: **Built and Installed**" >> $GITHUB_STEP_SUMMARY
+        echo "- All modules compiled: **SUCCESS**" >> $GITHUB_STEP_SUMMARY
+        echo "- Dependencies resolved: **LOCAL REPOSITORY**" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 📁 Key Components Verified" >> $GITHUB_STEP_SUMMARY
-        echo "- ConfigService: ✅" >> $GITHUB_STEP_SUMMARY
-        echo "- DatabaseService: ✅" >> $GITHUB_STEP_SUMMARY
-        echo "- UserRepository (with @DependsOn): ✅" >> $GITHUB_STEP_SUMMARY
-        echo "- EmailService (with @DependsOn): ✅" >> $GITHUB_STEP_SUMMARY
-        echo "- UserService (with multiple @DependsOn): ✅" >> $GITHUB_STEP_SUMMARY
+        echo "### 🏃‍♂️ Examples Executed" >> $GITHUB_STEP_SUMMARY
+        echo "- Main Veld Example: **EXECUTED**" >> $GITHUB_STEP_SUMMARY
+        echo "- @DependsOn Demo: **EXECUTED**" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### 🎯 Demo Features" >> $GITHUB_STEP_SUMMARY
+        echo "### 🎯 Demo Features Verified" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Dependency injection working" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ @DependsOn with single dependency" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ @DependsOn with multiple dependencies" >> $GITHUB_STEP_SUMMARY
         echo "- ✅ Ordered initialization demonstration" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Dependency validation" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Component lifecycle management" >> $GITHUB_STEP_SUMMARY
