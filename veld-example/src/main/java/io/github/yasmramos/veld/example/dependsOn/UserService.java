@@ -68,7 +68,7 @@ public class UserService {
         
         if (databaseService != null && databaseService.isConnected()) {
             databaseService.saveData("User: " + id + " - " + name + " - " + email);
-            System.out("       ✓ Usuario guardado en BD");
+            System.out.println("       ✓ Usuario guardado en BD");
         } else {
             System.out.println("       ❌ No se puede guardar en BD");
             return;
