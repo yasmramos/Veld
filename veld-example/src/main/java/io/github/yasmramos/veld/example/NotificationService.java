@@ -1,20 +1,20 @@
 package io.github.yasmramos.veld.example;
 
+import io.github.yasmramos.veld.annotation.Component;
+import io.github.yasmramos.veld.annotation.Inject;
 import io.github.yasmramos.veld.annotation.PostConstruct;
-import io.github.yasmramos.veld.annotation.Singleton;
 
 /**
- * Example service demonstrating mixed annotations from different specifications.
+ * Example service using Veld annotations.
+ * Demonstrates Veld's native annotation support for dependency injection.
  * Uses:
- * - @Singleton("name") from Veld (includes component naming)
- * - @javax.inject.Inject for some injections
- * - @jakarta.inject.Inject for other injections
- * - @io.github.yasmramos.veld.annotation.Inject for field injection
+ * - @Component("name") from Veld (includes component naming)
+ * - @Inject for constructor and method injection
  * 
- * This demonstrates that Veld can handle mixed annotation usage in a single class.
- * Note: @Singleton implies @Component, so we don't need both.
+ * This demonstrates that Veld handles dependency injection natively.
+ * Note: @Component implies @Singleton functionality.
  */
-@Singleton("notificationService")
+@Component("notificationService")
 public class NotificationService {
     
     private LogService logService;
@@ -22,34 +22,34 @@ public class NotificationService {
     private EmailNotification emailNotification;
     
     /**
-     * Constructor using javax.inject.Inject
+     * Constructor using Veld @Inject
      */
-    @javax.inject.Inject
+    @Inject
     public NotificationService(LogService logService) {
         this.logService = logService;
-        System.out.println("[NotificationService] Created with javax.inject.Inject constructor");
+        System.out.println("[NotificationService] Created with Veld @Inject constructor");
     }
     
     /**
-     * Method injection using jakarta.inject.Inject
+     * Method injection using Veld @Inject
      */
-    @jakarta.inject.Inject
+    @Inject
     public void setConfigService(ConfigService configService) {
         this.configService = configService;
-        System.out.println("[NotificationService] ConfigService injected via jakarta.inject.Inject");
+        System.out.println("[NotificationService] ConfigService injected via Veld @Inject");
     }
     
     /**
      * Field injection using Veld's native @Inject
      * Note: Field must be non-private for Veld (no reflection used)
      */
-    @io.github.yasmramos.veld.annotation.Inject
+    @Inject
     EmailNotification emailNotificationField;
     
     @PostConstruct
     public void init() {
         this.emailNotification = emailNotificationField;
-        logService.log("NotificationService initialized with mixed annotation support");
+        logService.log("NotificationService initialized with Veld annotations");
     }
     
     public void sendNotification(String recipient, String message) {

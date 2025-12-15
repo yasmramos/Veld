@@ -1,35 +1,37 @@
 package io.github.yasmramos.veld.example;
 
+import io.github.yasmramos.veld.annotation.Component;
+import io.github.yasmramos.veld.annotation.Inject;
+
 /**
- * Example service using JSR-330 (javax.inject) annotations.
- * Demonstrates Veld's compatibility with the standard Java DI API.
+ * Example service using Veld annotations.
+ * Demonstrates Veld's native annotation support for dependency injection.
  * 
- * Note: @javax.inject.Singleton alone is sufficient - no @Component needed.
- * Veld recognizes JSR-330 annotations directly.
+ * Note: @Component provides the same functionality as @javax.inject.Singleton + @Named.
+ * Veld recognizes Veld annotations natively.
  */
-@javax.inject.Singleton
-@javax.inject.Named("paymentService")
+@Component("paymentService")
 public class PaymentService {
     
     private LogService logService;
     private ConfigService configService;
     
     /**
-     * Constructor injection using javax.inject.Inject
+     * Constructor injection using Veld @Inject
      */
-    @javax.inject.Inject
+    @Inject
     public PaymentService(LogService logService) {
         this.logService = logService;
-        System.out.println("[PaymentService] Created with javax.inject.Inject constructor");
+        System.out.println("[PaymentService] Created with Veld @Inject constructor");
     }
     
     /**
-     * Method injection using javax.inject.Inject
+     * Method injection using Veld @Inject
      */
-    @javax.inject.Inject
+    @Inject
     public void setConfigService(ConfigService configService) {
         this.configService = configService;
-        System.out.println("[PaymentService] ConfigService injected via javax.inject.Inject method");
+        System.out.println("[PaymentService] ConfigService injected via Veld @Inject method");
     }
     
     public void processPayment(String orderId, double amount) {

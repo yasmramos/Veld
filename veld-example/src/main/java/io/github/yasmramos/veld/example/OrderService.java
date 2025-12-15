@@ -1,16 +1,17 @@
 package io.github.yasmramos.veld.example;
 
+import io.github.yasmramos.veld.annotation.Component;
+import io.github.yasmramos.veld.annotation.Inject;
 import io.github.yasmramos.veld.annotation.PostConstruct;
 
 /**
- * Example service using Jakarta Inject (jakarta.inject) annotations.
- * Demonstrates Veld's compatibility with the modern Jakarta EE DI API.
+ * Example service using Veld annotations.
+ * Demonstrates Veld's native annotation support for dependency injection.
  * 
- * Note: @jakarta.inject.Singleton alone is sufficient - no @Component needed.
- * Veld recognizes Jakarta Inject annotations directly.
+ * Note: @Component provides the same functionality as @jakarta.inject.Singleton + @Named.
+ * Veld recognizes Veld annotations natively.
  */
-@jakarta.inject.Singleton
-@jakarta.inject.Named("orderService")
+@Component("orderService")
 public class OrderService {
     
     private LogService logService;
@@ -18,27 +19,27 @@ public class OrderService {
     private IUserRepository userRepository;
     
     /**
-     * Constructor injection using jakarta.inject.Inject
+     * Constructor injection using Veld @Inject
      */
-    @jakarta.inject.Inject
+    @Inject
     public OrderService(LogService logService) {
         this.logService = logService;
-        System.out.println("[OrderService] Created with jakarta.inject.Inject constructor");
+        System.out.println("[OrderService] Created with Veld @Inject constructor");
     }
     
     /**
-     * Method injection using jakarta.inject.Inject
+     * Method injection using Veld @Inject
      */
-    @jakarta.inject.Inject
+    @Inject
     public void setPaymentService(PaymentService paymentService) {
         this.paymentService = paymentService;
-        System.out.println("[OrderService] PaymentService injected via jakarta.inject.Inject method");
+        System.out.println("[OrderService] PaymentService injected via Veld @Inject method");
     }
     
     /**
      * Another method injection demonstrating interface-based injection
      */
-    @jakarta.inject.Inject
+    @Inject
     public void setUserRepository(IUserRepository userRepository) {
         this.userRepository = userRepository;
         System.out.println("[OrderService] IUserRepository injected -> " + 
