@@ -33,7 +33,7 @@ public class UserRepository {
     public void saveUser(Long id, String name) {
         if (databaseService != null && databaseService.isConnected()) {
             databaseService.saveData("User: " + id + " - " + name);
-            System.out("       Usuario guardado: " + name + " (ID: " + id + ")");
+            System.out.println("       Usuario guardado: " + name + " (ID: " + id + ")");
         } else {
             System.out.println("       ❌ No se puede guardar usuario - DatabaseService no disponible");
         }
