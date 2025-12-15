@@ -456,7 +456,7 @@ public class VeldClassGenerator implements Opcodes {
         // Create ConditionalRegistry with the original registry
         mv.visitTypeInsn(NEW, "io/github/yasmramos/veld/runtime/ConditionalRegistry");
         mv.visitInsn(DUP);
-        mv.visitSwap(); // Swap VeldRegistry instance to top of stack
+        mv.visitInsn(SWAP); // Swap VeldRegistry instance to top of stack
         
         // Load active profiles from system property or environment variable
         mv.visitMethodInsn(INVOKESTATIC, "io/github/yasmramos/veld/runtime/ConditionalRegistry", 
