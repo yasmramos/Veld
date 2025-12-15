@@ -65,7 +65,6 @@
         <module>veld-maven-plugin</module>
         <module>veld-spring-boot-starter</module>
         <module>veld-benchmark</module>
-        <module>veld-example</module>
     </modules>
 
     <properties>
