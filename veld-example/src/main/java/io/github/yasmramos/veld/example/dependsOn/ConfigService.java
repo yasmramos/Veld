@@ -3,8 +3,6 @@ package io.github.yasmramos.veld.example.dependsOn;
 import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.annotation.PostConstruct;
 
-import javax.annotation.PostConstruct;
-
 /**
  * Configuración de aplicación - componente base sin dependencias.
  * Este servicio proporciona configuración para otros componentes.
