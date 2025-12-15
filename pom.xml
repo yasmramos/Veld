@@ -389,12 +389,11 @@
                 </configuration>
             </plugin>
 
-            <!-- JaCoCo Coverage Plugin - TEMPORARILY DISABLED FOR COMPILATION -->
-            <!--
+            <!-- JaCoCo Coverage Plugin -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>${jacoco.version}</version>
+                <version>${jacoco.maven.plugin.version}</version>
                 <executions>
                     <execution>
                         <id>prepare-agent</id>
@@ -446,7 +445,6 @@
                     </execution>
                 </executions>
             </plugin>
-            -->
 
             <!-- Project Reports Plugin -->
             <plugin>

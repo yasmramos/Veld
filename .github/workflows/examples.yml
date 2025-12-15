@@ -41,22 +41,46 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
         
-    - name: Build Veld Foundation Modules
+    - name: Build Veld Annotations Module
       run: |
         cd $GITHUB_WORKSPACE
-        # Build core modules first (annotations, runtime, aop, processor, weaver)
-        mvn clean install -pl veld-annotations,veld-runtime,veld-aop,veld-processor,veld-weaver -am -Dmaven.test.skip=true -Dmaven.source.skip=true -Ddepgraph.skip=true -Djacoco.skip=true -B -q
+        # Step 1: Build annotations first (no dependencies)
+        mvn clean install -pl veld-annotations -Dmaven.test.skip=true -Dmaven.source.skip=true -Ddepgraph.skip=true -Djacoco.skip=true -B -q
+        
+    - name: Build Veld Runtime Module
+      run: |
+        cd $GITHUB_WORKSPACE
+        # Step 2: Build runtime (depends on annotations)
+        mvn clean install -pl veld-runtime -am -Dmaven.test.skip=true -Dmaven.source.skip=true -Ddepgraph.skip=true -Djacoco.skip=true -B -q
+        
+    - name: Build Veld AOP Module
+      run: |
+        cd $GITHUB_WORKSPACE
+        # Step 3: Build AOP (depends on annotations, runtime)
+        mvn clean install -pl veld-aop -am -Dmaven.test.skip=true -Dmaven.source.skip=true -Ddepgraph.skip=true -Djacoco.skip=true -B -q
+        
+    - name: Build Veld Processor Module
+      run: |
+        cd $GITHUB_WORKSPACE
+        # Step 4: Build processor (depends on annotations, runtime)
+        mvn clean install -pl veld-processor -am -Dmaven.test.skip=true -Dmaven.source.skip=true -Ddepgraph.skip=true -Djacoco.skip=true -B -q
+        
+    - name: Build Veld Weaver Module
+      run: |
+        cd $GITHUB_WORKSPACE
+        # Step 5: Build weaver (depends on annotations, runtime, aop)
+        mvn clean install -pl veld-weaver -am -Dmaven.test.skip=true -Dmaven.source.skip=true -Ddepgraph.skip=true -Djacoco.skip=true -B -q
         
     - name: Build Veld Maven Plugin
       run: |
         cd $GITHUB_WORKSPACE
-        # Build maven plugin after its dependencies are available
-        mvn clean install -pl veld-maven-plugin -Dmaven.test.skip=true -Dmaven.source.skip=true -B -q
+        # Step 6: Build maven plugin (depends on processor, weaver, annotations)
+        mvn clean install -pl veld-maven-plugin -am -Dmaven.test.skip=true -Dmaven.source.skip=true -B -q
         
-    - name: Build and Install Complete Framework
+    - name: Build Remaining Modules
       run: |
         cd $GITHUB_WORKSPACE
-        # Now build remaining modules and install everything
+        # Step 7: Build remaining modules with plugin available
         mvn install -pl veld-spring-boot-starter,veld-benchmark,veld-example -am -Dmaven.test.skip=true -Dmaven.source.skip=true -Ddepgraph.skip=true -Djacoco.skip=true -B -q
         
     - name: Run Veld Examples
