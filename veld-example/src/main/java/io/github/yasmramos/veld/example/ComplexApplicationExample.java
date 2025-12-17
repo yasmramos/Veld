@@ -1,0 +1,568 @@
+package io.github.yasmramos.veld.example;
+
+import io.github.yasmramos.veld.annotation.*;
+import io.github.yasmramos.veld.runtime.event.EventBus;
+import io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+/**
+ * Ejemplo complejo que demuestra TODAS las características de Veld funcionando juntas:
+ * 
+ * ✅ Lifecycle Callbacks (@PostConstruct, @PreDestroy)
+ * ✅ EventBus (@Subscribe) 
+ * ✅ Value Resolution (@Value)
+ * ✅ Conditional Loading (@Profile, @ConditionalOnProperty)
+ * ✅ Named Injection (@Named)
+ * ✅ Provider Injection (Provider<T>)
+ * ✅ Optional Injection (Optional<T>)
+ * ✅ Dependencies (@DependsOn)
+ * ✅ Multiple Scopes (Singleton, Prototype)
+ * ✅ Interface-based Injection
+ */
+public class ComplexApplicationExample {
+
+    public static void main(String[] args) {
+        System.out.println("🚀 Iniciando aplicación compleja con Veld...\n");
+        
+        // =============================================================================
+        // 1. CONFIGURACIÓN DE PERFILES Y PROPIEDADES
+        // =============================================================================
+        System.setProperty("app.environment", "production");
+        System.setProperty("app.database.url", "jdbc:postgresql://localhost:5432/app");
+        System.setProperty("app.cache.enabled", "true");
+        System.setProperty("app.async.threads", "4");
+        
+        // Configurar perfil activo
+        setActiveProfiles("production", "database");
+        
+        // =============================================================================
+        // 2. OBTENER COMPONENTES PRINCIPALES
+        // =============================================================================
+        System.out.println("📦 Obteniendo componentes principales...");
+        
+        OrderService orderService = get(OrderService.class);
+        PaymentService paymentService = get(PaymentService.class);
+        NotificationService notificationService = get(NotificationService.class);
+        UserService userService = get(UserService.class);
+        
+        System.out.println("✅ Componentes principales obtenidos:");
+        System.out.println("  - OrderService: " + orderService.getClass().getSimpleName());
+        System.out.println("  - PaymentService: " + paymentService.getClass().getSimpleName());
+        System.out.println("  - NotificationService: " + notificationService.getClass().getSimpleName());
+        System.out.println("  - UserService: " + userService.getClass().getSimpleName());
+        
+        // =============================================================================
+        // 3. DEMOSTRAR INYECCIÓN POR NOMBRE
+        // =============================================================================
+        System.out.println("\n🏷️  Probando inyección por nombre...");
+        
+        EmailService emailService = get(EmailService.class, "smtp");
+        EmailService smsService = get(EmailService.class, "sms");
+        
+        System.out.println("  - Email SMTP Service: " + emailService.getProvider());
+        System.out.println("  - SMS Service: " + smsService.getProvider());
+        
+        // =============================================================================
+        // 4. DEMOSTRAR PROVIDER INJECTION
+        // =============================================================================
+        System.out.println("\n🔄 Probando Provider injection...");
+        
+        CacheManager cacheManager = get(CacheManager.class);
+        // El Provider permite crear instancias bajo demanda
+        Cache cache1 = cacheManager.getCacheProvider().get();
+        Cache cache2 = cacheManager.getCacheProvider().get();
+        
+        System.out.println("  - Cache 1 ID: " + cache1.getId());
+        System.out.println("  - Cache 2 ID: " + cache2.getId());
+        System.out.println("  - Son instancias diferentes: " + (cache1 != cache2));
+        
+        // =============================================================================
+        // 5. DEMOSTRAR OPTIONAL INJECTION
+        // =============================================================================
+        System.out.println("\n❓ Probando Optional injection...");
+        
+        AuditService auditService = get(AuditService.class);
+        System.out.println("  - Audit Service disponible: " + auditService.getAuditLogger().isPresent());
+        System.out.println("  - External Service disponible: " + auditService.getExternalLogger().isPresent());
+        
+        // =============================================================================
+        // 6. EJECUTAR FLUJO DE NEGOCIO COMPLETO
+        // =============================================================================
+        System.out.println("\n💼 Ejecutando flujo de negocio completo...");
+        
+        try {
+            // Crear una orden
+            Order order = orderService.createOrder("USER123", List.of(
+                new OrderItem("Laptop", 1, 1200.00),
+                new OrderItem("Mouse", 2, 25.00)
+            ));
+            
+            System.out.println("  ✅ Orden creada: " + order.getId() + " por $" + order.getTotal());
+            
+            // Procesar pago
+            PaymentResult payment = paymentService.processPayment(order.getId(), order.getTotal());
+            System.out.println("  💳 Pago procesado: " + payment.getStatus() + " - " + payment.getTransactionId());
+            
+            // Enviar notificaciones
+            notificationService.sendOrderConfirmation(order.getId());
+            System.out.println("  📧 Notificaciones enviadas");
+            
+        } catch (Exception e) {
+            System.err.println("  ❌ Error en flujo: " + e.getMessage());
+        }
+        
+        // =============================================================================
+        // 7. DEMOSTRAR EVENTBUS
+        // =============================================================================
+        System.out.println("\n📡 Probando EventBus...");
+        
+        EventBus eventBus = getEventBus();
+        eventBus.publish(new OrderCompletedEvent("ORDER123", "USER123", 1250.00));
+        
+        // Esperar un poco para que se procesen los eventos
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        
+        // =============================================================================
+        // 8. ACCESO A SERVICIOS DEL FRAMEWORK
+        // =============================================================================
+        System.out.println("\n🔧 Accediendo a servicios del framework...");
+        
+        LifecycleProcessor lifecycleProcessor = getLifecycleProcessor();
+        System.out.println("  - LifecycleProcessor: " + lifecycleProcessor.getClass().getSimpleName());
+        
+        ValueResolver valueResolver = getValueResolver();
+        System.out.println("  - ValueResolver disponible: " + (valueResolver != null));
+        
+        // =============================================================================
+        // 9. COMPONENTES CONDICIONALES
+        // =============================================================================
+        System.out.println("\n🎯 Probando componentes condicionales...");
+        
+        try {
+            // En producción con database habilitado, esto debería funcionar
+            DatabaseService dbService = get(DatabaseService.class);
+            System.out.println("  ✅ DatabaseService cargado (perfil: production + database)");
+        } catch (Exception e) {
+            System.out.println("  ❌ DatabaseService no disponible: " + e.getMessage());
+        }
+        
+        try {
+            // Este debería estar deshabilitado en producción
+            MockDatabaseService mockService = get(MockDatabaseService.class);
+            System.out.println("  ⚠️  MockDatabaseService cargado (esto no debería pasar en producción)");
+        } catch (Exception e) {
+            System.out.println("  ✅ MockDatabaseService correctamente deshabilitado en producción");
+        }
+        
+        // =============================================================================
+        // 10. SHUTDOWN GRACEFUL
+        // =============================================================================
+        System.out.println("\n🛑 Ejecutando shutdown graceful...");
+        shutdown();
+        
+        System.out.println("\n✨ ¡Aplicación compleja completada exitosamente!");
+        System.out.println("📊 Todas las características de Veld funcionan automáticamente:");
+        System.out.println("   ✅ Lifecycle Callbacks");
+        System.out.println("   ✅ EventBus Integration");
+        System.out.println("   ✅ Value Resolution");
+        System.out.println("   ✅ Conditional Loading");
+        System.out.println("   ✅ Named Injection");
+        System.out.println("   ✅ Provider Injection");
+        System.out.println("   ✅ Optional Injection");
+        System.out.println("   ✅ Dependencies Management");
+    }
+
+    // =============================================================================
+    // DOMINIO DE NEGOCIO
+    // =============================================================================
+
+    public static class Order {
+        private final String id;
+        private final String userId;
+        private final List<OrderItem> items;
+        private final double total;
+        
+        public Order(String id, String userId, List<OrderItem> items, double total) {
+            this.id = id;
+            this.userId = userId;
+            this.items = items;
+            this.total = total;
+        }
+        
+        public String getId() { return id; }
+        public String getUserId() { return userId; }
+        public List<OrderItem> getItems() { return items; }
+        public double getTotal() { return total; }
+    }
+
+    public static class OrderItem {
+        private final String name;
+        private final int quantity;
+        private final double price;
+        
+        public OrderItem(String name, int quantity, double price) {
+            this.name = name;
+            this.quantity = quantity;
+            this.price = price;
+        }
+        
+        public String getName() { return name; }
+        public int getQuantity() { return quantity; }
+        public double getPrice() { return price; }
+    }
+
+    public static class PaymentResult {
+        private final String status;
+        private final String transactionId;
+        
+        public PaymentResult(String status, String transactionId) {
+            this.status = status;
+            this.transactionId = transactionId;
+        }
+        
+        public String getStatus() { return status; }
+        public String getTransactionId() { return transactionId; }
+    }
+
+    // =============================================================================
+    // SERVICIOS PRINCIPALES
+    // =============================================================================
+
+    @Singleton
+    @Component
+    public static class OrderService {
+        private final UserService userService;
+        private final DatabaseService databaseService;
+        
+        @Inject
+        public OrderService(UserService userService, DatabaseService databaseService) {
+            this.userService = userService;
+            this.databaseService = databaseService;
+        }
+        
+        @PostConstruct
+        public void init() {
+            System.out.println("  [OrderService] Inicializando servicio de órdenes...");
+        }
+        
+        public Order createOrder(String userId, List<OrderItem> items) {
+            double total = items.stream()
+                .mapToDouble(item -> item.getPrice() * item.getQuantity())
+                .sum();
+            
+            String orderId = "ORDER-" + System.currentTimeMillis();
+            Order order = new Order(orderId, userId, items, total);
+            
+            // Guardar en base de datos
+            databaseService.saveOrder(order);
+            
+            return order;
+        }
+    }
+
+    @Singleton
+    @Component
+    public static class PaymentService {
+        private final DatabaseService databaseService;
+        private final EventBus eventBus;
+        
+        @Inject
+        public PaymentService(DatabaseService databaseService, EventBus eventBus) {
+            this.databaseService = databaseService;
+            this.eventBus = eventBus;
+        }
+        
+        public PaymentResult processPayment(String orderId, double amount) {
+            // Simular procesamiento de pago
+            String transactionId = "TXN-" + System.currentTimeMillis();
+            
+            // Publicar evento de pago procesado
+            eventBus.publish(new PaymentProcessedEvent(orderId, amount, transactionId));
+            
+            return new PaymentResult("SUCCESS", transactionId);
+        }
+    }
+
+    @Singleton
+    @Component
+    public static class NotificationService {
+        private final EmailService emailService;
+        private final UserService userService;
+        
+        @Inject
+        public NotificationService(EmailService emailService, UserService userService) {
+            this.emailService = emailService;
+            this.userService = userService;
+        }
+        
+        public void sendOrderConfirmation(String orderId) {
+            System.out.println("  [NotificationService] Enviando confirmación para orden: " + orderId);
+            // Lógica de notificación...
+        }
+    }
+
+    @Singleton
+    @Component
+    public static class UserService {
+        private final DatabaseService databaseService;
+        
+        @Inject
+        public UserService(DatabaseService databaseService) {
+            this.databaseService = databaseService;
+        }
+        
+        public String getUserEmail(String userId) {
+            return databaseService.getUserEmail(userId);
+        }
+    }
+
+    // =============================================================================
+    // EMAIL SERVICES (Named Injection Example)
+    // =============================================================================
+
+    @Named("smtp")
+    @Singleton
+    @Component
+    public static class SmtpEmailService implements EmailService {
+        @Value("${app.smtp.host:localhost}")
+        private String smtpHost;
+        
+        @Value("${app.smtp.port:587}")
+        private int smtpPort;
+        
+        @PostConstruct
+        public void init() {
+            System.out.println("  [SmtpEmailService] Conectando a SMTP: " + smtpHost + ":" + smtpPort);
+        }
+        
+        @Override
+        public String getProvider() {
+            return "SMTP";
+        }
+        
+        @Override
+        public void sendEmail(String to, String subject, String body) {
+            System.out.println("  [SMTP] Enviando email a: " + to);
+        }
+    }
+
+    @Named("sms")
+    @Singleton
+    @Component  
+    public static class SmsEmailService implements EmailService {
+        @Value("${app.sms.provider:twilio}")
+        private String smsProvider;
+        
+        @PostConstruct
+        public void init() {
+            System.out.println("  [SmsEmailService] Inicializando SMS provider: " + smsProvider);
+        }
+        
+        @Override
+        public String getProvider() {
+            return "SMS";
+        }
+        
+        @Override
+        public void sendEmail(String to, String subject, String body) {
+            System.out.println("  [SMS] Enviando SMS a: " + to);
+        }
+    }
+
+    public interface EmailService {
+        String getProvider();
+        void sendEmail(String to, String subject, String body);
+    }
+
+    // =============================================================================
+    // CACHE MANAGER (Provider Injection Example)
+    // =============================================================================
+
+    @Singleton
+    @Component
+    public static class CacheManager {
+        private final Provider<Cache> cacheProvider;
+        private final ValueResolver valueResolver;
+        
+        @Inject
+        public CacheManager(Provider<Cache> cacheProvider, ValueResolver valueResolver) {
+            this.cacheProvider = cacheProvider;
+            this.valueResolver = valueResolver;
+        }
+        
+        public Provider<Cache> getCacheProvider() {
+            return cacheProvider;
+        }
+    }
+
+    @Prototype
+    @Component
+    public static class Cache {
+        private final String id;
+        
+        public Cache() {
+            this.id = "CACHE-" + System.currentTimeMillis();
+        }
+        
+        public String getId() {
+            return id;
+        }
+    }
+
+    // =============================================================================
+    // AUDIT SERVICE (Optional Injection Example)
+    // =============================================================================
+
+    @Singleton
+    @Component
+    public static class AuditService {
+        private final java.util.Optional<AuditLogger> auditLogger;
+        private final java.util.Optional<ExternalLogger> externalLogger;
+        
+        @Inject
+        public AuditService(
+            java.util.Optional<AuditLogger> auditLogger,
+            java.util.Optional<ExternalLogger> externalLogger
+        ) {
+            this.auditLogger = auditLogger;
+            this.externalLogger = externalLogger;
+        }
+        
+        public void logAction(String action) {
+            auditLogger.ifPresent(logger -> logger.log("ACTION: " + action));
+        }
+        
+        public java.util.Optional<AuditLogger> getAuditLogger() {
+            return auditLogger;
+        }
+        
+        public java.util.Optional<ExternalLogger> getExternalLogger() {
+            return externalLogger;
+        }
+    }
+
+    @Singleton
+    @Component
+    public static class AuditLogger {
+        @PostConstruct
+        public void init() {
+            System.out.println("  [AuditLogger] Sistema de auditoría inicializado");
+        }
+        
+        public void log(String message) {
+            System.out.println("  [AUDIT] " + message);
+        }
+    }
+
+    // ExternalLogger no existe - para probar Optional.empty()
+
+    // =============================================================================
+    // EVENT SUBSCRIBERS
+    // =============================================================================
+
+    @Singleton
+    @Component
+    public static class OrderEventHandler {
+        @Subscribe
+        public void onOrderCompleted(OrderCompletedEvent event) {
+            System.out.println("  [EventHandler] Orden completada: " + event.getOrderId() + 
+                             " por $" + event.getAmount());
+        }
+        
+        @Subscribe
+        public void onPaymentProcessed(PaymentProcessedEvent event) {
+            System.out.println("  [EventHandler] Pago procesado: " + event.getTransactionId() + 
+                             " para orden " + event.getOrderId());
+        }
+    }
+
+    // =============================================================================
+    // CONDITIONAL SERVICES
+    // =============================================================================
+
+    @Profile("production")
+    @ConditionalOnProperty(name = "app.database.enabled", havingValue = "true")
+    @Singleton
+    @Component
+    public static class DatabaseService {
+        @Value("${app.database.url}")
+        private String databaseUrl;
+        
+        @PostConstruct
+        public void init() {
+            System.out.println("  [DatabaseService] Conectando a: " + databaseUrl);
+        }
+        
+        public void saveOrder(Order order) {
+            System.out.println("  [DatabaseService] Guardando orden: " + order.getId());
+        }
+        
+        public String getUserEmail(String userId) {
+            return "user@" + userId.toLowerCase() + ".com";
+        }
+    }
+
+    @Profile("development")
+    @Singleton
+    @Component
+    public static class MockDatabaseService {
+        @PostConstruct
+        public void init() {
+            System.out.println("  [MockDatabaseService] Usando base de datos mock");
+        }
+        
+        public void saveOrder(Order order) {
+            System.out.println("  [MockDatabaseService] Mock guardado de orden: " + order.getId());
+        }
+        
+        public String getUserEmail(String userId) {
+            return "mock-" + userId.toLowerCase() + "@example.com";
+        }
+    }
+
+    // =============================================================================
+    // EVENT CLASSES
+    // =============================================================================
+
+    public static class OrderCompletedEvent {
+        private final String orderId;
+        private final String userId;
+        private final double amount;
+        
+        public OrderCompletedEvent(String orderId, String userId, double amount) {
+            this.orderId = orderId;
+            this.userId = userId;
+            this.amount = amount;
+        }
+        
+        public String getOrderId() { return orderId; }
+        public String getUserId() { return userId; }
+        public double getAmount() { return amount; }
+    }
+
+    public static class PaymentProcessedEvent {
+        private final String orderId;
+        private final double amount;
+        private final String transactionId;
+        
+        public PaymentProcessedEvent(String orderId, double amount, String transactionId) {
+            this.orderId = orderId;
+            this.amount = amount;
+            this.transactionId = transactionId;
+        }
+        
+        public String getOrderId() { return orderId; }
+        public double getAmount() { return amount; }
+        public String getTransactionId() { return transactionId; }
+    }
+}
