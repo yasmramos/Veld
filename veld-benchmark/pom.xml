@@ -119,6 +119,21 @@
 
     <build>
         <plugins>
+            <!-- Skip Javadoc generation for benchmark module -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.3</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <phase>none</phase>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- Compiler with annotation processing -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
