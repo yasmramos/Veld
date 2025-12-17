@@ -1,0 +1,209 @@
+name: Deploy to Maven Central
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  deploy:
+    name: Deploy to Maven Central
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        ref: main
+        
+    - name: Set up JDK 11
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: Configure Git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        
+    - name: Set up Maven
+      run: |
+        echo "=== Maven Configuration ==="
+        echo "Maven version:"
+        mvn -version
+        echo "Available memory:"
+        free -h
+        echo "Java version:"
+        java -version
+        
+    - name: Import GPG key
+      if: env.SONATYPE_USERNAME != ''
+      run: |
+        echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --yes --passphrase "${{ secrets.GPG_PASSPHRASE }}" --dearmor | tee /tmp/gpg_private_key.gpg | gpg --import
+        echo "GPG key imported successfully"
+        gpg --list-keys
+      env:
+        GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        
+    - name: Create Maven settings
+      if: env.SONATYPE_USERNAME != ''
+      run: |
+        mkdir -p ~/.m2
+        
+        # Create settings.xml for Sonatype Nexus
+        cat > ~/.m2/settings.xml << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                  http://maven.apache.org/xsd/settings-1.0.0.xsd">
+          <servers>
+            <server>
+              <id>ossrh</id>
+              <username>\${env.SONATYPE_USERNAME}</username>
+              <password>\${env.SONATYPE_TOKEN}</password>
+            </server>
+          </servers>
+        </settings>
+        EOF
+        
+        echo "Maven settings configured"
+        cat ~/.m2/settings.xml
+        
+    - name: Build and Test
+      run: |
+        echo "=== Building and Testing Veld Framework ==="
+        mvn clean install -DskipTests=false
+      env:
+        MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
+        
+    - name: Generate Javadoc
+      run: |
+        echo "=== Generating Javadoc ==="
+        mvn javadoc:javadoc -q
+        
+    - name: Deploy to Sonatype Nexus (Staging)
+      if: github.event.inputs.environment == 'staging' || (github.event.inputs.environment == '' && github.event_name != 'release')
+      run: |
+        echo "=== Deploying to Sonatype Nexus (Staging) ==="
+        mvn clean deploy -DskipTests=false -DfailIfNoTests=false
+      env:
+        MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
+        SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+        SONATYPE_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
+        GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        GPG_KEYNAME: ${{ secrets.GPG_KEYNAME }}
+        
+    - name: Deploy to Sonatype Nexus (Production)
+      if: github.event.inputs.environment == 'production' && github.event_name == 'release'
+      run: |
+        echo "=== Deploying to Sonatype Nexus (Production) ==="
+        mvn clean deploy -DskipTests=false -DfailIfNoTests=false
+      env:
+        MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
+        SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+        SONATYPE_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
+        GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        GPG_KEYNAME: ${{ secrets.GPG_KEYNAME }}
+        
+    - name: Verify deployment
+      run: |
+        echo "=== Verifying Deployment ==="
+        
+        # Check if artifacts were created
+        echo "Checking for JAR files:"
+        find . -name "*.jar" -path "*/target/*" | head -10
+        
+        echo "Checking for POM files:"
+        find . -name "*.pom" -path "*/target/*" | head -10
+        
+        echo "Checking for GPG signatures:"
+        find . -name "*.asc" -path "*/target/*" | head -10
+        
+        echo "Deployment verification completed"
+        
+    - name: Upload Release Assets
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-assets-${{ github.run_number }}
+        path: |
+          **/target/*.jar
+          **/target/*.pom
+          **/target/*.asc
+          **/target/*.md5
+          **/target/*.sha1
+        retention-days: 30
+        
+    - name: Create Release Summary
+      run: |
+        echo "## 🚀 Maven Central Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Release Version:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Environment:** ${{ github.event.inputs.environment || 'staging' }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Build Time:** $(date)" >> $GITHUB_STEP_SUMMARY
+        echo "**GitHub Run:** https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "### 📦 Artifacts Deployed" >> $GITHUB_STEP_SUMMARY
+        echo "The following modules have been deployed to Maven Central:" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # List deployed modules
+        for module in veld-annotations veld-runtime veld-processor veld-weaver veld-aop veld-spring-boot-starter veld-maven-plugin veld-benchmark veld-example; do
+          if [ -d "$module" ]; then
+            echo "- **$module** - Available as \`io.github.yasmramos:$module:1.0.0\`" >> $GITHUB_STEP_SUMMARY
+          fi
+        done
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔗 Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "1. **Login to Sonatype Nexus:** https://s01.oss.sonatype.org/" >> $GITHUB_STEP_SUMMARY
+        echo "2. **Close the staging repository** to validate the artifacts" >> $GITHUB_STEP_SUMMARY
+        echo "3. **Release the repository** to publish to Maven Central" >> $GITHUB_STEP_SUMMARY
+        echo "4. **Wait 2-24 hours** for Maven Central synchronization" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📋 Usage Instructions" >> $GITHUB_STEP_SUMMARY
+        echo "After release, users can add Veld to their projects:" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo '```xml' >> $GITHUB_STEP_SUMMARY
+        echo '<dependency>' >> $GITHUB_STEP_SUMMARY
+        echo '    <groupId>io.github.yasmramos</groupId>' >> $GITHUB_STEP_SUMMARY
+        echo '    <artifactId>veld-runtime</artifactId>' >> $GITHUB_STEP_SUMMARY
+        echo '    <version>1.0.0</version>' >> $GITHUB_STEP_SUMMARY
+        echo '</dependency>' >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        
+    - name: Post deployment notification
+      if: always()
+      run: |
+        echo "=== Deployment Process Completed ==="
+        
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ Deployment successful!"
+          echo "📋 Next steps:"
+          echo "1. Login to https://s01.oss.sonatype.org/"
+          echo "2. Close and release the staging repository"
+          echo "3. Wait for Maven Central synchronization (2-24 hours)"
+        else
+          echo "❌ Deployment failed!"
+          echo "Please check the logs and fix any issues before retrying."
+          echo "Common issues:"
+          echo "- Missing GPG key configuration"
+          echo "- Invalid Sonatype credentials"
+          echo "- Test failures"
+          echo "- Javadoc generation errors"
+        fi
