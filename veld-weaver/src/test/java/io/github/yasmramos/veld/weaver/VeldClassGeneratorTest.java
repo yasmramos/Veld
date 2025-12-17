@@ -175,7 +175,8 @@ class VeldClassGeneratorTest {
             "destroy",
             "()V",
             true,
-            "testComponent"
+            "testComponent",
+            Collections.emptyList()
         );
         
         assertEquals("com.example.Test", meta.className);
@@ -196,7 +197,7 @@ class VeldClassGeneratorTest {
         List<ComponentMeta> components = Arrays.asList(
             new ComponentMeta("com.Test", "SINGLETON", false, Collections.emptyList(),
                 Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
-                null, null, null, null, false, null)
+                null, null, null, null, false, null, Collections.emptyList())
         );
         
         VeldClassGenerator generator = new VeldClassGenerator(components);

@@ -63,13 +63,13 @@ class VeldClassGeneratorNamedTest {
             VeldClassGenerator.ComponentMeta comp1 = new VeldClassGenerator.ComponentMeta(
                 "com.example.ServiceA", "SINGLETON", false,
                 List.of(), List.of(), List.of(), List.of("com.example.Service"),
-                null, null, null, null, false, "serviceA"
+                null, null, null, null, false, "serviceA", List.of()
             );
             
             VeldClassGenerator.ComponentMeta comp2 = new VeldClassGenerator.ComponentMeta(
                 "com.example.ServiceB", "SINGLETON", false,
                 List.of(), List.of(), List.of(), List.of("com.example.Service"),
-                null, null, null, null, false, "serviceB"
+                null, null, null, null, false, "serviceB", List.of()
             );
             
             VeldClassGenerator generator = new VeldClassGenerator(List.of(comp1, comp2));
@@ -88,13 +88,13 @@ class VeldClassGeneratorNamedTest {
             VeldClassGenerator.ComponentMeta namedComp = new VeldClassGenerator.ComponentMeta(
                 "com.example.NamedService", "SINGLETON", false,
                 List.of(), List.of(), List.of(), List.of(),
-                null, null, null, null, false, "myNamedService"
+                null, null, null, null, false, "myNamedService", List.of()
             );
             
             VeldClassGenerator.ComponentMeta unnamedComp = new VeldClassGenerator.ComponentMeta(
                 "com.example.UnnamedService", "SINGLETON", false,
                 List.of(), List.of(), List.of(), List.of(),
-                null, null, null, null, false, null
+                null, null, null, null, false, null, List.of()
             );
             
             VeldClassGenerator generator = new VeldClassGenerator(List.of(namedComp, unnamedComp));
@@ -109,7 +109,7 @@ class VeldClassGeneratorNamedTest {
             VeldClassGenerator.ComponentMeta prototypeNamed = new VeldClassGenerator.ComponentMeta(
                 "com.example.PrototypeService", "PROTOTYPE", false,
                 List.of(), List.of(), List.of(), List.of(),
-                null, null, null, null, false, "protoService"
+                null, null, null, null, false, "protoService", List.of()
             );
             
             VeldClassGenerator generator = new VeldClassGenerator(List.of(prototypeNamed));
@@ -142,7 +142,7 @@ class VeldClassGeneratorNamedTest {
                 "init", "()V",
                 "destroy", "()V",
                 true,
-                "testService"
+                "testService", List.of()
             );
             
             assertEquals("com.example.TestService", meta.className);
@@ -174,7 +174,7 @@ class VeldClassGeneratorNamedTest {
                 List.of(),
                 null, null, null, null,
                 false,
-                null
+                null, List.of()
             );
             
             assertNull(meta.componentName);
