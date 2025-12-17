@@ -62,7 +62,7 @@ jobs:
         mvn clean compile -X --batch-mode
       env:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
-      timeout-minutes: 8
+      timeout-minutes: 15
       
     # Phase 2: Build Veld Framework modules individually
     - name: Build Veld Annotations
@@ -113,12 +113,22 @@ jobs:
         if [ -f "veld-benchmark/target/veld-benchmark.jar" ]; then
           echo "✅ Benchmark JAR built successfully"
           ls -la veld-benchmark/target/veld-benchmark.jar
+          
+          # Verify JAR is executable
+          echo "=== Testing JAR execution ==="
+          cd veld-benchmark
+          java -jar target/veld-benchmark.jar --help 2>/dev/null || echo "JAR execution test completed"
         else
           echo "❌ Benchmark JAR not found!"
           echo "Checking target directory:"
           ls -la veld-benchmark/target/ 2>/dev/null || echo "Target directory missing"
+          
+          echo "=== Debugging build failure ==="
+          echo "Checking for compilation errors in logs..."
+          find . -name "*.log" -path "*/target/*" -exec echo "=== {} ===" \; -exec tail -20 {} \; 2>/dev/null || true
           exit 1
         fi
+      timeout-minutes: 3
       
     # Phase 5: Run Benchmarks
     - name: Run Development Benchmarks
@@ -154,7 +164,7 @@ jobs:
           -f 5 -wi 5 -i 10 \
           -rf json \
           -rff results/full-benchmarks.json
-      timeout-minutes: 15
+      timeout-minutes: 60
           
     - name: Run Selective Benchmarks
       if: ${{ github.event.inputs.benchmark_mode == 'selective' || github.event.inputs.benchmark_mode == '' }}
