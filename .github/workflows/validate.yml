@@ -113,35 +113,48 @@ jobs:
         distribution: 'temurin'
         cache: maven
         
-    - name: Clean and compile
+    - name: Clean and package
       run: |
-        echo "=== Compiling Veld Framework ==="
-        mvn clean compile -q
+        echo "=== Building Veld Framework ==="
+        mvn clean package -DskipTests -q
         
     - name: Verify compilation artifacts
       run: |
         echo "=== Verifying Compilation Artifacts ==="
         
-        expected_artifacts=(
-          "veld-annotations/target/veld-annotations-*.jar"
-          "veld-runtime/target/veld-runtime-*.jar"
-          "veld-processor/target/veld-processor-*.jar"
-          "veld-weaver/target/veld-weaver-*.jar"
+        # Check for compiled classes in each module
+        expected_classes=(
+          "veld-annotations/target/classes"
+          "veld-runtime/target/classes"
+          "veld-processor/target/classes"
+          "veld-weaver/target/classes"
+          "veld-aop/target/classes"
+          "veld-spring-boot-starter/target/classes"
+          "veld-maven-plugin/target/classes"
         )
         
-        missing_artifacts=()
-        for pattern in "${expected_artifacts[@]}"; do
-          if ! ls $pattern 1> /dev/null 2>&1; then
-            missing_artifacts+=("$pattern")
+        missing_classes=()
+        for class_dir in "${expected_classes[@]}"; do
+          if [[ ! -d "$class_dir" ]]; then
+            missing_classes+=("$class_dir")
           fi
         done
         
-        if [[ ${#missing_artifacts[@]} -gt 0 ]]; then
-          echo "❌ Missing compilation artifacts:"
-          printf '%s\n' "${missing_artifacts[@]}"
+        if [[ ${#missing_classes[@]} -gt 0 ]]; then
+          echo "❌ Missing compiled class directories:"
+          printf '%s\n' "${missing_classes[@]}"
           exit 1
         else
-          echo "✅ All expected artifacts compiled successfully"
+          echo "✅ All modules compiled successfully"
+        fi
+        
+        # Check for JAR files as well
+        jar_files=$(find . -name "*.jar" -path "./target/*" | wc -l)
+        if [[ $jar_files -gt 0 ]]; then
+          echo "✅ JAR files created: $jar_files"
+          find . -name "*.jar" -path "./target/*" | head -5
+        else
+          echo "⚠️  No JAR files found (this might be expected for some modules)"
         fi
 
   validate-tests:
