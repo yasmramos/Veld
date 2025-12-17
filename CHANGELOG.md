@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Placeholder for future features
+
+## [1.0.0] - 2025-12-17
+
+### Added
 - Complete automatic integration of all lifecycle callbacks (@PostConstruct, @PreDestroy)
 - Automatic EventBus registration for @Subscribe methods
 - Automatic value resolution for @Value annotations
@@ -17,6 +22,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optional<T> injection support
 - Comprehensive integration tests
 - Complex application example demonstrating all features
+- Ultra-fast dependency injection framework
+- Zero reflection runtime performance
+- Thread-local cache for ~2ns lookup times
+- Hash table lookup for ~5ns lookup times
+- Compile-time bytecode generation
+- Support for constructor, field, and method injection
+- Singleton and Prototype scopes
+- Interface-based injection
+- Named qualifiers (@Named)
+- JSR-330 and Jakarta Inject compatibility
+- Lifecycle callbacks (@PostConstruct, @PreDestroy)
+- Value injection (@Value)
+- EventBus integration
+- Profile-based conditional loading
+- AOP support via veld-aop module
+- Spring Boot integration
+- Comprehensive benchmarks showing 80x faster than Spring
+- Maven plugin for unified build process
 
 ### Changed
 - Enhanced Veld.class API with complete feature access

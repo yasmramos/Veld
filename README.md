@@ -53,38 +53,29 @@ Veld is a **compile-time Dependency Injection framework** that generates pure by
 
 ### 1. Add Dependencies
 
+**Maven:**
 ```xml
-<dependencies>
-    <!-- Core annotations -->
-    <dependency>
-        <groupId>io.github.yasmramos.veld</groupId>
-        <artifactId>veld-annotations</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
-    </dependency>
-    
-    <!-- Runtime utilities -->
-    <dependency>
-        <groupId>io.github.yasmramos.veld</groupId>
-        <artifactId>veld-runtime</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
-    </dependency>
-</dependencies>
+<dependency>
+    <groupId>io.github.yasmramos</groupId>
+    <artifactId>veld-runtime</artifactId>
+    <version>1.0.0</version>
+</dependency>
+
+<dependency>
+    <groupId>io.github.yasmramos</groupId>
+    <artifactId>veld-processor</artifactId>
+    <version>1.0.0</version>
+    <scope>provided</scope>
+</dependency>
 ```
 
-### 2. Add the Veld Maven Plugin
-
-```xml
-<build>
-    <plugins>
-        <plugin>
-            <groupId>io.github.yasmramos.veld</groupId>
-            <artifactId>veld-maven-plugin</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-            <extensions>true</extensions>
-        </plugin>
-    </plugins>
-</build>
+**Gradle:**
+```gradle
+implementation 'io.github.yasmramos:veld-runtime:1.0.0'
+annotationProcessor 'io.github.yasmramos:veld-processor:1.0.0'
 ```
+
+**Note:** Veld is now available on Maven Central! The unified plugin approach has been replaced with standard annotation processing for better IDE compatibility and simpler configuration.
 
 **That's it!** The unified plugin handles everything automatically:
 - Compiles your code with the Veld annotation processor
