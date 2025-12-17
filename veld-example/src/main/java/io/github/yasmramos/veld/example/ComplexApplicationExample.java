@@ -1,11 +1,13 @@
 package io.github.yasmramos.veld.example;
 
 import io.github.yasmramos.veld.annotation.*;
+import io.github.yasmramos.veld.runtime.Veld;
 import io.github.yasmramos.veld.runtime.event.EventBus;
+import io.github.yasmramos.veld.runtime.event.Event;
 import io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor;
+import io.github.yasmramos.veld.runtime.value.ValueResolver;
+import io.github.yasmramos.veld.runtime.Provider;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -39,17 +41,17 @@ public class ComplexApplicationExample {
         System.setProperty("app.async.threads", "4");
         
         // Configurar perfil activo
-        setActiveProfiles("production", "database");
+        Veld.setActiveProfiles("production", "database");
         
         // =============================================================================
         // 2. OBTENER COMPONENTES PRINCIPALES
         // =============================================================================
         System.out.println("📦 Obteniendo componentes principales...");
         
-        OrderService orderService = get(OrderService.class);
-        PaymentService paymentService = get(PaymentService.class);
-        NotificationService notificationService = get(NotificationService.class);
-        UserService userService = get(UserService.class);
+        OrderService orderService = Veld.get(OrderService.class);
+        PaymentService paymentService = Veld.get(PaymentService.class);
+        NotificationService notificationService = Veld.get(NotificationService.class);
+        UserService userService = Veld.get(UserService.class);
         
         System.out.println("✅ Componentes principales obtenidos:");
         System.out.println("  - OrderService: " + orderService.getClass().getSimpleName());
@@ -58,12 +60,12 @@ public class ComplexApplicationExample {
         System.out.println("  - UserService: " + userService.getClass().getSimpleName());
         
         // =============================================================================
-        // 3. DEMOSTRAR INYECCIÓN POR NOMBRE
+        // 3. DEMOSTRAR DIFERENTES IMPLEMENTACIONES
         // =============================================================================
-        System.out.println("\n🏷️  Probando inyección por nombre...");
+        System.out.println("\n🏷️  Probando diferentes implementaciones...");
         
-        EmailService emailService = get(EmailService.class, "smtp");
-        EmailService smsService = get(EmailService.class, "sms");
+        EmailService emailService = Veld.get(SmtpEmailService.class);
+        EmailService smsService = Veld.get(SmsEmailService.class);
         
         System.out.println("  - Email SMTP Service: " + emailService.getProvider());
         System.out.println("  - SMS Service: " + smsService.getProvider());
@@ -73,7 +75,7 @@ public class ComplexApplicationExample {
         // =============================================================================
         System.out.println("\n🔄 Probando Provider injection...");
         
-        CacheManager cacheManager = get(CacheManager.class);
+        CacheManager cacheManager = Veld.get(CacheManager.class);
         // El Provider permite crear instancias bajo demanda
         Cache cache1 = cacheManager.getCacheProvider().get();
         Cache cache2 = cacheManager.getCacheProvider().get();
@@ -87,9 +89,8 @@ public class ComplexApplicationExample {
         // =============================================================================
         System.out.println("\n❓ Probando Optional injection...");
         
-        AuditService auditService = get(AuditService.class);
+        AuditService auditService = Veld.get(AuditService.class);
         System.out.println("  - Audit Service disponible: " + auditService.getAuditLogger().isPresent());
-        System.out.println("  - External Service disponible: " + auditService.getExternalLogger().isPresent());
         
         // =============================================================================
         // 6. EJECUTAR FLUJO DE NEGOCIO COMPLETO
@@ -122,7 +123,7 @@ public class ComplexApplicationExample {
         // =============================================================================
         System.out.println("\n📡 Probando EventBus...");
         
-        EventBus eventBus = getEventBus();
+        EventBus eventBus = Veld.getEventBus();
         eventBus.publish(new OrderCompletedEvent("ORDER123", "USER123", 1250.00));
         
         // Esperar un poco para que se procesen los eventos
@@ -137,11 +138,11 @@ public class ComplexApplicationExample {
         // =============================================================================
         System.out.println("\n🔧 Accediendo a servicios del framework...");
         
-        LifecycleProcessor lifecycleProcessor = getLifecycleProcessor();
+        LifecycleProcessor lifecycleProcessor = Veld.getLifecycleProcessor();
         System.out.println("  - LifecycleProcessor: " + lifecycleProcessor.getClass().getSimpleName());
         
-        ValueResolver valueResolver = getValueResolver();
-        System.out.println("  - ValueResolver disponible: " + (valueResolver != null));
+        // Note: ValueResolver is accessed through specific @Value annotations, not directly
+        System.out.println("  - ValueResolver disponible a través de @Value annotations");
         
         // =============================================================================
         // 9. COMPONENTES CONDICIONALES
@@ -150,7 +151,7 @@ public class ComplexApplicationExample {
         
         try {
             // En producción con database habilitado, esto debería funcionar
-            DatabaseService dbService = get(DatabaseService.class);
+            DatabaseService dbService = Veld.get(DatabaseService.class);
             System.out.println("  ✅ DatabaseService cargado (perfil: production + database)");
         } catch (Exception e) {
             System.out.println("  ❌ DatabaseService no disponible: " + e.getMessage());
@@ -158,7 +159,7 @@ public class ComplexApplicationExample {
         
         try {
             // Este debería estar deshabilitado en producción
-            MockDatabaseService mockService = get(MockDatabaseService.class);
+            MockDatabaseService mockService = Veld.get(MockDatabaseService.class);
             System.out.println("  ⚠️  MockDatabaseService cargado (esto no debería pasar en producción)");
         } catch (Exception e) {
             System.out.println("  ✅ MockDatabaseService correctamente deshabilitado en producción");
@@ -168,7 +169,7 @@ public class ComplexApplicationExample {
         // 10. SHUTDOWN GRACEFUL
         // =============================================================================
         System.out.println("\n🛑 Ejecutando shutdown graceful...");
-        shutdown();
+        Veld.shutdown();
         
         System.out.println("\n✨ ¡Aplicación compleja completada exitosamente!");
         System.out.println("📊 Todas las características de Veld funcionan automáticamente:");
@@ -250,7 +251,7 @@ public class ComplexApplicationExample {
             this.databaseService = databaseService;
         }
         
-        @PostConstruct
+        @io.github.yasmramos.veld.annotation.PostConstruct
         public void init() {
             System.out.println("  [OrderService] Inicializando servicio de órdenes...");
         }
@@ -330,7 +331,6 @@ public class ComplexApplicationExample {
     // EMAIL SERVICES (Named Injection Example)
     // =============================================================================
 
-    @Named("smtp")
     @Singleton
     @Component
     public static class SmtpEmailService implements EmailService {
@@ -340,7 +340,7 @@ public class ComplexApplicationExample {
         @Value("${app.smtp.port:587}")
         private int smtpPort;
         
-        @PostConstruct
+        @io.github.yasmramos.veld.annotation.PostConstruct
         public void init() {
             System.out.println("  [SmtpEmailService] Conectando a SMTP: " + smtpHost + ":" + smtpPort);
         }
@@ -356,14 +356,13 @@ public class ComplexApplicationExample {
         }
     }
 
-    @Named("sms")
     @Singleton
     @Component  
     public static class SmsEmailService implements EmailService {
         @Value("${app.sms.provider:twilio}")
         private String smsProvider;
         
-        @PostConstruct
+        @io.github.yasmramos.veld.annotation.PostConstruct
         public void init() {
             System.out.println("  [SmsEmailService] Inicializando SMS provider: " + smsProvider);
         }
@@ -392,12 +391,10 @@ public class ComplexApplicationExample {
     @Component
     public static class CacheManager {
         private final Provider<Cache> cacheProvider;
-        private final ValueResolver valueResolver;
         
         @Inject
-        public CacheManager(Provider<Cache> cacheProvider, ValueResolver valueResolver) {
+        public CacheManager(Provider<Cache> cacheProvider) {
             this.cacheProvider = cacheProvider;
-            this.valueResolver = valueResolver;
         }
         
         public Provider<Cache> getCacheProvider() {
@@ -427,15 +424,10 @@ public class ComplexApplicationExample {
     @Component
     public static class AuditService {
         private final java.util.Optional<AuditLogger> auditLogger;
-        private final java.util.Optional<ExternalLogger> externalLogger;
         
         @Inject
-        public AuditService(
-            java.util.Optional<AuditLogger> auditLogger,
-            java.util.Optional<ExternalLogger> externalLogger
-        ) {
+        public AuditService(java.util.Optional<AuditLogger> auditLogger) {
             this.auditLogger = auditLogger;
-            this.externalLogger = externalLogger;
         }
         
         public void logAction(String action) {
@@ -445,16 +437,12 @@ public class ComplexApplicationExample {
         public java.util.Optional<AuditLogger> getAuditLogger() {
             return auditLogger;
         }
-        
-        public java.util.Optional<ExternalLogger> getExternalLogger() {
-            return externalLogger;
-        }
     }
 
     @Singleton
     @Component
     public static class AuditLogger {
-        @PostConstruct
+        @io.github.yasmramos.veld.annotation.PostConstruct
         public void init() {
             System.out.println("  [AuditLogger] Sistema de auditoría inicializado");
         }
@@ -498,7 +486,7 @@ public class ComplexApplicationExample {
         @Value("${app.database.url}")
         private String databaseUrl;
         
-        @PostConstruct
+        @io.github.yasmramos.veld.annotation.PostConstruct
         public void init() {
             System.out.println("  [DatabaseService] Conectando a: " + databaseUrl);
         }
@@ -516,7 +504,7 @@ public class ComplexApplicationExample {
     @Singleton
     @Component
     public static class MockDatabaseService {
-        @PostConstruct
+        @io.github.yasmramos.veld.annotation.PostConstruct
         public void init() {
             System.out.println("  [MockDatabaseService] Usando base de datos mock");
         }
@@ -534,12 +522,13 @@ public class ComplexApplicationExample {
     // EVENT CLASSES
     // =============================================================================
 
-    public static class OrderCompletedEvent {
+    public static class OrderCompletedEvent extends Event {
         private final String orderId;
         private final String userId;
         private final double amount;
         
         public OrderCompletedEvent(String orderId, String userId, double amount) {
+            super();
             this.orderId = orderId;
             this.userId = userId;
             this.amount = amount;
@@ -550,12 +539,13 @@ public class ComplexApplicationExample {
         public double getAmount() { return amount; }
     }
 
-    public static class PaymentProcessedEvent {
+    public static class PaymentProcessedEvent extends Event {
         private final String orderId;
         private final double amount;
         private final String transactionId;
         
         public PaymentProcessedEvent(String orderId, double amount, String transactionId) {
+            super();
             this.orderId = orderId;
             this.amount = amount;
             this.transactionId = transactionId;
