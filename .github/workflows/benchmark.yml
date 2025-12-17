@@ -22,7 +22,7 @@ jobs:
   benchmark:
     runs-on: ubuntu-latest
     
-    timeout-minutes: 45  # 45 minutos de timeout total para full benchmarks
+    timeout-minutes: 120  # 2 horas de timeout total para full benchmarks
     
     steps:
     - name: Checkout repository
