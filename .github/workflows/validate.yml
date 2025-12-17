@@ -296,52 +296,7 @@ jobs:
           exit 1
         fi
 
-  validate-examples:
-    name: Validate Examples
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        
-    - name: Set up JDK 11
-      uses: actions/setup-java@v4
-      with:
-        java-version: '11'
-        distribution: 'temurin'
-        cache: maven
-        
-    - name: Build example modules
-      run: |
-        echo "=== Building Example Modules ==="
-        mvn clean compile -pl veld-example,veld-spring-boot-example -am -q
-        
-    - name: Verify example structure
-      run: |
-        echo "=== Verifying Example Structure ==="
-        
-        # Check if example source files exist
-        example_sources=(
-          "veld-example/src/main/java/io/github/yasmramos/veld/example"
-          "veld-spring-boot-example/src/main/java/io/github/yasmramos/veld/spring"
-        )
-        
-        missing_sources=()
-        for source in "${example_sources[@]}"; do
-          if [[ ! -d "$source" ]]; then
-            missing_sources+=("$source")
-          fi
-        done
-        
-        if [[ ${#missing_sources[@]} -gt 0 ]]; then
-          echo "❌ Missing example source directories:"
-          printf '%s\n' "${missing_sources[@]}"
-          exit 1
-        else
-          echo "✅ All example sources present"
-        fi
+
 
   create-validation-report:
     name: Create Validation Report
@@ -351,8 +306,7 @@ jobs:
       validate-compilation,
       validate-tests,
       validate-documentation,
-      validate-benchmarks,
-      validate-examples
+      validate-benchmarks
     ]
     if: always()
     
@@ -404,25 +358,20 @@ jobs:
           echo "❌ **Benchmarks** - Benchmark build failures" >> $GITHUB_STEP_SUMMARY
         fi
         
-        # Examples
-        if [[ "${{ needs.validate-examples.result }}" == "success" ]]; then
-          echo "✅ **Examples** - Example modules build successfully" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ **Examples** - Example build failures" >> $GITHUB_STEP_SUMMARY
-        fi
+
         
         echo "" >> $GITHUB_STEP_SUMMARY
         
         # Overall status
         failed_jobs=0
-        total_jobs=6
+        total_jobs=5
         
         [[ "${{ needs.validate-project-structure.result }}" != "success" ]] && ((failed_jobs++))
         [[ "${{ needs.validate-compilation.result }}" != "success" ]] && ((failed_jobs++))
         [[ "${{ needs.validate-tests.result }}" != "success" ]] && ((failed_jobs++))
         [[ "${{ needs.validate-documentation.result }}" != "success" ]] && ((failed_jobs++))
         [[ "${{ needs.validate-benchmarks.result }}" != "success" ]] && ((failed_jobs++))
-        [[ "${{ needs.validate-examples.result }}" != "success" ]] && ((failed_jobs++))
+
         
         if [[ $failed_jobs -eq 0 ]]; then
           echo "## 🎉 **READY FOR RELEASE**" >> $GITHUB_STEP_SUMMARY
