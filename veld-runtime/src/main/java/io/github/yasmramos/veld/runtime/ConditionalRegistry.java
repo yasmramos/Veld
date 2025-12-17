@@ -31,13 +31,19 @@ public final class ConditionalRegistry implements ComponentRegistry {
     
     private final ConditionContext conditionContext;
     private final List<String> excludedComponents = new ArrayList<>();
+    private static final Set<String> activeProfiles = new HashSet<>();
     
     /**
-     * Gets active profiles from system properties or environment variables.
+     * Gets active profiles from the programmatic set or system properties/environment variables.
      * 
      * @return array of active profile names
      */
     public static String[] getActiveProfiles() {
+        // If profiles were set programmatically, use those
+        if (!activeProfiles.isEmpty()) {
+            return activeProfiles.toArray(new String[0]);
+        }
+        
         // Try system property first: veld.profiles.active
         String profiles = System.getProperty("veld.profiles.active");
         if (profiles != null && !profiles.trim().isEmpty()) {
@@ -230,5 +236,34 @@ public final class ConditionalRegistry implements ComponentRegistry {
      */
     public int getExcludedCount() {
         return excludedComponents.size();
+    }
+    
+    /**
+     * Sets the active profiles programmatically.
+     * 
+     * @param profiles the profile names to set as active
+     */
+    public static void setActiveProfiles(String... profiles) {
+        activeProfiles.clear();
+        if (profiles != null) {
+            for (String profile : profiles) {
+                if (profile != null && !profile.trim().isEmpty()) {
+                    activeProfiles.add(profile.trim());
+                }
+            }
+        }
+    }
+    
+    /**
+     * Checks if a specific profile is active.
+     * 
+     * @param profile the profile name to check
+     * @return true if the profile is active
+     */
+    public static boolean isProfileActive(String profile) {
+        if (profile == null) {
+            return false;
+        }
+        return activeProfiles.contains(profile.trim());
     }
 }

@@ -238,8 +238,8 @@ public final class Veld {
      * 
      * @return the LifecycleProcessor instance
      */
-    publicLifecycleProcessor() {
- static LifecycleProcessor get        // Implementation generated at compile-time
+    public static LifecycleProcessor getLifecycleProcessor() {
+        // Implementation generated at compile-time
         throw new UnsupportedOperationException("Generated at compile-time");
     }
     
