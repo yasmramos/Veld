@@ -4,16 +4,19 @@ import io.github.yasmramos.veld.annotation.*;
 import io.github.yasmramos.veld.runtime.event.EventBus;
 import io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor;
 import io.github.yasmramos.veld.runtime.value.ValueResolver;
+import io.github.yasmramos.veld.runtime.Veld;
+import io.github.yasmramos.veld.annotation.Named;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import javax.inject.Provider;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static io.github.yasmramos.veld.example.Veld.*;
+import static io.github.yasmramos.veld.runtime.Veld.*;
 
 /**
  * Tests comprehensivos que verifican que TODAS las características
