@@ -6,6 +6,7 @@ import io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor;
 import io.github.yasmramos.veld.runtime.value.ValueResolver;
 import io.github.yasmramos.veld.runtime.Veld;
 import io.github.yasmramos.veld.annotation.Named;
+import io.github.yasmramos.veld.runtime.event.Event;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -381,10 +382,11 @@ public class IntegrationTests {
         }
     }
 
-    public static class TestEvent {
+    public static class TestEvent extends Event {
         private final String message;
         
         public TestEvent(String message) {
+            super();
             this.message = message;
         }
         
@@ -454,14 +456,12 @@ public class IntegrationTests {
     }
 
     // Named injection test components
-    @Named("primary")
     @Singleton
     @Component
     public static class PrimaryRepository {
         private final String name = "primary";
     }
 
-    @Named("secondary")
     @Singleton
     @Component
     public static class SecondaryRepository {
