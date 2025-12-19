@@ -10,11 +10,10 @@ module io.github.yasmramos.veld.benchmark {
     requires jakarta.inject;
     requires javax.inject;
     
-    // Google Guice for comparison benchmarks
-    requires com.google.inject;
-    
     // Dagger for comparison benchmarks
     requires dagger;
+    
+    // Google Guice is not a JPMS module - will be handled via classpath
     
     // JMH requirements
     requires jmh.core;
