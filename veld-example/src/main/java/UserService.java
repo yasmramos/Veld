@@ -117,4 +117,21 @@ public class UserService {
             System.out.println("       ❌ Configuración no disponible");
         }
     }
+    
+    public String getUserName(Long id) {
+        System.out.println("       Obteniendo nombre del usuario con ID: " + id);
+        
+        // Simular obtención de nombre de usuario desde la base de datos
+        String userName = "Usuario_" + id;
+        
+        if (databaseService != null && databaseService.isConnected()) {
+            databaseService.executeQuery("SELECT name FROM users WHERE id = " + id);
+            System.out.println("       ✓ Consulta ejecutada en BD para obtener nombre");
+        } else {
+            System.out.println("       ❌ No se puede consultar BD, usando nombre simulado");
+        }
+        
+        System.out.println("       ✓ Nombre obtenido: " + userName);
+        return userName;
+    }
 }

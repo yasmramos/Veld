@@ -369,7 +369,7 @@ public class Main {
         System.out.println("  User with ID 1: " + user);
         
         System.out.println("\n→ Creating new user:");
-        userService.createUser(4L, "Diana");
+        userService.createUser(4L, "Diana", "diana@example.com");
         
         System.out.println("\n→ Sending email notification:");
         EmailNotification notification = get(EmailNotification.class);

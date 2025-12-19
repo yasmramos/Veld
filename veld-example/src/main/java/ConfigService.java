@@ -1,4 +1,4 @@
-package io.github.yasmramos.veld.example.dependsOn;
+package io.github.yasmramos.veld.example;
 
 import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.annotation.Inject;
