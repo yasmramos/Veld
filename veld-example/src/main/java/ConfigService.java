@@ -53,4 +53,8 @@ public class ConfigService {
     public LogService getLogService() {
         return logService;
     }
+    
+    public String getMessagePrefix() {
+        return "[" + appName + "]";
+    }
 }
