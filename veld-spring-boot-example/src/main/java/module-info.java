@@ -4,7 +4,6 @@
  */
 module io.github.yasmramos.veld.spring.boot.example {
     requires io.github.yasmramos.veld.annotation;
-    requires io.github.yasmramos.veld.spring.boot.starter;
     
     // Spring Boot requirements for examples
     requires spring.boot;
