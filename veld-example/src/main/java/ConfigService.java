@@ -13,6 +13,7 @@ public class ConfigService {
     private String appName = "Veld Framework Example";
     private String environment = "development";
     private int port = 8080;
+    private boolean debugMode = false;
     
     @PostConstruct
     public void init() {
@@ -38,5 +39,9 @@ public class ConfigService {
     
     public boolean isProduction() {
         return "production".equals(environment);
+    }
+    
+    public boolean isDebugMode() {
+        return debugMode || isDevelopment();
     }
 }

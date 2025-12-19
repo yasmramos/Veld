@@ -10,6 +10,9 @@ module io.github.yasmramos.veld.processor {
     requires io.github.yasmramos.veld.annotation;
     requires io.github.yasmramos.veld.runtime;
     
+    // Required external modules
+    requires org.objectweb.asm;
+    
     // Export processor package
     exports io.github.yasmramos.veld.processor;
     
