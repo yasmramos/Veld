@@ -20,7 +20,6 @@ module io.github.yasmramos.veld.spring.boot.starter {
     
     // Jakarta Inject for Spring compatibility
     requires jakarta.inject;
-    requires javax.inject;
     
     // Export starter package
     exports io.github.yasmramos.veld.spring.boot;
