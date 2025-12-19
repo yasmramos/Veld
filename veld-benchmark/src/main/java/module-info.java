@@ -11,14 +11,14 @@ module io.github.yasmramos.veld.benchmark {
     requires javax.inject;
     
     // Google Guice for comparison benchmarks
-    requires com.google.inject;
+    requires com.google.inject.guice;
     
     // Dagger for comparison benchmarks
     requires dagger;
     
     // JMH requirements
     requires jmh.core;
-    requires jmh.generator.annotations;
+    requires jmh.generator.annprocess;
     
     // Spring Framework for comparison benchmarks
     requires spring.context;
