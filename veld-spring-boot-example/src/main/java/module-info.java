@@ -12,7 +12,6 @@ module io.github.yasmramos.veld.spring.boot.example {
     requires spring.context;
     requires spring.boot.web;
     requires spring.boot.actuator;
-    requires spring.test;
 
     
     // Export example packages

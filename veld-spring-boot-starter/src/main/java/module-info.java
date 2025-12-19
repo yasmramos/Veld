@@ -6,7 +6,6 @@ module io.github.yasmramos.veld.spring.boot.starter {
     requires io.github.yasmramos.veld.annotation;
     requires io.github.yasmramos.veld.runtime;
     requires io.github.yasmramos.veld.aop;
-    requires io.github.yasmramos.veld.processor;
     
     // Spring Boot requirements
     requires spring.boot;
@@ -15,8 +14,6 @@ module io.github.yasmramos.veld.spring.boot.starter {
     requires spring.beans;
     requires spring.core;
     requires spring.boot.actuator;
-    requires spring.boot.logging;
-    requires spring.test;
     
     // Jakarta Inject for Spring compatibility
     requires jakarta.inject;
