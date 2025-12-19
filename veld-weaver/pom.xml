@@ -26,6 +26,12 @@
             <artifactId>veld-annotations</artifactId>
         </dependency>
 
+        <!-- Veld Runtime -->
+        <dependency>
+            <groupId>io.github.yasmramos</groupId>
+            <artifactId>veld-runtime</artifactId>
+        </dependency>
+
         <!-- ASM for bytecode manipulation -->
         <dependency>
             <groupId>org.ow2.asm</groupId>
