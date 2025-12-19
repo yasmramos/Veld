@@ -9,7 +9,6 @@ module io.github.yasmramos.veld.benchmark {
     
     // Jakarta and JavaX Inject for benchmarks
     requires jakarta.inject;
-    requires javax.inject;
     
     // JMH requirements
     requires jmh.core;
