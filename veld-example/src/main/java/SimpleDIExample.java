@@ -61,19 +61,3 @@ class ConsolePrinter {
         System.out.println("[PRINT]: " + text);
     }
 }
-
-@Singleton
-@Component
-class ConfigService {
-    
-    @Value("${app.name:Veld App}")
-    private String appName;
-    
-    public String getMessagePrefix() {
-        return "[" + appName + "]";
-    }
-    
-    public String getAppName() {
-        return appName;
-    }
-}

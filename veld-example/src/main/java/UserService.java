@@ -3,6 +3,7 @@ package io.github.yasmramos.veld.example.dependsOn;
 import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.annotation.PostConstruct;
 import io.github.yasmramos.veld.annotation.DependsOn;
+import io.github.yasmramos.veld.example.ConfigService;
 
 /**
  * Servicio de usuario - depende explícitamente de múltiples servicios.

@@ -2,6 +2,7 @@ package io.github.yasmramos.veld.example.dependsOn;
 
 import io.github.yasmramos.veld.Veld;
 import io.github.yasmramos.veld.annotation.Component;
+import io.github.yasmramos.veld.example.ConfigService;
 
 /**
  * Clase principal para demostrar la funcionalidad de @DependsOn.
