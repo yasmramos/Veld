@@ -10,14 +10,12 @@ module io.github.yasmramos.veld.spring.boot.example {
     requires spring.boot;
     requires spring.boot.autoconfigure;
     requires spring.context;
-    requires spring.boot.web;
+    requires spring.web;
     requires spring.boot.actuator;
 
     
     // Export example packages
-    exports io.github.yasmramos.veld.spring.boot.example;
-    exports io.github.yasmramos.veld.spring.boot.example.controller;
-    exports io.github.yasmramos.veld.spring.boot.example.config;
-    exports io.github.yasmramos.veld.spring.boot.example.service;
-    exports io.github.yasmramos.veld.spring.boot.example.repository;
+    exports io.github.yasmramos.veld.boot.example;
+    exports io.github.yasmramos.veld.boot.example.controller;
+    exports io.github.yasmramos.veld.boot.example.service;
 }
