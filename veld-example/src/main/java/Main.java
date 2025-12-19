@@ -8,6 +8,7 @@ import io.github.yasmramos.veld.example.events.NotificationEvent;
 import io.github.yasmramos.veld.example.events.OrderCreatedEvent;
 import io.github.yasmramos.veld.example.lifecycle.*;
 import io.github.yasmramos.veld.example.dependsOn.DependsOnDemo;
+import io.github.yasmramos.veld.example.dependsOn.DatabaseService;
 import io.github.yasmramos.veld.aop.InterceptorRegistry;
 import io.github.yasmramos.veld.aop.interceptor.LoggingInterceptor;
 import io.github.yasmramos.veld.aop.interceptor.TimingInterceptor;

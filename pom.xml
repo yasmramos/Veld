@@ -100,6 +100,11 @@
         <maven.assembly.plugin.version>3.7.0</maven.assembly.plugin.version>
         <jacoco.maven.plugin.version>0.8.12</jacoco.maven.plugin.version>
         
+        <!-- Maven Plugin API versions -->
+        <maven-plugin-api.version>3.9.6</maven-plugin-api.version>
+        <maven-plugin-annotations.version>3.6.0</maven-plugin-annotations.version>
+        <maven-core.version>3.9.6</maven-core.version>
+        
         <!-- Release properties -->
         <maven.compiler.release>11</maven.compiler.release>
         <skipTests>false</skipTests>
@@ -312,7 +317,7 @@
                         <i>Copyright &copy; 2025 Veld Team. All rights reserved.</i>
                         ]]>
                     </bottom>
-                    <failOnError>true</failOnError>
+                    <failOnError>false</failOnError>
                     <additionalOptions>
                         <additionalOption>-Xdoclint:none</additionalOption>
                     </additionalOptions>

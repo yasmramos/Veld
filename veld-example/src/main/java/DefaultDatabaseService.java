@@ -3,6 +3,7 @@ package io.github.yasmramos.veld.example;
 import io.github.yasmramos.veld.annotation.ConditionalOnMissingBean;
 import io.github.yasmramos.veld.annotation.PostConstruct;
 import io.github.yasmramos.veld.annotation.Singleton;
+import io.github.yasmramos.veld.example.dependsOn.DatabaseService;
 
 /**
  * Default database service implementation.

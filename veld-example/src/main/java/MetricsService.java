@@ -86,4 +86,9 @@ public class MetricsService implements InitializingBean, DisposableBean {
             increment("cache.misses");
         }
     }
+    
+    public void recordEvent(String event) {
+        System.out.println("  [MetricsService] Recording event: " + event);
+        increment("events.total");
+    }
 }
