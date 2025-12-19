@@ -7,11 +7,6 @@ module io.github.yasmramos.veld.maven.plugin {
     requires io.github.yasmramos.veld.processor;
     requires io.github.yasmramos.veld.weaver;
     
-    // Maven Plugin API requirements
-    requires org.apache.maven.api.plugin;
-    requires org.apache.maven.api.core;
-    requires org.apache.maven.api.annotations;
-    
     // ASM requirements for bytecode manipulation
     requires org.objectweb.asm;
     
