@@ -13,8 +13,7 @@ module io.github.yasmramos.veld.spring.boot.example {
     requires spring.boot.web;
     requires spring.boot.actuator;
     requires spring.test;
-    requires jakarta.inject;
-    requires javax.inject;
+
     
     // Export example packages
     exports io.github.yasmramos.veld.spring.boot.example;

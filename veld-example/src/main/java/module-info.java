@@ -9,7 +9,6 @@ module io.github.yasmramos.veld.example {
     requires io.github.yasmramos.veld.processor;
     
     // Jakarta and JavaX Inject for examples
-    requires jakarta.inject;
     requires javax.inject;
     
     // Export example packages

@@ -98,6 +98,13 @@
             <artifactId>veld-processor</artifactId>
             <scope>test</scope>
         </dependency>
+        
+        <!-- Jakarta Inject API for Spring Boot compatibility -->
+        <dependency>
+            <groupId>jakarta.inject</groupId>
+            <artifactId>jakarta.inject-api</artifactId>
+            <version>${jakarta.inject.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
