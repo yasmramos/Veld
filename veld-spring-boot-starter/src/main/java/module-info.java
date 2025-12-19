@@ -21,11 +21,10 @@ module io.github.yasmramos.veld.spring.boot.starter {
     // SLF4J Logging
     requires org.slf4j;
     
-    // Export starter package
-    exports io.github.yasmramos.veld.spring.boot;
-    exports io.github.yasmramos.veld.spring.boot.autoconfigure;
-    exports io.github.yasmramos.veld.spring.boot.config;
-    exports io.github.yasmramos.veld.spring.boot.exception;
-    exports io.github.yasmramos.veld.spring.boot.handler;
-    exports io.github.yasmramos.veld.spring.boot.util;
+    // Export starter packages
+    exports io.github.yasmramos.veld.boot.starter;
+    exports io.github.yasmramos.veld.boot.starter.autoconfigure;
+    exports io.github.yasmramos.veld.boot.starter.config;
+    exports io.github.yasmramos.veld.boot.starter.health;
+    exports io.github.yasmramos.veld.boot.starter.service;
 }
