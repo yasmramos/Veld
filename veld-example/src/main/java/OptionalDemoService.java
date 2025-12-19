@@ -24,7 +24,7 @@ public class OptionalDemoService {
     // Field injection with Optional<T> wrapper
     // Will be Optional.empty() if MetricsService is not registered
     @Inject
-    java.util.Optional<MetricsService> metricsService;
+    java.util.Optional<io.github.yasmramos.veld.example.lifecycle.MetricsService> metricsService;
     
     // Required dependency (will fail if not found)
     private final LogService logService;

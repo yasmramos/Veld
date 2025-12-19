@@ -656,98 +656,136 @@ public class VeldProcessor extends AbstractProcessor {
     private void analyzeConditions(TypeElement typeElement, ComponentInfo info) {
         ConditionInfo conditionInfo = new ConditionInfo();
         
-        // Check for @ConditionalOnProperty
-        ConditionalOnProperty propertyCondition = typeElement.getAnnotation(ConditionalOnProperty.class);
-        if (propertyCondition != null) {
-            conditionInfo.addPropertyCondition(
-                propertyCondition.name(),
-                propertyCondition.havingValue(),
-                propertyCondition.matchIfMissing()
-            );
-            note("  -> Conditional on property: " + propertyCondition.name());
-        }
-        
-        // Check for @ConditionalOnClass
-        ConditionalOnClass classCondition = typeElement.getAnnotation(ConditionalOnClass.class);
-        if (classCondition != null) {
-            List<String> classNames = new ArrayList<>();
-            
-            // Get class names from 'name' attribute
-            for (String name : classCondition.name()) {
-                if (!name.isEmpty()) {
-                    classNames.add(name);
+        try {
+            // Check for @ConditionalOnProperty
+            ConditionalOnProperty propertyCondition = typeElement.getAnnotation(ConditionalOnProperty.class);
+            if (propertyCondition != null) {
+                try {
+                    conditionInfo.addPropertyCondition(
+                        propertyCondition.name(),
+                        propertyCondition.havingValue(),
+                        propertyCondition.matchIfMissing()
+                    );
+                    note("  -> Conditional on property: " + propertyCondition.name());
+                } catch (Exception e) {
+                    warning(null, "Could not process @ConditionalOnProperty annotation: " + e.getMessage());
                 }
             }
             
-            // Get class names from 'value' attribute (Class[] types)
-            // We need to handle this carefully due to MirroredTypeException
-            try {
-                for (Class<?> clazz : classCondition.value()) {
-                    classNames.add(clazz.getName());
+            // Check for @ConditionalOnClass
+            ConditionalOnClass classCondition = typeElement.getAnnotation(ConditionalOnClass.class);
+            if (classCondition != null) {
+                List<String> classNames = new ArrayList<>();
+                
+                try {
+                    // Get class names from 'name' attribute
+                    for (String name : classCondition.name()) {
+                        if (!name.isEmpty()) {
+                            classNames.add(name);
+                        }
+                    }
+                    
+                    // Get class names from 'value' attribute (Class[] types)
+                    // We need to handle this carefully due to MirroredTypeException
+                    for (Class<?> clazz : classCondition.value()) {
+                        classNames.add(clazz.getName());
+                    }
+                } catch (javax.lang.model.type.MirroredTypesException e) {
+                    for (TypeMirror mirror : e.getTypeMirrors()) {
+                        try {
+                            String typeName = getTypeName(mirror);
+                            if (typeName != null && !typeName.isEmpty()) {
+                                classNames.add(typeName);
+                            }
+                        } catch (Exception ex) {
+                            // Handle unresolved type mirrors gracefully
+                            warning(null, "Could not resolve type from conditional annotation: " + ex.getMessage());
+                        }
+                    }
+                } catch (Exception e) {
+                    warning(null, "Could not process @ConditionalOnClass annotation: " + e.getMessage());
                 }
-            } catch (javax.lang.model.type.MirroredTypesException e) {
-                for (TypeMirror mirror : e.getTypeMirrors()) {
-                    classNames.add(getTypeName(mirror));
-                }
-            }
-            
-            if (!classNames.isEmpty()) {
-                conditionInfo.addClassCondition(classNames);
-                note("  -> Conditional on class: " + String.join(", ", classNames));
-            }
-        }
-        
-        // Check for @ConditionalOnMissingBean
-        ConditionalOnMissingBean missingBeanCondition = typeElement.getAnnotation(ConditionalOnMissingBean.class);
-        if (missingBeanCondition != null) {
-            // Get bean types
-            List<String> beanTypes = new ArrayList<>();
-            try {
-                for (Class<?> clazz : missingBeanCondition.value()) {
-                    beanTypes.add(clazz.getName());
-                }
-            } catch (javax.lang.model.type.MirroredTypesException e) {
-                for (TypeMirror mirror : e.getTypeMirrors()) {
-                    beanTypes.add(getTypeName(mirror));
-                }
-            }
-            
-            // Get bean names
-            List<String> beanNames = new ArrayList<>();
-            for (String name : missingBeanCondition.name()) {
-                if (!name.isEmpty()) {
-                    beanNames.add(name);
-                }
-            }
-            
-            if (!beanTypes.isEmpty()) {
-                conditionInfo.addMissingBeanTypeCondition(beanTypes);
-                note("  -> Conditional on missing bean types: " + String.join(", ", beanTypes));
-            }
-            if (!beanNames.isEmpty()) {
-                conditionInfo.addMissingBeanNameCondition(beanNames);
-                note("  -> Conditional on missing bean names: " + String.join(", ", beanNames));
-            }
-        }
-        
-        // Check for @Profile
-        Profile profileAnnotation = typeElement.getAnnotation(Profile.class);
-        if (profileAnnotation != null) {
-            List<String> profiles = new ArrayList<>();
-            for (String profile : profileAnnotation.value()) {
-                if (!profile.isEmpty()) {
-                    profiles.add(profile);
+                
+                if (!classNames.isEmpty()) {
+                    conditionInfo.addClassCondition(classNames);
+                    note("  -> Conditional on class: " + String.join(", ", classNames));
                 }
             }
             
-            if (!profiles.isEmpty()) {
-                conditionInfo.addProfileCondition(profiles);
-                note("  -> Profile: " + String.join(", ", profiles));
+            // Check for @ConditionalOnMissingBean
+            ConditionalOnMissingBean missingBeanCondition = typeElement.getAnnotation(ConditionalOnMissingBean.class);
+            if (missingBeanCondition != null) {
+                List<String> beanTypes = new ArrayList<>();
+                List<String> beanNames = new ArrayList<>();
+                
+                try {
+                    // Get bean types
+                    for (Class<?> clazz : missingBeanCondition.value()) {
+                        beanTypes.add(clazz.getName());
+                    }
+                } catch (javax.lang.model.type.MirroredTypesException e) {
+                    for (TypeMirror mirror : e.getTypeMirrors()) {
+                        try {
+                            String typeName = getTypeName(mirror);
+                            if (typeName != null && !typeName.isEmpty()) {
+                                beanTypes.add(typeName);
+                            }
+                        } catch (Exception ex) {
+                            // Handle unresolved type mirrors gracefully
+                            warning(null, "Could not resolve type from conditional annotation: " + ex.getMessage());
+                        }
+                    }
+                } catch (Exception e) {
+                    warning(null, "Could not process @ConditionalOnMissingBean annotation types: " + e.getMessage());
+                }
+                
+                try {
+                    // Get bean names
+                    for (String name : missingBeanCondition.name()) {
+                        if (!name.isEmpty()) {
+                            beanNames.add(name);
+                        }
+                    }
+                } catch (Exception e) {
+                    warning(null, "Could not process @ConditionalOnMissingBean annotation names: " + e.getMessage());
+                }
+                
+                if (!beanTypes.isEmpty()) {
+                    conditionInfo.addMissingBeanTypeCondition(beanTypes);
+                    note("  -> Conditional on missing bean types: " + String.join(", ", beanTypes));
+                }
+                if (!beanNames.isEmpty()) {
+                    conditionInfo.addMissingBeanNameCondition(beanNames);
+                    note("  -> Conditional on missing bean names: " + String.join(", ", beanNames));
+                }
             }
-        }
-        
-        if (conditionInfo.hasConditions()) {
-            info.setConditionInfo(conditionInfo);
+            
+            // Check for @Profile
+            Profile profileAnnotation = typeElement.getAnnotation(Profile.class);
+            if (profileAnnotation != null) {
+                try {
+                    List<String> profiles = new ArrayList<>();
+                    for (String profile : profileAnnotation.value()) {
+                        if (!profile.isEmpty()) {
+                            profiles.add(profile);
+                        }
+                    }
+                    
+                    if (!profiles.isEmpty()) {
+                        conditionInfo.addProfileCondition(profiles);
+                        note("  -> Profile: " + String.join(", ", profiles));
+                    }
+                } catch (Exception e) {
+                    warning(null, "Could not process @Profile annotation: " + e.getMessage());
+                }
+            }
+            
+            if (conditionInfo.hasConditions()) {
+                info.setConditionInfo(conditionInfo);
+            }
+        } catch (Exception e) {
+            // Catch any unexpected errors in conditional annotation processing
+            warning(null, "Error processing conditional annotations: " + e.getMessage());
         }
     }
     

@@ -15,13 +15,10 @@ import io.github.yasmramos.veld.runtime.Veld;
 public class SimpleDIExample {
 
     public static void main(String[] args) {
-        // Inicializar Veld
-        Veld.init();
-        
         try {
             System.out.println("=== Ejemplo Simple de DI con Veld ===");
             
-            // Obtener servicios
+            // Obtener servicios (Veld se inicializa automáticamente)
             MessageService messageService = Veld.get(MessageService.class);
             ConsolePrinter printer = Veld.get(ConsolePrinter.class);
             
@@ -74,5 +71,9 @@ class ConfigService {
     
     public String getMessagePrefix() {
         return "[" + appName + "]";
+    }
+    
+    public String getAppName() {
+        return appName;
     }
 }
