@@ -11,7 +11,7 @@ module io.github.yasmramos.veld.benchmark {
     requires javax.inject;
     
     // Google Guice for comparison benchmarks
-    requires com.google.inject.guice;
+    requires com.google.inject;
     
     // Dagger for comparison benchmarks
     requires dagger;
