@@ -18,6 +18,9 @@ module io.github.yasmramos.veld.spring.boot.starter {
     // Jakarta Inject for Spring compatibility
     requires jakarta.inject;
     
+    // SLF4J Logging
+    requires org.slf4j;
+    
     // Export starter package
     exports io.github.yasmramos.veld.spring.boot;
     exports io.github.yasmramos.veld.spring.boot.autoconfigure;
