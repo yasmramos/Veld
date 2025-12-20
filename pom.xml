@@ -328,21 +328,17 @@
                     <additionalOptions>
                         <additionalOption>-Xdoclint:none</additionalOption>
                     </additionalOptions>
-                    <!-- Disable multi-module aggregation to avoid named/unnamed module conflicts -->
-                    <nohelp>true</nohelp>
-                    <!-- Explicitly disable multi-module aggregation -->
+                    <!-- Generate Javadocs for each module individually -->
                     <aggregate>false</aggregate>
+                    <nohelp>false</nohelp>
                 </configuration>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
+                        <phase>package</phase>
                         <goals>
                             <goal>jar</goal>
                         </goals>
-                        <configuration>
-                            <nohelp>true</nohelp>
-                            <aggregate>false</aggregate>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -506,9 +502,9 @@
                     <additionalOptions>
                         <additionalOption>-Xdoclint:none</additionalOption>
                     </additionalOptions>
-                    <!-- Disable multi-module aggregation to avoid named/unnamed module conflicts -->
-                    <nohelp>true</nohelp>
+                    <!-- Generate Javadocs for each module individually -->
                     <aggregate>false</aggregate>
+                    <nohelp>false</nohelp>
                 </configuration>
             </plugin>
         </plugins>
