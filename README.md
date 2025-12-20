@@ -67,11 +67,18 @@ Veld is a **compile-time Dependency Injection framework** that generates pure by
     <version>1.0.0</version>
     <scope>provided</scope>
 </dependency>
+
+<dependency>
+    <groupId>io.github.yasmramos</groupId>
+    <artifactId>veld-annotations</artifactId>
+    <version>1.0.0</version>
+</dependency>
 ```
 
 **Gradle:**
 ```gradle
 implementation 'io.github.yasmramos:veld-runtime:1.0.0'
+implementation 'io.github.yasmramos:veld-annotations:1.0.0'
 annotationProcessor 'io.github.yasmramos:veld-processor:1.0.0'
 ```
 
@@ -81,6 +88,52 @@ annotationProcessor 'io.github.yasmramos:veld-processor:1.0.0'
 - Compiles your code with the Veld annotation processor
 - Weaves bytecode to add synthetic setters for private field injection
 - Generates the optimized `Veld.class` registry
+
+### 2. Optional: Maven Plugin Configuration
+
+For advanced usage, you can configure the **unified `veld-maven-plugin`** directly in your `pom.xml`. This plugin simplifies the build process and provides additional features:
+
+```xml
+<build>
+    <plugins>
+        <plugin>
+            <groupId>io.github.yasmramos</groupId>
+            <artifactId>veld-maven-plugin</artifactId>
+            <version>1.0.0</version>
+            <executions>
+                <execution>
+                    <id>veld-process</id>
+                    <goals>
+                        <goal>process</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+</build>
+```
+
+**Benefits of using the unified plugin:**
+- **Simplified Configuration** - One plugin replaces multiple Maven configurations
+- **Automatic Processing** - Automatically runs annotation processing and bytecode weaving
+- **IDE Compatibility** - Better integration with modern IDEs
+- **JPMS Support** - Enhanced support for Java Module System
+- **Build Optimization** - Optimized compilation pipeline
+
+**Minimal Configuration (Recommended):**
+```xml
+<build>
+    <plugins>
+        <plugin>
+            <groupId>io.github.yasmramos</groupId>
+            <artifactId>veld-maven-plugin</artifactId>
+            <version>1.0.0</version>
+        </plugin>
+    </plugins>
+</build>
+```
+
+The plugin automatically executes during the `process-classes` phase, handling all Veld-related processing transparently.
 
 ### 3. Define Components
 
