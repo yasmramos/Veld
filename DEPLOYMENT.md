@@ -141,7 +141,7 @@ mvn clean deploy -DskipTests -Dgpg.keyname=$GPG_KEYNAME
 ### 4. Manual Release (if needed)
 If automatic release fails, you can manually release:
 
-1. Go to [OSSRH Nexus Repository Manager](https://s01.oss.sonatype.org/)
+1. Go to [OSSRH Nexus Repository Manager](https://central.sonatype.com/)
 2. Login with your OSSRH credentials
 3. Navigate to "Staging Repositories"
 4. Find your staging repository

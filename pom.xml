@@ -46,13 +46,13 @@
         <repository>
             <id>ossrh</id>
             <name>Nexus Staging Repository</name>
-            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <url>https://central.sonatype.com/service/local/staging/deploy/maven2/</url>
         </repository>
         <!-- Snapshot Repository -->
         <snapshotRepository>
             <id>ossrh</id>
             <name>OSS RH Snapshots</name>
-            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+            <url>https://central.sonatype.com/content/repositories/snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 
@@ -381,7 +381,7 @@
                 <extensions>true</extensions>
                 <configuration>
                     <serverId>ossrh</serverId>
-                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+                    <nexusUrl>https://central.sonatype.com/</nexusUrl>
                     <autoReleaseAfterClose>false</autoReleaseAfterClose>
                     <skipStaging>false</skipStaging>
                     <stagingProgressPauseDurationSeconds>15</stagingProgressPauseDurationSeconds>
