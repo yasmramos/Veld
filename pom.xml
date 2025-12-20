@@ -113,6 +113,9 @@
         <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
         <maven.deploy.skip>false</maven.deploy.skip>
         <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
+        
+        <!-- CI/Benchmark properties -->
+        <ci.skip>false</ci.skip>
     </properties>
 
     <dependencyManagement>
@@ -514,5 +517,108 @@
             </plugin>
         </plugins>
     </reporting>
+    
+    <!-- Profiles for different environments -->
+    <profiles>
+        <!-- CI/Benchmark profile - Skip GPG signing and other release-only plugins -->
+        <profile>
+            <id>ci</id>
+            <activation>
+                <property>
+                    <name>ci.skip</name>
+                    <value>true</value>
+                </property>
+                <!-- Also activate for GitHub Actions environment -->
+                <property>
+                    <name>env.CI</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <skipGpg>true</skipGpg>
+                <skipTests>false</skipTests>
+                <maven.deploy.skip>true</maven.deploy.skip>
+            </properties>
+            <build>
+                <plugins>
+                    <!-- Skip GPG signing in CI -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                    
+                    <!-- Skip deployment in CI -->
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <configuration>
+                            <skipStaging>true</skipStaging>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+        <!-- Benchmark profile - Optimized for performance testing -->
+        <profile>
+            <id>benchmark</id>
+            <activation>
+                <property>
+                    <name>benchmark.mode</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <skipGpg>true</skipGpg>
+                <skipTests>false</skipTests>
+                <maven.deploy.skip>true</maven.deploy.skip>
+            </properties>
+            <build>
+                <plugins>
+                    <!-- Skip all release plugins for benchmarks -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                    
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <configuration>
+                            <skipStaging>true</skipStaging>
+                        </configuration>
+                    </plugin>
+                    
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>skip-sources-in-benchmark</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>skip-javadoc-in-benchmark</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
 
