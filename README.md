@@ -95,26 +95,6 @@ For advanced usage, you can configure the **unified `veld-maven-plugin`** direct
 
 ```xml
 <build>
-    <extensions>
-        <extension>
-            <groupId>io.github.yasmramos</groupId>
-            <artifactId>veld-maven-plugin</artifactId>
-            <version>1.0.0</version>
-        </extension>
-    </extensions>
-</build>
-```
-
-**Benefits of using the unified plugin:**
-- **Simplified Configuration** - One extension replaces multiple Maven configurations
-- **Automatic Processing** - Automatically runs annotation processing and bytecode weaving during compile phase
-- **IDE Compatibility** - Better integration with modern IDEs
-- **JPMS Support** - Enhanced support for Java Module System
-- **Build Optimization** - Optimized compilation pipeline
-
-**Alternative Configuration (Advanced):**
-```xml
-<build>
     <plugins>
         <plugin>
             <groupId>io.github.yasmramos</groupId>
@@ -134,7 +114,27 @@ For advanced usage, you can configure the **unified `veld-maven-plugin`** direct
 </build>
 ```
 
-The plugin extension automatically integrates with the Maven build lifecycle, executing during the `compile` phase and handling all Veld-related processing transparently.
+**Benefits of using the unified plugin:**
+- **Simplified Configuration** - One plugin replaces multiple Maven configurations
+- **Automatic Processing** - Automatically runs annotation processing and bytecode weaving during compile phase
+- **IDE Compatibility** - Better integration with modern IDEs
+- **JPMS Support** - Enhanced support for Java Module System
+- **Build Optimization** - Optimized compilation pipeline
+
+**Minimal Configuration (Recommended):**
+```xml
+<build>
+    <plugins>
+        <plugin>
+            <groupId>io.github.yasmramos</groupId>
+            <artifactId>veld-maven-plugin</artifactId>
+            <version>1.0.0</version>
+        </plugin>
+    </plugins>
+</build>
+```
+
+The plugin automatically executes during the `compile` phase, handling all Veld-related processing transparently.
 
 ### 3. Define Components
 
