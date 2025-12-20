@@ -528,11 +528,6 @@
                     <name>ci.skip</name>
                     <value>true</value>
                 </property>
-                <!-- Also activate for GitHub Actions environment -->
-                <property>
-                    <name>env.CI</name>
-                    <value>true</value>
-                </property>
             </activation>
             <properties>
                 <skipGpg>true</skipGpg>
