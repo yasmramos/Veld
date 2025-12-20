@@ -52,9 +52,47 @@ jobs:
     - name: Import GPG key
       if: env.SONATYPE_USERNAME != ''
       run: |
-        echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --yes --passphrase "${{ secrets.GPG_PASSPHRASE }}" --dearmor | tee /tmp/gpg_private_key.gpg | gpg --import
-        echo "GPG key imported successfully"
-        gpg --list-keys
+        echo "=== Importing GPG Key ==="
+        
+        # Set GPG home directory
+        export GNUPGHOME=/tmp/gnupg
+        mkdir -p $GNUPGHOME
+        chmod 700 $GNUPGHOME
+        
+        # Check if GPG_PRIVATE_KEY is available
+        if [ -z "${{ secrets.GPG_PRIVATE_KEY }}" ]; then
+          echo "❌ GPG_PRIVATE_KEY secret is not set!"
+          exit 1
+        fi
+        
+        echo "✅ GPG_PRIVATE_KEY secret is available"
+        
+        # Import the private key
+        echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --yes --passphrase "${{ secrets.GPG_PASSPHRASE }}" --import
+        
+        if [ $? -eq 0 ]; then
+          echo "✅ GPG key import completed successfully"
+        else
+          echo "❌ GPG key import failed!"
+          exit 1
+        fi
+        
+        # List imported keys
+        echo "Available GPG keys:"
+        gpg --list-keys --keyid-format LONG
+        
+        # Verify the specific key is available
+        if [ -n "${{ secrets.GPG_KEYNAME }}" ]; then
+          echo "Verifying key ${{ secrets.GPG_KEYNAME }}..."
+          if gpg --list-keys "${{ secrets.GPG_KEYNAME }}" > /dev/null 2>&1; then
+            echo "✅ Key ${{ secrets.GPG_KEYNAME }} is available"
+          else
+            echo "❌ Key ${{ secrets.GPG_KEYNAME }} not found!"
+            exit 1
+          fi
+        fi
+        
+        echo "✅ GPG key import verification successful"
       env:
         GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
@@ -100,7 +138,17 @@ jobs:
       if: github.event.inputs.environment == 'staging' || (github.event.inputs.environment == '' && github.event_name != 'release')
       run: |
         echo "=== Deploying to Sonatype Nexus (Staging) ==="
-        mvn clean deploy -DskipTests=false -DfailIfNoTests=false
+        echo "GPG Key Name: ${{ secrets.GPG_KEYNAME }}"
+        echo "Using GNUPGHOME: /tmp/gnupg"
+        
+        # Set GPG environment
+        export GNUPGHOME=/tmp/gnupg
+        export GPG_TTY=$(tty)
+        
+        # Deploy with GPG signing
+        mvn clean deploy -DskipTests=false -DfailIfNoTests=false \
+          -Dgpg.keyname=${{ secrets.GPG_KEYNAME }} \
+          -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
       env:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
         SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
@@ -112,7 +160,17 @@ jobs:
       if: github.event.inputs.environment == 'production' && github.event_name == 'release'
       run: |
         echo "=== Deploying to Sonatype Nexus (Production) ==="
-        mvn clean deploy -DskipTests=false -DfailIfNoTests=false
+        echo "GPG Key Name: ${{ secrets.GPG_KEYNAME }}"
+        echo "Using GNUPGHOME: /tmp/gnupg"
+        
+        # Set GPG environment
+        export GNUPGHOME=/tmp/gnupg
+        export GPG_TTY=$(tty)
+        
+        # Deploy with GPG signing
+        mvn clean deploy -DskipTests=false -DfailIfNoTests=false \
+          -Dgpg.keyname=${{ secrets.GPG_KEYNAME }} \
+          -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }}
       env:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
         SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
