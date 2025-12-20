@@ -44,14 +44,14 @@
     <distributionManagement>
         <!-- Maven Central Repository -->
         <repository>
-            <id>ossrh</id>
-            <name>Nexus Staging Repository</name>
+            <id>central</id>
+            <name>Central Publishing</name>
             <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
         <!-- Snapshot Repository -->
         <snapshotRepository>
-            <id>ossrh</id>
-            <name>OSS RH Snapshots</name>
+            <id>central</id>
+            <name>Central Publishing Snapshots</name>
             <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
@@ -94,8 +94,8 @@
         <maven.surefire.plugin.version>3.2.2</maven.surefire.plugin.version>
         <maven.source.plugin.version>3.3.1</maven.source.plugin.version>
         <maven.javadoc.plugin.version>3.6.3</maven.javadoc.plugin.version>
-        <maven.gpg.plugin.version>3.2.5</maven.gpg.plugin.version>
-        <maven.nexus.staging.plugin.version>1.6.13</maven.nexus.staging.plugin.version>
+        <maven.gpg.plugin.version>3.1.0</maven.gpg.plugin.version>
+        <central.publishing.plugin.version>0.6.0</central.publishing.plugin.version>
         <maven.release.plugin.version>3.0.1</maven.release.plugin.version>
         <maven.assembly.plugin.version>3.7.0</maven.assembly.plugin.version>
         <jacoco.maven.plugin.version>0.8.12</jacoco.maven.plugin.version>
@@ -373,19 +373,15 @@
                 </executions>
             </plugin>
 
-            <!-- Nexus Staging Plugin for Maven Central -->
+            <!-- Central Publishing Plugin for Maven Central -->
             <plugin>
-                <groupId>org.sonatype.plugins</groupId>
-                <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>${maven.nexus.staging.plugin.version}</version>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>${central.publishing.plugin.version}</version>
                 <extensions>true</extensions>
                 <configuration>
-                    <serverId>ossrh</serverId>
-                    <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
-                    <autoReleaseAfterClose>false</autoReleaseAfterClose>
-                    <skipStaging>false</skipStaging>
-                    <stagingProgressPauseDurationSeconds>15</stagingProgressPauseDurationSeconds>
-                    <stagingProgressTimeoutMinutes>10</stagingProgressTimeoutMinutes>
+                    <publishingServerId>central</publishingServerId>
+                    <autoPublish>true</autoPublish>
                 </configuration>
             </plugin>
 
@@ -547,10 +543,10 @@
                     
                     <!-- Skip deployment in CI -->
                     <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
                         <configuration>
-                            <skipStaging>true</skipStaging>
+                            <skip>true</skip>
                         </configuration>
                     </plugin>
                 </plugins>
@@ -583,10 +579,10 @@
                     </plugin>
                     
                     <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
                         <configuration>
-                            <skipStaging>true</skipStaging>
+                            <skip>true</skip>
                         </configuration>
                     </plugin>
                     
