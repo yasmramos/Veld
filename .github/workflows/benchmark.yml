@@ -22,7 +22,7 @@ jobs:
   benchmark:
     runs-on: ubuntu-latest
     
-    timeout-minutes: 120  # 2 horas de timeout total para full benchmarks
+    timeout-minutes: 200  # 3+ horas de timeout total para full benchmarks
     
     steps:
     - name: Checkout repository
@@ -164,7 +164,7 @@ jobs:
           -f 5 -wi 5 -i 10 \
           -rf json \
           -rff results/full-benchmarks.json
-      timeout-minutes: 60
+      timeout-minutes: 180
           
     - name: Run Selective Benchmarks
       if: ${{ github.event.inputs.benchmark_mode == 'selective' || github.event.inputs.benchmark_mode == '' }}
