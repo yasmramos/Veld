@@ -108,7 +108,11 @@
         <!-- Release properties -->
         <maven.compiler.release>11</maven.compiler.release>
         <skipTests>false</skipTests>
-        <skipGpg>true</skipGpg>
+        <skipGpg>false</skipGpg>
+        <gpg.keyname>${env.GPG_KEYNAME}</gpg.keyname>
+        <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
+        <maven.deploy.skip>false</maven.deploy.skip>
+        <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
     </properties>
 
     <dependencyManagement>
@@ -366,8 +370,8 @@
                 </executions>
             </plugin>
 
-            <!-- Nexus Staging Plugin for Maven Central - DISABLED -->
-            <!-- <plugin>
+            <!-- Nexus Staging Plugin for Maven Central -->
+            <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
                 <version>${maven.nexus.staging.plugin.version}</version>
@@ -376,9 +380,11 @@
                     <serverId>ossrh</serverId>
                     <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
                     <autoReleaseAfterClose>false</autoReleaseAfterClose>
-                    <skipStaging>true</skipStaging>
+                    <skipStaging>false</skipStaging>
+                    <stagingProgressPauseDurationSeconds>15</stagingProgressPauseDurationSeconds>
+                    <stagingProgressTimeoutMinutes>10</stagingProgressTimeoutMinutes>
                 </configuration>
-            </plugin> -->
+            </plugin>
 
             <!-- Maven Release Plugin -->
             <plugin>
