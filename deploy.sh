@@ -63,7 +63,7 @@ mvn clean deploy -DskipTests -Dgpg.keyname=$GPG_KEYNAME
 echo ""
 echo "🎉 Deployment completed successfully!"
 echo "   Please check the OSSRH Nexus Repository Manager for staging status:"
-echo "   https://central.sonatype.com/"
+echo "   https://s01.oss.sonatype.org/"
 echo ""
 echo "   Expected timeline:"
 echo "   - Staging to Release: ~10 minutes"
