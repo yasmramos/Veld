@@ -66,7 +66,6 @@
         <module>veld-spring-boot-starter</module>
         <module>veld-example</module>
         <module>veld-spring-boot-example</module>
-        <module>veld-benchmark</module>
     </modules>
 
     <properties>
