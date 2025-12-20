@@ -250,6 +250,46 @@
     </dependencyManagement>
 
     <build>
+        <pluginManagement>
+            <plugins>
+                <!-- Maven Javadoc Plugin for multi-module projects -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>${maven.javadoc.plugin.version}</version>
+                    <configuration>
+                        <source>${maven.compiler.source}</source>
+                        <detectJavaApiLink>false</detectJavaApiLink>
+                        <author>true</author>
+                        <version>true</version>
+                        <use>true</use>
+                        <windowtitle>Veld Framework API</windowtitle>
+                        <doctitle>Veld Framework - Ultra-fast Dependency Injection</doctitle>
+                        <bottom>
+                            <![CDATA[
+                            <i>Copyright &copy; 2025 Veld Team. All rights reserved.</i>
+                            ]]>
+                        </bottom>
+                        <failOnError>false</failOnError>
+                        <additionalOptions>
+                            <additionalOption>-Xdoclint:none</additionalOption>
+                        </additionalOptions>
+                        <!-- Generate Javadocs for each module individually -->
+                        <aggregate>false</aggregate>
+                        <nohelp>false</nohelp>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>attach-javadocs</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <!-- Maven Compiler Plugin -->
             <plugin>
@@ -306,42 +346,7 @@
                 </executions>
             </plugin>
 
-            <!-- Generate Javadoc JAR -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>${maven.javadoc.plugin.version}</version>
-                <configuration>
-                    <source>${maven.compiler.source}</source>
-                    <detectJavaApiLink>false</detectJavaApiLink>
-                    <author>true</author>
-                    <version>true</version>
-                    <use>true</use>
-                    <windowtitle>Veld Framework API</windowtitle>
-                    <doctitle>Veld Framework - Ultra-fast Dependency Injection</doctitle>
-                    <bottom>
-                        <![CDATA[
-                        <i>Copyright &copy; 2025 Veld Team. All rights reserved.</i>
-                        ]]>
-                    </bottom>
-                    <failOnError>false</failOnError>
-                    <additionalOptions>
-                        <additionalOption>-Xdoclint:none</additionalOption>
-                    </additionalOptions>
-                    <!-- Generate Javadocs for each module individually -->
-                    <aggregate>false</aggregate>
-                    <nohelp>false</nohelp>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+            <!-- Javadoc Plugin Configuration moved to pluginManagement for multi-module support -->
 
             <!-- GPG Signing Plugin -->
             <plugin>

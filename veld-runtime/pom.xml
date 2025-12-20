@@ -42,6 +42,12 @@
 
     <build>
         <plugins>
+            <!-- Generate Javadoc JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+            </plugin>
+            
             <!-- JaCoCo with higher thresholds for veld-runtime -->
             <plugin>
                 <groupId>org.jacoco</groupId>
