@@ -59,7 +59,7 @@ jobs:
     - name: Test compilation with detailed output
       run: |
         echo "=== Testing Maven compilation ==="
-        mvn clean compile -X --batch-mode
+        mvn clean compile -X --batch-mode -Pbenchmark
       env:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
       timeout-minutes: 15
@@ -68,7 +68,7 @@ jobs:
     - name: Build Veld Annotations
       run: |
         echo "=== Building veld-annotations ==="
-        mvn clean install -pl veld-annotations -DskipTests
+        mvn clean install -pl veld-annotations -DskipTests -Pbenchmark
       env:
         MAVEN_OPTS: "-Ddepgraph.skip=true"
       timeout-minutes: 5
@@ -76,7 +76,7 @@ jobs:
     - name: Build Veld Runtime  
       run: |
         echo "=== Building veld-runtime ==="
-        mvn clean install -pl veld-runtime -am -DskipTests
+        mvn clean install -pl veld-runtime -am -DskipTests -Pbenchmark
       env:
         MAVEN_OPTS: "-Ddepgraph.skip=true"
       timeout-minutes: 5
@@ -84,7 +84,7 @@ jobs:
     - name: Build Veld Processor
       run: |
         echo "=== Building veld-processor ==="
-        mvn clean install -pl veld-processor -am -DskipTests
+        mvn clean install -pl veld-processor -am -DskipTests -Pbenchmark
       env:
         MAVEN_OPTS: "-Ddepgraph.skip=true"
       timeout-minutes: 5
@@ -92,7 +92,7 @@ jobs:
     - name: Build Veld AOP
       run: |
         echo "=== Building veld-aop ==="
-        mvn clean install -pl veld-aop -am -DskipTests
+        mvn clean install -pl veld-aop -am -DskipTests -Pbenchmark
       env:
         MAVEN_OPTS: "-Ddepgraph.skip=true"
       timeout-minutes: 3
@@ -101,7 +101,7 @@ jobs:
     - name: Build Benchmark Module
       run: |
         echo "=== Building veld-benchmark ==="
-        mvn clean package -pl veld-benchmark -am -DskipTests
+        mvn clean package -pl veld-benchmark -am -DskipTests -Pbenchmark
       env:
         MAVEN_OPTS: "-Ddepgraph.skip=true"
       timeout-minutes: 5

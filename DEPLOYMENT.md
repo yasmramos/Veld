@@ -47,6 +47,32 @@ The parent pom.xml includes:
 - ✅ Javadoc JAR generation
 - ✅ GPG signing configuration
 - ✅ Nexus Staging plugin enabled
+- ✅ **Maven Profiles** for different environments:
+  - `ci` profile: Skips GPG signing and deployment for CI builds
+  - `benchmark` profile: Optimized for performance testing
+
+### 3. Maven Profiles Available
+
+#### CI Profile (`-Pci`)
+Used for continuous integration builds:
+```bash
+mvn clean install -Pci
+```
+**Skips**: GPG signing, deployment, staging
+
+#### Benchmark Profile (`-Pbenchmark`)
+Used for performance testing:
+```bash
+mvn clean install -Pbenchmark
+```
+**Skips**: GPG signing, deployment, source JARs, Javadoc JARs
+
+#### Default Profile (Release)
+Used for production releases:
+```bash
+mvn clean deploy
+```
+**Includes**: GPG signing, deployment, all JARs
 
 ## Deployment Steps
 
@@ -77,6 +103,12 @@ mvn clean test
 
 # Generate all artifacts without GPG signing (for testing)
 mvn clean install -DskipGpg=true
+
+# Build for CI/Benchmark (skip GPG and deployment)
+mvn clean install -Pci
+
+# Build specifically for benchmarks
+mvn clean install -Pbenchmark
 ```
 
 ### 3. Deploy to OSSRH Staging
