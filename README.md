@@ -98,37 +98,7 @@ implementation 'io.github.yasmramos:veld-annotations:1.0.0'
 - Weaves bytecode to add synthetic setters for private field injection
 - Generates the optimized `Veld.class` registry
 
-**Advanced Configuration:**
-```xml
-<build>
-    <plugins>
-        <plugin>
-            <groupId>io.github.yasmramos</groupId>
-            <artifactId>veld-maven-plugin</artifactId>
-            <version>1.0.0</version>
-            <executions>
-                <execution>
-                    <id>veld-compile</id>
-                    <goals>
-                        <goal>compile</goal>
-                    </goals>
-                    <phase>compile</phase>
-                </execution>
-            </executions>
-        </plugin>
-    </plugins>
-</build>
-```
-
-**Benefits of using the unified plugin:**
-- **Simplified Configuration** - One plugin replaces multiple Maven configurations
-- **Automatic Processing** - Automatically runs annotation processing and bytecode weaving during compile phase
-- **IDE Compatibility** - Better integration with modern IDEs
-- **JPMS Support** - Enhanced support for Java Module System
-- **Build Optimization** - Optimized compilation pipeline
-
-For advanced usage, you can configure the **unified `veld-maven-plugin`** directly in your `pom.xml`. This plugin simplifies the build process and provides additional features:
-
+**Advanced Configuration (Optional):**
 ```xml
 <build>
     <plugins>
