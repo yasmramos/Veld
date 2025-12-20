@@ -36,6 +36,38 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.3</version>
+                <configuration>
+                    <source>11</source>
+                    <detectJavaApiLink>false</detectJavaApiLink>
+                    <author>true</author>
+                    <version>true</version>
+                    <use>true</use>
+                    <windowtitle>Veld Framework API</windowtitle>
+                    <doctitle>Veld Framework - Ultra-fast Dependency Injection</doctitle>
+                    <bottom>
+                        <![CDATA[
+                        <i>Copyright &copy; 2025 Veld Team. All rights reserved.</i>
+                        ]]>
+                    </bottom>
+                    <failOnError>false</failOnError>
+                    <additionalOptions>
+                        <additionalOption>-Xdoclint:none</additionalOption>
+                    </additionalOptions>
+                    <aggregate>false</aggregate>
+                    <nohelp>false</nohelp>
+                    <!-- Use the javadoc executable path -->
+                    <javadocExecutable>${java.home}/bin/javadoc</javadocExecutable>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
