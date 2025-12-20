@@ -113,6 +113,7 @@
         <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
         <maven.deploy.skip>false</maven.deploy.skip>
         <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
+        <java.home>/usr/lib/jvm/java-17-openjdk-amd64</java.home>
         
         <!-- CI/Benchmark properties -->
         <ci.skip>false</ci.skip>
