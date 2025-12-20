@@ -386,6 +386,9 @@
                 <configuration>
                     <publishingServerId>central</publishingServerId>
                     <autoPublish>true</autoPublish>
+                    <excludeArtifacts>
+                        <excludeArtifact>io.github.yasmramos:veld-benchmark</excludeArtifact>
+                    </excludeArtifacts>
                 </configuration>
             </plugin>
 
