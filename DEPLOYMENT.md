@@ -3,16 +3,42 @@
 ## Prerequisites
 
 1. **Sonatype OSSRH Account**: You need a Sonatype account and your project must be approved for Maven Central
-2. **GPG Key**: Generate a GPG key for signing artifacts
+2. **GPG Key**: ✅ Already configured and propagated to servers
+   - **Key ID**: `7ED0F874FB5F110ED4A79D1BBE6F8F8910A7EE99`
+   - **Owner**: Yasmany Ramos Garcia <yasmramos95@gmail.com>
+   - **Expires**: 2027-12-14
 3. **Maven Settings**: Configured with OSSRH credentials
 
 ## Configuration Files
 
 ### 1. settings.xml
-The project includes a `settings.xml` file with OSSRH server configuration:
-- **Server ID**: `ossrh`
-- **Username**: `UsC4b3`
-- **Password**: `GoRNnkUIedGnrN72dm08EM3pHM05P70kT`
+Create a local `settings.xml` file in your Maven user directory (typically `~/.m2/settings.xml`) with OSSRH server configuration:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+    
+    <!-- Maven Central OSSRH Server Configuration -->
+    <servers>
+        <server>
+            <id>ossrh</id>
+            <username>UsC4b3</username>
+            <password>GoRNnkUIedGnrN72dm08EM3pHM05P70kT</password>
+        </server>
+    </servers>
+    
+    <!-- Plugin Groups -->
+    <pluginGroups>
+        <pluginGroup>org.sonatype.plugins</pluginGroup>
+    </pluginGroups>
+    
+</settings>
+```
+
+**Location**: `~/.m2/settings.xml` (your Maven user directory)
+**⚠️ Security**: Keep this file secure and never commit it to version control
 
 ### 2. pom.xml Configuration
 The parent pom.xml includes:
@@ -26,13 +52,22 @@ The parent pom.xml includes:
 
 ### 1. Verify GPG Configuration
 
-Make sure you have a GPG key configured:
+✅ **GPG keys are already imported and propagated!** 
+
 ```bash
-# List available keys
+# Verify GPG key is available
 gpg --list-keys
 
+# Expected output should show:
+# pub   rsa4096 2025-12-14 [SCEA] [expires: 2027-12-14]
+#       7ED0F874FB5F110ED4A79D1BBE6F8F8910A7EE99
+# uid           [ unknown] Yasmany Ramos Garcia <yasmramos95@gmail.com>
+
 # Set GPG keyname environment variable
-export GPG_KEYNAME=your-key-id
+export GPG_KEYNAME=7ED0F874FB5F110ED4A79D1BBE6F8F8910A7EE99
+
+# Test GPG signing (optional)
+echo "test" | gpg --clear-sign --armor --local-user $GPG_KEYNAME
 ```
 
 ### 2. Clean and Test Build
@@ -45,14 +80,28 @@ mvn clean install -DskipGpg=true
 ```
 
 ### 3. Deploy to OSSRH Staging
+
+**Option A: Using the automated script (Recommended)**
 ```bash
+# Make script executable (if needed)
+chmod +x deploy.sh
+
+# Run deployment script
+./deploy.sh
+```
+
+**Option B: Manual deployment**
+```bash
+# Export GPG key ID
+export GPG_KEYNAME=7ED0F874FB5F110ED4A79D1BBE6F8F8910A7EE99
+
 # Deploy to staging repository
-mvn clean deploy -DskipTests
+mvn clean deploy -DskipTests -Dgpg.keyname=$GPG_KEYNAME
 
 # This will:
 # 1. Build all modules
 # 2. Generate JARs, sources, javadocs
-# 3. Sign artifacts with GPG
+# 3. Sign artifacts with GPG using key ID
 # 4. Upload to OSSRH staging repository
 # 5. Close and release the staging repository
 ```
