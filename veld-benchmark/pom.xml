@@ -27,6 +27,9 @@
         <benchmark.forks>2</benchmark.forks>
         <benchmark.warmup.iterations>3</benchmark.warmup.iterations>
         <benchmark.measurement.iterations>5</benchmark.measurement.iterations>
+        
+        <!-- Skip deployment for benchmark module -->
+        <maven.deploy.skip>true</maven.deploy.skip>
     </properties>
 
     <dependencies>
