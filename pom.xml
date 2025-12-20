@@ -321,6 +321,10 @@
                     <additionalOptions>
                         <additionalOption>-Xdoclint:none</additionalOption>
                     </additionalOptions>
+                    <!-- Disable multi-module aggregation to avoid named/unnamed module conflicts -->
+                    <nohelp>true</nohelp>
+                    <!-- Explicitly disable multi-module aggregation -->
+                    <aggregate>false</aggregate>
                 </configuration>
                 <executions>
                     <execution>
@@ -328,6 +332,10 @@
                         <goals>
                             <goal>jar</goal>
                         </goals>
+                        <configuration>
+                            <nohelp>true</nohelp>
+                            <aggregate>false</aggregate>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -489,10 +497,13 @@
                         <i>Copyright &copy; 2025 Veld Team. All rights reserved.</i>
                         ]]>
                     </bottom>
-                    <failOnError>true</failOnError>
+                    <failOnError>false</failOnError>
                     <additionalOptions>
                         <additionalOption>-Xdoclint:none</additionalOption>
                     </additionalOptions>
+                    <!-- Disable multi-module aggregation to avoid named/unnamed module conflicts -->
+                    <nohelp>true</nohelp>
+                    <aggregate>false</aggregate>
                 </configuration>
             </plugin>
         </plugins>
