@@ -32,19 +32,6 @@
 
     <build>
         <plugins>
-            <!-- Maven JAR Plugin with Automatic-Module-Name for JPMS compatibility -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.3.0</version>
-                <configuration>
-                    <archive>
-                        <manifestEntries>
-                            <Automatic-Module-Name>io.github.yasmramos.veld.annotation</Automatic-Module-Name>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
 </project>

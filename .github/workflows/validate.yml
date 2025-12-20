@@ -211,49 +211,72 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    - name: Generate Javadoc con configuración especial
+    - name: Generate Javadoc módulo por módulo
       run: |
-        echo "=== Generating Javadoc ==="
-        # Usar legacy mode y deshabilitar detección de módulos
-        mvn javadoc:javadoc \
-          -Dmaven.javadoc.failOnError=false \
-          -Dmaven.javadoc.detectJavaApiLink=false \
-          -Dmaven.javadoc.legacyMode=true \
-          -DadditionalJOption="-Xdoclint:none --ignore-source-errors"
+        echo "=== Generating Javadoc Module by Module ==="
         
-    - name: Check Javadoc completeness (más flexible)
+        # Lista de módulos para generar Javadoc
+        modules=("veld-annotations" "veld-runtime" "veld-processor" "veld-aop" "veld-weaver" "veld-spring-boot-starter")
+        success_count=0
+        
+        for module in "${modules[@]}"; do
+          if [ -d "$module" ]; then
+            echo "📄 Generating Javadoc for $module..."
+            cd "$module"
+            
+            # Generar Javadoc para el módulo específico con configuración flexible
+            if mvn javadoc:javadoc \
+              -Dmaven.javadoc.failOnError=false \
+              -Dmaven.javadoc.detectJavaApiLink=false \
+              -Dmaven.javadoc.detectOfflineLinks=false \
+              -Dmaven.javadoc.detectLinks=false \
+              -DadditionalJOption="-Xdoclint:none --ignore-source-errors" \
+              -q; then
+              echo "✅ Javadoc generated successfully for $module"
+              ((success_count++))
+            else
+              echo "⚠️  Javadoc generation failed for $module, but continuing..."
+            fi
+            
+            cd ..
+          fi
+        done
+        
+        echo "📊 Javadoc generation summary: $success_count/${#modules[@]} modules successful"
+        
+        # Verificar que se generó al menos algo de Javadoc
+        if [ $success_count -gt 0 ]; then
+          echo "✅ Javadoc generated for $success_count modules"
+        else
+          echo "❌ Javadoc generation failed for all modules"
+          exit 1
+        fi
+        
+    - name: Check Javadoc completeness
       run: |
         echo "=== Checking Javadoc Completeness ==="
         
-        # Verificar si al menos algunos javadocs fueron generados
-        javadoc_count=0
+        # Verificar directorios de Javadoc generados
+        expected_dirs=(
+          "veld-annotations/target/site/apidocs"
+          "veld-runtime/target/site/apidocs"
+          "veld-processor/target/site/apidocs"
+        )
         
-        # Buscar cualquier directorio de javadoc generado
-        if find . -type d -name "apidocs" -path "*/target/*" | grep -q .; then
-          echo "✅ Se generó Javadoc en algunos módulos"
-          find . -type d -name "apidocs" -path "*/target/*" | head -3
-          javadoc_count=$(find . -type d -name "apidocs" -path "*/target/*" | wc -l)
-          echo "Total de módulos con Javadoc: $javadoc_count"
-        else
-          echo "⚠️  No se generó Javadoc automáticamente, generando por módulo..."
-          
-          # Generar javadoc módulo por módulo
-          for module in veld-annotations veld-runtime veld-processor; do
-            if [ -d "$module" ]; then
-              echo "Generando Javadoc para $module..."
-              cd "$module"
-              mvn javadoc:javadoc -Dmaven.javadoc.failOnError=false -q || echo "⚠️  Falló en $module, continuando..."
-              cd ..
-            fi
-          done
-          
-          # Verificar nuevamente
-          if find . -type d -name "apidocs" -path "*/target/*" | grep -q .; then
-            echo "✅ Javadoc generado parcialmente"
-          else
-            echo "❌ No se pudo generar Javadoc en ningún módulo"
-            exit 1
+        existing_dirs=()
+        for dir in "${expected_dirs[@]}"; do
+          if [ -d "$dir" ]; then
+            existing_dirs+=("$dir")
           fi
+        done
+        
+        if [ ${#existing_dirs[@]} -gt 0 ]; then
+          echo "✅ Javadoc directories found:"
+          printf '%s\n' "${existing_dirs[@]}"
+          echo "Total core modules with Javadoc: ${#existing_dirs[@]}/${#expected_dirs[@]}"
+        else
+          echo "❌ No core Javadoc directories found"
+          exit 1
         fi
         
     - name: Validate README content (mantener como está)
