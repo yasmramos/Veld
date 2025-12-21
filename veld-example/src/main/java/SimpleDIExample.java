@@ -1,7 +1,7 @@
 package io.github.yasmramos.veld.example;
 
 import io.github.yasmramos.veld.annotation.*;
-import io.github.yasmramos.veld.runtime.Veld;
+import io.github.yasmramos.veld.Veld;
 
 /**
  * Ejemplo simple de inyección de dependencias con Veld.
