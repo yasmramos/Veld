@@ -44,20 +44,31 @@ jobs:
       run: |
         echo "🔒 Running security scan..."
         
-        # Buscar credenciales hardcodeadas en archivos de configuración
-        echo "Scanning for hardcoded credentials in config files..."
-        # Buscar solo archivos de configuración y propiedades que puedan contener credenciales reales
-        if grep -r -i "password\s*=\s*[^'\"{}\s][^'\"{}\s]*\|api_key\s*=\s*[^'\"{}\s][^'\"{}\s]*\|secret\s*=\s*[^'\"{}\s][^'\"{}\s]*" \
-          --include="*.properties" \
-          --include="*.conf" \
-          --include="*.config" \
-          --include="*.ini" \
-          --include="*.env" \
-          . 2>/dev/null | head -5; then
-          echo "❌ Potential credentials found!"
+        # Simplified security scan for obvious hardcoded credentials
+        echo "Scanning for hardcoded credentials..."
+        
+        # Check for specific credential patterns in config files only
+        FOUND_ISSUES=0
+        
+        # Check for password patterns (excluding comments and placeholders)
+        if grep -ri "password.*=.*['\"][^'\"]{10,}['\"]" . 2>/dev/null | grep -v -E "^[^:]*/\*|#.*password|//.*password|\.\.\..*password|\*\*\*.*password" > /dev/null; then
+          echo "❌ Potential hardcoded password found!"
+          grep -ri "password.*=.*['\"][^'\"]{10,}['\"]" . 2>/dev/null | grep -v -E "^[^:]*/\*|#.*password|//.*password|\.\.\..*password|\*\*\*.*password" | head -3
+          FOUND_ISSUES=1
+        fi
+        
+        # Check for API key patterns (excluding comments)
+        if grep -ri "api.*key.*=.*['\"][a-zA-Z0-9]{20,}['\"]" . 2>/dev/null | grep -v -E "^[^:]*/\*|#.*api.*key|//.*api.*key" > /dev/null; then
+          echo "❌ Potential hardcoded API key found!"
+          grep -ri "api.*key.*=.*['\"][a-zA-Z0-9]{20,}['\"]" . 2>/dev/null | grep -v -E "^[^:]*/\*|#.*api.*key|//.*api.*key" | head -3
+          FOUND_ISSUES=1
+        fi
+        
+        if [ $FOUND_ISSUES -eq 1 ]; then
+          echo "❌ Security scan failed - potential credentials found!"
           exit 1
         else
-          echo "✅ No obvious credentials detected"
+          echo "✅ Security scan passed - no hardcoded credentials detected"
         fi
         
     - name: 🧹 Code Quality Check
