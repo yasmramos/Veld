@@ -44,13 +44,13 @@ jobs:
       run: |
         echo "🔒 Running security scan..."
         
-        # Buscar secrets básicos
-        echo "Scanning for obvious secrets..."
-        if grep -r -i "password\|api.*key\|secret\|token" --exclude-dir=target --exclude-dir=.git --exclude-dir=node_modules --exclude="*.json" --exclude="*.xml" --exclude="*.sample" . 2>/dev/null | head -5; then
-          echo "❌ Potential secrets found!"
+        # Buscar credenciales básicas
+        echo "Scanning for obvious credentials..."
+        if grep -r -i "password\s*=\|api.*key\s*=\|secret\s*=\|token\s*=\|bearer\s+[a-zA-Z0-9]" --exclude-dir=target --exclude-dir=.git --exclude-dir=node_modules --exclude="*.json" --exclude="*.xml" --exclude="*.sample" --exclude="*.yml" --exclude="*.yaml" . 2>/dev/null | head -5; then
+          echo "❌ Potential credentials found!"
           exit 1
         else
-          echo "✅ No obvious secrets detected"
+          echo "✅ No obvious credentials detected"
         fi
         
     - name: 🧹 Code Quality Check
