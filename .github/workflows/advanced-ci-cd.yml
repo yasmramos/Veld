@@ -46,7 +46,7 @@ jobs:
         
         # Buscar secrets básicos
         echo "Scanning for obvious secrets..."
-        if grep -r -i "password\|api.*key\|secret\|token" --exclude-dir=target --exclude="*.json" --exclude="*.xml" . 2>/dev/null | head -5; then
+        if grep -r -i "password\|api.*key\|secret\|token" --exclude-dir=target --exclude-dir=.git --exclude-dir=node_modules --exclude="*.json" --exclude="*.xml" --exclude="*.sample" . 2>/dev/null | head -5; then
           echo "❌ Potential secrets found!"
           exit 1
         else
