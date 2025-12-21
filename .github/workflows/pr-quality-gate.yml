@@ -11,6 +11,54 @@ jobs:
     if: github.event.pull_request.head.repo.full_name == github.repository
     
     steps:
+    - name: 🌿 Validate Branch Name Convention
+      run: |
+        echo "🌿 Validating branch name convention..."
+        
+        BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+        echo "Branch name: $BRANCH_NAME"
+        
+        # Validar usando el script de validación (si está disponible)
+        if [ -f "scripts/validate-branch-name.sh" ]; then
+          chmod +x scripts/validate-branch-name.sh
+          if ./scripts/validate-branch-name.sh "$BRANCH_NAME"; then
+            echo "✅ Branch name follows conventions"
+            echo "branch_valid=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Branch name does not follow conventions"
+            echo "branch_valid=false" >> $GITHUB_OUTPUT
+            
+            # Agregar comentario con sugerencias
+            gh pr comment ${{ github.event.pull_request.number }} --body "
+            ⚠️ **Branch Name Convention Issue**
+            
+            The branch name \`$BRANCH_NAME\` does not follow the project's naming conventions.
+            
+            **Required format:** \`<type>/<description>\`
+            
+            **Valid types:** feature, bugfix, hotfix, refactor, docs, test, chore, style, perf, release
+            
+            **Examples:**
+            - \`feature/dependency-injection-container\`
+            - \`bugfix/npe-in-scanner-logic\`
+            - \`docs/api-documentation-update\`
+            
+            **To fix this:**
+            1. Rename your branch: \`git branch -m $BRANCH_NAME new-branch-name\`
+            2. Or create a new branch with correct naming
+            3. Update your PR branch if needed
+            
+            See documentation: [BRANCH_NAMING_CONVENTIONS.md](docs/BRANCH_NAMING_CONVENTIONS.md)
+            "
+            
+            # No fallar el workflow por nombre de rama, solo advertencia
+            echo "ℹ️ Adding branch naming guidance to PR"
+          fi
+        else
+          echo "ℹ️ Branch validation script not found, skipping automated validation"
+          echo "branch_valid=unknown" >> $GITHUB_OUTPUT
+        fi
+        
     - name: 🔍 PR Analysis
       id: analysis
       run: |
