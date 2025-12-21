@@ -238,7 +238,7 @@ jobs:
         
     - name: 📊 Upload Benchmark Results
       uses: actions/upload-artifact@v4
-      if: always() && contains(github.event.pull_request.title, 'perf')
+      if: always() && contains(github.event.pull_request.title, 'perf') && -d "veld-benchmark"
       with:
         name: benchmark-results
         path: |

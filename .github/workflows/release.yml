@@ -219,9 +219,19 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         
         echo "### 📦 Deployed Modules" >> $GITHUB_STEP_SUMMARY
-        for module in veld-annotations veld-runtime veld-processor veld-weaver veld-aop veld-spring-boot-starter veld-maven-plugin veld-benchmark veld-example; do
-          echo "- **$module**: \`io.github.yasmramos:$module:${{ needs.prepare-release.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "The following modules were built and are available for deployment:" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Only list modules that exist in the project
+        for module in veld-annotations veld-runtime veld-processor veld-weaver veld-aop veld-spring-boot-starter veld-maven-plugin; do
+          if [ -d "$module" ] && [ -f "$module/pom.xml" ]; then
+            echo "- **$module**: \`io.github.yasmramos:$module:${{ needs.prepare-release.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          fi
         done
+        
+        # Note about excluded modules
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Note**: Some modules may be excluded from the reactor (e.g., veld-benchmark, veld-example) and are not deployed." >> $GITHUB_STEP_SUMMARY
         
     - name: Upload Deployment Artifacts
       uses: actions/upload-artifact@v4
