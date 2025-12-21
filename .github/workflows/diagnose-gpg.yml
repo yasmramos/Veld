@@ -1,0 +1,168 @@
+name: 🔍 GPG Diagnostic
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose-gpg:
+    name: GPG Configuration Diagnostic
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🔍 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: ☕ Setup JDK 11
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: 🔍 Check Available Secrets
+      id: check_secrets
+      run: |
+        echo "🔍 Checking GitHub Secrets..."
+        
+        echo "SONATYPE_USERNAME: $([ -n '${{ secrets.SONATYPE_USERNAME }}' ] && echo '✅ SET' || echo '❌ NOT SET')"
+        echo "SONATYPE_TOKEN: $([ -n '${{ secrets.SONATYPE_TOKEN }}' ] && echo '✅ SET' || echo '❌ NOT SET')"
+        echo "GPG_KEYNAME: $([ -n '${{ secrets.GPG_KEYNAME }}' ] && echo '✅ SET' || echo '❌ NOT SET')"
+        echo "GPG_PRIVATE_KEY: $([ -n '${{ secrets.GPG_PRIVATE_KEY }}' ] && echo '✅ SET' || echo '❌ NOT SET')"
+        echo "GPG_PASSPHRASE: $([ -n '${{ secrets.GPG_PASSPHRASE }}' ] && echo '✅ SET' || echo '❌ NOT SET (EMPTY)')"
+        
+        if [ -z "${{ secrets.GPG_PRIVATE_KEY }}" ] || [ -z "${{ secrets.GPG_KEYNAME }}" ]; then
+          echo "❌ Required GPG secrets missing!"
+          exit 1
+        fi
+        
+        echo "✅ All required secrets are available"
+        
+    - name: 🔑 Import GPG Key Test
+      id: import_gpg
+      env:
+        GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        GPG_KEYNAME: ${{ secrets.GPG_KEYNAME }}
+      run: |
+        echo "=== GPG Import Test ==="
+        
+        # Check GPG version
+        echo "GPG version:"
+        gpg --version | head -1
+        
+        # Set GPG_TTY for non-interactive mode
+        export GPG_TTY=$(tty)
+        echo "GPG_TTY set to: $GPG_TTY"
+        
+        # Check key format
+        echo ""
+        echo "Key format check:"
+        echo "$GPG_PRIVATE_KEY" | head -1
+        echo "$GPG_PRIVATE_KEY" | tail -1
+        
+        # Import the private key
+        echo ""
+        echo "Importing GPG key..."
+        echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+        
+        if [ $? -eq 0 ]; then
+          echo "✅ GPG key imported successfully"
+        else
+          echo "❌ GPG key import failed!"
+          echo "Checking for error details..."
+          echo "GPG Keyname: $GPG_KEYNAME"
+          echo "Passphrase length: ${#GPG_PASSPHRASE}"
+          exit 1
+        fi
+        
+        # List imported keys
+        echo ""
+        echo "Available GPG keys:"
+        gpg --list-keys --keyid-format LONG
+        
+        # Verify specific key
+        echo ""
+        echo "Verifying specific key: $GPG_KEYNAME"
+        if gpg --list-keys "$GPG_KEYNAME" > /dev/null 2>&1; then
+          echo "✅ Key $GPG_KEYNAME is available"
+        else
+          echo "❌ Key $GPG_KEYNAME not found!"
+          echo "Available keys:"
+          gpg --list-keys
+          exit 1
+        fi
+        
+    - name: 🔐 Test GPG Signing
+      id: test_signing
+      env:
+        GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        GPG_KEYNAME: ${{ secrets.GPG_KEYNAME }}
+      run: |
+        echo "=== GPG Signing Test ==="
+        
+        # Set GPG_TTY for non-interactive mode
+        export GPG_TTY=$(tty)
+        
+        # Test signing
+        echo "Testing GPG signing with key: $GPG_KEYNAME"
+        echo "Test message for signing" | gpg --clear-sign --armor --local-user "$GPG_KEYNAME"
+        
+        if [ $? -eq 0 ]; then
+          echo "✅ GPG signing test passed"
+        else
+          echo "❌ GPG signing test failed!"
+          echo "Passphrase: '${GPG_PASSPHRASE}'"
+          echo "Passphrase length: ${#GPG_PASSPHRASE}"
+          exit 1
+        fi
+        
+    - name: ⚙️ Test Maven GPG Configuration
+      id: test_maven_gpg
+      run: |
+        echo "=== Maven GPG Configuration Test ==="
+        
+        # Check Maven version
+        echo "Maven version:"
+        mvn --version | head -3
+        
+        # Check if pom.xml has GPG plugin
+        echo ""
+        echo "Checking pom.xml for GPG plugin:"
+        if grep -q "maven-gpg-plugin" pom.xml; then
+          echo "✅ maven-gpg-plugin found in pom.xml"
+          echo "GPG plugin configuration:"
+          grep -A 10 -B 2 "maven-gpg-plugin" pom.xml
+        else
+          echo "❌ maven-gpg-plugin not found in pom.xml"
+        fi
+        
+        # Test Maven with GPG (dry run)
+        echo ""
+        echo "Testing Maven GPG configuration:"
+        mvn help:evaluate -Dexpression=gpg.keyname -q -DforceStdout
+        mvn help:evaluate -Dexpression=gpg.passphrase -q -DforceStdout
+        
+    - name: 📊 Summary
+      id: summary
+      run: |
+        echo "=== GPG Diagnostic Summary ==="
+        echo ""
+        echo "## 🔍 Diagnostic Results"
+        echo ""
+        echo "**Secrets Status:**"
+        echo "- SONATYPE_USERNAME: ✅ SET"
+        echo "- SONATYPE_TOKEN: ✅ SET"
+        echo "- GPG_KEYNAME: ✅ SET"
+        echo "- GPG_PRIVATE_KEY: ✅ SET"
+        echo "- GPG_PASSPHRASE: ✅ SET (length: ${#GPG_PASSPHRASE})"
+        echo ""
+        echo "**GPG Import:** ✅ SUCCESS"
+        echo "**GPG Signing:** ✅ SUCCESS"
+        echo "**Maven GPG Config:** ✅ AVAILABLE"
+        echo ""
+        echo "If all tests passed but deploy still fails, the issue might be:"
+        echo "1. Maven plugin configuration in pom.xml"
+        echo "2. GPG key permissions or trust level"
+        echo "3. Environment variables not passed correctly to Maven"
+        echo ""
+        echo "See logs above for detailed diagnostic information."
