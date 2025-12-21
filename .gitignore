@@ -898,3 +898,8 @@
 # Claude Agent SDK debug files
 **/.claude/debug/
 **/.claude/debug/**
+
+# Git sample hooks (these should not be committed)
+**/.git/hooks/*.sample
+!**/.git/hooks/pre-commit
+!**/.git/hooks/pre-push
