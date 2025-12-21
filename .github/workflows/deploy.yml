@@ -220,12 +220,16 @@ jobs:
         echo "The following modules have been deployed to Maven Central:" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
-        # List deployed modules
-        for module in veld-annotations veld-runtime veld-processor veld-weaver veld-aop veld-spring-boot-starter veld-maven-plugin veld-benchmark veld-example; do
-          if [ -d "$module" ]; then
+        # List deployed modules (only those that exist and are part of reactor)
+        for module in veld-annotations veld-runtime veld-processor veld-weaver veld-aop veld-spring-boot-starter veld-maven-plugin; do
+          if [ -d "$module" ] && [ -f "$module/pom.xml" ]; then
             echo "- **$module** - Available as \`io.github.yasmramos:$module:1.0.0\`" >> $GITHUB_STEP_SUMMARY
           fi
         done
+        
+        # Note about excluded modules
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Note**: Modules excluded from the reactor (e.g., veld-benchmark, veld-example) are not deployed." >> $GITHUB_STEP_SUMMARY
         
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 🔗 Next Steps" >> $GITHUB_STEP_SUMMARY
