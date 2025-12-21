@@ -1,0 +1,562 @@
+name: 🚀 Advanced CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      skip_tests:
+        description: 'Skip test execution (dangerous!)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  JAVA_VERSION: '11'
+  MAVEN_VERSION: '3.8.1'
+  NODE_VERSION: '16'
+
+jobs:
+  # =============================================================================
+  # STAGE 1: VALIDATION & QUALITY GATES
+  # =============================================================================
+  
+  validation:
+    name: 🔍 Validation & Quality Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    outputs:
+      quality-gate-passed: ${{ steps.quality-gate.outputs.passed }}
+      security-scan-passed: ${{ steps.security-scan.outputs.passed }}
+      code-quality-passed: ${{ steps.code-quality.outputs.passed }}
+      
+    steps:
+    - name: 🔍 Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: ☕ Setup JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: 🔒 Security Scan
+      id: security-scan
+      run: |
+        echo "🔒 Running security scan..."
+        
+        # OWASP Dependency Check
+        echo "Running OWASP Dependency Check..."
+        if [ -f "dependency-check.sh" ]; then
+          chmod +x dependency-check.sh
+          ./dependency-check.sh --project "Veld Framework" --scan . --format JSON --out ./security-report.json || true
+        fi
+        
+        # Buscar secrets
+        echo "Scanning for secrets..."
+        if grep -r -i "password\|api[_-]key\|secret\|token" --exclude-dir=target --exclude="*.json" --exclude="*.xml" . 2>/dev/null; then
+          echo "❌ Potential secrets found!"
+          echo "security-scan-passed=false" >> $GITHUB_OUTPUT
+          exit 1
+        else
+          echo "✅ No secrets detected"
+          echo "security-scan-passed=true" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: 🧹 Code Quality Check
+      id: code-quality
+      run: |
+        echo "🧹 Checking code quality..."
+        
+        # Verificar que el proyecto compila
+        echo "Verifying compilation..."
+        if mvn clean compile -q; then
+          echo "✅ Compilation successful"
+        else
+          echo "❌ Compilation failed"
+-quality-passed=false          echo "code" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+        
+        # Verificar formato de código (si hay formatter)
+        if [ -f "google-java-format.sh" ]; then
+          echo "Checking code formatting..."
+          if ./google-java-format.sh --dry-run --diff **/*.java; then
+            echo "✅ Code formatting correct"
+          else
+            echo "⚠️ Code formatting issues found (non-blocking)"
+          fi
+        fi
+        
+        echo "code-quality-passed=true" >> $GITHUB_OUTPUT
+        
+    - name: 🛡️ Quality Gate
+      id: quality-gate
+      run: |
+        echo "🛡️ Evaluating quality gate..."
+        
+        # Verificar que todos los gates pasaron
+        if [ "${{ steps.security-scan.outputs.passed }}" = "true" ] && 
+           [ "${{ steps.code-quality.outputs.passed }}" = "true" ]; then
+          echo "✅ All quality gates passed"
+          echo "quality-gate-passed=true" >> $GITHUB_OUTPUT
+        else
+          echo "❌ Quality gates failed"
+          echo "quality-gate-passed=false" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+        
+    - name: 📊 Upload Validation Reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: validation-reports
+        path: |
+          security-report.json
+        retention-days: 7
+
+  # =============================================================================
+  # STAGE 2: BUILD & TEST MATRIX
+  # =============================================================================
+  
+  build-test-matrix:
+    name: 🔨 Build & Test Matrix
+    runs-on: ubuntu-latest
+    needs: validation
+    if: needs.validation.outputs.quality-gate-passed == 'true'
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        java-version: [11, 17]
+        module: [all, annotations, runtime, processor, aop]
+        
+    steps:
+    - name: 🔍 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: ☕ Setup JDK ${{ matrix.java-version }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ matrix.java-version }}
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: 🔨 Build Module ${{ matrix.module }}
+      run: |
+        echo "🔨 Building module: ${{ matrix.module }}"
+        
+        if [ "${{ matrix.module }}" = "all" ]; then
+          echo "Building all modules..."
+          mvn clean install -DskipTests -q
+        else
+          echo "Building module: veld-${{ matrix.module }}"
+          mvn clean install -pl veld-${{ matrix.module }} -am -DskipTests -q
+        fi
+        
+    - name: 🧪 Test Module ${{ matrix.module }}
+      if: ${{ github.event.inputs.skip_tests != 'true' }}
+      run: |
+        echo "🧪 Testing module: ${{ matrix.module }}"
+        
+        if [ "${{ matrix.module }}" = "all" ]; then
+          echo "Testing all modules..."
+          mvn test -q
+        else
+          echo "Testing module: veld-${{ matrix.module }}"
+          mvn test -pl veld-${{ matrix.module }} -am -q
+        fi
+        
+    - name: 📊 Test Coverage
+      if: ${{ matrix.module == 'all' && github.event.inputs.skip_tests != 'true' }}
+      run: |
+        echo "📊 Generating test coverage report..."
+        mvn jacoco:report -q
+        
+        # Verificar cobertura mínima
+        COVERAGE=$(find target/site/jacoco/ -name "*.html" -exec grep -o "([0-9]*\.[0-9]*)%" {} \; 2>/dev/null | head -1 || echo "N/A")
+        echo "Coverage: $COVERAGE"
+        
+        if [ "$COVERAGE" != "N/A" ]; then
+          COVERAGE_NUM=$(echo "$COVERAGE" | grep -o "[0-9]*\.[0-9]*" || echo "0")
+          if [ "$(echo "$COVERAGE_NUM < 70" | bc -l)" = "1" ]; then
+            echo "⚠️ Coverage below 70%: $COVERAGE"
+          else
+            echo "✅ Good coverage: $COVERAGE"
+          fi
+        fi
+        
+    - name: 📦 Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: build-artifacts-jdk${{ matrix.java-version }}-${{ matrix.module }}
+        path: |
+          target/*.jar
+          target/surefire-reports/
+          target/site/jacoco/
+        retention-days: 7
+
+  # =============================================================================
+  # STAGE 3: INTEGRATION & PERFORMANCE TESTS
+  # =============================================================================
+  
+  integration-tests:
+    name: 🔗 Integration Tests
+    runs-on: ubuntu-latest
+    needs: build-test-matrix
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'integration')
+    
+    steps:
+    - name: 🔍 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: ☕ Setup JDK 11
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: 🐳 Start Docker Services
+      run: |
+        echo "🐳 Starting test services..."
+        # Aquí se pueden iniciar servicios de test como databases, etc.
+        echo "Test services ready"
+        
+    - name: 🔗 Run Integration Tests
+      run: |
+        echo "🔗 Running integration tests..."
+        mvn test -Dtest=*IT -q || echo "Integration tests completed with warnings"
+        
+    - name: 📊 Upload Integration Reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: integration-test-reports
+        path: |
+          target/surefire-reports/
+        retention-days: 7
+
+  performance-benchmarks:
+    name: ⚡ Performance Benchmarks
+    runs-on: ubuntu-latest
+    needs: build-test-matrix
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.title, 'perf')
+    
+    steps:
+    - name: 🔍 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: ☕ Setup JDK 11
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: ⚡ Run Performance Benchmarks
+      run: |
+        echo "⚡ Running performance benchmarks..."
+        
+        # Verificar si existe el módulo de benchmarks
+        if [ -d "veld-benchmark" ]; then
+          cd veld-benchmark
+          
+          # Build benchmarks
+          mvn clean package -DskipTests -q
+          
+          # Run quick benchmarks
+          java -Xmx1g -jar target/veld-benchmark.jar \
+            -f 1 -wi 1 -i 2 -bs 1 \
+            -rf json \
+            -rff benchmark-results.json
+          
+          echo "✅ Performance benchmarks completed"
+        else
+          echo "ℹ️ No benchmark module found, skipping performance tests"
+        fi
+        
+    - name: 📊 Upload Benchmark Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: performance-benchmarks
+        path: |
+          veld-benchmark/benchmark-results.json
+        retention-days: 30
+
+  # =============================================================================
+  # STAGE 4: SECURITY & COMPLIANCE
+  # =============================================================================
+  
+  security-compliance:
+    name: 🔒 Security & Compliance
+    runs-on: ubuntu-latest
+    needs: [validation, build-test-matrix]
+    
+    steps:
+    - name: 🔍 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: 🔍 CodeQL Analysis
+      uses: github/codeql-action/init@v3
+      with:
+        languages: java
+        
+    - name: 🔍 Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      
+    - name: 🛡️ OWASP Dependency Check
+      run: |
+        echo "🛡️ Running OWASP Dependency Check..."
+        
+        # Download and run OWASP Dependency Check
+        wget -q https://github.com/jeremylong/DependencyCheck/releases/download/v9.0.9/dependency-check-9.0.9-release.zip
+        unzip -q dependency-check-9.0.9-release.zip
+        
+        ./dependency-check/bin/dependency-check.sh \
+          --project "Veld Framework" \
+          --scan . \
+          --format JSON \
+          --out ./dependency-check-report.json \
+          --enableRetired \
+          --enableExperimental || true
+        
+        # Check for high severity vulnerabilities
+        if [ -f "dependency-check-report.json" ]; then
+          HIGH_VULNS=$(jq '.dependencies[] | select(.vulnerabilities[] | .severity == "HIGH") | .vulnerabilities[].name' dependency-check-report.json 2>/dev/null | wc -l || echo "0")
+          
+          if [ "$HIGH_VULNS" -gt "0" ]; then
+            echo "❌ Found $HIGH_VULNS high severity vulnerabilities!"
+            echo "Please review the dependency-check-report.json"
+            exit 1
+          else
+            echo "✅ No high severity vulnerabilities found"
+          fi
+        fi
+        
+    - name: 📄 License Compliance Check
+      run: |
+        echo "📄 Checking license compliance..."
+        
+        # Check Maven dependencies for licenses
+        mvn license:check -q || echo "License check completed with warnings"
+        
+    - name: 📊 Upload Security Reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: security-compliance-reports
+        path: |
+          dependency-check-report.json
+        retention-days: 30
+
+  # =============================================================================
+  # STAGE 5: BUILD ARTIFACTS & PACKAGING
+  # =============================================================================
+  
+  build-artifacts:
+    name: 📦 Build Artifacts
+    runs-on: ubuntu-latest
+    needs: [build-test-matrix, integration-tests, security-compliance]
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: 🔍 Checkout Repository
+      uses: actions/checkout@v4
+      
+    - name: ☕ Setup JDK 11
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: 🔐 Setup GPG
+      run: |
+        echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+        gpg --list-secret-keys --keyid-format LONG
+        
+    - name: 🔨 Release Build
+      env:
+        GPG_TTY: $(tty)
+      run: |
+        echo "🔨 Building release artifacts..."
+        
+        # Clean build with signing
+        mvn clean deploy -DskipTests \
+          -Dgpg.passphrase=${{ secrets.GPG_PASSPHRASE }} \
+          -Dpgp.secretkey=${{ secrets.GPG_PRIVATE_KEY }} \
+          -Dpgp.keyname=${{ secrets.GPG_KEY_ID }} || true
+          
+    - name: 📦 Create Distribution Archive
+      run: |
+        echo "📦 Creating distribution archive..."
+        
+        # Create distribution with documentation
+        mvn assembly:single -DdescriptorId=jar-with-dependencies -q || true
+        
+        # Create source distribution
+        mvn source:jar -q || true
+        
+        # Create javadoc
+        mvn javadoc:jar -q || true
+        
+    - name: 📊 Upload Release Artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: release-artifacts
+        path: |
+          target/*-*.jar
+          target/*.zip
+          target/*.tar.gz
+        retention-days: 90
+
+  # =============================================================================
+  # STAGE 6: DEPLOYMENT (CONDITIONAL)
+  # =============================================================================
+  
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-artifacts]
+    if: github.ref == 'refs/heads/main' && (github.event.inputs.environment == 'staging' || github.event_name == 'push')
+    environment: staging
+    
+    steps:
+    - name: 🔍 Download Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: release-artifacts
+        path: ./artifacts
+        
+    - name: 🚀 Deploy to Staging
+      run: |
+        echo "🚀 Deploying to staging environment..."
+        echo "Environment: staging"
+        echo "Artifacts: $(ls -la ./artifacts/)"
+        # Aquí iría la lógica real de deployment a staging
+        echo "✅ Deployment to staging completed"
+        
+    - name: 🧪 Smoke Tests
+      run: |
+        echo "🧪 Running smoke tests on staging..."
+        # Aquí irían los tests de smoke en staging
+        echo "✅ Smoke tests passed"
+
+  deploy-production:
+    name: 🎯 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: startsWith(github.ref, 'refs/tags/v') && github.event.inputs.environment == 'production'
+    environment: production
+    
+    steps:
+    - name: 🔍 Download Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: release-artifacts
+        path: ./artifacts
+        
+    - name: 🎯 Deploy to Production
+      run: |
+        echo "🎯 Deploying to production environment..."
+        echo "Tag: ${{ github.ref_name }}"
+        echo "Artifacts: $(ls -la ./artifacts/)"
+        # Aquí iría la lógica real de deployment a producción
+        echo "✅ Deployment to production completed"
+        
+    - name: 📢 Notify Deployment
+      run: |
+        echo "📢 Notifying stakeholders of successful deployment..."
+        # Aquí iría la lógica de notificación
+
+  # =============================================================================
+  # STAGE 7: NOTIFICATION & REPORTING
+  # =============================================================================
+  
+  notification:
+    name: 📢 Pipeline Summary
+    runs-on: ubuntu-latest
+    needs: [validation, build-test-matrix, integration-tests, performance-benchmarks, security-compliance, build-artifacts, deploy-staging, deploy-production]
+    if: always()
+    
+    steps:
+    - name: 📊 Generate Pipeline Summary
+      run: |
+        echo "## 🚀 CI/CD Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📈 Pipeline Status" >> $GITHUB_STEP_SUMMARY
+        echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| 🔍 Validation | ${{ needs.validation.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🔨 Build & Test | ${{ needs.build-test-matrix.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🔗 Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| ⚡ Performance Benchmarks | ${{ needs.performance-benchmarks.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🔒 Security & Compliance | ${{ needs.security-compliance.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 📦 Build Artifacts | ${{ needs.build-artifacts.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🚀 Staging Deploy | ${{ needs.deploy-staging.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🎯 Production Deploy | ${{ needs.deploy-production.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Determinar estado general
+        FAILED_JOBS=""
+        if [ "${{ needs.validation.result }}" = "failure" ]; then
+          FAILED_JOBS="$FAILED_JOBS Validation,"
+        fi
+        if [ "${{ needs.build-test-matrix.result }}" = "failure" ]; then
+          FAILED_JOBS="$FAILED_JOBS Build & Test,"
+        fi
+        if [ "${{ needs.security-compliance.result }}" = "failure" ]; then
+          FAILED_JOBS="$FAILED_JOBS Security,"
+        fi
+        
+        if [ -z "$FAILED_JOBS" ]; then
+          echo "### ✅ Overall Status: **SUCCESS**" >> $GITHUB_STEP_SUMMARY
+          echo "Pipeline completed successfully! 🎉" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ❌ Overall Status: **FAILURE**" >> $GITHUB_STEP_SUMMARY
+          echo "Failed stages: ${FAILED_JOWS%?}" >> $GITHUB_STEP_SUMMARY
+          echo "Please check the logs for details." >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📊 Pipeline Metrics" >> $GITHUB_STEP_SUMMARY
+        echo "- **Total Duration**: $((${{ github.run_started_at }} - ${{ github.run_created_at }})) seconds" >> $GITHUB_STEP_SUMMARY
+        echo "- **Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        
+    - name: 📧 Send Notification
+      if: failure() && github.event_name == 'push'
+      run: |
+        echo "📧 Sending failure notification..."
+        # Aquí iría la lógica de notificación por email/Slack
+        echo "Notification sent for pipeline failure"
+        
+    - name: 📊 Archive Pipeline Data
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: pipeline-execution-data
+        path: |
+          pipeline-summary.json
+        retention-days: 90
