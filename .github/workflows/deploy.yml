@@ -34,19 +34,24 @@ jobs:
     - name: 🛡️ Verify GPG Secrets
       id: verify_gpg
       run: |
-        if [ -z "${{ secrets.GPG_PRIVATE_KEY }}" ] || [ -z "${{ secrets.GPG_PASSPHRASE }}" ] || [ -z "${{ secrets.GPG_KEYNAME }}" ]; then
-          echo "::error::One or more GPG secrets (GPG_PRIVATE_KEY, GPG_PASSPHRASE, GPG_KEYNAME) are not set."
+        if [ -z "${{ secrets.GPG_PRIVATE_KEY }}" ] || [ -z "${{ secrets.GPG_KEYNAME }}" ]; then
+          echo "::error::Required GPG secrets (GPG_PRIVATE_KEY, GPG_KEYNAME) are not set."
           echo "Please configure these secrets in GitHub repository settings."
           echo ""
           echo "Required secrets:"
           echo "- GPG_PRIVATE_KEY: Your GPG private key"
-          echo "- GPG_PASSPHRASE: Your GPG key passphrase"
           echo "- GPG_KEYNAME: Your GPG key ID (e.g., ABC12345)"
+          echo "- GPG_PASSPHRASE: Leave empty if key has no passphrase"
           echo ""
-          echo "See GPG_SETUP_GUIDE.md for detailed instructions."
+          echo "See GITHUB_SECRETS_COMPLETE.md for detailed instructions."
           exit 1
         else
-          echo "✅ All GPG secrets are available."
+          echo "✅ Required GPG secrets are available."
+          if [ -n "${{ secrets.GPG_PASSPHRASE }}" ]; then
+            echo "ℹ️ GPG key has passphrase protection"
+          else
+            echo "ℹ️ GPG key has no passphrase (will use empty passphrase)"
+          fi
         fi
         
     - name: 🔑 Import GPG Key
@@ -56,6 +61,9 @@ jobs:
       run: |
         echo "=== Importing GPG Key ==="
         
+        # Set GPG_TTY for non-interactive mode
+        export GPG_TTY=$(tty)
+        
         # Import the private key
         echo "$GPG_PRIVATE_KEY" | gpg --batch --import
         echo "✅ GPG key imported successfully"
@@ -63,6 +71,15 @@ jobs:
         # List imported keys for verification
         echo "Available GPG keys:"
         gpg --list-keys --keyid-format LONG
+        
+        # Verify specific key
+        echo "Verifying key ${{ secrets.GPG_KEYNAME }}..."
+        if gpg --list-keys "${{ secrets.GPG_KEYNAME }}" > /dev/null 2>&1; then
+          echo "✅ Key ${{ secrets.GPG_KEYNAME }} is available and verified"
+        else
+          echo "❌ Key ${{ secrets.GPG_KEYNAME }} not found!"
+          exit 1
+        fi
         
     - name: ⚙️ Create Maven Settings
       env:
@@ -101,11 +118,17 @@ jobs:
       run: |
         echo "=== Deploying to ${{ github.event.inputs.environment || 'staging' }} ==="
         echo "Environment: ${{ github.event.inputs.environment || 'staging' }}"
+        echo "Using GPG key: $GPG_KEYNAME"
         
+        # Set GPG_TTY for non-interactive mode
+        export GPG_TTY=$(tty)
+        
+        # Deploy with GPG signing
         mvn clean deploy -DskipTests=false -DfailIfNoTests=false \
           -Dgpg.executable=gpg \
           -Dgpg.keyname=$GPG_KEYNAME \
-          -Dgpg.passphrase=$GPG_PASSPHRASE
+          -Dgpg.passphrase="${GPG_PASSPHRASE:-}" \
+          -Dgpg.useAgent=false
           
     - name: 📊 Upload Deployment Artifacts
       if: always()

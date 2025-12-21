@@ -161,8 +161,16 @@ jobs:
         GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       run: |
+        # Set GPG_TTY for non-interactive mode
+        export GPG_TTY=$(tty)
+        
+        # Import the private key
         echo "$GPG_PRIVATE_KEY" | base64 -d | gpg --batch --import
         echo "GPG key imported successfully"
+        
+        # Verify key is available
+        echo "Verifying GPG key..."
+        gpg --list-keys --keyid-format LONG
         
     - name: Create Maven Settings
       env:
@@ -195,8 +203,17 @@ jobs:
         GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         GPG_KEYNAME: ${{ secrets.GPG_KEYNAME }}
       run: |
+        # Set GPG_TTY for non-interactive mode
+        export GPG_TTY=$(tty)
+        
         echo "=== Deploying Veld ${{ needs.prepare-release.outputs.version }} to Staging ==="
-        mvn clean deploy -DskipTests=false -DfailIfNoTests=false
+        echo "Using GPG key: $GPG_KEYNAME"
+        
+        mvn clean deploy -DskipTests=false -DfailIfNoTests=false \
+          -Dgpg.executable=gpg \
+          -Dgpg.keyname=$GPG_KEYNAME \
+          -Dgpg.passphrase="${GPG_PASSPHRASE:-}" \
+          -Dgpg.useAgent=false
         
     - name: Create Staging Repository Summary
       run: |
