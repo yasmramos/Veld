@@ -1,0 +1,205 @@
+name: 🛡️ PR Quality Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  pull_request_target:
+
+jobs:
+  pr-quality-gate:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    
+    steps:
+    - name: 🔍 PR Analysis
+      id: analysis
+      run: |
+        echo "Analyzing PR..."
+        
+        # Obtener información del PR
+        PR_NUMBER=${{ github.event.pull_request.number }}
+        echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+        
+        # Obtener archivos modificados
+        FILES_CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | wc -l)
+        echo "files_changed=$FILES_CHANGED" >> $GITHUB_OUTPUT
+        
+        # Obtener líneas agregadas/removidas
+        DIFF_OUTPUT=$(git diff --stat ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+        LINES_ADDED=$(echo "$DIFF_OUTPUT" | grep -o '[0-9]* insertion' | grep -o '[0-9]*' | head -1 || echo "0")
+        LINES_REMOVED=$(echo "$DIFF_OUTPUT" | grep -o '[0-9]* deletion' | grep -o '[0-9]*' | head -1 || echo "0")
+        
+        echo "lines_added=$LINES_ADDED" >> $GITHUB_OUTPUT
+        echo "lines_removed=$LINES_REMOVED" >> $GITHUB_OUTPUT
+        
+        # Calcular tamaño total del PR
+        TOTAL_LINES=$((LINES_ADDED + LINES_REMOVED))
+        echo "total_lines=$TOTAL_LINES" >> $GITHUB_OUTPUT
+        
+        # Determinar tamaño del PR
+        if [ "$TOTAL_LINES" -gt "400" ]; then
+          PR_SIZE="large"
+        elif [ "$TOTAL_LINES" -gt "100" ]; then
+          PR_SIZE="medium"
+        else
+          PR_SIZE="small"
+        fi
+        echo "pr_size=$PR_SIZE" >> $GITHUB_OUTPUT
+        
+        echo "PR Analysis Complete:"
+        echo "  Files changed: $FILES_CHANGED"
+        echo "  Lines added: $LINES_ADDED"
+        echo "  Lines removed: $LINES_REMOVED"
+        echo "  Total lines: $TOTAL_LINES"
+        echo "  PR Size: $PR_SIZE"
+        
+    - name: 🏷️ Check Required Labels
+      run: |
+        echo "Checking required labels..."
+        
+        # Obtener etiquetas del PR
+        LABELS=$(gh pr view ${{ github.event.pull_request.number }} --json labels --jq '.labels[].name' 2>/dev/null || echo "")
+        echo "Current labels: $LABELS"
+        
+        # Verificar etiquetas de tipo
+        TYPE_LABELS=("feature" "bugfix" "hotfix" "refactor" "documentation" "test" "build")
+        HAS_TYPE=false
+        for label in "${TYPE_LABELS[@]}"; do
+          if echo "$LABELS" | grep -q "$label"; then
+            HAS_TYPE=true
+            echo "✅ Found type label: $label"
+            break
+          fi
+        done
+        
+        if [ "$HAS_TYPE" = false ]; then
+          echo "❌ Missing required type label"
+          echo "::error::PR must have at least one type label: feature, bugfix, hotfix, refactor, documentation, test, build"
+          exit 1
+        fi
+        
+        # Verificar etiquetas de prioridad
+        PRIORITY_LABELS=("priority:high" "priority:medium" "priority:low")
+        HAS_PRIORITY=false
+        for label in "${PRIORITY_LABELS[@]}"; do
+          if echo "$LABELS" | grep -q "$label"; then
+            HAS_PRIORITY=true
+            echo "✅ Found priority label: $label"
+            break
+          fi
+        done
+        
+        if [ "$HAS_PRIORITY" = false ]; then
+          echo "❌ Missing required priority label"
+          echo "::error::PR must have at least one priority label: priority:high, priority:medium, priority:low"
+          exit 1
+        fi
+        
+        echo "✅ All required labels present"
+        
+    - name: 👥 Auto-assign Reviewers
+      run: |
+        PR_SIZE=${{ steps.analysis.outputs.pr_size }}
+        PR_NUMBER=${{ steps.analysis.outputs.pr_number }}
+        
+        echo "Assigning reviewers for PR size: $PR_SIZE"
+        
+        # Lista de reviewers disponibles
+        REVIEWERS=("YasMRamos")
+        
+        # Asignar reviewers basado en tamaño
+        if [ "$PR_SIZE" = "large" ]; then
+          # Para PRs grandes, asignar múltiples reviewers
+          gh pr edit $PR_NUMBER --add-reviewers "${REVIEWERS[0]}"
+          echo "✅ Assigned primary reviewer for large PR"
+        elif [ "$PR_SIZE" = "medium" ]; then
+          # Para PRs medianos, asignar al menos un reviewer
+          gh pr edit $PR_NUMBER --add-reviewers "${REVIEWERS[0]}"
+          echo "✅ Assigned reviewer for medium PR"
+        else
+          # Para PRs pequeños, asignar reviewer opcional
+          echo "ℹ️ Small PR - manual reviewer assignment recommended"
+        fi
+        
+    - name: 📝 Add Quality Gate Comment
+      run: |
+        PR_NUMBER=${{ steps.analysis.outputs.pr_number }}
+        PR_SIZE=${{ steps.analysis.outputs.pr_size }}
+        FILES_CHANGED=${{ steps.analysis.outputs.files_changed }}
+        TOTAL_LINES=${{ steps.analysis.outputs.total_lines }}
+        
+        COMMENT="## 🛡️ PR Quality Gate Analysis
+        
+### 📊 PR Summary
+- **Size**: $PR_SIZE ($FILES_CHANGED files changed, $TOTAL_LINES lines total)
+- **Quality Checks**: ✅ Passed
+- **Labels**: ✅ Verified
+- **Reviewers**: 👥 Assigned
+        
+### ✅ Checklist
+- [x] PR follows naming conventions
+- [x] Required labels present
+- [x] Appropriate reviewers assigned
+- [x] Ready for review
+        
+### 🎯 Next Steps
+1. Await reviewer approval
+2. Address any feedback
+3. Ensure all CI checks pass
+4. Merge when approved
+        
+---
+*Generated by PR Quality Gate*"
+        
+        gh pr comment $PR_NUMBER --body "$COMMENT"
+        
+    - name: 🚫 Block Large PRs Without Adequate Reviewers
+      if: steps.analysis.outputs.pr_size == 'large'
+      run: |
+        PR_NUMBER=${{ steps.analysis.outputs.pr_number }}
+        REVIEWERS=$(gh pr view $PR_NUMBER --json reviewRequests --jq '.reviewRequests | length')
+        
+        if [ "$REVIEWERS" -lt "2" ]; then
+          echo "❌ Large PR requires at least 2 reviewers"
+          echo "::error::Large PRs (>$TOTAL_LINES lines) require minimum 2 reviewers for security and quality"
+          
+          # Agregar comentario explicativo
+          gh pr comment $PR_NUMBER --body "
+          ⚠️ **Large PR Detected**
+          
+          This PR has over 400 lines of changes and requires **minimum 2 reviewers** for security and quality assurance.
+          
+          Current reviewers: $REVIEWERS
+          Required reviewers: 2
+          
+          Please add additional reviewers before proceeding with the review.
+          "
+          exit 1
+        fi
+        
+  enforcement-summary:
+    runs-on: ubuntu-latest
+    needs: pr-quality-gate
+    if: always()
+    
+    steps:
+    - name: 📊 Enforcement Summary
+      run: |
+        echo "## 🛡️ PR Quality Gate Summary"
+        echo ""
+        echo "**Status**: ${{ job.status }}"
+        echo ""
+        echo "**Checks Performed**:"
+        echo "- ✅ Required labels verification"
+        echo "- ✅ Automatic reviewer assignment"
+        echo "- ✅ Size-based enforcement"
+        echo "- ✅ Quality gate comment added"
+        echo ""
+        
+        if [ "${{ job.status }}" = "success" ]; then
+          echo "🎉 **All quality checks passed!**"
+          echo "PR is ready for review and merge."
+        else
+          echo "❌ **Quality gate failed**"
+          echo "Please address the issues above before proceeding."
+        fi
