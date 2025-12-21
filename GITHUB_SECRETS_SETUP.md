@@ -24,14 +24,14 @@ Add the following secrets with these exact names:
   - **Note**: If you didn't set a passphrase, use an empty string
 
 - **Name**: `GPG_KEYNAME`
-  - **Value**: `7ED0F874FB5F110ED4A79D1BBE6F8F8910A7EE99`
+  - **Value**: `your-gpg-key-id-here`
 
 #### Sonatype OSSRH Secrets:
 - **Name**: `SONATYPE_USERNAME`
-  - **Value**: `UsC4b3`
+  - **Value**: `your-ossrh-username`
 
 - **Name**: `SONATYPE_TOKEN`
-  - **Value**: `GoRNnkUIedGnrN72dm08EM3pHM05P70kT`
+  - **Value**: `your-ossrh-token`
 
 ### 3. Update the Workflow (Optional)
 
@@ -71,7 +71,7 @@ Make sure `GPG_PRIVATE_KEY` contains the full ASCII-armored key including:
 ```bash
 # In your local environment, verify the key ID
 gpg --list-keys
-# Should show: 7ED0F874FB5F110ED4A79D1BBE6F8F8910A7EE99
+# Should show: your-gpg-key-id-here
 ```
 
 #### Check Secret Values:
@@ -104,11 +104,11 @@ Here's what each secret should look like:
 
 **GPG_PASSPHRASE**: `your-passphrase-here` (or empty if no passphrase)
 
-**GPG_KEYNAME**: `7ED0F874FB5F110ED4A79D1BBE6F8F8910A7EE99`
+**GPG_KEYNAME**: `your-gpg-key-id-here`
 
-**SONATYPE_USERNAME**: `UsC4b3`
+**SONATYPE_USERNAME**: `your-ossrh-username`
 
-**SONATYPE_TOKEN**: `GoRNnkUIedGnrN72dm08EM3pHM05P70kT`
+**SONATYPE_TOKEN**: `your-ossrh-token`
 
 ### 8. Security Notes
 
