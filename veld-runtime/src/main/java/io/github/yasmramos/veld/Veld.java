@@ -349,16 +349,5 @@ public final class Veld {
     // EXCEPTION HANDLING
     // =============================================================================
     
-    /**
-     * Exception thrown when Veld cannot satisfy a dependency or find a component.
-     */
-    public static class VeldException extends RuntimeException {
-        public VeldException(String message) {
-            super(message);
-        }
-        
-        public VeldException(String message, Throwable cause) {
-            super(message, cause);
-        }
-    }
+    // VeldException is now defined as a standalone class: VeldException.java
 }
