@@ -10,6 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Placeholder for future features
 
+## [1.0.1] - 2025-12-22
+
+### Changed
+- Refactored VeldException to independent class for better API design
+- Unified Veld.java files into single comprehensive public API
+- Improved Spring Boot starter compatibility
+
+### Fixed
+- Corrected VeldException import in VeldSpringBootService
+- Fixed compilation errors in Spring Boot integration
+
+### Removed
+- Removed emojis from Java documentation and code for professional appearance
+- Cleaned up temporary release documentation files
+
 ## [1.0.0] - 2025-12-17
 
 ### Added
