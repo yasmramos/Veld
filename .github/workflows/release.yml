@@ -86,7 +86,7 @@ jobs:
     - name: Build and Test
       run: |
         echo "=== Building Veld Framework ${{ needs.prepare-release.outputs.version }} ==="
-        mvn clean install -DskipTests -Dci.skip=true -B
+        mvn clean install -Dci.skip=true -B
       env:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
         
