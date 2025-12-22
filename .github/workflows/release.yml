@@ -86,7 +86,7 @@ jobs:
     - name: Build and Test
       run: |
         echo "=== Building Veld Framework ${{ needs.prepare-release.outputs.version }} ==="
-        mvn clean install -DskipTests -Dgpg.skip=true -B
+        mvn clean install -DskipTests -Dci.skip=true -B
       env:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
         
@@ -212,7 +212,6 @@ jobs:
         echo "Using GPG key: $GPG_KEYNAME"
         
         mvn clean deploy -DskipTests=false -DfailIfNoTests=false \
-          -Dgpg.skip=true \
           -Dgpg.executable=gpg \
           -Dgpg.keyname=$GPG_KEYNAME \
           -Dgpg.passphrase="${GPG_PASSPHRASE:-}" \
