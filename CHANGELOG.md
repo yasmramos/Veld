@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Placeholder for future features
 
+## [1.0.2] - 2025-12-22
+
+### Fixed
+- Updated CodeQL action from v2 to v3 to resolve deprecation warning
+- Added security-events: write permission to fix 'Resource not accessible by integration' error
+- Ensured proper GitHub Security tab integration for vulnerability scan results
+
+### Changed
+- Updated all POM files to version 1.0.2 for version consistency
+
 ## [1.0.1] - 2025-12-22
 
 ### Changed
