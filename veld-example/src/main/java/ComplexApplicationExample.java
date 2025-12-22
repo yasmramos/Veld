@@ -16,21 +16,21 @@ import java.util.concurrent.Executors;
 /**
  * Ejemplo complejo que demuestra TODAS las características de Veld funcionando juntas:
  * 
- * ✅ Lifecycle Callbacks (@PostConstruct, @PreDestroy)
- * ✅ EventBus (@Subscribe) 
- * ✅ Value Resolution (@Value)
- * ✅ Conditional Loading (@Profile, @ConditionalOnProperty)
- * ✅ Named Injection (@Named)
- * ✅ Provider Injection (Provider<T>)
- * ✅ Optional Injection (Optional<T>)
- * ✅ Dependencies (@DependsOn)
- * ✅ Multiple Scopes (Singleton, Prototype)
- * ✅ Interface-based Injection
+ * [OK] Lifecycle Callbacks (@PostConstruct, @PreDestroy)
+ * [OK] EventBus (@Subscribe) 
+ * [OK] Value Resolution (@Value)
+ * [OK] Conditional Loading (@Profile, @ConditionalOnProperty)
+ * [OK] Named Injection (@Named)
+ * [OK] Provider Injection (Provider<T>)
+ * [OK] Optional Injection (Optional<T>)
+ * [OK] Dependencies (@DependsOn)
+ * [OK] Multiple Scopes (Singleton, Prototype)
+ * [OK] Interface-based Injection
  */
 public class ComplexApplicationExample {
 
     public static void main(String[] args) {
-        System.out.println("🚀 Iniciando aplicación compleja con Veld...\n");
+        System.out.println("[START] Iniciando aplicación compleja con Veld...\n");
         
         // =============================================================================
         // 1. CONFIGURACIÓN DE PERFILES Y PROPIEDADES
@@ -46,14 +46,14 @@ public class ComplexApplicationExample {
         // =============================================================================
         // 2. OBTENER COMPONENTES PRINCIPALES
         // =============================================================================
-        System.out.println("📦 Obteniendo componentes principales...");
+        System.out.println("[BOX] Obteniendo componentes principales...");
         
         OrderService orderService = Veld.get(OrderService.class);
         PaymentService paymentService = Veld.get(PaymentService.class);
         NotificationService notificationService = Veld.get(NotificationService.class);
         UserService userService = Veld.get(UserService.class);
         
-        System.out.println("✅ Componentes principales obtenidos:");
+        System.out.println("[OK] Componentes principales obtenidos:");
         System.out.println("  - OrderService: " + orderService.getClass().getSimpleName());
         System.out.println("  - PaymentService: " + paymentService.getClass().getSimpleName());
         System.out.println("  - NotificationService: " + notificationService.getClass().getSimpleName());
@@ -62,7 +62,7 @@ public class ComplexApplicationExample {
         // =============================================================================
         // 3. DEMOSTRAR DIFERENTES IMPLEMENTACIONES
         // =============================================================================
-        System.out.println("\n🏷️  Probando diferentes implementaciones...");
+        System.out.println("\n[TAGS] Probando diferentes implementaciones...");
         
         EmailService emailService = Veld.get(SmtpEmailService.class);
         EmailService smsService = Veld.get(SmsEmailService.class);
@@ -73,7 +73,7 @@ public class ComplexApplicationExample {
         // =============================================================================
         // 4. DEMOSTRAR PROVIDER INJECTION
         // =============================================================================
-        System.out.println("\n🔄 Probando Provider injection...");
+        System.out.println("\n[REFRESH] Probando Provider injection...");
         
         CacheManager cacheManager = Veld.get(CacheManager.class);
         // El Provider permite crear instancias bajo demanda
@@ -87,7 +87,7 @@ public class ComplexApplicationExample {
         // =============================================================================
         // 5. DEMOSTRAR OPTIONAL INJECTION
         // =============================================================================
-        System.out.println("\n❓ Probando Optional injection...");
+        System.out.println("\n[QUESTION] Probando Optional injection...");
         
         AuditService auditService = Veld.get(AuditService.class);
         System.out.println("  - Audit Service disponible: " + auditService.getAuditLogger().isPresent());
@@ -95,7 +95,7 @@ public class ComplexApplicationExample {
         // =============================================================================
         // 6. EJECUTAR FLUJO DE NEGOCIO COMPLETO
         // =============================================================================
-        System.out.println("\n💼 Ejecutando flujo de negocio completo...");
+        System.out.println("\n[BUSINESS] Ejecutando flujo de negocio completo...");
         
         try {
             // Crear una orden
@@ -104,7 +104,7 @@ public class ComplexApplicationExample {
                 new OrderItem("Mouse", 2, 25.00)
             ));
             
-            System.out.println("  ✅ Orden creada: " + order.getId() + " por $" + order.getTotal());
+            System.out.println("  [OK] Orden creada: " + order.getId() + " por $" + order.getTotal());
             
             // Procesar pago
             PaymentResult payment = paymentService.processPayment(order.getId(), order.getTotal());
@@ -115,13 +115,13 @@ public class ComplexApplicationExample {
             System.out.println("  📧 Notificaciones enviadas");
             
         } catch (Exception e) {
-            System.err.println("  ❌ Error en flujo: " + e.getMessage());
+            System.err.println("  [ERROR] Error en flujo: " + e.getMessage());
         }
         
         // =============================================================================
         // 7. DEMOSTRAR EVENTBUS
         // =============================================================================
-        System.out.println("\n📡 Probando EventBus...");
+        System.out.println("\n[EVENTBUS] Probando EventBus...");
         
         EventBus eventBus = Veld.getEventBus();
         eventBus.publish(new OrderCompletedEvent("ORDER123", "USER123", 1250.00));
@@ -136,7 +136,7 @@ public class ComplexApplicationExample {
         // =============================================================================
         // 8. ACCESO A SERVICIOS DEL FRAMEWORK
         // =============================================================================
-        System.out.println("\n🔧 Accediendo a servicios del framework...");
+        System.out.println("\n[TOOLS] Accediendo a servicios del framework...");
         
         LifecycleProcessor lifecycleProcessor = Veld.getLifecycleProcessor();
         System.out.println("  - LifecycleProcessor: " + lifecycleProcessor.getClass().getSimpleName());
@@ -147,40 +147,40 @@ public class ComplexApplicationExample {
         // =============================================================================
         // 9. COMPONENTES CONDICIONALES
         // =============================================================================
-        System.out.println("\n🎯 Probando componentes condicionales...");
+        System.out.println("\n[TARGET] Probando componentes condicionales...");
         
         try {
             // En producción con database habilitado, esto debería funcionar
             DatabaseService dbService = Veld.get(DatabaseService.class);
-            System.out.println("  ✅ DatabaseService cargado (perfil: production + database)");
+            System.out.println("  [OK] DatabaseService cargado (perfil: production + database)");
         } catch (Exception e) {
-            System.out.println("  ❌ DatabaseService no disponible: " + e.getMessage());
+            System.out.println("  [ERROR] DatabaseService no disponible: " + e.getMessage());
         }
         
         try {
             // Este debería estar deshabilitado en producción
             MockDatabaseService mockService = Veld.get(MockDatabaseService.class);
-            System.out.println("  ⚠️  MockDatabaseService cargado (esto no debería pasar en producción)");
+            System.out.println("  [WARNING] MockDatabaseService cargado (esto no debería pasar en producción)");
         } catch (Exception e) {
-            System.out.println("  ✅ MockDatabaseService correctamente deshabilitado en producción");
+            System.out.println("  [OK] MockDatabaseService correctamente deshabilitado en producción");
         }
         
         // =============================================================================
         // 10. SHUTDOWN GRACEFUL
         // =============================================================================
-        System.out.println("\n🛑 Ejecutando shutdown graceful...");
+        System.out.println("\n[STOP] Ejecutando shutdown graceful...");
         Veld.shutdown();
         
-        System.out.println("\n✨ ¡Aplicación compleja completada exitosamente!");
-        System.out.println("📊 Todas las características de Veld funcionan automáticamente:");
-        System.out.println("   ✅ Lifecycle Callbacks");
-        System.out.println("   ✅ EventBus Integration");
-        System.out.println("   ✅ Value Resolution");
-        System.out.println("   ✅ Conditional Loading");
-        System.out.println("   ✅ Named Injection");
-        System.out.println("   ✅ Provider Injection");
-        System.out.println("   ✅ Optional Injection");
-        System.out.println("   ✅ Dependencies Management");
+        System.out.println("\n[SUCCESS] ¡Aplicación compleja completada exitosamente!");
+        System.out.println("[STATS] Todas las características de Veld funcionan automáticamente:");
+        System.out.println("   [OK] Lifecycle Callbacks");
+        System.out.println("   [OK] EventBus Integration");
+        System.out.println("   [OK] Value Resolution");
+        System.out.println("   [OK] Conditional Loading");
+        System.out.println("   [OK] Named Injection");
+        System.out.println("   [OK] Provider Injection");
+        System.out.println("   [OK] Optional Injection");
+        System.out.println("   [OK] Dependencies Management");
     }
 
     // =============================================================================

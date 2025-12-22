@@ -13,7 +13,7 @@ import java.util.List;
  * Veld is a blazing fast, compile-time dependency injection framework that generates
  * optimized bytecode for maximum performance. NO reflection is used at runtime.
  * 
- * <h3>🚀 Key Features (All Automatic)</h3>
+ * <h3>Key Features (All Automatic)</h3>
  * <ul>
  *   <li><strong>Lifecycle Management</strong> - @PostConstruct, @PreDestroy execute automatically</li>
  *   <li><strong>EventBus Integration</strong> - @Subscribe methods register automatically</li>
@@ -24,7 +24,7 @@ import java.util.List;
  *   <li><strong>Multiple Scopes</strong> - Singleton and Prototype with optimal performance</li>
  * </ul>
  * 
- * <h3>⚡ Performance Characteristics</h3>
+ * <h3>Performance Characteristics</h3>
  * <ul>
  *   <li>Thread-local cache: ~2ns lookup time</li>
  *   <li>Hash table lookup: ~5ns lookup time</li>
@@ -33,7 +33,7 @@ import java.util.List;
  *   <li>Direct bytecode generation for maximum speed</li>
  * </ul>
  * 
- * <h3>🎯 Usage Examples</h3>
+ * <h3>Usage Examples</h3>
  * 
  * <pre>{@code
  * // Basic usage - all features work automatically

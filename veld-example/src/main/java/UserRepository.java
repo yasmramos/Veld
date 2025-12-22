@@ -16,13 +16,13 @@ public class UserRepository {
     
     @PostConstruct
     public void init() {
-        System.out.println("    ✅ UserRepository inicializado - Repositorio de usuarios listo");
+        System.out.println("    [OK] UserRepository inicializado - Repositorio de usuarios listo");
         if (databaseService != null && databaseService.isConnected()) {
             System.out.println("       DatabaseService está disponible y conectado");
             // Inicializar tabla de usuarios
             databaseService.executeQuery("CREATE TABLE IF NOT EXISTS users (id INT PRIMARY KEY, name VARCHAR(100))");
         } else {
-            System.out.println("       ❌ DatabaseService no está disponible");
+            System.out.println("       [ERROR] DatabaseService no está disponible");
         }
     }
     
@@ -35,7 +35,7 @@ public class UserRepository {
             databaseService.saveData("User: " + id + " - " + name);
             System.out.println("       Usuario guardado: " + name + " (ID: " + id + ")");
         } else {
-            System.out.println("       ❌ No se puede guardar usuario - DatabaseService no disponible");
+            System.out.println("       [ERROR] No se puede guardar usuario - DatabaseService no disponible");
         }
     }
     
@@ -45,7 +45,7 @@ public class UserRepository {
             // Simular búsqueda
             System.out.println("       Usuario encontrado: John Doe (ID: " + id + ")");
         } else {
-            System.out.println("       ❌ No se puede buscar usuario - DatabaseService no disponible");
+            System.out.println("       [ERROR] No se puede buscar usuario - DatabaseService no disponible");
         }
     }
 }

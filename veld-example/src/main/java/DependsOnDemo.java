@@ -29,7 +29,7 @@ public class DependsOnDemo {
         System.out.println("de inicialización de componentes con dependencias explícitas.");
         System.out.println();
         
-        System.out.println("📋 COMPONENTES CONFIGURADOS:");
+        System.out.println("[LIST] COMPONENTES CONFIGURADOS:");
         System.out.println("----------------------------");
         
         // Verificar que todos los componentes están disponibles
@@ -39,11 +39,11 @@ public class DependsOnDemo {
         boolean hasEmailService = contains(EmailService.class);
         boolean hasUserService = contains(UserService.class);
         
-        System.out.println("  • ConfigService: " + (hasConfigService ? "✓ Disponible" : "❌ No encontrado"));
-        System.out.println("  • DatabaseService: " + (hasDatabaseService ? "✓ Disponible" : "❌ No encontrado"));
-        System.out.println("  • UserRepository: " + (hasUserRepository ? "✓ Disponible" : "❌ No encontrado"));
-        System.out.println("  • EmailService: " + (hasEmailService ? "✓ Disponible" : "❌ No encontrado"));
-        System.out.println("  • UserService: " + (hasUserService ? "✓ Disponible" : "❌ No encontrado"));
+        System.out.println("  • ConfigService: " + (hasConfigService ? "[OK] Disponible" : "[ERROR] No encontrado"));
+        System.out.println("  • DatabaseService: " + (hasDatabaseService ? "[OK] Disponible" : "[ERROR] No encontrado"));
+        System.out.println("  • UserRepository: " + (hasUserRepository ? "[OK] Disponible" : "[ERROR] No encontrado"));
+        System.out.println("  • EmailService: " + (hasEmailService ? "[OK] Disponible" : "[ERROR] No encontrado"));
+        System.out.println("  • UserService: " + (hasUserService ? "[OK] Disponible" : "[ERROR] No encontrado"));
         
         System.out.println();
         System.out.println("🔗 DEPENDENCIAS @DependsOn DEFINIDAS:");
@@ -53,7 +53,7 @@ public class DependsOnDemo {
         System.out.println("  • UserService @DependsOn({\"databaseService\", \"configService\", \"emailService\"})");
         
         System.out.println();
-        System.out.println("⚡ ORDEN DE INICIALIZACIÓN ESPERADO:");
+        System.out.println("[PERF] ORDEN DE INICIALIZACIÓN ESPERADO:");
         System.out.println("-----------------------------------");
         System.out.println("  1. ConfigService (sin dependencias)");
         System.out.println("  2. DatabaseService (sin dependencias)");
@@ -62,7 +62,7 @@ public class DependsOnDemo {
         System.out.println("  5. UserService (espera DatabaseService, ConfigService, EmailService)");
         
         System.out.println();
-        System.out.println("🚀 EJECUTANDO DEMOSTRACIÓN:");
+        System.out.println("[START] EJECUTANDO DEMOSTRACIÓN:");
         System.out.println("--------------------------");
         
         // Obtener instancias para activar la inicialización
@@ -71,44 +71,44 @@ public class DependsOnDemo {
         
         try {
             ConfigService configService = get(ConfigService.class);
-            System.out.println("       ✓ ConfigService obtenido");
+            System.out.println("       [OK] ConfigService obtenido");
             
             DatabaseService databaseService = get(DatabaseService.class);
-            System.out.println("       ✓ DatabaseService obtenido");
+            System.out.println("       [OK] DatabaseService obtenido");
             
             UserRepository userRepository = get(UserRepository.class);
-            System.out.println("       ✓ UserRepository obtenido");
+            System.out.println("       [OK] UserRepository obtenido");
             
             EmailService emailService = get(EmailService.class);
-            System.out.println("       ✓ EmailService obtenido");
+            System.out.println("       [OK] EmailService obtenido");
             
             UserService userService = get(UserService.class);
-            System.out.println("       ✓ UserService obtenido");
+            System.out.println("       [OK] UserService obtenido");
             
             System.out.println();
             System.out.println("→ Ejecutando operaciones con dependencias:");
             
             // Demostrar uso de los servicios
             System.out.println();
-            System.out.println("  📝 Creando usuario de prueba:");
+            System.out.println("  [NOTE] Creando usuario de prueba:");
             userService.createUser(1L, "Juan Pérez", "juan@example.com");
             
             System.out.println();
-            System.out.println("  📋 Listando usuarios:");
+            System.out.println("  [LIST] Listando usuarios:");
             userService.listAllUsers();
             
             System.out.println();
-            System.out.println("  🔍 Obteniendo información de usuario:");
+            System.out.println("  [SEARCH] Obteniendo información de usuario:");
             userService.getUserInfo(1L);
             
         } catch (Exception e) {
-            System.out.println("       ❌ Error durante la demostración: " + e.getMessage());
+            System.out.println("       [ERROR] Error durante la demostración: " + e.getMessage());
             e.printStackTrace();
         }
         
         System.out.println();
         System.out.println("╔══════════════════════════════════════════════════════════╗");
-        System.out.println("║                  ✅ DEMOSTRACIÓN COMPLETADA             ║");
+        System.out.println("║                  [SUCCESS] DEMOSTRACIÓN COMPLETADA             ║");
         System.out.println("║  @DependsOn funciona correctamente para controlar el     ║");
         System.out.println("║  orden de inicialización de componentes con dependencias ║");
         System.out.println("╚══════════════════════════════════════════════════════════╝");

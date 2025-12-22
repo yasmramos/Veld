@@ -22,7 +22,7 @@ public class ConfigService {
     
     @PostConstruct
     public void init() {
-        System.out.println("    ✅ ConfigService inicializado - Configuración de aplicación lista");
+        System.out.println("    [OK] ConfigService inicializado - Configuración de aplicación lista");
         System.out.println("       App: " + appName + ", Environment: " + environment + ", Port: " + port);
     }
     
