@@ -1,5 +1,6 @@
 package io.github.yasmramos.veld.runtime;
 
+import io.github.yasmramos.veld.VeldException;
 import java.util.List;
 
 /**

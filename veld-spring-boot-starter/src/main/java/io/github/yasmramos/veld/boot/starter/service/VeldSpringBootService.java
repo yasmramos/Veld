@@ -1,7 +1,7 @@
 package io.github.yasmramos.veld.boot.starter.service;
 
 import io.github.yasmramos.veld.boot.starter.config.VeldProperties;
-import io.github.yasmramos.veld.Veld.VeldException;
+import io.github.yasmramos.veld.VeldException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
