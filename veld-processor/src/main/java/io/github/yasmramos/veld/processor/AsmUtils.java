@@ -31,10 +31,10 @@ public final class AsmUtils implements Opcodes {
     public static final String RUNTIME_EXCEPTION = "java/lang/RuntimeException";
     
     // Veld specific
-    public static final String COMPONENT_REGISTRY = "io/github/yasmramos/runtime/ComponentRegistry";
-    public static final String COMPONENT_FACTORY = "io/github/yasmramos/runtime/ComponentFactory";
+    public static final String COMPONENT_REGISTRY = "io/github/yasmramos/veld/runtime/ComponentRegistry";
+    public static final String COMPONENT_FACTORY = "io/github/yasmramos/veld/runtime/ComponentFactory";
     public static final String VELD_EXCEPTION = "io/github/yasmramos/veld/VeldException";
-    public static final String SCOPE = "io/github/yasmramos/runtime/Scope";
+    public static final String SCOPE = "io/github/yasmramos/veld/runtime/Scope";
     
     // Generated classes
     public static final String VELD_REGISTRY = "io/github/yasmramos/VeldRegistry";
