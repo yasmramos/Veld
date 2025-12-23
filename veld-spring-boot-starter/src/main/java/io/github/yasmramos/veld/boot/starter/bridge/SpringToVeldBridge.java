@@ -11,6 +11,8 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -188,7 +190,7 @@ public class SpringToVeldBridge implements BeanFactoryPostProcessor {
      */
     private Class<?> findVeldClass() {
         try {
-            return Class.forName("io.github.yasmramos.veld.generated.Veld");
+            return Class.forName("io.github.yasmramos.veld.Veld");
         } catch (ClassNotFoundException e) {
             logger.debug("Veld class not found on classpath");
             return null;
@@ -252,7 +254,7 @@ public class SpringToVeldBridge implements BeanFactoryPostProcessor {
     private org.springframework.context.ApplicationContext getSpringContext() {
         try {
             Class<?> contextClass = Class.forName("org.springframework.context.ApplicationContext");
-            Field contextField = io.github.yasmramos.veld.generated.Veld.class.getDeclaredField("applicationContext");
+            Field contextField = io.github.yasmramos.veld.Veld.class.getDeclaredField("applicationContext");
             contextField.setAccessible(true);
             return (org.springframework.context.ApplicationContext) contextField.get(null);
         } catch (Exception e) {

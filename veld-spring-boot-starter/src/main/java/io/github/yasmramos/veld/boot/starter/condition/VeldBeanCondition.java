@@ -12,7 +12,9 @@ import org.springframework.context.annotation.ConditionContext;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.core.type.MethodMetadata;
 
+import java.lang.annotation.Annotation;
 import java.util.Arrays;
+import java.util.Map;
 
 /**
  * Condition implementation for {@link ConditionalOnVeldBean}.
@@ -70,15 +72,67 @@ public class VeldBeanCondition implements Condition {
      */
     private ConditionalOnVeldBean getAnnotation(AnnotatedTypeMetadata metadata) {
         if (metadata.isAnnotated(ConditionalOnVeldBean.class.getName())) {
-            return metadata.getAnnotation(ConditionalOnVeldBean.class.getName());
+            Map<String, Object> attrs = metadata.getAnnotationAttributes(ConditionalOnVeldBean.class.getName());
+            if (attrs != null) {
+                return new SyntheticConditionalOnVeldBean(attrs);
+            }
         }
         if (metadata instanceof MethodMetadata) {
             MethodMetadata methodMetadata = (MethodMetadata) metadata;
             if (methodMetadata.isAnnotated(ConditionalOnVeldBean.class.getName())) {
-                return methodMetadata.getAnnotation(ConditionalOnVeldBean.class.getName());
+                Map<String, Object> attrs = methodMetadata.getAnnotationAttributes(ConditionalOnVeldBean.class.getName());
+                if (attrs != null) {
+                    return new SyntheticConditionalOnVeldBean(attrs);
+                }
             }
         }
         return null;
+    }
+
+    /**
+     * Synthetic implementation of ConditionalOnVeldBean for runtime use
+     */
+    private static class SyntheticConditionalOnVeldBean implements ConditionalOnVeldBean {
+        private final Map<String, Object> attrs;
+
+        SyntheticConditionalOnVeldBean(Map<String, Object> attrs) {
+            this.attrs = attrs;
+        }
+
+        @Override
+        public Class<?>[] value() {
+            Object val = attrs.get("value");
+            if (val instanceof Class[]) {
+                return (Class[]) val;
+            }
+            return new Class[0];
+        }
+
+        @Override
+        public String[] name() {
+            Object val = attrs.get("name");
+            if (val instanceof String[]) {
+                return (String[]) val;
+            }
+            if (val instanceof String) {
+                return new String[]{(String) val};
+            }
+            return new String[0];
+        }
+
+        @Override
+        public SearchStrategy search() {
+            Object val = attrs.get("search");
+            if (val instanceof SearchStrategy) {
+                return (SearchStrategy) val;
+            }
+            return SearchStrategy.ALL;
+        }
+
+        @Override
+        public Class<? extends Annotation> annotationType() {
+            return ConditionalOnVeldBean.class;
+        }
     }
 
     /**
