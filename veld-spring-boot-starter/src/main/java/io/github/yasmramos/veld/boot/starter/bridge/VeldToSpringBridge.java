@@ -144,6 +144,9 @@ public class VeldToSpringBridge {
     private String getBeanName(Class<?> beanType) {
         // Use simple class name with veld prefix to avoid conflicts
         String simpleName = beanType.getSimpleName();
-        return Character.toLowerCase(simpleName.charAt(0()) + simpleName.substring(1);
+        if (simpleName == null || simpleName.isEmpty()) {
+            return beanType.getName();
+        }
+        return String.valueOf(Character.toLowerCase(simpleName.charAt(0))).concat(simpleName.substring(1));
     }
 }
