@@ -72,9 +72,11 @@ public class VeldBeanCondition implements Condition {
         if (metadata.isAnnotated(ConditionalOnVeldBean.class.getName())) {
             return metadata.getAnnotation(ConditionalOnVeldBean.class.getName());
         }
-        if (metadata instanceof MethodMetadata methodMetadata 
-                && methodMetadata.isAnnotated(ConditionalOnVeldBean.class.getName())) {
-            return methodMetadata.getAnnotation(ConditionalOnVeldBean.class.getName());
+        if (metadata instanceof MethodMetadata) {
+            MethodMetadata methodMetadata = (MethodMetadata) metadata;
+            if (methodMetadata.isAnnotated(ConditionalOnVeldBean.class.getName())) {
+                return methodMetadata.getAnnotation(ConditionalOnVeldBean.class.getName());
+            }
         }
         return null;
     }
