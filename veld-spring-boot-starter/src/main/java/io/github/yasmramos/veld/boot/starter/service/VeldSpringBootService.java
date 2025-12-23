@@ -1,11 +1,15 @@
 package io.github.yasmramos.veld.boot.starter.service;
 
+import io.github.yasmramos.veld.boot.starter.bridge.VeldToSpringBridge;
 import io.github.yasmramos.veld.boot.starter.config.VeldProperties;
 import io.github.yasmramos.veld.VeldException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
@@ -116,7 +120,17 @@ public class VeldSpringBootService implements InitializingBean, DisposableBean, 
      * Bridge Veld beans to Spring ApplicationContext
      */
     private void bridgeBeansToSpring() {
-        logger.debug("Bean bridging to Spring context is not yet implemented");
+        try {
+            VeldToSpringBridge bridge = new VeldToSpringBridge(
+                properties, 
+                applicationContext, 
+                this
+            );
+            bridge.bridge();
+            logger.info("Successfully bridged Veld beans to Spring context");
+        } catch (Exception e) {
+            logger.warn("Failed to bridge Veld beans to Spring context: {}", e.getMessage());
+        }
     }
 
     /**
