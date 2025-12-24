@@ -168,9 +168,9 @@
                 
                 <div class="card">
                     <h3>Basic Dependency Injection</h3>
-<pre><code>import com.veld.annotation.Component;
-import com.veld.annotation.Inject;
-import com.veld.annotation.Singleton;
+<pre><code>import io.github.yasmramos.veld.annotation.Component;
+import io.github.yasmramos.veld.annotation.Inject;
+import io.github.yasmramos.veld.annotation.Singleton;
 
 @Component
 @Singleton
@@ -338,23 +338,23 @@ public class UserRepository {
 <pre><code>&lt;dependencies&gt;
     &lt;!-- Veld Core --&gt;
     &lt;dependency&gt;
-        &lt;groupId&gt;com.veld&lt;/groupId&gt;
+        &lt;groupId&gt;io.github.yasmramos.veld&lt;/groupId&gt;
         &lt;artifactId&gt;veld-runtime&lt;/artifactId&gt;
-        &lt;version&gt;1.0.0-alpha.6&lt;/version&gt;
+        &lt;version&gt;1.0.2&lt;/version&gt;
     &lt;/dependency&gt;
     
     &lt;!-- Veld Annotations --&gt;
     &lt;dependency&gt;
-        &lt;groupId&gt;com.veld&lt;/groupId&gt;
+        &lt;groupId&gt;io.github.yasmramos.veld&lt;/groupId&gt;
         &lt;artifactId&gt;veld-annotations&lt;/artifactId&gt;
-        &lt;version&gt;1.0.0-alpha.6&lt;/version&gt;
+        &lt;version&gt;1.0.2&lt;/version&gt;
     &lt;/dependency&gt;
 &lt;/dependencies&gt;</code></pre>
 
                     <h4>Gradle</h4>
 <pre><code>dependencies {
-    implementation 'com.veld:veld-runtime:1.0.0-alpha.6'
-    implementation 'com.veld:veld-annotations:1.0.0-alpha.6'
+    implementation 'io.github.yasmramos.veld:veld-runtime:1.0.2'
+    implementation 'io.github.yasmramos.veld:veld-annotations:1.0.2'
 }</code></pre>
                 </div>
 

@@ -25,6 +25,8 @@
                         <li><a href="core-features.html">Core Features</a></li>
                         <li><a href="aop.html">AOP</a></li>
                         <li><a href="eventbus.html">EventBus</a></li>
+                <li><a href="spring-boot.html">Spring Boot Integration</a></li>
+                        <li><a href="spring-boot.html">Spring Boot</a></li>
                         <li><a href="spring-boot.html">Spring Boot</a></li>
                         <li><a href="api.html">API Reference</a></li>
                         <li><a href="examples.html">Examples</a></li>
@@ -49,6 +51,8 @@
                 <li><a href="core-features.html">Core Features</a></li>
                 <li><a href="aop.html">Aspect-Oriented Programming</a></li>
                 <li><a href="eventbus.html">EventBus</a></li>
+                <li><a href="spring-boot.html">Spring Boot Integration</a></li>
+                        <li><a href="spring-boot.html">Spring Boot</a></li>
                 <li><a href="spring-boot.html">Spring Boot Integration</a></li>
                 <li><a href="optimizations.html">Phase 1 Optimizations</a></li>
                 <li><a href="api.html">API Reference</a></li>
@@ -140,16 +144,16 @@
 <pre><code>&lt;dependencies&gt;
     &lt;!-- Veld Core Runtime --&gt;
     &lt;dependency&gt;
-        &lt;groupId&gt;com.veld&lt;/groupId&gt;
+        &lt;groupId&gt;io.github.yasmramos.veld&lt;/groupId&gt;
         &lt;artifactId&gt;veld-runtime&lt;/artifactId&gt;
-        &lt;version&gt;1.0.0-alpha.6&lt;/version&gt;
+        &lt;version&gt;1.0.2&lt;/version&gt;
     &lt;/dependency&gt;
     
     &lt;!-- Veld Annotations --&gt;
     &lt;dependency&gt;
-        &lt;groupId&gt;com.veld&lt;/groupId&gt;
+        &lt;groupId&gt;io.github.yasmramos.veld&lt;/groupId&gt;
         &lt;artifactId&gt;veld-annotations&lt;/artifactId&gt;
-        &lt;version&gt;1.0.0-alpha.6&lt;/version&gt;
+        &lt;version&gt;1.0.2&lt;/version&gt;
     &lt;/dependency&gt;
 &lt;/dependencies&gt;</code></pre>
 
@@ -166,9 +170,9 @@
                 &lt;target&gt;11&lt;/target&gt;
                 &lt;annotationProcessorPaths&gt;
                     &lt;path&gt;
-                        &lt;groupId&gt;com.veld&lt;/groupId&gt;
+                        &lt;groupId&gt;io.github.yasmramos.veld&lt;/groupId&gt;
                         &lt;artifactId&gt;veld-processor&lt;/artifactId&gt;
-                        &lt;version&gt;1.0.0-alpha.6&lt;/version&gt;
+                        &lt;version&gt;1.0.2&lt;/version&gt;
                     &lt;/path&gt;
                 &lt;/annotationProcessorPaths&gt;
             &lt;/configuration&gt;
@@ -191,32 +195,32 @@
         &lt;maven.compiler.source&gt;11&lt;/maven.compiler.source&gt;
         &lt;maven.compiler.target&gt;11&lt;/maven.compiler.target&gt;
         &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
-        &lt;veld.version&gt;1.0.0-alpha.6&lt;/veld.version&gt;
+        &lt;veld.version&gt;1.0.2&lt;/veld.version&gt;
     &lt;/properties&gt;
     
     &lt;dependencies&gt;
         &lt;!-- Veld Core --&gt;
         &lt;dependency&gt;
-            &lt;groupId&gt;com.veld&lt;/groupId&gt;
+            &lt;groupId&gt;io.github.yasmramos.veld&lt;/groupId&gt;
             &lt;artifactId&gt;veld-runtime&lt;/artifactId&gt;
             &lt;version&gt;${veld.version}&lt;/version&gt;
         &lt;/dependency&gt;
         
         &lt;dependency&gt;
-            &lt;groupId&gt;com.veld&lt;/groupId&gt;
+            &lt;groupId&gt;io.github.yasmramos.veld&lt;/groupId&gt;
             &lt;artifactId&gt;veld-annotations&lt;/artifactId&gt;
             &lt;version&gt;${veld.version}&lt;/version&gt;
         &lt;/dependency&gt;
         
         &lt;!-- Optional Veld Modules --&gt;
         &lt;dependency&gt;
-            &lt;groupId&gt;com.veld&lt;/groupId&gt;
+            &lt;groupId&gt;io.github.yasmramos.veld&lt;/groupId&gt;
             &lt;artifactId&gt;veld-aop&lt;/artifactId&gt;
             &lt;version&gt;${veld.version}&lt;/version&gt;
         &lt;/dependency&gt;
         
         &lt;dependency&gt;
-            &lt;groupId&gt;com.veld&lt;/groupId&gt;
+            &lt;groupId&gt;io.github.yasmramos.veld&lt;/groupId&gt;
             &lt;artifactId&gt;veld-weaver&lt;/artifactId&gt;
             &lt;version&gt;${veld.version}&lt;/version&gt;
         &lt;/dependency&gt;
@@ -233,7 +237,7 @@
                     &lt;target&gt;11&lt;/target&gt;
                     &lt;annotationProcessorPaths&gt;
                         &lt;path&gt;
-                            &lt;groupId&gt;com.veld&lt;/groupId&gt;
+                            &lt;groupId&gt;io.github.yasmramos.veld&lt;/groupId&gt;
                             &lt;artifactId&gt;veld-processor&lt;/artifactId&gt;
                             &lt;version&gt;${veld.version}&lt;/version&gt;
                         &lt;/path&gt;
@@ -279,9 +283,9 @@
                 &lt;configuration&gt;
                     &lt;annotationProcessorPaths&gt;
                         &lt;path&gt;
-                            &lt;groupId&gt;com.veld&lt;/groupId&gt;
+                            &lt;groupId&gt;io.github.yasmramos.veld&lt;/groupId&gt;
                             &lt;artifactId&gt;veld-processor&lt;/artifactId&gt;
-                            &lt;version&gt;1.0.0-alpha.6&lt;/version&gt;
+                            &lt;version&gt;1.0.2&lt;/version&gt;
                         &lt;/path&gt;
                     &lt;/annotationProcessorPaths&gt;
                 &lt;/configuration&gt;
@@ -318,11 +322,11 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.veld:veld-runtime:1.0.0-alpha.6'
-    implementation 'com.veld:veld-annotations:1.0.0-alpha.6'
+    implementation 'io.github.yasmramos.veld:veld-runtime:1.0.2'
+    implementation 'io.github.yasmramos.veld:veld-annotations:1.0.2'
     
     // Annotation processor
-    annotationProcessor 'com.veld:veld-processor:1.0.0-alpha.6'
+    annotationProcessor 'io.github.yasmramos.veld:veld-processor:1.0.2'
     
     // Test dependencies
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
@@ -362,11 +366,11 @@ repositories {
 }
 
 dependencies {
-    implementation("com.veld:veld-runtime:1.0.0-alpha.6")
-    implementation("com.veld:veld-annotations:1.0.0-alpha.6")
+    implementation("io.github.yasmramos.veld:veld-runtime:1.0.2")
+    implementation("io.github.yasmramos.veld:veld-annotations:1.0.2")
     
     // Annotation processor
-    annotationProcessor("com.veld:veld-processor:1.0.0-alpha.6")
+    annotationProcessor("io.github.yasmramos.veld:veld-processor:1.0.2")
 }
 
 tasks.withType&lt;JavaCompile&gt; {
@@ -404,21 +408,21 @@ repositories {
 
 dependencyManagement {
     imports {
-        mavenBom 'com.veld:veld-bom:1.0.0-alpha.6'
+        mavenBom 'io.github.yasmramos.veld:veld-bom:1.0.2'
     }
 }
 
 dependencies {
     // Veld Core
-    implementation 'com.veld:veld-runtime'
-    implementation 'com.veld:veld-annotations'
+    implementation 'io.github.yasmramos.veld:veld-runtime'
+    implementation 'io.github.yasmramos.veld:veld-annotations'
     
     // Optional Veld Modules
-    implementation 'com.veld:veld-aop'
-    implementation 'com.veld:veld-weaver'
+    implementation 'io.github.yasmramos.veld:veld-aop'
+    implementation 'io.github.yasmramos.veld:veld-weaver'
     
     // Annotation processor
-    annotationProcessor 'com.veld:veld-processor'
+    annotationProcessor 'io.github.yasmramos.veld:veld-processor'
     
     // Test dependencies
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -490,8 +494,8 @@ version := "1.0.0"
 scalaVersion := "2.13.12"
 
 libraryDependencies ++= Seq(
-  "com.veld" % "veld-runtime" % "1.0.0-alpha.6",
-  "com.veld" % "veld-annotations" % "1.0.0-alpha.6"
+  "io.github.yasmramos.veld" % "veld-runtime" % "1.0.2",
+  "io.github.yasmramos.veld" % "veld-annotations" % "1.0.2"
 )
 
 scalacOptions ++= Seq(
@@ -533,7 +537,7 @@ fork := true</code></pre>
     &lt;annotationProcessing&gt;
         &lt;profile default="true" name="Default" enabled="true"&gt;
             &lt;processorPath useClasspath="false"&gt;
-                &lt;entry name="com.veld:veld-processor:1.0.0-alpha.6"/&gt;
+                &lt;entry name="io.github.yasmramos.veld:veld-processor:1.0.2"/&gt;
             &lt;/processorPath&gt;
         &lt;/profile&gt;
     &lt;/annotationProcessing&gt;
@@ -556,7 +560,7 @@ fork := true</code></pre>
                     
 <pre><code>&lt;factorypath&gt;
     &lt;factorypathentry kind="VARJAR" 
-                      id="com.veld:veld-processor:1.0.0-alpha.6" 
+                      id="io.github.yasmramos.veld:veld-processor:1.0.2" 
                       enabled="true" 
                       runInBatchMode="false"/&gt;
 &lt;/factorypath&gt;</code></pre>
@@ -574,7 +578,7 @@ fork := true</code></pre>
     "java.compiler.annotationProcessorPaths": [
         {
             "name": "veld-processor",
-            "path": "./lib/veld-processor-1.0.0-alpha.6.jar"
+            "path": "./lib/veld-processor-1.0.2.jar"
         }
     ],
     "java.build.outputFolder": "target"
@@ -609,8 +613,8 @@ fork := true</code></pre>
 <pre><code>// src/main/java/com/example/TestComponent.java
 package com.example;
 
-import com.veld.annotation.Component;
-import com.veld.annotation.Inject;
+import io.github.yasmramos.veld.annotation.Component;
+import io.github.yasmramos.veld.annotation.Inject;
 
 @Component
 public class TestComponent {
@@ -626,7 +630,7 @@ public class TestComponent {
 // src/main/java/com/example/TestService.java
 package com.example;
 
-import com.veld.annotation.Component;
+import io.github.yasmramos.veld.annotation.Component;
 
 @Component
 public class TestService {
@@ -638,7 +642,7 @@ public class TestService {
 // src/main/java/com/example/Application.java
 package com.example;
 
-import com.veld.runtime.Veld;
+import io.github.yasmramos.veld.runtime.Veld;
 
 public class Application {
     public static void main(String[] args) {
