@@ -2,14 +2,6 @@ package io.github.yasmramos.veld.boot.example.controller.veld;
 
 import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.annotation.Inject;
-import io.github.yasmramos.veld.annotation.Path;
-import io.github.yasmramos.veld.annotation.RestController;
-import io.github.yasmramos.veld.annotation.http.GetMapping;
-import io.github.yasmramos.veld.annotation.http.PostMapping;
-import io.github.yasmramos.veld.annotation.http.PutMapping;
-import io.github.yasmramos.veld.annotation.http.DeleteMapping;
-import io.github.yasmramos.veld.annotation.http.RequestBody;
-import io.github.yasmramos.veld.annotation.http.RequestParam;
 import io.github.yasmramos.veld.boot.example.domain.Todo;
 import io.github.yasmramos.veld.boot.example.domain.User;
 import io.github.yasmramos.veld.boot.example.service.spring.TodoBusinessService;
@@ -17,6 +9,7 @@ import io.github.yasmramos.veld.boot.example.service.veld.TodoAnalysisService;
 import io.github.yasmramos.veld.boot.example.service.veld.UserManagementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
@@ -31,8 +24,7 @@ import java.util.Map;
  * - Provides REST endpoints for todo management
  */
 @Component("todoController")
-@RestController
-@Path("/api/v2/todos")
+@RequestMapping("/api/v2/todos")
 public class TodoController {
     
     private static final Logger logger = LoggerFactory.getLogger(TodoController.class);
@@ -74,7 +66,7 @@ public class TodoController {
      * Complete a todo
      */
     @PutMapping("/{todoId}/complete")
-    public Todo completeTodo(@Path Long todoId) {
+    public Todo completeTodo(@PathVariable Long todoId) {
         logger.info("Completing todo: {}", todoId);
         return springTodoService.completeTodo(todoId);
     }
@@ -83,7 +75,7 @@ public class TodoController {
      * Delete a todo
      */
     @DeleteMapping("/{todoId}")
-    public Map<String, String> deleteTodo(@Path Long todoId) {
+    public Map<String, String> deleteTodo(@PathVariable Long todoId) {
         logger.info("Deleting todo: {}", todoId);
         springTodoService.deleteTodo(todoId);
         return Map.of("message", "Todo deleted successfully", "id", todoId.toString());
@@ -93,7 +85,7 @@ public class TodoController {
      * Get todo statistics using Veld analysis service
      */
     @GetMapping("/statistics/{userId}")
-    public TodoAnalysisService.CompletionAnalysis getStatistics(@Path Long userId) {
+    public TodoAnalysisService.CompletionAnalysis getStatistics(@PathVariable Long userId) {
         logger.info("Getting statistics for user: {}", userId);
         return veldAnalysisService.analyzeUserCompletion(userId);
     }
@@ -102,7 +94,7 @@ public class TodoController {
      * Get productivity insights using Veld service
      */
     @GetMapping("/productivity/{userId}")
-    public TodoAnalysisService.ProductivityInsights getProductivity(@Path Long userId) {
+    public TodoAnalysisService.ProductivityInsights getProductivity(@PathVariable Long userId) {
         logger.info("Getting productivity insights for user: {}", userId);
         return veldAnalysisService.getProductivityInsights(userId);
     }

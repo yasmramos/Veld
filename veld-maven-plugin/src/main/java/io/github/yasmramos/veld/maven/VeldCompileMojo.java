@@ -9,6 +9,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.shared.utils.io.SelectorUtils;
 
 import javax.tools.*;
 import java.io.File;
@@ -56,6 +57,19 @@ public class VeldCompileMojo extends AbstractMojo {
 
     @Parameter
     private List<String> compilerArgs;
+
+    /**
+     * List of exclusion patterns to skip during Veld processing.
+     * Supports Ant-style patterns (e.g., "com/example/**/*.class", "**/test/**").
+     * Patterns are matched against the relative path from source root to the class file.
+     */
+    @Parameter
+    private List<String> excludes;
+
+    // Setter for testing
+    void setExcludes(List<String> excludes) {
+        this.excludes = excludes;
+    }
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -206,8 +220,19 @@ public class VeldCompileMojo extends AbstractMojo {
 
             int modifiedCount = 0;
             int errorCount = 0;
+            int excludedCount = 0;
 
             for (FieldInjectorWeaver.WeavingResult result : results) {
+                // Check if this class should be excluded from weaving
+                String relativeClassPath = result.getClassName() + ".class";
+                if (!shouldProcessClassFile(relativeClassPath)) {
+                    excludedCount++;
+                    if (verbose) {
+                        getLog().info("  Excluded from weaving: " + result.getClassName().replace('/', '.'));
+                    }
+                    continue;
+                }
+
                 if (result.hasError()) {
                     getLog().error("  Failed to weave " + result.getClassName() + ": " + result.getErrorMessage());
                     errorCount++;
@@ -225,6 +250,10 @@ public class VeldCompileMojo extends AbstractMojo {
             if (modifiedCount > 0) {
                 getLog().info("  " + modifiedCount + " class(es) enhanced");
             }
+            
+            if (excludedCount > 0) {
+                getLog().info("  " + excludedCount + " class(es) excluded from weaving");
+            }
 
             if (errorCount > 0) {
                 throw new MojoExecutionException("Weaving failed for " + errorCount + " class(es)");
@@ -236,14 +265,27 @@ public class VeldCompileMojo extends AbstractMojo {
     }
 
     private void collectJavaFiles(File directory, List<File> result) {
+        collectJavaFiles(directory, result, null);
+    }
+
+    private void collectJavaFiles(File directory, List<File> result, File sourceRoot) {
         File[] files = directory.listFiles();
         if (files == null) return;
 
+        // Establish source root for first call
+        if (sourceRoot == null) {
+            sourceRoot = directory;
+        }
+
         for (File file : files) {
             if (file.isDirectory()) {
-                collectJavaFiles(file, result);
+                collectJavaFiles(file, result, sourceRoot);
             } else if (file.getName().endsWith(".java")) {
-                result.add(file);
+                if (shouldProcessFile(file, sourceRoot, ".java")) {
+                    result.add(file);
+                } else if (verbose) {
+                    getLog().info("  Excluded from compilation: " + getRelativePath(file, sourceRoot));
+                }
             }
         }
     }
@@ -267,5 +309,81 @@ public class VeldCompileMojo extends AbstractMojo {
         
         sb.append(diagnostic.getMessage(null));
         return sb.toString();
+    }
+
+    /**
+     * Checks if a source file should be processed based on the exclude patterns.
+     *
+     * @param file The source file to check
+     * @param sourceRoot The source root directory
+     * @param extension The file extension to use for pattern matching
+     * @return true if the file should be processed, false if excluded
+     */
+    boolean shouldProcessFile(File file, File sourceRoot, String extension) {
+        if (excludes == null || excludes.isEmpty()) {
+            return true;
+        }
+
+        String relativePath = getRelativePath(file, sourceRoot);
+        String patternPath = relativePath.replace(extension, ".class");
+
+        return !isExcluded(patternPath);
+    }
+
+    /**
+     * Checks if a class file should be processed during weaving based on exclude patterns.
+     *
+     * @param relativeClassPath The relative path to the class file
+     * @return true if the class should be processed, false if excluded
+     */
+    boolean shouldProcessClassFile(String relativeClassPath) {
+        if (excludes == null || excludes.isEmpty()) {
+            return true;
+        }
+
+        return !isExcluded(relativeClassPath);
+    }
+
+    /**
+     * Checks if a path matches any of the exclusion patterns.
+     *
+     * @param path The path to check
+     * @return true if the path is excluded, false otherwise
+     */
+    private boolean isExcluded(String path) {
+        for (String excludePattern : excludes) {
+            if (SelectorUtils.matchPath(excludePattern, path, "/", true)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Gets the relative path from a source root to a file.
+     *
+     * @param file The file
+     * @param sourceRoot The source root
+     * @return The relative path with forward slashes
+     */
+    String getRelativePath(File file, File sourceRoot) {
+        try {
+            Path sourcePath = sourceRoot.toPath().toAbsolutePath();
+            Path filePath = file.toPath().toAbsolutePath();
+            Path relativePath = sourcePath.relativize(filePath);
+            return relativePath.toString().replace('\\', '/');
+        } catch (Exception e) {
+            // Fallback to simple string manipulation
+            String sourceRootPath = sourceRoot.getAbsolutePath();
+            String filePath = file.getAbsolutePath();
+            if (filePath.startsWith(sourceRootPath)) {
+                String relative = filePath.substring(sourceRootPath.length());
+                if (relative.startsWith(File.separator)) {
+                    relative = relative.substring(1);
+                }
+                return relative.replace('\\', '/');
+            }
+            return file.getName();
+        }
     }
 }
