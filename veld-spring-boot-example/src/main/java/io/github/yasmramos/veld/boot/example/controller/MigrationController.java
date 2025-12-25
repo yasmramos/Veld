@@ -2,19 +2,19 @@ package io.github.yasmramos.veld.boot.example.controller;
 
 import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.annotation.Inject;
-import io.github.yasmramos.veld.annotation.Path;
-import io.github.yasmramos.veld.annotation.RestController;
-import io.github.yasmramos.veld.annotation.http.GetMapping;
-import io.github.yasmramos.veld.annotation.http.RequestParam;
 import io.github.yasmramos.veld.boot.example.controller.spring.LegacyTodoController;
 import io.github.yasmramos.veld.boot.example.controller.veld.TodoController;
 import io.github.yasmramos.veld.boot.example.domain.Todo;
 import io.github.yasmramos.veld.boot.example.service.veld.TodoAnalysisService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Migration controller demonstrating the "Strangler Fig" pattern.
@@ -31,7 +31,7 @@ import java.util.Map;
  */
 @Component("migrationController")
 @RestController
-@Path("/api/migration")
+@RequestMapping("/api/migration")
 public class MigrationController {
     
     private static final Logger logger = LoggerFactory.getLogger(MigrationController.class);
@@ -67,7 +67,7 @@ public class MigrationController {
                 "Phase 2: Add Veld controllers alongside",
                 "Phase 3: Gradually migrate functionality",
                 "Phase 4: Remove legacy controllers"
-            )
+            ).collect(Collectors.toList())
         );
     }
     
