@@ -370,4 +370,89 @@ class ConditionalRegistryTest {
             assertEquals(1, registry.getExcludedComponents().size());
         }
     }
+
+    @Nested
+    @DisplayName("Active Profiles Tests")
+    class ActiveProfilesTests {
+
+        @Test
+        @DisplayName("Should return empty array when no profiles set")
+        void shouldReturnEmptyArrayWhenNoProfilesSet() {
+            ConditionalRegistry.setActiveProfiles();
+            String[] profiles = ConditionalRegistry.getActiveProfiles();
+            assertEquals(0, profiles.length);
+        }
+
+        @Test
+        @DisplayName("Should set and get active profiles")
+        void shouldSetAndGetActiveProfiles() {
+            ConditionalRegistry.setActiveProfiles("dev", "test");
+            String[] profiles = ConditionalRegistry.getActiveProfiles();
+            
+            assertEquals(2, profiles.length);
+            assertTrue(Arrays.asList(profiles).contains("dev"));
+            assertTrue(Arrays.asList(profiles).contains("test"));
+            
+            // Cleanup
+            ConditionalRegistry.setActiveProfiles();
+        }
+
+        @Test
+        @DisplayName("Should clear active profiles")
+        void shouldClearActiveProfiles() {
+            ConditionalRegistry.setActiveProfiles("prod");
+            ConditionalRegistry.setActiveProfiles();
+            
+            String[] profiles = ConditionalRegistry.getActiveProfiles();
+            assertEquals(0, profiles.length);
+        }
+    }
+
+    @Nested
+    @DisplayName("Bean Existence Check Tests")
+    class BeanExistenceTests {
+
+        @Test
+        @DisplayName("Should check if bean exists by type using getFactory")
+        void shouldCheckIfBeanExistsByType() {
+            originalRegistry.addFactory(new TestFactory<>(ServiceA.class, "serviceA"));
+            ConditionalRegistry registry = new ConditionalRegistry(originalRegistry);
+
+            assertNotNull(registry.getFactory(ServiceA.class));
+            assertNull(registry.getFactory(ServiceB.class));
+        }
+
+        @Test
+        @DisplayName("Should check if bean exists by name using getFactory")
+        void shouldCheckIfBeanExistsByName() {
+            originalRegistry.addFactory(new TestFactory<>(ServiceA.class, "myBean"));
+            ConditionalRegistry registry = new ConditionalRegistry(originalRegistry);
+
+            assertNotNull(registry.getFactory("myBean"));
+            assertNull(registry.getFactory("otherBean"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Was Excluded Tests")
+    class WasExcludedTests {
+
+        @Test
+        @DisplayName("Should return true for excluded component")
+        void shouldReturnTrueForExcludedComponent() {
+            originalRegistry.addFactory(new TestFactory<>(ServiceA.class, "excludedBean", true, false));
+            ConditionalRegistry registry = new ConditionalRegistry(originalRegistry);
+
+            assertTrue(registry.wasExcluded("excludedBean"));
+        }
+
+        @Test
+        @DisplayName("Should return false for registered component")
+        void shouldReturnFalseForRegisteredComponent() {
+            originalRegistry.addFactory(new TestFactory<>(ServiceA.class, "registeredBean"));
+            ConditionalRegistry registry = new ConditionalRegistry(originalRegistry);
+
+            assertFalse(registry.wasExcluded("registeredBean"));
+        }
+    }
 }

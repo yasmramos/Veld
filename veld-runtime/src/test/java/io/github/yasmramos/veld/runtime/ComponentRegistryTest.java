@@ -80,6 +80,87 @@ class ComponentRegistryTest {
         assertEquals(0, indices[0]);
     }
 
+    @Test
+    void testGetPrimaryFactory_SingleFactory() {
+        ComponentFactory<String> result = registry.getPrimaryFactory(String.class);
+        assertNotNull(result);
+        assertEquals("stringBean", result.getComponentName());
+    }
+
+    @Test
+    void testGetPrimaryFactory_NotFound() {
+        ComponentFactory<Double> result = registry.getPrimaryFactory(Double.class);
+        assertNull(result);
+    }
+
+    @Test
+    void testGetPrimaryFactory_WithPrimary() {
+        ComponentFactory<String> primaryFactory = new TestFactory<>(2, "primaryString", String.class, Scope.SINGLETON, false, () -> "Primary", true);
+        ComponentFactory<String> nonPrimaryFactory = new TestFactory<>(3, "otherString", String.class, Scope.SINGLETON, false, () -> "Other", false);
+        
+        List<ComponentFactory<?>> factories = new ArrayList<>();
+        factories.add(primaryFactory);
+        factories.add(nonPrimaryFactory);
+        TestRegistry multiRegistry = new TestRegistry(factories);
+        
+        ComponentFactory<String> result = multiRegistry.getPrimaryFactory(String.class);
+        assertNotNull(result);
+        assertEquals("primaryString", result.getComponentName());
+    }
+
+    @Test
+    void testGetPrimaryFactory_MultiplePrimaryThrows() {
+        ComponentFactory<String> primary1 = new TestFactory<>(2, "primary1", String.class, Scope.SINGLETON, false, () -> "P1", true);
+        ComponentFactory<String> primary2 = new TestFactory<>(3, "primary2", String.class, Scope.SINGLETON, false, () -> "P2", true);
+        
+        List<ComponentFactory<?>> factories = new ArrayList<>();
+        factories.add(primary1);
+        factories.add(primary2);
+        TestRegistry multiRegistry = new TestRegistry(factories);
+        
+        assertThrows(VeldException.class, () -> multiRegistry.getPrimaryFactory(String.class));
+    }
+
+    @Test
+    void testGetPrimaryFactory_MultipleNoPrimary() {
+        ComponentFactory<String> f1 = new TestFactory<>(2, "s1", String.class, Scope.SINGLETON, false, () -> "S1", false);
+        ComponentFactory<String> f2 = new TestFactory<>(3, "s2", String.class, Scope.SINGLETON, false, () -> "S2", false);
+        
+        List<ComponentFactory<?>> factories = new ArrayList<>();
+        factories.add(f1);
+        factories.add(f2);
+        TestRegistry multiRegistry = new TestRegistry(factories);
+        
+        ComponentFactory<String> result = multiRegistry.getPrimaryFactory(String.class);
+        assertNull(result);
+    }
+
+    @Test
+    void testInvokePostConstruct() {
+        registry.invokePostConstruct(0, "test");
+        // Should not throw, just verify it can be called
+    }
+
+    @Test
+    void testInvokePreDestroy() {
+        registry.invokePreDestroy(0, "test");
+        // Should not throw, just verify it can be called
+    }
+
+    @Test
+    void testInvokePostConstruct_InvalidIndex() {
+        registry.invokePostConstruct(-1, "test");
+        registry.invokePostConstruct(100, "test");
+        // Should not throw for invalid indices
+    }
+
+    @Test
+    void testInvokePreDestroy_InvalidIndex() {
+        registry.invokePreDestroy(-1, "test");
+        registry.invokePreDestroy(100, "test");
+        // Should not throw for invalid indices
+    }
+
     static class TestRegistry implements ComponentRegistry {
         private final List<ComponentFactory<?>> factories;
 
@@ -133,14 +214,20 @@ class ComponentRegistryTest {
         private final Scope scope;
         private final boolean lazy;
         private final Provider<T> supplier;
+        private final boolean primary;
 
         TestFactory(int index, String name, Class<T> type, Scope scope, boolean lazy, Provider<T> supplier) {
+            this(index, name, type, scope, lazy, supplier, false);
+        }
+
+        TestFactory(int index, String name, Class<T> type, Scope scope, boolean lazy, Provider<T> supplier, boolean primary) {
             this.index = index;
             this.name = name;
             this.type = type;
             this.scope = scope;
             this.lazy = lazy;
             this.supplier = supplier;
+            this.primary = primary;
         }
 
         @Override public int getIndex() { return index; }
@@ -148,6 +235,7 @@ class ComponentRegistryTest {
         @Override public Class<T> getComponentType() { return type; }
         @Override public Scope getScope() { return scope; }
         @Override public boolean isLazy() { return lazy; }
+        @Override public boolean isPrimary() { return primary; }
         @Override public T create() { return supplier.get(); }
         @Override public void invokePostConstruct(T instance) {}
         @Override public void invokePreDestroy(T instance) {}
