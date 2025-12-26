@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.github.yasmramos.veld.benchmark.veld.*;
+import io.github.yasmramos.veld.runtime.aop.*;
 
 /**
  * Ultra-fast DI container - manually written example of generated code.
@@ -71,14 +72,27 @@ public final class Veld {
         return _veldRepository;
     }
 
-    // === GETTER WITH AOP (interceptors inlined directly) ===
+    // === GETTER WITH AOP (interceptor chain) ===
+    private static final MethodInterceptor[] _simpleServiceInterceptors = {
+        LoggingInterceptor.INSTANCE
+    };
+    
+    @SuppressWarnings("unchecked")
     public static VeldSimpleService veldSimpleService() {
-        // AOP: Pre-invocation interceptors would be inlined here
-        // e.g., logging, security checks, transaction begin
-        VeldSimpleService instance = _veldSimpleService;
-        // AOP: Post-invocation interceptors would be inlined here  
-        // e.g., transaction commit, metrics
-        return instance;
+        if (_simpleServiceInterceptors.length == 0) {
+            return _veldSimpleService;
+        }
+        
+        try {
+            MethodInvocation invocation = new MethodInvocation(
+                "veldSimpleService",
+                VeldSimpleService.class,
+                () -> _veldSimpleService
+            );
+            return (VeldSimpleService) _simpleServiceInterceptors[0].invoke(invocation);
+        } catch (Throwable t) {
+            throw new RuntimeException("AOP interceptor failed", t);
+        }
     }
 
     public static VeldComplexService veldComplexService() {
