@@ -16,6 +16,11 @@ on:
           - staging
           - production
 
+permissions:
+  security-events: write
+  contents: read
+  actions: read
+
 # Comprehensive CI/CD pipeline for develop branch and releases
 # For quick CI feedback on main/PRs, see maven.yml
 
@@ -175,18 +180,32 @@ jobs:
     name: 🔒 Security & Compliance
     runs-on: ubuntu-latest
     needs: [validation, build-test]
-    
+
     steps:
     - name: 🔍 Checkout Repository
       uses: actions/checkout@v4
-      
+
+    - name: ☕ Setup JDK 11
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: 🔨 Build Project (required for CodeQL)
+      run: |
+        echo "🔨 Building project for CodeQL analysis..."
+        mvn clean compile -DskipGpg=true -q
+
     - name: 🔍 CodeQL Analysis
       uses: github/codeql-action/init@v4
       with:
         languages: java
-        
+
     - name: 🔍 Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
+      with:
+        category: "/language:java"
       
     - name: 📄 License Check
       run: |
