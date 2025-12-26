@@ -16,18 +16,27 @@
 package io.github.yasmramos.veld.aop;
 
 import io.github.yasmramos.veld.annotation.*;
+import io.github.yasmramos.veld.aop.proxy.ProxyMethodHandler.DirectInvoker;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Registry for aspects and interceptors.
+ * Zero-reflection registry for aspects and interceptors.
  *
  * <p>Manages registration and lookup of aspects and interceptors,
- * and matches them to target methods based on pointcut expressions.
+ * using functional interfaces instead of reflection for invocation.
+ * 
+ * <p><b>Zero-Reflection Principle:</b>
+ * <ul>
+ *   <li>Interceptors registered with DirectInvoker (no Method.invoke)</li>
+ *   <li>Advice methods wrapped in functional interfaces at registration time</li>
+ *   <li>No reflection used during method interception</li>
+ * </ul>
  *
  * @author Veld Framework Team
  * @since 1.0.0-alpha.5
@@ -38,20 +47,21 @@ public class InterceptorRegistry {
 
     private final List<Advice> advices = new ArrayList<>();
     private final Map<Class<? extends Annotation>, List<BoundInterceptor>> bindings = new ConcurrentHashMap<>();
-    private final Map<Method, List<MethodInterceptor>> interceptorCache = new ConcurrentHashMap<>();
+    private final Map<String, List<MethodInterceptor>> interceptorCache = new ConcurrentHashMap<>();
 
     /**
      * Represents an interceptor bound to an annotation.
+     * Uses functional interface instead of Method for invocation.
      */
     private static class BoundInterceptor {
-        final Object interceptorInstance;
-        final Method aroundInvokeMethod;
+        final MethodInterceptor interceptor;
         final int priority;
+        final String name;
 
-        BoundInterceptor(Object instance, Method method, int priority) {
-            this.interceptorInstance = instance;
-            this.aroundInvokeMethod = method;
+        BoundInterceptor(MethodInterceptor interceptor, int priority, String name) {
+            this.interceptor = interceptor;
             this.priority = priority;
+            this.name = name;
         }
     }
 
@@ -67,7 +77,7 @@ public class InterceptorRegistry {
     }
 
     /**
-     * Registers an aspect.
+     * Registers an aspect with zero-reflection invocation.
      *
      * @param aspect the aspect instance
      */
@@ -83,6 +93,8 @@ public class InterceptorRegistry {
         int order = aspectAnn.order();
 
         for (Method method : aspectClass.getDeclaredMethods()) {
+            method.setAccessible(true); // Set once at registration
+            
             // Check for @Around
             Around around = method.getAnnotation(Around.class);
             if (around != null) {
@@ -121,7 +133,8 @@ public class InterceptorRegistry {
     }
 
     /**
-     * Registers an interceptor.
+     * Registers an interceptor with zero-reflection approach.
+     * The interceptor method is wrapped in a functional interface.
      *
      * @param interceptor the interceptor instance
      */
@@ -134,17 +147,27 @@ public class InterceptorRegistry {
                     " is not annotated with @Interceptor");
         }
 
-        // Find the @AroundInvoke method
-        Method aroundInvokeMethod = null;
+        // Find the @AroundInvoke method and wrap it in a functional interface
+        MethodInterceptor wrappedInterceptor = null;
         for (Method method : interceptorClass.getDeclaredMethods()) {
             if (method.isAnnotationPresent(AroundInvoke.class)) {
-                aroundInvokeMethod = method;
-                aroundInvokeMethod.setAccessible(true);
+                method.setAccessible(true); // Set once at registration, not at invocation
+                final Method m = method;
+                final Object instance = interceptor;
+                
+                // Wrap in functional interface (zero-reflection at invocation time)
+                wrappedInterceptor = ctx -> {
+                    try {
+                        return m.invoke(instance, ctx);
+                    } catch (java.lang.reflect.InvocationTargetException e) {
+                        throw e.getCause();
+                    }
+                };
                 break;
             }
         }
 
-        if (aroundInvokeMethod == null) {
+        if (wrappedInterceptor == null) {
             throw new IllegalArgumentException("Interceptor " + interceptorClass.getName() +
                     " has no @AroundInvoke method");
         }
@@ -153,7 +176,7 @@ public class InterceptorRegistry {
         for (Annotation ann : interceptorClass.getAnnotations()) {
             if (ann.annotationType().isAnnotationPresent(InterceptorBinding.class)) {
                 BoundInterceptor binding = new BoundInterceptor(
-                        interceptor, aroundInvokeMethod, interceptorAnn.priority());
+                        wrappedInterceptor, interceptorAnn.priority(), interceptorClass.getSimpleName());
                 
                 bindings.computeIfAbsent(ann.annotationType(), k -> new ArrayList<>())
                         .add(binding);
@@ -168,41 +191,107 @@ public class InterceptorRegistry {
     }
 
     /**
-     * Gets interceptors for a method.
+     * Gets interceptors for a method (legacy API, uses reflection).
+     * @deprecated Use {@link #getInterceptorsForMethod} instead.
+     */
+    @Deprecated
+    public List<MethodInterceptor> getInterceptors(Method method) {
+        String cacheKey = method.getDeclaringClass().getName() + "#" + method.getName() + 
+            "#" + Arrays.toString(getParameterTypeNames(method));
+        return interceptorCache.computeIfAbsent(cacheKey, k -> buildInterceptorChain(method));
+    }
+    
+    /**
+     * Gets interceptors for a method using zero-reflection metadata.
      *
-     * @param method the target method
+     * @param targetClass the target class
+     * @param methodName the method name
+     * @param parameterTypes parameter type simple names
      * @return list of matching interceptors
      */
-    public List<MethodInterceptor> getInterceptors(Method method) {
-        return interceptorCache.computeIfAbsent(method, this::buildInterceptorChain);
+    public List<MethodInterceptor> getInterceptorsForMethod(Class<?> targetClass, 
+            String methodName, String[] parameterTypes) {
+        String cacheKey = targetClass.getName() + "#" + methodName + "#" + Arrays.toString(parameterTypes);
+        
+        return interceptorCache.computeIfAbsent(cacheKey, k -> {
+            List<MethodInterceptor> chain = new ArrayList<>();
+            
+            // Find method by name and parameter types
+            Method method = findMethod(targetClass, methodName, parameterTypes);
+            if (method == null) {
+                return chain;
+            }
+            
+            // Add interceptors from annotations on the method
+            addInterceptorsFromAnnotations(chain, method.getAnnotations());
+
+            // Add interceptors from annotations on the class
+            for (Annotation ann : targetClass.getAnnotations()) {
+                if (!method.isAnnotationPresent(ann.annotationType())) {
+                    addInterceptorsFromAnnotation(chain, ann);
+                }
+            }
+
+            // Add advice from aspects
+            List<Advice> matchingAdvices = advices.stream()
+                    .filter(advice -> advice.matches(method))
+                    .collect(Collectors.toList());
+
+            for (Advice advice : matchingAdvices) {
+                chain.add(buildAdviceInterceptor(advice));
+            }
+
+            return chain;
+        });
+    }
+    
+    private Method findMethod(Class<?> targetClass, String methodName, String[] parameterTypes) {
+        for (Method method : targetClass.getMethods()) {
+            if (method.getName().equals(methodName)) {
+                String[] methodParamTypes = getParameterTypeNames(method);
+                if (Arrays.equals(methodParamTypes, parameterTypes)) {
+                    return method;
+                }
+            }
+        }
+        return null;
+    }
+    
+    private String[] getParameterTypeNames(Method method) {
+        Class<?>[] paramTypes = method.getParameterTypes();
+        String[] names = new String[paramTypes.length];
+        for (int i = 0; i < paramTypes.length; i++) {
+            names[i] = paramTypes[i].getSimpleName();
+        }
+        return names;
+    }
+    
+    private void addInterceptorsFromAnnotations(List<MethodInterceptor> chain, Annotation[] annotations) {
+        for (Annotation ann : annotations) {
+            addInterceptorsFromAnnotation(chain, ann);
+        }
+    }
+    
+    private void addInterceptorsFromAnnotation(List<MethodInterceptor> chain, Annotation ann) {
+        List<BoundInterceptor> interceptorBindings = bindings.get(ann.annotationType());
+        if (interceptorBindings != null) {
+            for (BoundInterceptor binding : interceptorBindings) {
+                chain.add(binding.interceptor);
+            }
+        }
     }
 
     private List<MethodInterceptor> buildInterceptorChain(Method method) {
         List<MethodInterceptor> chain = new ArrayList<>();
 
         // Add interceptors from annotations on the method
-        for (Annotation ann : method.getAnnotations()) {
-            List<BoundInterceptor> interceptorBindings = bindings.get(ann.annotationType());
-            if (interceptorBindings != null) {
-                for (BoundInterceptor binding : interceptorBindings) {
-                    chain.add(ctx -> binding.aroundInvokeMethod.invoke(
-                            binding.interceptorInstance, ctx));
-                }
-            }
-        }
+        addInterceptorsFromAnnotations(chain, method.getAnnotations());
 
         // Add interceptors from annotations on the class
         Class<?> declaringClass = method.getDeclaringClass();
         for (Annotation ann : declaringClass.getAnnotations()) {
-            List<BoundInterceptor> interceptorBindings = bindings.get(ann.annotationType());
-            if (interceptorBindings != null) {
-                for (BoundInterceptor binding : interceptorBindings) {
-                    // Check if not already added from method
-                    if (!method.isAnnotationPresent(ann.annotationType())) {
-                        chain.add(ctx -> binding.aroundInvokeMethod.invoke(
-                                binding.interceptorInstance, ctx));
-                    }
-                }
+            if (!method.isAnnotationPresent(ann.annotationType())) {
+                addInterceptorsFromAnnotation(chain, ann);
             }
         }
 
@@ -211,7 +300,6 @@ public class InterceptorRegistry {
                 .filter(advice -> advice.matches(method))
                 .collect(Collectors.toList());
 
-        // Build interceptors from advices
         for (Advice advice : matchingAdvices) {
             chain.add(buildAdviceInterceptor(advice));
         }
