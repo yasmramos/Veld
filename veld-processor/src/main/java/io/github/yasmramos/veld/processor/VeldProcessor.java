@@ -880,22 +880,22 @@ public class VeldProcessor extends AbstractProcessor {
         // Check if this is an Optional<T> type
         OptionalInfo optionalInfo = checkForOptionalWrapper(typeMirror);
         if (optionalInfo != null) {
-            note("    -> Optional<T> wrapper injection for: " + optionalInfo.actualTypeName);
+            note("    -> Optional<T> wrapper injection for: " + optionalInfo.actualTypeName());
             return new Dependency(
                 typeName, typeDescriptor, qualifier.orElse(null),
                 false, isLazy, isOptional, true,
-                optionalInfo.actualTypeName, optionalInfo.actualTypeDescriptor
+                optionalInfo.actualTypeName(), optionalInfo.actualTypeDescriptor()
             );
         }
         
         // Check if this is a Provider<T>
         ProviderInfo providerInfo = checkForProvider(typeMirror);
         if (providerInfo != null) {
-            note("    -> Provider injection for: " + providerInfo.actualTypeName);
+            note("    -> Provider injection for: " + providerInfo.actualTypeName());
             return new Dependency(
                 typeName, typeDescriptor, qualifier.orElse(null),
                 true, isLazy, isOptional, false,
-                providerInfo.actualTypeName, providerInfo.actualTypeDescriptor
+                providerInfo.actualTypeName(), providerInfo.actualTypeDescriptor()
             );
         }
         
@@ -939,15 +939,7 @@ public class VeldProcessor extends AbstractProcessor {
         return new ProviderInfo(actualTypeName, actualTypeDescriptor);
     }
     
-    private static class ProviderInfo {
-        final String actualTypeName;
-        final String actualTypeDescriptor;
-        
-        ProviderInfo(String actualTypeName, String actualTypeDescriptor) {
-            this.actualTypeName = actualTypeName;
-            this.actualTypeDescriptor = actualTypeDescriptor;
-        }
-    }
+    private record ProviderInfo(String actualTypeName, String actualTypeDescriptor) {}
     
     /**
      * Checks if a type is java.util.Optional.
@@ -980,15 +972,7 @@ public class VeldProcessor extends AbstractProcessor {
         return new OptionalInfo(actualTypeName, actualTypeDescriptor);
     }
     
-    private static class OptionalInfo {
-        final String actualTypeName;
-        final String actualTypeDescriptor;
-        
-        OptionalInfo(String actualTypeName, String actualTypeDescriptor) {
-            this.actualTypeName = actualTypeName;
-            this.actualTypeDescriptor = actualTypeDescriptor;
-        }
-    }
+    private record OptionalInfo(String actualTypeName, String actualTypeDescriptor) {}
     
     private String getTypeName(TypeMirror typeMirror) {
         if (typeMirror.getKind() == TypeKind.DECLARED) {
