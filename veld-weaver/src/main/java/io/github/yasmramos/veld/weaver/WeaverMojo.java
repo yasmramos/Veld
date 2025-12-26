@@ -99,13 +99,13 @@ public class WeaverMojo extends AbstractMojo {
             
             for (FieldInjectorWeaver.WeavingResult result : results) {
                 if (result.hasError()) {
-                    getLog().error("Failed to weave " + result.getClassName() + ": " + result.getErrorMessage());
+                    getLog().error("Failed to weave " + result.className() + ": " + result.errorMessage());
                     errorCount++;
-                } else if (result.wasModified()) {
+                } else if (result.modified()) {
                     modifiedCount++;
                     if (verbose) {
-                        getLog().info("  Woven: " + result.getClassName().replace('/', '.'));
-                        for (String setter : result.getAddedSetters()) {
+                        getLog().info("  Woven: " + result.className().replace('/', '.'));
+                        for (String setter : result.addedSetters()) {
                             getLog().info("    + " + setter + "()");
                         }
                     }

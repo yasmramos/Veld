@@ -42,13 +42,13 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified(), "Class should be modified");
+            assertTrue(result.modified(), "Class should be modified");
             assertFalse(result.hasError(), "Should not have errors");
-            assertEquals(1, result.getAddedSetters().size());
-            assertEquals("__di_set_repository", result.getAddedSetters().get(0));
+            assertEquals(1, result.addedSetters().size());
+            assertEquals("__di_set_repository", result.addedSetters().get(0));
             
             // Verify the generated setter exists in bytecode
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            ClassNode weavedClass = parseClass(result.bytecode());
             MethodNode setter = findMethod(weavedClass, "__di_set_repository");
             
             assertNotNull(setter, "Setter method should exist");
@@ -69,8 +69,8 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified());
-            assertEquals(List.of("__di_set_service"), result.getAddedSetters());
+            assertTrue(result.modified());
+            assertEquals(List.of("__di_set_service"), result.addedSetters());
         }
         
         @Test
@@ -85,8 +85,8 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified());
-            assertEquals(List.of("__di_set_config"), result.getAddedSetters());
+            assertTrue(result.modified());
+            assertEquals(List.of("__di_set_config"), result.addedSetters());
         }
         
         @Test
@@ -101,11 +101,11 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified());
-            assertEquals(List.of("__di_set_timeout"), result.getAddedSetters());
+            assertTrue(result.modified());
+            assertEquals(List.of("__di_set_timeout"), result.addedSetters());
             
             // Verify setter takes int parameter
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            ClassNode weavedClass = parseClass(result.bytecode());
             MethodNode setter = findMethod(weavedClass, "__di_set_timeout");
             assertEquals("(I)V", setter.desc, "Setter should take int parameter");
         }
@@ -128,7 +128,7 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertFalse(result.wasModified(), "Public field should not need weaving");
+            assertFalse(result.modified(), "Public field should not need weaving");
         }
         
         @Test
@@ -144,7 +144,7 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified(), "Protected field needs weaving for cross-package access");
+            assertTrue(result.modified(), "Protected field needs weaving for cross-package access");
         }
         
         @Test
@@ -160,7 +160,7 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified(), "Package-private field needs weaving for cross-package access");
+            assertTrue(result.modified(), "Package-private field needs weaving for cross-package access");
         }
     }
     
@@ -179,7 +179,7 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertFalse(result.wasModified(), "Non-inject field should not need weaving");
+            assertFalse(result.modified(), "Non-inject field should not need weaving");
         }
     }
     
@@ -198,11 +198,11 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified());
-            assertEquals(3, result.getAddedSetters().size());
-            assertTrue(result.getAddedSetters().contains("__di_set_repoA"));
-            assertTrue(result.getAddedSetters().contains("__di_set_repoB"));
-            assertTrue(result.getAddedSetters().contains("__di_set_config"));
+            assertTrue(result.modified());
+            assertEquals(3, result.addedSetters().size());
+            assertTrue(result.addedSetters().contains("__di_set_repoA"));
+            assertTrue(result.addedSetters().contains("__di_set_repoB"));
+            assertTrue(result.addedSetters().contains("__di_set_config"));
         }
         
         @Test
@@ -231,9 +231,9 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(cw.toByteArray());
             
-            assertTrue(result.wasModified());
-            assertEquals(1, result.getAddedSetters().size());
-            assertEquals("__di_set_privateField", result.getAddedSetters().get(0));
+            assertTrue(result.modified());
+            assertEquals(1, result.addedSetters().size());
+            assertEquals("__di_set_privateField", result.addedSetters().get(0));
         }
     }
     
@@ -249,8 +249,8 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified());
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            assertTrue(result.modified());
+            ClassNode weavedClass = parseClass(result.bytecode());
             MethodNode setter = findMethod(weavedClass, "__di_set_count");
             assertEquals("(I)V", setter.desc);
         }
@@ -263,8 +263,8 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified());
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            assertTrue(result.modified());
+            ClassNode weavedClass = parseClass(result.bytecode());
             MethodNode setter = findMethod(weavedClass, "__di_set_timestamp");
             assertEquals("(J)V", setter.desc);
         }
@@ -277,8 +277,8 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified());
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            assertTrue(result.modified());
+            ClassNode weavedClass = parseClass(result.bytecode());
             MethodNode setter = findMethod(weavedClass, "__di_set_rate");
             assertEquals("(D)V", setter.desc);
         }
@@ -291,8 +291,8 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified());
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            assertTrue(result.modified());
+            ClassNode weavedClass = parseClass(result.bytecode());
             MethodNode setter = findMethod(weavedClass, "__di_set_enabled");
             assertEquals("(Z)V", setter.desc);
         }
@@ -305,8 +305,8 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified());
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            assertTrue(result.modified());
+            ClassNode weavedClass = parseClass(result.bytecode());
             MethodNode setter = findMethod(weavedClass, "__di_set_ratio");
             assertEquals("(F)V", setter.desc);
         }
@@ -319,8 +319,8 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified());
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            assertTrue(result.modified());
+            ClassNode weavedClass = parseClass(result.bytecode());
             MethodNode setter = findMethod(weavedClass, "__di_set_code");
             assertEquals("(C)V", setter.desc);
         }
@@ -333,8 +333,8 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified());
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            assertTrue(result.modified());
+            ClassNode weavedClass = parseClass(result.bytecode());
             MethodNode setter = findMethod(weavedClass, "__di_set_data");
             assertEquals("(B)V", setter.desc);
         }
@@ -347,8 +347,8 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified());
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            assertTrue(result.modified());
+            ClassNode weavedClass = parseClass(result.bytecode());
             MethodNode setter = findMethod(weavedClass, "__di_set_port");
             assertEquals("(S)V", setter.desc);
         }
@@ -361,8 +361,8 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified());
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            assertTrue(result.modified());
+            ClassNode weavedClass = parseClass(result.bytecode());
             MethodNode setter = findMethod(weavedClass, "__di_set_items");
             assertEquals("([Ljava/lang/String;)V", setter.desc);
         }
@@ -400,7 +400,7 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(cw.toByteArray());
             
-            assertFalse(result.wasModified(), "Should not modify already-woven class");
+            assertFalse(result.modified(), "Should not modify already-woven class");
         }
     }
     
@@ -433,7 +433,7 @@ class FieldInjectorWeaverTest {
             List<FieldInjectorWeaver.WeavingResult> results = weaver.weaveDirectory(tempDir);
             
             assertEquals(2, results.size(), "Should have 2 modified classes");
-            assertTrue(results.stream().allMatch(r -> r.wasModified()));
+            assertTrue(results.stream().allMatch(r -> r.modified()));
             
             // Verify files were modified
             byte[] woven1 = Files.readAllBytes(classFile1);
@@ -474,10 +474,10 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified(), "Class should be modified");
-            assertTrue(result.getAddedSetters().get(0).contains("static"), "Setter should be marked as static");
+            assertTrue(result.modified(), "Class should be modified");
+            assertTrue(result.addedSetters().get(0).contains("static"), "Setter should be marked as static");
             
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            ClassNode weavedClass = parseClass(result.bytecode());
             MethodNode setter = findMethod(weavedClass, "__di_set_instance");
             
             assertNotNull(setter, "Static setter should exist");
@@ -498,7 +498,7 @@ class FieldInjectorWeaverTest {
             );
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            ClassNode weavedClass = parseClass(result.bytecode());
             MethodNode setter = findMethod(weavedClass, "__di_set_config");
             
             // Find PUTSTATIC instruction
@@ -528,7 +528,7 @@ class FieldInjectorWeaverTest {
             );
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            ClassNode weavedClass = parseClass(result.bytecode());
             MethodNode setter = findMethod(weavedClass, "__di_set_count");
             
             assertNotNull(setter);
@@ -554,9 +554,9 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified(), "Class should be modified");
+            assertTrue(result.modified(), "Class should be modified");
             
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            ClassNode weavedClass = parseClass(result.bytecode());
             
             // Verify final modifier was removed from field
             FieldNode field = findField(weavedClass, "dependency");
@@ -580,7 +580,7 @@ class FieldInjectorWeaverTest {
             );
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            ClassNode weavedClass = parseClass(result.bytecode());
             
             FieldNode field = findField(weavedClass, "maxSize");
             assertFalse((field.access & ACC_FINAL) != 0, "Final should be removed");
@@ -608,9 +608,9 @@ class FieldInjectorWeaverTest {
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
-            assertTrue(result.wasModified(), "Class should be modified");
+            assertTrue(result.modified(), "Class should be modified");
             
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            ClassNode weavedClass = parseClass(result.bytecode());
             
             // Verify final modifier was removed
             FieldNode field = findField(weavedClass, "INSTANCE");
@@ -635,7 +635,7 @@ class FieldInjectorWeaverTest {
             );
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            ClassNode weavedClass = parseClass(result.bytecode());
             MethodNode setter = findMethod(weavedClass, "__di_set_DEFAULT");
             
             boolean hasPutstatic = false;
@@ -660,7 +660,7 @@ class FieldInjectorWeaverTest {
             );
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            ClassNode weavedClass = parseClass(result.bytecode());
             
             MethodNode setter = findMethod(weavedClass, "__di_set_TIMEOUT");
             assertNotNull(setter);
@@ -684,7 +684,7 @@ class FieldInjectorWeaverTest {
             );
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
-            ClassNode weavedClass = parseClass(result.getBytecode());
+            ClassNode weavedClass = parseClass(result.bytecode());
             MethodNode setter = findMethod(weavedClass, "__di_set_repository");
             
             // Verify instruction sequence
@@ -734,11 +734,11 @@ class FieldInjectorWeaverTest {
         void unchangedShouldCreateUnmodifiedResult() {
             FieldInjectorWeaver.WeavingResult result = FieldInjectorWeaver.WeavingResult.unchanged("com.example.Test");
             
-            assertEquals("com.example.Test", result.getClassName());
-            assertFalse(result.wasModified());
+            assertEquals("com.example.Test", result.className());
+            assertFalse(result.modified());
             assertFalse(result.hasError());
-            assertNull(result.getBytecode());
-            assertTrue(result.getAddedSetters().isEmpty());
+            assertNull(result.bytecode());
+            assertTrue(result.addedSetters().isEmpty());
         }
         
         @Test
@@ -750,11 +750,11 @@ class FieldInjectorWeaverTest {
             FieldInjectorWeaver.WeavingResult result = FieldInjectorWeaver.WeavingResult.modified(
                 "com.example.Service", bytecode, setters);
             
-            assertEquals("com.example.Service", result.getClassName());
-            assertTrue(result.wasModified());
+            assertEquals("com.example.Service", result.className());
+            assertTrue(result.modified());
             assertFalse(result.hasError());
-            assertArrayEquals(bytecode, result.getBytecode());
-            assertEquals(2, result.getAddedSetters().size());
+            assertArrayEquals(bytecode, result.bytecode());
+            assertEquals(2, result.addedSetters().size());
         }
         
         @Test
@@ -763,10 +763,10 @@ class FieldInjectorWeaverTest {
             FieldInjectorWeaver.WeavingResult result = FieldInjectorWeaver.WeavingResult.error(
                 "com.example.Broken", "Failed to weave");
             
-            assertEquals("com.example.Broken", result.getClassName());
-            assertFalse(result.wasModified());
+            assertEquals("com.example.Broken", result.className());
+            assertFalse(result.modified());
             assertTrue(result.hasError());
-            assertEquals("Failed to weave", result.getErrorMessage());
+            assertEquals("Failed to weave", result.errorMessage());
         }
         
         @Test

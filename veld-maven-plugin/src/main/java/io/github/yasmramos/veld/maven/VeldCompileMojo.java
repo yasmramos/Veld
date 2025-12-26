@@ -220,23 +220,23 @@ public class VeldCompileMojo extends AbstractMojo {
 
             for (FieldInjectorWeaver.WeavingResult result : results) {
                 // Check if this class should be excluded from weaving
-                String relativeClassPath = result.getClassName() + ".class";
+                String relativeClassPath = result.className() + ".class";
                 if (!shouldProcessClassFile(relativeClassPath)) {
                     excludedCount++;
                     if (verbose) {
-                        getLog().info("  Excluded from weaving: " + result.getClassName().replace('/', '.'));
+                        getLog().info("  Excluded from weaving: " + result.className().replace('/', '.'));
                     }
                     continue;
                 }
 
                 if (result.hasError()) {
-                    getLog().error("  Failed to weave " + result.getClassName() + ": " + result.getErrorMessage());
+                    getLog().error("  Failed to weave " + result.className() + ": " + result.errorMessage());
                     errorCount++;
-                } else if (result.wasModified()) {
+                } else if (result.modified()) {
                     modifiedCount++;
                     if (verbose) {
-                        getLog().info("    Woven: " + result.getClassName().replace('/', '.'));
-                        for (String setter : result.getAddedSetters()) {
+                        getLog().info("    Woven: " + result.className().replace('/', '.'));
+                        for (String setter : result.addedSetters()) {
                             getLog().info("      + " + setter + "()");
                         }
                     }

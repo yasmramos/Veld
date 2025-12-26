@@ -129,8 +129,8 @@ public class FieldInjectorWeaver {
             byte[] originalBytes = Files.readAllBytes(classFile);
             WeavingResult result = weaveClass(originalBytes);
             
-            if (result.wasModified()) {
-                Files.write(classFile, result.getBytecode());
+            if (result.modified()) {
+                Files.write(classFile, result.bytecode());
                 results.add(result);
             }
         } catch (IOException e) {
@@ -393,20 +393,11 @@ public class FieldInjectorWeaver {
     /**
      * Represents the result of weaving a class.
      */
-    public static class WeavingResult {
-        private final String className;
-        private final byte[] bytecode;
-        private final List<String> addedSetters;
-        private final boolean modified;
-        private final String errorMessage;
+    public record WeavingResult(String className, byte[] bytecode, List<String> addedSetters, 
+                                boolean modified, String errorMessage) {
         
-        private WeavingResult(String className, byte[] bytecode, List<String> addedSetters, 
-                             boolean modified, String errorMessage) {
-            this.className = className;
-            this.bytecode = bytecode;
-            this.addedSetters = addedSetters != null ? List.copyOf(addedSetters) : List.of();
-            this.modified = modified;
-            this.errorMessage = errorMessage;
+        public WeavingResult {
+            addedSetters = addedSetters != null ? List.copyOf(addedSetters) : List.of();
         }
         
         public static WeavingResult unchanged(String className) {
@@ -421,28 +412,8 @@ public class FieldInjectorWeaver {
             return new WeavingResult(className, null, null, false, errorMessage);
         }
         
-        public String getClassName() {
-            return className;
-        }
-        
-        public byte[] getBytecode() {
-            return bytecode;
-        }
-        
-        public List<String> getAddedSetters() {
-            return addedSetters;
-        }
-        
-        public boolean wasModified() {
-            return modified;
-        }
-        
         public boolean hasError() {
             return errorMessage != null;
-        }
-        
-        public String getErrorMessage() {
-            return errorMessage;
         }
         
         @Override
