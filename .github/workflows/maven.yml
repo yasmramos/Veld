@@ -60,6 +60,47 @@ jobs:
           echo "Checking for error logs..."
           find . -name "*.log" -o -name "*.err" 2>/dev/null | head -5
         fi
+
+    - name: Run unit tests
+      run: |
+        echo "=== Starting Maven test phase ==="
+        mvn test --batch-mode
+      env:
+        MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
+      timeout-minutes: 10
+
+    - name: Display test results
+      run: |
+        echo "=== Test Results ==="
+        if [ -d "target/surefire-reports" ]; then
+          echo "✅ Tests executed - surefire-reports exists"
+          echo "Test reports:"
+          find target/surefire-reports -name "*.xml" | head -10
+          echo ""
+          echo "Test summary:"
+          find target/surefire-reports -name "TEST-*.xml" -exec grep -h "testsuite" {} \; | head -5
+        else
+          echo "⚠️ No test reports found"
+        fi
+
+    - name: Run integration tests
+      run: |
+        echo "=== Starting Maven integration test phase ==="
+        mvn verify -DskipITs=false --batch-mode
+      env:
+        MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
+      timeout-minutes: 10
+
+    - name: Display integration test results
+      run: |
+        echo "=== Integration Test Results ==="
+        if [ -d "target/failsafe-reports" ]; then
+          echo "✅ Integration tests executed - failsafe-reports exists"
+          echo "Integration test reports:"
+          find target/failsafe-reports -name "*.xml" | head -10
+        else
+          echo "⚠️ No integration test reports found (this is OK if no ITs exist)"
+        fi
     
     - name: Show Maven output logs
       if: failure()
