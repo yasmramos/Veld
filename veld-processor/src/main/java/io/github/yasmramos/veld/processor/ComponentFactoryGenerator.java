@@ -33,7 +33,7 @@ import static org.objectweb.asm.Opcodes.*;
 public final class ComponentFactoryGenerator {
     
     private static final String COMPONENT_FACTORY = "io/github/yasmramos/runtime/ComponentFactory";
-    private static final String VELD_CLASS = "com/veld/Veld";
+    private static final String VELD_CLASS = "io/github/yasmramos/veld/Veld";
     private static final String SCOPE = "io/github/yasmramos/runtime/Scope";
     private static final String PROVIDER = "io/github/yasmramos/runtime/Provider";
     private static final String OPTIONAL = "java/util/Optional";

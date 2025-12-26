@@ -17,7 +17,7 @@ import java.util.*;
  */
 public class VeldClassGenerator implements Opcodes {
     
-    private static final String VELD_CLASS = "com/veld/Veld";
+    private static final String VELD_CLASS = "io/github/yasmramos/veld/Veld";
     private static final String SYNTHETIC_SETTER_PREFIX = "__di_set_";
     
     private final List<ComponentMeta> components;
@@ -146,6 +146,10 @@ public class VeldClassGenerator implements Opcodes {
         cw.visitField(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "_valueResolver", 
             "Lio/github/yasmramos/veld/runtime/value/ValueResolver;", null, null).visitEnd();
         
+        // Active profiles field (volatile for thread safety)
+        cw.visitField(ACC_PRIVATE | ACC_STATIC | ACC_VOLATILE, "_activeProfiles", 
+            "[Ljava/lang/String;", null, null).visitEnd();
+        
         generateStaticInit(cw, singletons, prototypes);
         generatePrivateConstructor(cw);
         
@@ -164,6 +168,11 @@ public class VeldClassGenerator implements Opcodes {
         generateComponentCount(cw);
         generateGetLifecycleProcessor(cw);
         generateGetValueResolver(cw);
+        generateGetEventBus(cw);
+        generateGetProvider(cw);
+        generateResolveValue(cw);
+        generateResolveValueTyped(cw);
+        generateProfileMethods(cw);
         generateShutdown(cw, singletons);
         
         cw.visitEnd();
@@ -1335,6 +1344,153 @@ public class VeldClassGenerator implements Opcodes {
         mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_valueResolver",
             "Lio/github/yasmramos/veld/runtime/value/ValueResolver;");
         mv.visitInsn(ARETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    
+    private void generateGetEventBus(ClassWriter cw) {
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "getEventBus",
+            "()Lio/github/yasmramos/veld/runtime/event/EventBus;", null, null);
+        mv.visitCode();
+        mv.visitMethodInsn(INVOKESTATIC, "io/github/yasmramos/veld/runtime/event/EventBus",
+            "getInstance", "()Lio/github/yasmramos/veld/runtime/event/EventBus;", false);
+        mv.visitInsn(ARETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    
+    private void generateGetProvider(ClassWriter cw) {
+        // public static <T> Provider<T> getProvider(Class<T> type)
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "getProvider",
+            "(Ljava/lang/Class;)Lio/github/yasmramos/veld/runtime/Provider;",
+            "<T:Ljava/lang/Object;>(Ljava/lang/Class<TT;>;)Lio/github/yasmramos/veld/runtime/Provider<TT;>;", null);
+        mv.visitCode();
+        
+        // return () -> get(type);
+        mv.visitVarInsn(ALOAD, 0);
+        Handle bsmHandle = new Handle(H_INVOKESTATIC,
+            "java/lang/invoke/LambdaMetafactory", "metafactory",
+            "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;" +
+            "Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)" +
+            "Ljava/lang/invoke/CallSite;", false);
+        
+        mv.visitInvokeDynamicInsn("get",
+            "(Ljava/lang/Class;)Lio/github/yasmramos/veld/runtime/Provider;",
+            bsmHandle,
+            Type.getType("()Ljava/lang/Object;"),
+            new Handle(H_INVOKESTATIC, VELD_CLASS, "get", "(Ljava/lang/Class;)Ljava/lang/Object;", false),
+            Type.getType("()Ljava/lang/Object;"));
+        
+        mv.visitInsn(ARETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    
+    private void generateResolveValue(ClassWriter cw) {
+        // public static String resolveValue(String expression)
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "resolveValue",
+            "(Ljava/lang/String;)Ljava/lang/String;", null, null);
+        mv.visitCode();
+        mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_valueResolver",
+            "Lio/github/yasmramos/veld/runtime/value/ValueResolver;");
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/value/ValueResolver",
+            "resolve", "(Ljava/lang/String;)Ljava/lang/String;", false);
+        mv.visitInsn(ARETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    
+    private void generateResolveValueTyped(ClassWriter cw) {
+        // public static <T> T resolveValue(String expression, Class<T> targetType)
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "resolveValue",
+            "(Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;",
+            "<T:Ljava/lang/Object;>(Ljava/lang/String;Ljava/lang/Class<TT;>;)TT;", null);
+        mv.visitCode();
+        mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_valueResolver",
+            "Lio/github/yasmramos/veld/runtime/value/ValueResolver;");
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/value/ValueResolver",
+            "resolve", "(Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;", false);
+        mv.visitInsn(ARETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    
+    private void generateProfileMethods(ClassWriter cw) {
+        // setActiveProfiles(String... profiles)
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "setActiveProfiles",
+            "([Ljava/lang/String;)V", null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitFieldInsn(PUTSTATIC, VELD_CLASS, "_activeProfiles", "[Ljava/lang/String;");
+        mv.visitInsn(RETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+        
+        // getActiveProfiles()
+        mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "getActiveProfiles",
+            "()[Ljava/lang/String;", null, null);
+        mv.visitCode();
+        mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_activeProfiles", "[Ljava/lang/String;");
+        Label notNull = new Label();
+        mv.visitInsn(DUP);
+        mv.visitJumpInsn(IFNONNULL, notNull);
+        mv.visitInsn(POP);
+        mv.visitInsn(ICONST_0);
+        mv.visitTypeInsn(ANEWARRAY, "java/lang/String");
+        mv.visitLabel(notNull);
+        mv.visitInsn(ARETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+        
+        // isProfileActive(String profile)
+        mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "isProfileActive",
+            "(Ljava/lang/String;)Z", null, null);
+        mv.visitCode();
+        mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_activeProfiles", "[Ljava/lang/String;");
+        mv.visitVarInsn(ASTORE, 1); // profiles array
+        
+        // if (profiles == null) return false
+        mv.visitVarInsn(ALOAD, 1);
+        Label notNullProfiles = new Label();
+        mv.visitJumpInsn(IFNONNULL, notNullProfiles);
+        mv.visitInsn(ICONST_0);
+        mv.visitInsn(IRETURN);
+        
+        mv.visitLabel(notNullProfiles);
+        // for loop
+        mv.visitInsn(ICONST_0);
+        mv.visitVarInsn(ISTORE, 2); // i = 0
+        
+        Label loopStart = new Label();
+        Label loopEnd = new Label();
+        
+        mv.visitLabel(loopStart);
+        mv.visitVarInsn(ILOAD, 2);
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitInsn(ARRAYLENGTH);
+        mv.visitJumpInsn(IF_ICMPGE, loopEnd);
+        
+        // if (profile.equals(profiles[i])) return true
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitVarInsn(ILOAD, 2);
+        mv.visitInsn(AALOAD);
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "equals", "(Ljava/lang/Object;)Z", false);
+        Label notMatch = new Label();
+        mv.visitJumpInsn(IFEQ, notMatch);
+        mv.visitInsn(ICONST_1);
+        mv.visitInsn(IRETURN);
+        
+        mv.visitLabel(notMatch);
+        mv.visitIincInsn(2, 1);
+        mv.visitJumpInsn(GOTO, loopStart);
+        
+        mv.visitLabel(loopEnd);
+        mv.visitInsn(ICONST_0);
+        mv.visitInsn(IRETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();
     }
