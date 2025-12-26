@@ -15,6 +15,8 @@
  */
 package io.github.yasmramos.veld.aop;
 
+import io.github.yasmramos.veld.aop.proxy.ProxyMethodHandler.DirectInvoker;
+
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -22,9 +24,17 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Default implementation of {@link InvocationContext}.
+ * Zero-reflection implementation of {@link InvocationContext}.
  *
- * <p>Manages the interceptor chain and provides method invocation context.
+ * <p>Manages the interceptor chain and provides method invocation context
+ * without using reflection for the actual method invocation.
+ * 
+ * <p><b>Zero-Reflection Principle:</b>
+ * <ul>
+ *   <li>Uses {@link DirectInvoker} for method invocation</li>
+ *   <li>No {@code Method.invoke()} calls</li>
+ *   <li>Method metadata provided as strings (pre-computed)</li>
+ * </ul>
  *
  * @author Veld Framework Team
  * @since 1.0.0-alpha.5
@@ -32,28 +42,89 @@ import java.util.Map;
 public class MethodInvocation implements InvocationContext {
 
     private final Object target;
-    private final Method method;
+    private final String className;
+    private final String methodName;
+    private final String[] parameterTypes;
+    private final String returnType;
+    private final DirectInvoker invoker;
     private Object[] parameters;
-    private final Map<String, Object> contextData;
+    private Map<String, Object> contextData;
     private final List<MethodInterceptor> interceptors;
     private int interceptorIndex;
     private Object currentInterceptor;
+    
+    // Cached values
+    private String signature;
+    private String shortString;
+    
+    // Legacy support - only populated when using deprecated constructor
+    private Method legacyMethod;
 
     /**
-     * Creates a new method invocation context.
+     * Creates a new zero-reflection method invocation context.
      *
-     * @param target       the target object
-     * @param method       the method being invoked
-     * @param parameters   the method parameters
-     * @param interceptors the interceptor chain
+     * @param target         the target object
+     * @param className      fully qualified class name
+     * @param methodName     method name
+     * @param parameterTypes parameter type names
+     * @param returnType     return type name
+     * @param invoker        direct invoker (no reflection)
+     * @param parameters     method parameters
+     * @param interceptors   the interceptor chain
      */
+    public MethodInvocation(Object target, String className, String methodName,
+                            String[] parameterTypes, String returnType,
+                            DirectInvoker invoker, Object[] parameters,
+                            List<MethodInterceptor> interceptors) {
+        this.target = target;
+        this.className = className;
+        this.methodName = methodName;
+        this.parameterTypes = parameterTypes;
+        this.returnType = returnType;
+        this.invoker = invoker;
+        this.parameters = (parameters == null || parameters.length == 0) 
+            ? new Object[0] 
+            : parameters;
+        this.interceptors = interceptors;
+        this.interceptorIndex = 0;
+    }
+
+    /**
+     * Legacy constructor for backwards compatibility.
+     * @deprecated Use the zero-reflection constructor instead.
+     */
+    @Deprecated
     public MethodInvocation(Object target, Method method, Object[] parameters,
                             List<MethodInterceptor> interceptors) {
         this.target = target;
-        this.method = method;
-        this.parameters = parameters != null ? parameters.clone() : new Object[0];
+        this.className = method.getDeclaringClass().getName();
+        this.methodName = method.getName();
+        
+        Class<?>[] paramTypes = method.getParameterTypes();
+        this.parameterTypes = new String[paramTypes.length];
+        for (int i = 0; i < paramTypes.length; i++) {
+            this.parameterTypes[i] = paramTypes[i].getSimpleName();
+        }
+        this.returnType = method.getReturnType().getSimpleName();
+        
+        // Store method for legacy compatibility
+        this.legacyMethod = method;
+        
+        // Create invoker that uses the method (reflection fallback)
+        final Method m = method;
+        this.invoker = (t, args) -> {
+            try {
+                m.setAccessible(true);
+                return m.invoke(t, args);
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                throw e.getCause();
+            }
+        };
+        
+        this.parameters = (parameters == null || parameters.length == 0) 
+            ? new Object[0] 
+            : parameters;
         this.interceptors = interceptors;
-        this.contextData = new HashMap<>();
         this.interceptorIndex = 0;
     }
 
@@ -63,25 +134,9 @@ public class MethodInvocation implements InvocationContext {
             MethodInterceptor interceptor = interceptors.get(interceptorIndex++);
             currentInterceptor = interceptor;
             return interceptor.invoke(this);
-        } else {
-            // End of chain, invoke the actual method
-            return invokeTarget();
         }
-    }
-
-    /**
-     * Invokes the target method directly.
-     *
-     * @return the method return value
-     * @throws Throwable if the method throws an exception
-     */
-    protected Object invokeTarget() throws Throwable {
-        try {
-            method.setAccessible(true);
-            return method.invoke(target, parameters);
-        } catch (java.lang.reflect.InvocationTargetException e) {
-            throw e.getCause();
-        }
+        // End of chain - direct invocation (zero-reflection)
+        return invoker.invoke(target, parameters);
     }
 
     @Override
@@ -91,22 +146,24 @@ public class MethodInvocation implements InvocationContext {
 
     @Override
     public Method getMethod() {
-        return method;
+        // Returns legacy method if available (for backward compatibility)
+        // Zero-reflection path returns null
+        return legacyMethod;
     }
 
     @Override
     public String getMethodName() {
-        return method.getName();
+        return methodName;
     }
 
     @Override
     public Object[] getArgs() {
-        return parameters.clone();
+        return parameters.length == 0 ? parameters : parameters.clone();
     }
 
     @Override
     public Object[] getParameters() {
-        return parameters.clone();
+        return parameters.length == 0 ? parameters : parameters.clone();
     }
 
     @Override
@@ -114,9 +171,9 @@ public class MethodInvocation implements InvocationContext {
         if (params == null) {
             throw new IllegalArgumentException("Parameters cannot be null");
         }
-        if (params.length != method.getParameterCount()) {
+        if (params.length != parameterTypes.length) {
             throw new IllegalArgumentException(
-                    "Expected " + method.getParameterCount() +
+                    "Expected " + parameterTypes.length +
                             " parameters, but got " + params.length);
         }
         this.parameters = params.clone();
@@ -124,27 +181,46 @@ public class MethodInvocation implements InvocationContext {
 
     @Override
     public Class<?> getDeclaringClass() {
-        return method.getDeclaringClass();
+        try {
+            return Class.forName(className);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Class not found: " + className, e);
+        }
     }
 
     @Override
     public String getSignature() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(method.getReturnType().getSimpleName()).append(" ");
-        sb.append(method.getDeclaringClass().getName()).append(".");
-        sb.append(method.getName()).append("(");
-        Class<?>[] paramTypes = method.getParameterTypes();
-        for (int i = 0; i < paramTypes.length; i++) {
-            if (i > 0) sb.append(", ");
-            sb.append(paramTypes[i].getSimpleName());
+        if (signature == null) {
+            StringBuilder sb = new StringBuilder(64);
+            sb.append(returnType).append(" ");
+            sb.append(className).append(".");
+            sb.append(methodName).append("(");
+            for (int i = 0; i < parameterTypes.length; i++) {
+                if (i > 0) sb.append(", ");
+                sb.append(parameterTypes[i]);
+            }
+            sb.append(")");
+            signature = sb.toString();
         }
-        sb.append(")");
-        return sb.toString();
+        return signature;
     }
 
     @Override
     public String toShortString() {
-        return method.getDeclaringClass().getSimpleName() + "." + method.getName() + "()";
+        if (shortString == null) {
+            String simpleName = className;
+            int lastDot = className.lastIndexOf('.');
+            if (lastDot > 0) {
+                simpleName = className.substring(lastDot + 1);
+            }
+            // Handle inner classes - take only the last part after $
+            int lastDollar = simpleName.lastIndexOf('$');
+            if (lastDollar > 0) {
+                simpleName = simpleName.substring(lastDollar + 1);
+            }
+            shortString = simpleName + "." + methodName + "()";
+        }
+        return shortString;
     }
 
     @Override
@@ -154,12 +230,15 @@ public class MethodInvocation implements InvocationContext {
 
     @Override
     public Map<String, Object> getContextData() {
+        if (contextData == null) {
+            contextData = new HashMap<>(4);
+        }
         return contextData;
     }
 
     @Override
     public Object getTimer() {
-        return null; // Timer support can be added later
+        return null;
     }
 
     @Override

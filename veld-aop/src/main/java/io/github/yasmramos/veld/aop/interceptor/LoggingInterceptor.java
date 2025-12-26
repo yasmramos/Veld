@@ -28,6 +28,9 @@ import java.util.Arrays;
  * <p>Logs method entry with arguments, exit with return value or exception,
  * and optionally execution time.
  *
+ * <p>This implementation uses a hybrid approach: it prefers zero-reflection
+ * methods but falls back to Method object when available for annotation access.
+ *
  * @author Veld Framework Team
  * @since 1.0.0-alpha.5
  */
@@ -37,13 +40,23 @@ public class LoggingInterceptor {
 
     @AroundInvoke
     public Object logMethodCall(InvocationContext ctx) throws Throwable {
-        Method method = ctx.getMethod();
-        String methodName = method.getDeclaringClass().getSimpleName() + "." + method.getName();
+        // Zero-reflection: use context methods for method identification
+        String methodName = ctx.getDeclaringClass().getSimpleName() + "." + ctx.getMethodName();
         
-        // Get annotation configuration
-        Logged config = method.getAnnotation(Logged.class);
+        // Get annotation configuration - try method first, then class
+        Logged config = null;
+        boolean isVoidMethod = false;
+        
+        // Fallback to Method object if available (for test compatibility)
+        Method method = ctx.getMethod();
+        if (method != null) {
+            config = method.getAnnotation(Logged.class);
+            isVoidMethod = method.getReturnType() == void.class;
+        }
+        
+        // If no method-level annotation, check class
         if (config == null) {
-            config = method.getDeclaringClass().getAnnotation(Logged.class);
+            config = ctx.getDeclaringClass().getAnnotation(Logged.class);
         }
 
         boolean logArgs = config != null ? config.logArgs() : true;
@@ -64,7 +77,7 @@ public class LoggingInterceptor {
             Object result = ctx.proceed();
 
             // Log exit
-            if (logResult && method.getReturnType() != void.class) {
+            if (logResult && !isVoidMethod && result != null) {
                 System.out.printf("[LOG] <<< Exiting %s with result: %s%n", methodName, result);
             } else {
                 System.out.printf("[LOG] <<< Exiting %s%n", methodName);

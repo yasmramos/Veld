@@ -109,13 +109,19 @@ public class TimingInterceptor {
 
     @AroundInvoke
     public Object measureTime(InvocationContext ctx) throws Throwable {
-        Method method = ctx.getMethod();
-        String methodName = method.getDeclaringClass().getSimpleName() + "." + method.getName();
-
-        // Get annotation configuration
-        Timed config = method.getAnnotation(Timed.class);
-        if (config == null) {
-            config = method.getDeclaringClass().getAnnotation(Timed.class);
+        // Use zero-reflection API for method identification
+        String methodName = ctx.getDeclaringClass().getSimpleName() + "." + ctx.getMethodName();
+        
+        // Get annotation configuration via declaring class
+        Class<?> declaringClass = ctx.getDeclaringClass();
+        Method method = ctx.getMethod(); // May be null in zero-reflection mode
+        
+        Timed config = null;
+        if (method != null) {
+            config = method.getAnnotation(Timed.class);
+        }
+        if (config == null && declaringClass != null) {
+            config = declaringClass.getAnnotation(Timed.class);
         }
 
         Timed.Unit unit = config != null ? config.unit() : Timed.Unit.MILLISECONDS;
