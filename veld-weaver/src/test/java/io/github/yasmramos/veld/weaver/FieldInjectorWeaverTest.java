@@ -655,6 +655,82 @@ class FieldInjectorWeaverTest {
         }
     }
     
+    @Nested
+    @DisplayName("WeavingResult Tests")
+    class WeavingResultTests {
+        
+        @Test
+        @DisplayName("unchanged should create unmodified result")
+        void unchangedShouldCreateUnmodifiedResult() {
+            FieldInjectorWeaver.WeavingResult result = FieldInjectorWeaver.WeavingResult.unchanged("com.example.Test");
+            
+            assertEquals("com.example.Test", result.getClassName());
+            assertFalse(result.wasModified());
+            assertFalse(result.hasError());
+            assertNull(result.getBytecode());
+            assertTrue(result.getAddedSetters().isEmpty());
+        }
+        
+        @Test
+        @DisplayName("modified should create modified result with bytecode")
+        void modifiedShouldCreateModifiedResult() {
+            byte[] bytecode = new byte[]{1, 2, 3};
+            List<String> setters = List.of("__di_set_field1", "__di_set_field2");
+            
+            FieldInjectorWeaver.WeavingResult result = FieldInjectorWeaver.WeavingResult.modified(
+                "com.example.Service", bytecode, setters);
+            
+            assertEquals("com.example.Service", result.getClassName());
+            assertTrue(result.wasModified());
+            assertFalse(result.hasError());
+            assertArrayEquals(bytecode, result.getBytecode());
+            assertEquals(2, result.getAddedSetters().size());
+        }
+        
+        @Test
+        @DisplayName("error should create error result")
+        void errorShouldCreateErrorResult() {
+            FieldInjectorWeaver.WeavingResult result = FieldInjectorWeaver.WeavingResult.error(
+                "com.example.Broken", "Failed to weave");
+            
+            assertEquals("com.example.Broken", result.getClassName());
+            assertFalse(result.wasModified());
+            assertTrue(result.hasError());
+            assertEquals("Failed to weave", result.getErrorMessage());
+        }
+        
+        @Test
+        @DisplayName("toString should show error message for error result")
+        void toStringShouldShowErrorMessage() {
+            FieldInjectorWeaver.WeavingResult result = FieldInjectorWeaver.WeavingResult.error(
+                "com.example.Test", "Parse error");
+            
+            String str = result.toString();
+            assertTrue(str.contains("ERROR"));
+            assertTrue(str.contains("Parse error"));
+        }
+        
+        @Test
+        @DisplayName("toString should show setters for modified result")
+        void toStringShouldShowSettersForModified() {
+            FieldInjectorWeaver.WeavingResult result = FieldInjectorWeaver.WeavingResult.modified(
+                "com.example.Test", new byte[0], List.of("__di_set_x"));
+            
+            String str = result.toString();
+            assertTrue(str.contains("setters"));
+            assertTrue(str.contains("__di_set_x"));
+        }
+        
+        @Test
+        @DisplayName("toString should show unchanged for unmodified result")
+        void toStringShouldShowUnchanged() {
+            FieldInjectorWeaver.WeavingResult result = FieldInjectorWeaver.WeavingResult.unchanged("com.example.Test");
+            
+            String str = result.toString();
+            assertTrue(str.contains("unchanged"));
+        }
+    }
+    
     // ==================== Helper Methods ====================
     
     private byte[] generateClassWithPrivateInjectField(String className, String fieldName, 
