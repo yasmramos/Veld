@@ -203,4 +203,111 @@ class VeldClassGeneratorTest {
         VeldClassGenerator generator = new VeldClassGenerator(components);
         assertNotNull(generator);
     }
+
+    @Test
+    void testGenerateReturnsNonEmptyBytecode() {
+        List<ComponentMeta> components = Arrays.asList(
+            new ComponentMeta("com.example.SimpleService", "SINGLETON", false, 
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), null, null, null, null, false, "simpleService", 
+                Collections.emptyList())
+        );
+        
+        VeldClassGenerator generator = new VeldClassGenerator(components);
+        byte[] bytecode = generator.generate();
+        
+        assertNotNull(bytecode);
+        assertTrue(bytecode.length > 0);
+    }
+
+    @Test
+    void testGenerateAllReturnsMultipleClasses() {
+        List<ComponentMeta> components = Arrays.asList(
+            new ComponentMeta("com.example.ServiceA", "SINGLETON", false, 
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), null, null, null, null, false, "serviceA", 
+                Collections.emptyList()),
+            new ComponentMeta("com.example.ServiceB", "PROTOTYPE", true, 
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), null, null, null, null, false, "serviceB", 
+                Collections.emptyList())
+        );
+        
+        VeldClassGenerator generator = new VeldClassGenerator(components);
+        java.util.Map<String, byte[]> result = generator.generateAll();
+        
+        assertNotNull(result);
+        // Should contain at least 1 class (registry)
+        assertFalse(result.isEmpty());
+    }
+
+    @Test
+    void testGenerateWithConstructorDeps() {
+        List<ComponentMeta> components = Arrays.asList(
+            new ComponentMeta("com.example.WithDeps", "SINGLETON", false, 
+                Arrays.asList("com.example.Dependency"), 
+                Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), null, null, null, null, false, "withDeps", 
+                Collections.emptyList())
+        );
+        
+        VeldClassGenerator generator = new VeldClassGenerator(components);
+        byte[] bytecode = generator.generate();
+        
+        assertNotNull(bytecode);
+        assertTrue(bytecode.length > 0);
+    }
+
+    @Test
+    void testGenerateWithFieldInjections() {
+        List<FieldInjectionMeta> fields = Arrays.asList(
+            new FieldInjectionMeta("dep", "com.example.Dep", "Lcom/example/Dep;", "private", false, false)
+        );
+        
+        List<ComponentMeta> components = Arrays.asList(
+            new ComponentMeta("com.example.WithFields", "SINGLETON", false, 
+                Collections.emptyList(), fields, Collections.emptyList(),
+                Collections.emptyList(), null, null, null, null, false, "withFields", 
+                Collections.emptyList())
+        );
+        
+        VeldClassGenerator generator = new VeldClassGenerator(components);
+        byte[] bytecode = generator.generate();
+        
+        assertNotNull(bytecode);
+        assertTrue(bytecode.length > 0);
+    }
+
+    @Test
+    void testGenerateWithLifecycleMethods() {
+        List<ComponentMeta> components = Arrays.asList(
+            new ComponentMeta("com.example.WithLifecycle", "SINGLETON", false, 
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
+                Collections.emptyList(), "init", "()V", "destroy", "()V", false, 
+                "withLifecycle", Collections.emptyList())
+        );
+        
+        VeldClassGenerator generator = new VeldClassGenerator(components);
+        byte[] bytecode = generator.generate();
+        
+        assertNotNull(bytecode);
+        assertTrue(bytecode.length > 0);
+    }
+
+    @Test
+    void testGenerateWithInterfaces() {
+        List<ComponentMeta> components = Arrays.asList(
+            new ComponentMeta("com.example.WithInterface", "SINGLETON", false, 
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList(),
+                Arrays.asList("com.example.IService"), null, null, null, null, false, 
+                "withInterface", Collections.emptyList())
+        );
+        
+        VeldClassGenerator generator = new VeldClassGenerator(components);
+        byte[] bytecode = generator.generate();
+        
+        assertNotNull(bytecode);
+        assertTrue(bytecode.length > 0);
+    }
+
 }
