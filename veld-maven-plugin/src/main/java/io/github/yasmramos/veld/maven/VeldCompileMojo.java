@@ -348,7 +348,7 @@ public class VeldCompileMojo extends AbstractMojo {
      */
     private boolean isExcluded(String path) {
         for (String excludePattern : excludes) {
-            if (SelectorUtils.matchPath(excludePattern, path, "/", true)) {
+            if (SelectorUtils.matchPath(excludePattern, path)) {
                 return true;
             }
         }
