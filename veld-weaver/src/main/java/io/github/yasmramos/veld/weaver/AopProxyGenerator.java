@@ -45,7 +45,7 @@ public class AopProxyGenerator implements Opcodes {
         Map<String, byte[]> result = new HashMap<>();
         
         for (ProxyMeta meta : proxyMetas) {
-            String proxyName = meta.targetInternal + "$AopProxy";
+            String proxyName = meta.targetInternal() + "$AopProxy";
             result.put(proxyName, generateProxy(meta));
         }
         
@@ -56,12 +56,12 @@ public class AopProxyGenerator implements Opcodes {
      * Generates a single proxy class.
      */
     private byte[] generateProxy(ProxyMeta meta) {
-        String proxyInternal = meta.targetInternal + "$AopProxy";
+        String proxyInternal = meta.targetInternal() + "$AopProxy";
         
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
         
         cw.visit(V17, ACC_PUBLIC | ACC_FINAL, proxyInternal, null, 
-                 meta.targetInternal, null);
+                 meta.targetInternal(), null);
         
         // Generate static initializer to register methods
         generateStaticInit(cw, meta, proxyInternal);
@@ -70,7 +70,7 @@ public class AopProxyGenerator implements Opcodes {
         generateConstructor(cw, meta);
         
         // Generate overridden methods
-        for (MethodMeta method : meta.methods) {
+        for (MethodMeta method : meta.methods()) {
             generateProxyMethod(cw, meta, method, proxyInternal);
             generateSuperInvoker(cw, meta, method, proxyInternal);
         }
@@ -86,9 +86,9 @@ public class AopProxyGenerator implements Opcodes {
         MethodVisitor mv = cw.visitMethod(ACC_STATIC, "<clinit>", "()V", null, null);
         mv.visitCode();
         
-        for (MethodMeta method : meta.methods) {
-            String methodKey = meta.targetInternal.replace('/', '.') + "#" + method.name + "#" + method.descriptor;
-            int arity = Type.getArgumentTypes(method.descriptor).length;
+        for (MethodMeta method : meta.methods()) {
+            String methodKey = meta.targetInternal().replace('/', '.') + "#" + method.name() + "#" + method.descriptor();
+            int arity = Type.getArgumentTypes(method.descriptor()).length;
             
             // Create MethodMetadata with appropriate invoker
             mv.visitLdcInsn(methodKey);
@@ -98,13 +98,13 @@ public class AopProxyGenerator implements Opcodes {
             mv.visitInsn(DUP);
             
             // className
-            mv.visitLdcInsn(meta.targetInternal.replace('/', '.'));
+            mv.visitLdcInsn(meta.targetInternal().replace('/', '.'));
             
             // methodName
-            mv.visitLdcInsn(method.name);
+            mv.visitLdcInsn(method.name());
             
             // parameterTypes array
-            Type[] argTypes = Type.getArgumentTypes(method.descriptor);
+            Type[] argTypes = Type.getArgumentTypes(method.descriptor());
             pushInt(mv, argTypes.length);
             mv.visitTypeInsn(ANEWARRAY, "java/lang/String");
             for (int i = 0; i < argTypes.length; i++) {
@@ -115,7 +115,7 @@ public class AopProxyGenerator implements Opcodes {
             }
             
             // returnType
-            mv.visitLdcInsn(Type.getReturnType(method.descriptor).getClassName());
+            mv.visitLdcInsn(Type.getReturnType(method.descriptor()).getClassName());
             
             // Create DirectInvoker using lambda/method reference to super call
             generateInvokerLambda(mv, meta, method, proxyInternal, arity);
@@ -147,7 +147,7 @@ public class AopProxyGenerator implements Opcodes {
         String invokerType = getInvokerType(arity);
         String invokerMethod = getInvokerMethodName(arity);
         String invokerDesc = getInvokerMethodDesc(arity);
-        String superMethod = "_super$" + method.name;
+        String superMethod = "_super$" + method.name();
         
         // Use invokedynamic to create the lambda
         org.objectweb.asm.Handle bsmHandle = new org.objectweb.asm.Handle(
@@ -158,7 +158,7 @@ public class AopProxyGenerator implements Opcodes {
             "Ljava/lang/invoke/CallSite;", false);
         
         String samDesc = "()L" + invokerType + ";";
-        String implDesc = getSuperInvokerDesc(method.descriptor, arity);
+        String implDesc = getSuperInvokerDesc(method.descriptor(), arity);
         
         mv.visitInvokeDynamicInsn("invoke", samDesc, bsmHandle,
             Type.getType(invokerDesc),
@@ -170,12 +170,12 @@ public class AopProxyGenerator implements Opcodes {
      * Generates a static method that calls super.method() - used by the invoker lambda.
      */
     private void generateSuperInvoker(ClassWriter cw, ProxyMeta meta, MethodMeta method, String proxyInternal) {
-        Type[] argTypes = Type.getArgumentTypes(method.descriptor);
-        Type returnType = Type.getReturnType(method.descriptor);
+        Type[] argTypes = Type.getArgumentTypes(method.descriptor());
+        Type returnType = Type.getReturnType(method.descriptor());
         int arity = argTypes.length;
         
-        String superMethod = "_super$" + method.name;
-        String implDesc = getSuperInvokerDesc(method.descriptor, arity);
+        String superMethod = "_super$" + method.name();
+        String implDesc = getSuperInvokerDesc(method.descriptor(), arity);
         
         MethodVisitor mv = cw.visitMethod(ACC_PRIVATE | ACC_STATIC, superMethod, implDesc, null, 
                                           new String[]{"java/lang/Throwable"});
@@ -202,7 +202,7 @@ public class AopProxyGenerator implements Opcodes {
         }
         
         // Call super.method()
-        mv.visitMethodInsn(INVOKESPECIAL, meta.targetInternal, method.name, method.descriptor, false);
+        mv.visitMethodInsn(INVOKESPECIAL, meta.targetInternal(), method.name(), method.descriptor(), false);
         
         // Box return value if needed
         box(mv, returnType);
@@ -220,7 +220,7 @@ public class AopProxyGenerator implements Opcodes {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
         mv.visitCode();
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitMethodInsn(INVOKESPECIAL, meta.targetInternal, "<init>", "()V", false);
+        mv.visitMethodInsn(INVOKESPECIAL, meta.targetInternal(), "<init>", "()V", false);
         mv.visitInsn(RETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();
@@ -230,14 +230,14 @@ public class AopProxyGenerator implements Opcodes {
      * Generates a proxy method that delegates to ProxyMethodHandler.
      */
     private void generateProxyMethod(ClassWriter cw, ProxyMeta meta, MethodMeta method, String proxyInternal) {
-        Type[] argTypes = Type.getArgumentTypes(method.descriptor);
-        Type returnType = Type.getReturnType(method.descriptor);
+        Type[] argTypes = Type.getArgumentTypes(method.descriptor());
+        Type returnType = Type.getReturnType(method.descriptor());
         
-        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, method.name, method.descriptor, null, 
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, method.name(), method.descriptor(), null, 
                                           new String[]{"java/lang/Throwable"});
         mv.visitCode();
         
-        String methodKey = meta.targetInternal.replace('/', '.') + "#" + method.name + "#" + method.descriptor;
+        String methodKey = meta.targetInternal().replace('/', '.') + "#" + method.name() + "#" + method.descriptor();
         
         // ProxyMethodHandler.invoke(this, methodKey, args)
         mv.visitVarInsn(ALOAD, 0);  // this
@@ -451,29 +451,9 @@ public class AopProxyGenerator implements Opcodes {
         }
     }
     
-    // === Data classes ===
+    // === Data classes (Java 17 records) ===
     
-    public static class ProxyMeta {
-        public final String targetInternal;
-        public final List<MethodMeta> methods;
-        public final List<String> interceptorClasses;
-        
-        public ProxyMeta(String targetInternal, List<MethodMeta> methods, List<String> interceptorClasses) {
-            this.targetInternal = targetInternal;
-            this.methods = methods;
-            this.interceptorClasses = interceptorClasses;
-        }
-    }
+    public record MethodMeta(String name, String descriptor, List<String> interceptorBindings) {}
     
-    public static class MethodMeta {
-        public final String name;
-        public final String descriptor;
-        public final List<String> interceptorBindings;
-        
-        public MethodMeta(String name, String descriptor, List<String> interceptorBindings) {
-            this.name = name;
-            this.descriptor = descriptor;
-            this.interceptorBindings = interceptorBindings;
-        }
-    }
+    public record ProxyMeta(String targetInternal, List<MethodMeta> methods, List<String> interceptorClasses) {}
 }
