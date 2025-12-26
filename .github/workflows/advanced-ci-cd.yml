@@ -192,15 +192,11 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    - name: 🔨 Build Project (required for CodeQL)
-      run: |
-        echo "🔨 Building project for CodeQL analysis..."
-        mvn clean compile -DskipGpg=true -q
-
-    - name: 🔍 CodeQL Analysis
+    - name: 🔍 CodeQL Analysis (with autobuild)
       uses: github/codeql-action/init@v4
       with:
         languages: java
+        build-mode: autobuild
 
     - name: 🔍 Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
