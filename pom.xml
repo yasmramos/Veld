@@ -69,9 +69,9 @@
     </modules>
 
     <properties>
-        <java.version>11</java.version>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
@@ -105,7 +105,7 @@
         <maven-core.version>3.9.6</maven-core.version>
         
         <!-- Release properties -->
-        <maven.compiler.release>11</maven.compiler.release>
+        <maven.compiler.release>17</maven.compiler.release>
         <skipTests>false</skipTests>
         <skipGpg>false</skipGpg>
         <gpg.keyname>${env.GPG_KEYNAME}</gpg.keyname>
