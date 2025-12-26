@@ -103,23 +103,9 @@ public class TodoBusinessService {
     }
     
     /**
-     * Statistics DTO
+     * Statistics DTO (Java 17 record)
      */
-    public static class TodoStatistics {
-        private final long total;
-        private final long completed;
-        private final long pending;
-        
-        public TodoStatistics(long total, long completed, long pending) {
-            this.total = total;
-            this.completed = completed;
-            this.pending = pending;
-        }
-        
-        public long getTotal() { return total; }
-        public long getCompleted() { return completed; }
-        public long getPending() { return pending; }
-        
+    public record TodoStatistics(long total, long completed, long pending) {
         public double getCompletionRate() {
             return total > 0 ? (double) completed / total : 0.0;
         }
