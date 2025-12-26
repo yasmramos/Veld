@@ -70,6 +70,98 @@ class LoggingInterceptorTest {
         tearDown();
     }
 
+    @Test
+    void testLogMethodWithLogArgsDisabled() throws Throwable {
+        TestInvocationContext ctx = new TestInvocationContext(
+            new AnnotatedTarget(), "noArgsLogging", new Object[]{"secret"}, "result"
+        );
+        ctx.customMethod = getAnnotatedMethod("noArgsLogging");
+
+        interceptor.logMethodCall(ctx);
+
+        String output = outputStream.toString();
+        assertTrue(output.contains("Entering"));
+        assertFalse(output.contains("secret")); // args should not be logged
+        tearDown();
+    }
+
+    @Test
+    void testLogMethodWithLogResultDisabled() throws Throwable {
+        TestInvocationContext ctx = new TestInvocationContext(
+            new AnnotatedTarget(), "noResultLogging", new Object[]{}, "secretResult"
+        );
+        ctx.customMethod = getAnnotatedMethod("noResultLogging");
+
+        interceptor.logMethodCall(ctx);
+
+        String output = outputStream.toString();
+        assertTrue(output.contains("Exiting"));
+        assertFalse(output.contains("secretResult")); // result should not be logged
+        tearDown();
+    }
+
+    @Test
+    void testLogMethodWithTimeEnabled() throws Throwable {
+        TestInvocationContext ctx = new TestInvocationContext(
+            new AnnotatedTarget(), "withTimeLogging", new Object[]{}, "result"
+        );
+        ctx.customMethod = getAnnotatedMethod("withTimeLogging");
+
+        interceptor.logMethodCall(ctx);
+
+        String output = outputStream.toString();
+        assertTrue(output.contains("took")); // time should be logged
+        assertTrue(output.contains("ms"));
+        tearDown();
+    }
+
+    @Test
+    void testLogMethodWithNullArgs() throws Throwable {
+        TestInvocationContext ctx = new TestInvocationContext(
+            this, "testMethod", new Object[]{null, null}, "result"
+        );
+
+        interceptor.logMethodCall(ctx);
+
+        String output = outputStream.toString();
+        assertTrue(output.contains("Entering"));
+        tearDown();
+    }
+
+    @Test
+    void testLogMethodWithEmptyArgs() throws Throwable {
+        TestInvocationContext ctx = new TestInvocationContext(
+            this, "testMethod", new Object[]{}, "result"
+        );
+
+        interceptor.logMethodCall(ctx);
+
+        String output = outputStream.toString();
+        assertTrue(output.contains("Entering"));
+        assertTrue(output.contains("[]"));
+        tearDown();
+    }
+
+    private Method getAnnotatedMethod(String name) {
+        try {
+            return AnnotatedTarget.class.getMethod(name);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // Target class with annotated methods for testing different configurations
+    public static class AnnotatedTarget {
+        @Logged(logArgs = false)
+        public String noArgsLogging() { return "result"; }
+
+        @Logged(logResult = false)
+        public String noResultLogging() { return "result"; }
+
+        @Logged(logTime = true)
+        public String withTimeLogging() { return "result"; }
+    }
+
     static class TestInvocationContext implements InvocationContext {
         Object target;
         String methodName;
@@ -78,6 +170,7 @@ class LoggingInterceptorTest {
         boolean proceedCalled = false;
         Throwable throwException = null;
         Map<String, Object> contextData = new HashMap<>();
+        Method customMethod = null;
 
         TestInvocationContext(Object target, String methodName, Object[] params, Object returnValue) {
             this.target = target;
@@ -95,6 +188,7 @@ class LoggingInterceptorTest {
 
         @Override public Object getTarget() { return target; }
         @Override public Method getMethod() {
+            if (customMethod != null) return customMethod;
             try {
                 return Object.class.getMethod("toString");
             } catch (NoSuchMethodException e) {
