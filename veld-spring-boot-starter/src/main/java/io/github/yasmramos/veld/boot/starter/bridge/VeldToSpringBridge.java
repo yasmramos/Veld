@@ -31,7 +31,7 @@ import java.util.Map;
 public class VeldToSpringBridge {
 
     private static final Logger logger = LoggerFactory.getLogger(VeldToSpringBridge.class);
-    private static final String VELD_CLASS = "io.github.yasmramos.veld.generated.Veld";
+    private static final String VELD_CLASS = "io.github.yasmramos.veld.Veld";
     
     private final VeldProperties properties;
     private final ApplicationContext springContext;

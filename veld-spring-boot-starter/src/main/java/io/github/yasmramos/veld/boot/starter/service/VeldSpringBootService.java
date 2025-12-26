@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class VeldSpringBootService implements InitializingBean, DisposableBean, ApplicationContextAware {
 
     private static final Logger logger = LoggerFactory.getLogger(VeldSpringBootService.class);
-    private static final String VELD_CLASS = "io.github.yasmramos.veld.generated.Veld";
+    private static final String VELD_CLASS = "io.github.yasmramos.veld.Veld";
 
     private final VeldProperties properties;
     private volatile ApplicationContext applicationContext;
