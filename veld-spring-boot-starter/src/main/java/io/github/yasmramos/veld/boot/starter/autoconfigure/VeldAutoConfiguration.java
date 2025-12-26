@@ -5,6 +5,7 @@ import io.github.yasmramos.veld.boot.starter.bridge.VeldToSpringBridge;
 import io.github.yasmramos.veld.boot.starter.config.VeldProperties;
 import io.github.yasmramos.veld.boot.starter.health.VeldHealthIndicator;
 import io.github.yasmramos.veld.boot.starter.service.VeldSpringBootService;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
