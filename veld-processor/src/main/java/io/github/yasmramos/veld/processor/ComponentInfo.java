@@ -285,4 +285,31 @@ public final class ComponentInfo {
     public void setPrimary(boolean isPrimary) {
         this.isPrimary = isPrimary;
     }
+    
+    // === AOP SUPPORT ===
+    private final List<String> aopInterceptors = new ArrayList<>();
+    
+    public void addAopInterceptor(String interceptorClass) {
+        aopInterceptors.add(interceptorClass);
+    }
+    
+    public boolean hasAopInterceptors() {
+        return !aopInterceptors.isEmpty();
+    }
+    
+    public List<String> getAopInterceptors() {
+        return aopInterceptors;
+    }
+    
+    /**
+     * Gets the dependency types from constructor injection.
+     */
+    public List<String> getDependencyTypes() {
+        if (constructorInjection == null) {
+            return List.of();
+        }
+        return constructorInjection.getDependencies().stream()
+            .map(InjectionPoint.Dependency::getTypeName)
+            .collect(Collectors.toList());
+    }
 }

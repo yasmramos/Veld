@@ -1040,8 +1040,13 @@ public class VeldProcessor extends AbstractProcessor {
             writeClassFile(registryGen.getRegistryClassName(), registryBytecode);
             note("Generated VeldRegistry with " + discoveredComponents.size() + " components");
             
-            // Write metadata for weaver to generate Veld.class
-            // The weaver will generate Veld.class AFTER adding synthetic setters
+            // Generate Veld.java source with typed getters and AOP support
+            String packageName = "io.github.yasmramos.veld.generated";
+            VeldClassGenerator veldGen = new VeldClassGenerator(packageName, discoveredComponents);
+            writeJavaSource(veldGen.getClassName(), veldGen.generate());
+            note("Generated Veld.java with " + discoveredComponents.size() + " typed getters");
+            
+            // Write metadata for weaver
             writeComponentMetadata();
             note("Wrote component metadata for weaver (" + discoveredComponents.size() + " components)");
         } catch (IOException e) {
