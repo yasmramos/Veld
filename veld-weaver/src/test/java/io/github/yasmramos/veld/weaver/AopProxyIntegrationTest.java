@@ -150,7 +150,7 @@ class AopProxyIntegrationTest {
         // Then: verify AOP fields are set correctly
         assertTrue(compMeta.needsAopProxy);
         assertEquals(1, compMeta.aopMethods.size());
-        assertEquals("execute", compMeta.aopMethods.get(0).name);
+        assertEquals("execute", compMeta.aopMethods.get(0).name());
         assertEquals(1, compMeta.interceptorClasses.size());
     }
 

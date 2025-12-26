@@ -55,12 +55,12 @@ class VeldClassGeneratorTest {
         ComponentMeta meta = ComponentMeta.parse(line);
         
         assertEquals(2, meta.fieldInjections.size());
-        assertEquals("field1", meta.fieldInjections.get(0).name);
-        assertEquals("com.Dep1", meta.fieldInjections.get(0).depType);
-        assertFalse(meta.fieldInjections.get(0).isOptional);
+        assertEquals("field1", meta.fieldInjections.get(0).name());
+        assertEquals("com.Dep1", meta.fieldInjections.get(0).depType());
+        assertFalse(meta.fieldInjections.get(0).isOptional());
         
-        assertEquals("field2", meta.fieldInjections.get(1).name);
-        assertTrue(meta.fieldInjections.get(1).isOptional);
+        assertEquals("field2", meta.fieldInjections.get(1).name());
+        assertTrue(meta.fieldInjections.get(1).isOptional());
     }
 
     @Test
@@ -70,8 +70,8 @@ class VeldClassGeneratorTest {
         ComponentMeta meta = ComponentMeta.parse(line);
         
         assertEquals(1, meta.methodInjections.size());
-        assertEquals("setDep", meta.methodInjections.get(0).name);
-        assertEquals("(Lcom/Dep;)V", meta.methodInjections.get(0).descriptor);
+        assertEquals("setDep", meta.methodInjections.get(0).name());
+        assertEquals("(Lcom/Dep;)V", meta.methodInjections.get(0).descriptor());
     }
 
     @Test
@@ -127,20 +127,20 @@ class VeldClassGeneratorTest {
     void testFieldInjectionMeta() {
         FieldInjectionMeta field = new FieldInjectionMeta("myField", "com.example.Type", "Lcom/example/Type;", "private", true, false);
         
-        assertEquals("myField", field.name);
-        assertEquals("com.example.Type", field.depType);
-        assertEquals("Lcom/example/Type;", field.descriptor);
-        assertEquals("private", field.visibility);
-        assertTrue(field.isOptional);
-        assertFalse(field.isProvider);
+        assertEquals("myField", field.name());
+        assertEquals("com.example.Type", field.depType());
+        assertEquals("Lcom/example/Type;", field.descriptor());
+        assertEquals("private", field.visibility());
+        assertTrue(field.isOptional());
+        assertFalse(field.isProvider());
     }
 
     @Test
     void testFieldInjectionMetaWithProvider() {
         FieldInjectionMeta field = new FieldInjectionMeta("providerField", "com.example.Type", "Lcom/example/Provider;", "private", false, true);
         
-        assertFalse(field.isOptional);
-        assertTrue(field.isProvider);
+        assertFalse(field.isOptional());
+        assertTrue(field.isProvider());
     }
 
     @Test
@@ -148,9 +148,9 @@ class VeldClassGeneratorTest {
         List<String> deps = Arrays.asList("com.Dep1", "com.Dep2");
         MethodInjectionMeta method = new MethodInjectionMeta("setServices", "(Lcom/Dep1;Lcom/Dep2;)V", deps);
         
-        assertEquals("setServices", method.name);
-        assertEquals("(Lcom/Dep1;Lcom/Dep2;)V", method.descriptor);
-        assertEquals(2, method.depTypes.size());
+        assertEquals("setServices", method.name());
+        assertEquals("(Lcom/Dep1;Lcom/Dep2;)V", method.descriptor());
+        assertEquals(2, method.depTypes().size());
     }
 
     @Test

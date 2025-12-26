@@ -82,7 +82,7 @@ public class VeldClassGenerator implements Opcodes {
             if (comp.needsAopProxy && !comp.aopMethods.isEmpty()) {
                 List<AopProxyGenerator.MethodMeta> methods = new ArrayList<>();
                 for (AopMethodMeta m : comp.aopMethods) {
-                    methods.add(new AopProxyGenerator.MethodMeta(m.name, m.descriptor, m.interceptorBindings));
+                    methods.add(new AopProxyGenerator.MethodMeta(m.name(), m.descriptor(), m.interceptorBindings()));
                 }
                 aopProxies.add(new AopProxyGenerator.ProxyMeta(
                     comp.internalName, methods, comp.interceptorClasses));
@@ -210,40 +210,40 @@ public class VeldClassGenerator implements Opcodes {
                 mv.visitFieldInsn(GETSTATIC, VELD_CLASS, fieldName, fieldType);
                 
                 // Check if this is a @Value field (primitive or String types)
-                if (isPrimitiveOrValueType(field.descriptor)) {
+                if (isPrimitiveOrValueType(field.descriptor())) {
                     // Use ValueResolver to get the value
                     loadValueFromResolver(mv, field);
-                } else if (field.isOptional) {
+                } else if (field.isOptional()) {
                     // Optional<T> injection - wrap in Optional.of() or Optional.empty()
-                    loadOptionalDependency(mv, field.depType);
+                    loadOptionalDependency(mv, field.depType());
                 } else {
-                    loadDependency(mv, field.depType);
+                    loadDependency(mv, field.depType());
                 }
                 
-                if (!"PUBLIC".equals(field.visibility)) {
-                    String setterName = SYNTHETIC_SETTER_PREFIX + field.name;
-                    String setterDesc = "(" + field.descriptor + ")V";
+                if (!"PUBLIC".equals(field.visibility())) {
+                    String setterName = SYNTHETIC_SETTER_PREFIX + field.name();
+                    String setterDesc = "(" + field.descriptor() + ")V";
                     mv.visitMethodInsn(INVOKEVIRTUAL, comp.internalName, setterName, setterDesc, false);
                 } else {
-                    mv.visitFieldInsn(PUTFIELD, comp.internalName, field.name, field.descriptor);
+                    mv.visitFieldInsn(PUTFIELD, comp.internalName, field.name(), field.descriptor());
                 }
             }
             
             // Method injections
             for (MethodInjectionMeta method : comp.methodInjections) {
-                if (method.descriptor == null || method.descriptor.isEmpty()) {
+                if (method.descriptor() == null || method.descriptor().isEmpty()) {
                     continue; // Skip invalid method injections
                 }
                 // Validate descriptor format
-                if (!method.descriptor.startsWith("(") || !method.descriptor.contains(")")) {
-                    System.err.println("WARNING: Invalid method descriptor for " + comp.className + "." + method.name + ": " + method.descriptor);
+                if (!method.descriptor().startsWith("(") || !method.descriptor().contains(")")) {
+                    System.err.println("WARNING: Invalid method descriptor for " + comp.className + "." + method.name() + ": " + method.descriptor());
                     continue;
                 }
                 mv.visitFieldInsn(GETSTATIC, VELD_CLASS, fieldName, fieldType);
-                for (String depType : method.depTypes) {
+                for (String depType : method.depTypes()) {
                     loadDependency(mv, depType);
                 }
-                mv.visitMethodInsn(INVOKEVIRTUAL, comp.internalName, method.name, method.descriptor, false);
+                mv.visitMethodInsn(INVOKEVIRTUAL, comp.internalName, method.name(), method.descriptor(), false);
             }
             
             // EventBus registration (if has @Subscribe methods)
@@ -537,7 +537,7 @@ public class VeldClassGenerator implements Opcodes {
         // For now, we'll use a placeholder value expression
         // In a real implementation, we'd need to store the actual @Value expression
         // from the annotation processing and use it here
-        mv.visitLdcInsn("${" + field.name + "}"); // placeholder - would be actual expression
+        mv.visitLdcInsn("${" + field.name() + "}"); // placeholder - would be actual expression
         
         // Call resolve method (we'll need to extend this to support type conversion)
         mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/value/ValueResolver", 
@@ -780,14 +780,14 @@ public class VeldClassGenerator implements Opcodes {
         }
         
         for (FieldInjectionMeta field : comp.fieldInjections) {
-            ComponentMeta depComp = byType.get(field.depType.replace('.', '/'));
+            ComponentMeta depComp = byType.get(field.depType().replace('.', '/'));
             if (depComp != null && "SINGLETON".equals(depComp.scope)) {
                 visit(depComp, byType, visited, visiting, result);
             }
         }
         
         for (MethodInjectionMeta method : comp.methodInjections) {
-            for (String dep : method.depTypes) {
+            for (String dep : method.depTypes()) {
                 ComponentMeta depComp = byType.get(dep.replace('.', '/'));
                 if (depComp != null && "SINGLETON".equals(depComp.scope)) {
                     visit(depComp, byType, visited, visiting, result);
@@ -859,31 +859,31 @@ public class VeldClassGenerator implements Opcodes {
             mv.visitVarInsn(ALOAD, 0);
             
             // Check if this is a @Value field (primitive or String types)
-            if (isPrimitiveOrValueType(field.descriptor)) {
+            if (isPrimitiveOrValueType(field.descriptor())) {
                 // Use ValueResolver to get the value
                 loadValueFromResolver(mv, field);
-            } else if (field.isOptional) {
+            } else if (field.isOptional()) {
                 // Optional<T> injection - wrap in Optional.of() or Optional.empty()
-                loadOptionalDependency(mv, field.depType);
+                loadOptionalDependency(mv, field.depType());
             } else {
-                loadDependency(mv, field.depType);
+                loadDependency(mv, field.depType());
             }
             
-            if (!"PUBLIC".equals(field.visibility)) {
-                String setterName = SYNTHETIC_SETTER_PREFIX + field.name;
-                String setterDesc = "(" + field.descriptor + ")V";
+            if (!"PUBLIC".equals(field.visibility())) {
+                String setterName = SYNTHETIC_SETTER_PREFIX + field.name();
+                String setterDesc = "(" + field.descriptor() + ")V";
                 mv.visitMethodInsn(INVOKEVIRTUAL, comp.internalName, setterName, setterDesc, false);
             } else {
-                mv.visitFieldInsn(PUTFIELD, comp.internalName, field.name, field.descriptor);
+                mv.visitFieldInsn(PUTFIELD, comp.internalName, field.name(), field.descriptor());
             }
         }
         
         for (MethodInjectionMeta method : comp.methodInjections) {
             mv.visitVarInsn(ALOAD, 0);
-            for (String depType : method.depTypes) {
+            for (String depType : method.depTypes()) {
                 loadDependency(mv, depType);
             }
-            mv.visitMethodInsn(INVOKEVIRTUAL, comp.internalName, method.name, method.descriptor, false);
+            mv.visitMethodInsn(INVOKEVIRTUAL, comp.internalName, method.name(), method.descriptor(), false);
         }
         
         // EventBus registration (if has @Subscribe methods)
@@ -1729,46 +1729,11 @@ public class VeldClassGenerator implements Opcodes {
         }
     }
     
-    public static class AopMethodMeta {
-        public final String name;
-        public final String descriptor;
-        public final List<String> interceptorBindings;
-        
-        public AopMethodMeta(String name, String descriptor, List<String> interceptorBindings) {
-            this.name = name;
-            this.descriptor = descriptor;
-            this.interceptorBindings = interceptorBindings;
-        }
-    }
+    // Java 17 records for injection metadata
+    public record AopMethodMeta(String name, String descriptor, List<String> interceptorBindings) {}
     
-    public static class FieldInjectionMeta {
-        public final String name;
-        public final String depType;      // actualType (the real type, not wrapper)
-        public final String descriptor;
-        public final String visibility;
-        public final boolean isOptional;  // true if Optional<T>
-        public final boolean isProvider;  // true if Provider<T>
-        
-        public FieldInjectionMeta(String name, String depType, String descriptor, String visibility,
-                                  boolean isOptional, boolean isProvider) {
-            this.name = name;
-            this.depType = depType;
-            this.descriptor = descriptor;
-            this.visibility = visibility;
-            this.isOptional = isOptional;
-            this.isProvider = isProvider;
-        }
-    }
+    /** Field injection metadata. depType is the actual type (not wrapper), isOptional/isProvider for Optional<T>/Provider<T> */
+    public record FieldInjectionMeta(String name, String depType, String descriptor, String visibility, boolean isOptional, boolean isProvider) {}
     
-    public static class MethodInjectionMeta {
-        public final String name;
-        public final String descriptor;
-        public final List<String> depTypes;
-        
-        public MethodInjectionMeta(String name, String descriptor, List<String> depTypes) {
-            this.name = name;
-            this.descriptor = descriptor;
-            this.depTypes = depTypes;
-        }
-    }
+    public record MethodInjectionMeta(String name, String descriptor, List<String> depTypes) {}
 }
