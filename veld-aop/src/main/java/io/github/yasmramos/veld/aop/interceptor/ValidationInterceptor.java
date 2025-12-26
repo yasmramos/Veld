@@ -70,20 +70,14 @@ public class ValidationInterceptor {
                 continue;
             }
 
-            // Check empty strings
-            if (paramValue instanceof String) {
-                String strValue = (String) paramValue;
-                if (strValue.isEmpty() && hasNotEmptyAnnotation(paramDef)) {
-                    violations.add(String.format("Parameter '%s' cannot be empty", paramName));
-                }
+            // Check empty strings (Java 17 pattern matching)
+            if (paramValue instanceof String strValue && strValue.isEmpty() && hasNotEmptyAnnotation(paramDef)) {
+                violations.add(String.format("Parameter '%s' cannot be empty", paramName));
             }
 
-            // Check empty collections
-            if (paramValue instanceof Collection) {
-                Collection<?> collValue = (Collection<?>) paramValue;
-                if (collValue.isEmpty() && hasNotEmptyAnnotation(paramDef)) {
-                    violations.add(String.format("Parameter '%s' cannot be empty", paramName));
-                }
+            // Check empty collections (Java 17 pattern matching)
+            if (paramValue instanceof Collection<?> collValue && collValue.isEmpty() && hasNotEmptyAnnotation(paramDef)) {
+                violations.add(String.format("Parameter '%s' cannot be empty", paramName));
             }
         }
 

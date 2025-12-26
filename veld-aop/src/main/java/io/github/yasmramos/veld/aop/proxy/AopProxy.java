@@ -57,9 +57,6 @@ public interface AopProxy {
      * @return the target object, or the object itself if not a proxy
      */
     static Object unwrap(Object obj) {
-        if (obj instanceof AopProxy) {
-            return ((AopProxy) obj).getTargetObject();
-        }
-        return obj;
+        return obj instanceof AopProxy proxy ? proxy.getTargetObject() : obj;
     }
 }
