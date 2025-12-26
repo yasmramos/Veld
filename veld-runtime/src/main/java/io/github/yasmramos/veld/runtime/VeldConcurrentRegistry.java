@@ -1,17 +1,13 @@
 package io.github.yasmramos.veld.runtime;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
-import java.lang.ref.SoftReference;
-import java.util.concurrent.atomic.AtomicReferenceArray;
-import java.util.concurrent.atomic.AtomicInteger;
+
 
 /**
  * Ultra-optimized high-performance concurrent component registry.
  * 
  * CRITICAL OPTIMIZATIONS IMPLEMENTED:
  * A. HASH COLLISION MITIGATION: Double hashing to prevent clustering
- * B. THREAD-LOCAL MEMORY LEAK PREVENTION: SoftReference + periodic cleanup  
+ * B. THREAD-LOCAL: Direct ThreadLocal for zero-contention access
  * C. DYNAMIC RESIZE: Load factor management with auto-adjustment
  * D. VARHANDLE OPTIMIZATION: Conditional acquire based on context
  * 
@@ -31,17 +27,12 @@ public final class VeldConcurrentRegistry {
     private static final double TARGET_LOAD_FACTOR = 0.65; // Conservative load factor
     private static final double RESIZE_LOAD_FACTOR = 0.70; // Resize trigger
     
-    // === THREAD-LOCAL CACHE (With memory leak prevention) ===
+    // === THREAD-LOCAL CACHE (Zero-contention, lock-free) ===
     private static final int TL_CACHE_SIZE = 8;
-    private static final int TL_CACHE_MASK = TL_CACHE_SIZE - 1;
-    private static final int CLEANUP_FREQUENCY = 1000; // Cleanup every 1000 ops
     
-    // SoftReference-based cache with auto-cleanup (prevents memory leaks)
-    private static final ThreadLocal<SoftReference<LRUCache>> tlCache = 
-        ThreadLocal.withInitial(() -> new SoftReference<>(new LRUCache(TL_CACHE_SIZE)));
-    
-    // Operation counter for periodic cleanup
-    private static final AtomicInteger opCounter = new AtomicInteger(0);
+    // Direct ThreadLocal without SoftReference for minimal overhead in hot path
+    private static final ThreadLocal<LRUCache> tlCache = 
+        ThreadLocal.withInitial(() -> new LRUCache(TL_CACHE_SIZE));
     
     public VeldConcurrentRegistry(int expectedSize) {
         // Size to next power of 2, targeting 65% load factor for better performance
@@ -65,29 +56,27 @@ public final class VeldConcurrentRegistry {
     }
     
     /**
-     * Get component with thread-local caching and leak prevention.
+     * Get component with thread-local caching - ZERO CONTENTION.
      * Hot path: ~2ns (TL cache hit)
      * Warm path: ~8ns (hash table hit with double hashing)
+     * 
+     * CRITICAL: No global atomic operations in hot path for linear scaling.
      */
     @SuppressWarnings("unchecked")
     public <T> T get(Class<T> type) {
-        // 1. Check thread-local cache (zero contention, leak-free)
-        LRUCache cache = getCache();
-        if (cache != null) {
-            T cached = cache.get(type);
-            if (cached != null) {
-                incrementOpCounter();
-                return cached;
-            }
+        // 1. Check thread-local cache (zero contention)
+        LRUCache cache = tlCache.get();
+        T cached = cache.get(type);
+        if (cached != null) {
+            return cached;
         }
         
         // 2. Hash table lookup with double hashing (prevents clustering)
         T result = getFromTableOptimized(type);
         
-        // 3. Update TL cache (auto-cleanup)
-        if (result != null && cache != null) {
+        // 3. Update TL cache
+        if (result != null) {
             cache.put(type, result);
-            incrementOpCounter();
         }
         
         return result;
@@ -185,34 +174,7 @@ public final class VeldConcurrentRegistry {
         }
     }
     
-    /**
-     * Thread-local cache management with leak prevention.
-     */
-    private LRUCache getCache() {
-        SoftReference<LRUCache> ref = tlCache.get();
-        LRUCache cache = ref.get();
-        
-        if (cache == null) {
-            // Cache was GC'd, create new one
-            cache = new LRUCache(TL_CACHE_SIZE);
-            tlCache.set(new SoftReference<>(cache));
-        }
-        
-        return cache;
-    }
-    
-    private void incrementOpCounter() {
-        int count = opCounter.incrementAndGet();
-        if (count % CLEANUP_FREQUENCY == 0) {
-            cleanupThreadLocal();
-        }
-    }
-    
-    private static void cleanupThreadLocal() {
-        // Periodic cleanup to prevent thread-local accumulation
-        tlCache.remove();
-        tlCache.set(new SoftReference<>(new LRUCache(TL_CACHE_SIZE)));
-    }
+
     
     private static int tableSizeFor(int cap) {
         int n = cap - 1;
@@ -246,8 +208,7 @@ public final class VeldConcurrentRegistry {
      * Force cleanup of all thread-local data.
      */
     public static void forceCleanup() {
-        cleanupThreadLocal();
-        opCounter.set(0);
+        tlCache.remove();
     }
     
     /**
