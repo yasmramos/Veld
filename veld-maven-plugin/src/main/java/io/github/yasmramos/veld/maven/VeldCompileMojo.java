@@ -58,11 +58,7 @@ public class VeldCompileMojo extends AbstractMojo {
     @Parameter
     private List<String> compilerArgs;
 
-    /**
-     * List of exclusion patterns to skip during Veld processing.
-     * Supports Ant-style patterns like "com/example/**/*.class" or "**/test/**".
-     * Patterns are matched against the relative path from source root to the class file.
-     */
+    /* List of exclusion patterns to skip during Veld processing. */
     @Parameter
     private List<String> excludes;
 
