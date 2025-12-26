@@ -16,16 +16,16 @@
 package io.github.yasmramos.veld.aop.proxy;
 
 import io.github.yasmramos.veld.aop.InterceptorRegistry;
-import io.github.yasmramos.veld.aop.InvocationContext;
 import io.github.yasmramos.veld.aop.MethodInterceptor;
-import io.github.yasmramos.veld.aop.MethodInvocation;
 
 import org.objectweb.asm.*;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,10 +34,15 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.objectweb.asm.Opcodes.*;
 
 /**
- * Factory for creating AOP proxy classes using ASM bytecode generation.
+ * Factory for creating AOP proxy classes using optimized ASM bytecode generation.
  *
- * <p>Generates subclass proxies that intercept method calls and delegate
- * to the interceptor chain.
+ * <p>Generates subclass proxies with fast-path/slow-path optimization:
+ * <ul>
+ *   <li>Fast-path: direct method call when no interceptors present</li>
+ *   <li>Slow-path: interceptor chain invocation when interceptors exist</li>
+ *   <li>Pre-computed MethodHandles for optimal performance</li>
+ *   <li>GraalVM Native Image compatible</li>
+ * </ul>
  *
  * @author Veld Framework Team
  * @since 1.0.0-alpha.5
@@ -47,8 +52,10 @@ public class ProxyFactory {
     private static final ProxyFactory INSTANCE = new ProxyFactory();
     private static final AtomicLong PROXY_COUNTER = new AtomicLong(0);
     private static final String PROXY_SUFFIX = "$$VeldProxy$$";
+    private static final String TARGET_FIELD = "$$target$$";
+    private static final String INTERCEPTORS_FIELD = "$$interceptors$$";
 
-    private final Map<Class<?>, Class<?>> proxyCache = new ConcurrentHashMap<>();
+    private final Map<Class<?>, ProxyClassInfo> proxyCache = new ConcurrentHashMap<>();
     private final ProxyClassLoader classLoader = new ProxyClassLoader();
 
     private ProxyFactory() {}
@@ -72,16 +79,21 @@ public class ProxyFactory {
     @SuppressWarnings("unchecked")
     public <T> T createProxy(T target) {
         Class<?> targetClass = target.getClass();
-        
+
         // Check if we need a proxy
         if (!InterceptorRegistry.getInstance().hasAdvicesFor(targetClass)) {
             return target; // No advices, return original
         }
 
         try {
-            Class<?> proxyClass = getOrCreateProxyClass(targetClass);
-            Constructor<?> constructor = proxyClass.getConstructor(targetClass);
-            return (T) constructor.newInstance(target);
+            ProxyClassInfo proxyInfo = getOrCreateProxyClass(targetClass);
+            Constructor<?> constructor = proxyInfo.proxyClass.getConstructor(targetClass);
+            T proxy = (T) constructor.newInstance(target);
+
+            // Set interceptors into the proxy instance
+            proxyInfo.setInterceptors(proxy);
+
+            return proxy;
         } catch (Exception e) {
             throw new RuntimeException("Failed to create proxy for " + targetClass.getName(), e);
         }
@@ -104,14 +116,14 @@ public class ProxyFactory {
         }
     }
 
-    private Class<?> getOrCreateProxyClass(Class<?> targetClass) {
+    private ProxyClassInfo getOrCreateProxyClass(Class<?> targetClass) {
         return proxyCache.computeIfAbsent(targetClass, this::generateProxyClass);
     }
 
     /**
-     * Generates a proxy class using ASM.
+     * Generates a proxy class using ASM with optimized bytecode.
      */
-    private Class<?> generateProxyClass(Class<?> targetClass) {
+    private ProxyClassInfo generateProxyClass(Class<?> targetClass) {
         String targetInternalName = Type.getInternalName(targetClass);
         String proxyClassName = targetClass.getName() + PROXY_SUFFIX + PROXY_COUNTER.incrementAndGet();
         String proxyInternalName = proxyClassName.replace('.', '/');
@@ -119,15 +131,19 @@ public class ProxyFactory {
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
 
         // Define the proxy class
-        cw.visit(V11, ACC_PUBLIC | ACC_SUPER,
+        cw.visit(V17, ACC_PUBLIC | ACC_SUPER,
                 proxyInternalName,
                 null,
                 targetInternalName,
                 new String[]{Type.getInternalName(AopProxy.class)});
 
-        // Add field for target
-        cw.visitField(ACC_PRIVATE | ACC_FINAL, "$$target$$", 
+        // Add target field
+        cw.visitField(ACC_PRIVATE | ACC_FINAL, TARGET_FIELD,
                 Type.getDescriptor(targetClass), null, null).visitEnd();
+
+        // Add interceptors field
+        cw.visitField(ACC_PRIVATE | ACC_FINAL, INTERCEPTORS_FIELD,
+                "[Ljava/lang/invoke/MethodHandle;", null, null).visitEnd();
 
         // Generate constructor
         generateConstructor(cw, targetClass, proxyInternalName, targetInternalName);
@@ -135,47 +151,202 @@ public class ProxyFactory {
         // Generate AopProxy interface methods
         generateAopProxyMethods(cw, targetClass, proxyInternalName);
 
-        // Generate proxy methods for all public methods
-        for (Method method : targetClass.getMethods()) {
-            if (shouldProxy(method)) {
-                generateProxyMethod(cw, method, proxyInternalName, targetInternalName);
-            }
+        // Generate optimized proxy methods
+        List<Method> proxiedMethods = collectProxiedMethods(targetClass);
+        for (int i = 0; i < proxiedMethods.size(); i++) {
+            Method method = proxiedMethods.get(i);
+            generateOptimizedProxyMethod(cw, method, targetClass, proxyInternalName, targetInternalName, i);
         }
 
         cw.visitEnd();
         byte[] bytecode = cw.toByteArray();
 
-        // Debug: Print bytecode info
-        System.out.println("[AOP] Generated proxy class: " + proxyClassName + 
-                " (" + bytecode.length + " bytes)");
+        Class<?> proxyClass = classLoader.defineClass(proxyClassName, bytecode);
+        List<MethodHandle> methodHandles = buildMethodHandles(targetClass, proxiedMethods);
 
-        return classLoader.defineClass(proxyClassName, bytecode);
+        return new ProxyClassInfo(proxyClass, methodHandles, proxiedMethods);
     }
 
+    /**
+     * Collects all methods that should be proxied.
+     */
+    private List<Method> collectProxiedMethods(Class<?> targetClass) {
+        List<Method> methods = new ArrayList<>();
+        for (Method method : targetClass.getMethods()) {
+            if (shouldProxy(method)) {
+                methods.add(method);
+            }
+        }
+        return methods;
+    }
+
+    /**
+     * Determines whether a method should be proxied.
+     */
+    private boolean shouldProxy(Method method) {
+        int mods = method.getModifiers();
+
+        // Skip static, final, private methods
+        if (Modifier.isStatic(mods) || Modifier.isFinal(mods) || Modifier.isPrivate(mods)) {
+            return false;
+        }
+
+        // Skip Object methods (except toString, equals, hashCode)
+        if (method.getDeclaringClass() == Object.class) {
+            String name = method.getName();
+            return "toString".equals(name) || "equals".equals(name) || "hashCode".equals(name);
+        }
+
+        // Skip synthetic and bridge methods
+        if (method.isSynthetic() || method.isBridge()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Generates the constructor for the proxy class.
+     */
     private void generateConstructor(ClassWriter cw, Class<?> targetClass,
                                       String proxyInternalName, String targetInternalName) {
         String targetDescriptor = Type.getDescriptor(targetClass);
-        
-        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "<init>",
-                "(" + targetDescriptor + ")V", null, null);
+
+        Constructor<?>[] constructors = targetClass.getDeclaredConstructors();
+        Constructor<?> targetConstructor = findCompatibleConstructor(constructors);
+        String constructorDesc = Type.getConstructorDescriptor(targetConstructor);
+
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "<init>", constructorDesc, null, null);
         mv.visitCode();
 
         // Call super()
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitMethodInsn(INVOKESPECIAL, targetInternalName, "<init>", "()V", false);
+        loadConstructorArgs(mv, targetConstructor, 1);
+        mv.visitMethodInsn(INVOKESPECIAL, targetInternalName, "<init>", constructorDesc, false);
 
-        // Store target
+        // Initialize target field
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitVarInsn(ALOAD, 1);
-        mv.visitFieldInsn(PUTFIELD, proxyInternalName, "$$target$$", targetDescriptor);
+        mv.visitInsn(ACONST_NULL);
+        mv.visitFieldInsn(PUTFIELD, proxyInternalName, TARGET_FIELD, targetDescriptor);
+
+        // Initialize interceptors field
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitInsn(ACONST_NULL);
+        mv.visitFieldInsn(PUTFIELD, proxyInternalName, INTERCEPTORS_FIELD, "[Ljava/lang/invoke/MethodHandle;");
 
         mv.visitInsn(RETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();
     }
 
-    private void generateAopProxyMethods(ClassWriter cw, Class<?> targetClass,
-                                          String proxyInternalName) {
+    /**
+     * Finds a constructor compatible with proxy instantiation.
+     */
+    private Constructor<?> findCompatibleConstructor(Constructor<?>[] constructors) {
+        for (Constructor<?> c : constructors) {
+            if (c.getParameterCount() == 0) {
+                return c;
+            }
+        }
+        return constructors[0];
+    }
+
+    /**
+     * Loads constructor arguments onto the stack.
+     */
+    private void loadConstructorArgs(MethodVisitor mv, Constructor<?> constructor, int startLocal) {
+        Class<?>[] paramTypes = constructor.getParameterTypes();
+        int localIndex = startLocal;
+
+        for (Class<?> paramType : paramTypes) {
+            loadType(mv, paramType, localIndex);
+            localIndex += getSlotSize(paramType);
+        }
+    }
+
+    /**
+     * Generates an optimized proxy method with fast-path/slow-path.
+     */
+    private void generateOptimizedProxyMethod(ClassWriter cw, Method method,
+                                                Class<?> targetClass, String proxyInternalName,
+                                                String targetInternalName, int methodIndex) {
+        String methodDescriptor = Type.getMethodDescriptor(method);
+        String[] exceptions = generateExceptionArray(method);
+        Class<?> returnType = method.getReturnType();
+        Class<?>[] paramTypes = method.getParameterTypes();
+
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, method.getName(),
+                methodDescriptor, null, exceptions);
+        mv.visitCode();
+
+        // Load this reference
+        mv.visitVarInsn(ALOAD, 0);
+
+        // Check if interceptors array is null (no interceptors case)
+        Label noInterceptors = new Label();
+        mv.visitFieldInsn(GETFIELD, proxyInternalName, INTERCEPTORS_FIELD, "[Ljava/lang/invoke/MethodHandle;");
+        mv.visitInsn(ACONST_NULL);
+        mv.visitJumpInsn(IF_ACMPNE, noInterceptors);
+
+        // Fast-path: no interceptors, call target directly
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitFieldInsn(GETFIELD, proxyInternalName, TARGET_FIELD, Type.getDescriptor(targetClass));
+
+        // Load arguments directly
+        int localIndex = 1;
+        for (Class<?> paramType : paramTypes) {
+            loadType(mv, paramType, localIndex);
+            localIndex += getSlotSize(paramType);
+        }
+
+        mv.visitMethodInsn(INVOKEVIRTUAL, targetInternalName, method.getName(), methodDescriptor, false);
+
+        // Handle return
+        generateReturn(mv, returnType);
+        Label endLabel = new Label();
+        mv.visitJumpInsn(GOTO, endLabel);
+
+        // Slow-path: call interceptor chain
+        mv.visitLabel(noInterceptors);
+
+        // Prepare arguments array
+        mv.visitIntInsn(BIPUSH, paramTypes.length);
+        mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
+
+        localIndex = 1;
+        for (int i = 0; i < paramTypes.length; i++) {
+            mv.visitInsn(DUP);
+            mv.visitIntInsn(BIPUSH, i);
+            boxAndStore(mv, paramTypes[i], localIndex);
+            mv.visitInsn(AASTORE);
+            localIndex += getSlotSize(paramTypes[i]);
+        }
+
+        // Call optimized handler with method index
+        mv.visitIntInsn(BIPUSH, methodIndex);
+        mv.visitMethodInsn(INVOKESTATIC,
+                Type.getInternalName(ProxyMethodHandler.class),
+                "invokeOptimized",
+                "(ILjava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;",
+                false);
+
+        // Unbox return value
+        if (returnType != void.class) {
+            unboxAndReturn(mv, returnType);
+        } else {
+            mv.visitInsn(POP);
+            mv.visitInsn(RETURN);
+        }
+
+        mv.visitLabel(endLabel);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+
+    /**
+     * Generates AopProxy interface methods.
+     */
+    private void generateAopProxyMethods(ClassWriter cw, Class<?> targetClass, String proxyInternalName) {
         String targetDescriptor = Type.getDescriptor(targetClass);
 
         // getTargetObject()
@@ -183,7 +354,7 @@ public class ProxyFactory {
                 "()Ljava/lang/Object;", null, null);
         mv.visitCode();
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitFieldInsn(GETFIELD, proxyInternalName, "$$target$$", targetDescriptor);
+        mv.visitFieldInsn(GETFIELD, proxyInternalName, TARGET_FIELD, targetDescriptor);
         mv.visitInsn(ARETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();
@@ -198,185 +369,187 @@ public class ProxyFactory {
         mv.visitEnd();
     }
 
-    private void generateProxyMethod(ClassWriter cw, Method method,
-                                      String proxyInternalName, String targetInternalName) {
-        String methodDescriptor = Type.getMethodDescriptor(method);
-        String[] exceptions = new String[method.getExceptionTypes().length];
-        for (int i = 0; i < exceptions.length; i++) {
-            exceptions[i] = Type.getInternalName(method.getExceptionTypes()[i]);
+    /**
+     * Builds MethodHandles for all proxied methods at generation time.
+     */
+    private List<MethodHandle> buildMethodHandles(Class<?> targetClass, List<Method> methods) {
+        List<MethodHandle> handles = new ArrayList<>(methods.size());
+        MethodHandles.Lookup lookup = MethodHandles.lookup();
+
+        for (Method method : methods) {
+            try {
+                MethodHandle handle = lookup.unreflect(method);
+                handles.add(handle.asType(handle.type().changeParameterType(0, Object.class)));
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException("Failed to create MethodHandle for " + method, e);
+            }
         }
 
-        MethodVisitor mv = cw.visitMethod(
-                ACC_PUBLIC,
-                method.getName(),
-                methodDescriptor,
-                null,
-                exceptions);
-        mv.visitCode();
-
-        // Generate code that invokes ProxyMethodHandler.invoke()
-        // This is the runtime delegation point
-
-        // Load this (proxy)
-        mv.visitVarInsn(ALOAD, 0);
-        
-        // Load target field
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitFieldInsn(GETFIELD, proxyInternalName, "$$target$$",
-                Type.getDescriptor(method.getDeclaringClass()));
-
-        // Load method name
-        mv.visitLdcInsn(method.getName());
-
-        // Load method descriptor
-        mv.visitLdcInsn(methodDescriptor);
-
-        // Create args array
-        Class<?>[] paramTypes = method.getParameterTypes();
-        mv.visitIntInsn(BIPUSH, paramTypes.length);
-        mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
-
-        int localIndex = 1;
-        for (int i = 0; i < paramTypes.length; i++) {
-            mv.visitInsn(DUP);
-            mv.visitIntInsn(BIPUSH, i);
-            localIndex = loadAndBox(mv, paramTypes[i], localIndex);
-            mv.visitInsn(AASTORE);
-        }
-
-        // Call ProxyMethodHandler.invoke(target, methodName, descriptor, args)
-        mv.visitMethodInsn(INVOKESTATIC,
-                Type.getInternalName(ProxyMethodHandler.class),
-                "invoke",
-                "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/Object;",
-                false);
-
-        // Unbox return value if necessary
-        Class<?> returnType = method.getReturnType();
-        if (returnType == void.class) {
-            mv.visitInsn(POP);
-            mv.visitInsn(RETURN);
-        } else if (returnType.isPrimitive()) {
-            unbox(mv, returnType);
-            mv.visitInsn(getReturnOpcode(returnType));
-        } else {
-            mv.visitTypeInsn(CHECKCAST, Type.getInternalName(returnType));
-            mv.visitInsn(ARETURN);
-        }
-
-        mv.visitMaxs(0, 0);
-        mv.visitEnd();
+        return handles;
     }
 
-    private int loadAndBox(MethodVisitor mv, Class<?> type, int localIndex) {
+    /**
+     * Loads a local variable of the specified type onto the stack.
+     */
+    private void loadType(MethodVisitor mv, Class<?> type, int localIndex) {
+        if (type == int.class || type == boolean.class || type == byte.class ||
+            type == char.class || type == short.class) {
+            mv.visitVarInsn(ILOAD, localIndex);
+        } else if (type == long.class) {
+            mv.visitVarInsn(LLOAD, localIndex);
+        } else if (type == double.class) {
+            mv.visitVarInsn(DLOAD, localIndex);
+        } else if (type == float.class) {
+            mv.visitVarInsn(FLOAD, localIndex);
+        } else {
+            mv.visitVarInsn(ALOAD, localIndex);
+        }
+    }
+
+    /**
+     * Boxes a primitive value and stores it in an array.
+     */
+    private void boxAndStore(MethodVisitor mv, Class<?> type, int localIndex) {
         if (type == int.class) {
             mv.visitVarInsn(ILOAD, localIndex);
             mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf",
                     "(I)Ljava/lang/Integer;", false);
-            return localIndex + 1;
         } else if (type == long.class) {
             mv.visitVarInsn(LLOAD, localIndex);
             mv.visitMethodInsn(INVOKESTATIC, "java/lang/Long", "valueOf",
                     "(J)Ljava/lang/Long;", false);
-            return localIndex + 2;
         } else if (type == double.class) {
             mv.visitVarInsn(DLOAD, localIndex);
             mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "valueOf",
                     "(D)Ljava/lang/Double;", false);
-            return localIndex + 2;
         } else if (type == float.class) {
             mv.visitVarInsn(FLOAD, localIndex);
             mv.visitMethodInsn(INVOKESTATIC, "java/lang/Float", "valueOf",
                     "(F)Ljava/lang/Float;", false);
-            return localIndex + 1;
         } else if (type == boolean.class) {
             mv.visitVarInsn(ILOAD, localIndex);
             mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf",
                     "(Z)Ljava/lang/Boolean;", false);
-            return localIndex + 1;
         } else if (type == byte.class) {
             mv.visitVarInsn(ILOAD, localIndex);
             mv.visitMethodInsn(INVOKESTATIC, "java/lang/Byte", "valueOf",
                     "(B)Ljava/lang/Byte;", false);
-            return localIndex + 1;
         } else if (type == char.class) {
             mv.visitVarInsn(ILOAD, localIndex);
             mv.visitMethodInsn(INVOKESTATIC, "java/lang/Character", "valueOf",
                     "(C)Ljava/lang/Character;", false);
-            return localIndex + 1;
         } else if (type == short.class) {
             mv.visitVarInsn(ILOAD, localIndex);
             mv.visitMethodInsn(INVOKESTATIC, "java/lang/Short", "valueOf",
                     "(S)Ljava/lang/Short;", false);
-            return localIndex + 1;
         } else {
             mv.visitVarInsn(ALOAD, localIndex);
-            return localIndex + 1;
         }
     }
 
-    private void unbox(MethodVisitor mv, Class<?> type) {
-        if (type == int.class) {
-            mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
-            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
+    /**
+     * Generates the return instruction for the specified type.
+     */
+    private void generateReturn(MethodVisitor mv, Class<?> type) {
+        if (type == void.class) {
+            mv.visitInsn(RETURN);
+        } else if (type == int.class || type == boolean.class || type == byte.class ||
+                   type == char.class || type == short.class) {
+            mv.visitInsn(IRETURN);
         } else if (type == long.class) {
-            mv.visitTypeInsn(CHECKCAST, "java/lang/Long");
-            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Long", "longValue", "()J", false);
+            mv.visitInsn(LRETURN);
         } else if (type == double.class) {
-            mv.visitTypeInsn(CHECKCAST, "java/lang/Double");
-            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Double", "doubleValue", "()D", false);
+            mv.visitInsn(DRETURN);
         } else if (type == float.class) {
-            mv.visitTypeInsn(CHECKCAST, "java/lang/Float");
-            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Float", "floatValue", "()F", false);
-        } else if (type == boolean.class) {
-            mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
-            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
-        } else if (type == byte.class) {
-            mv.visitTypeInsn(CHECKCAST, "java/lang/Byte");
-            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Byte", "byteValue", "()B", false);
-        } else if (type == char.class) {
-            mv.visitTypeInsn(CHECKCAST, "java/lang/Character");
-            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Character", "charValue", "()C", false);
-        } else if (type == short.class) {
-            mv.visitTypeInsn(CHECKCAST, "java/lang/Short");
-            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Short", "shortValue", "()S", false);
-        }
-    }
-
-    private int getReturnOpcode(Class<?> type) {
-        if (type == int.class || type == boolean.class || type == byte.class ||
-            type == char.class || type == short.class) {
-            return IRETURN;
-        } else if (type == long.class) {
-            return LRETURN;
-        } else if (type == float.class) {
-            return FRETURN;
-        } else if (type == double.class) {
-            return DRETURN;
+            mv.visitInsn(FRETURN);
         } else {
-            return ARETURN;
+            mv.visitInsn(ARETURN);
         }
     }
 
-    private boolean shouldProxy(Method method) {
-        int mods = method.getModifiers();
-        
-        // Skip static, final, private methods
-        if (Modifier.isStatic(mods) || Modifier.isFinal(mods) || Modifier.isPrivate(mods)) {
-            return false;
+    /**
+     * Unboxes a return value and generates the appropriate return instruction.
+     */
+    private void unboxAndReturn(MethodVisitor mv, Class<?> type) {
+        if (type.isPrimitive() && type != void.class) {
+            String wrapperClass = getWrapperClassName(type);
+            String unboxMethod = getUnboxMethod(type);
+            mv.visitTypeInsn(CHECKCAST, wrapperClass);
+            mv.visitMethodInsn(INVOKEVIRTUAL, wrapperClass, unboxMethod,
+                    "()" + getTypeDescriptor(type), false);
+            generateReturn(mv, type);
+        } else {
+            mv.visitTypeInsn(CHECKCAST, Type.getInternalName(type));
+            mv.visitInsn(ARETURN);
         }
+    }
 
-        // Skip Object methods
-        if (method.getDeclaringClass() == Object.class) {
-            return false;
+    /**
+     * Returns the JVM type descriptor for a class.
+     */
+    private String getTypeDescriptor(Class<?> type) {
+        if (type == int.class) return "I";
+        if (type == long.class) return "J";
+        if (type == double.class) return "D";
+        if (type == float.class) return "F";
+        if (type == boolean.class) return "Z";
+        if (type == byte.class) return "B";
+        if (type == char.class) return "C";
+        if (type == short.class) return "S";
+        if (type == void.class) return "V";
+        return Type.getDescriptor(type);
+    }
+
+    /**
+     * Returns the wrapper class name for a primitive type.
+     */
+    private String getWrapperClassName(Class<?> type) {
+        if (type == int.class) return "java/lang/Integer";
+        if (type == long.class) return "java/lang/Long";
+        if (type == double.class) return "java/lang/Double";
+        if (type == float.class) return "java/lang/Float";
+        if (type == boolean.class) return "java/lang/Boolean";
+        if (type == byte.class) return "java/lang/Byte";
+        if (type == char.class) return "java/lang/Character";
+        if (type == short.class) return "java/lang/Short";
+        throw new IllegalArgumentException("Not a primitive type: " + type);
+    }
+
+    /**
+     * Returns the unbox method name for a primitive type.
+     */
+    private String getUnboxMethod(Class<?> type) {
+        if (type == int.class) return "intValue";
+        if (type == long.class) return "longValue";
+        if (type == double.class) return "doubleValue";
+        if (type == float.class) return "floatValue";
+        if (type == boolean.class) return "booleanValue";
+        if (type == byte.class) return "byteValue";
+        if (type == char.class) return "charValue";
+        if (type == short.class) return "shortValue";
+        throw new IllegalArgumentException("Not a primitive type: " + type);
+    }
+
+    /**
+     * Returns the JVM slot size for a type.
+     */
+    private int getSlotSize(Class<?> type) {
+        if (type == long.class || type == double.class) {
+            return 2;
         }
+        return 1;
+    }
 
-        // Skip synthetic and bridge methods
-        if (method.isSynthetic() || method.isBridge()) {
-            return false;
+    /**
+     * Generates an array of internal names for method exceptions.
+     */
+    private String[] generateExceptionArray(Method method) {
+        Class<?>[] exceptionTypes = method.getExceptionTypes();
+        String[] exceptions = new String[exceptionTypes.length];
+        for (int i = 0; i < exceptionTypes.length; i++) {
+            exceptions[i] = Type.getInternalName(exceptionTypes[i]);
         }
-
-        return true;
+        return exceptions;
     }
 
     /**
@@ -389,6 +562,51 @@ public class ProxyFactory {
 
         Class<?> defineClass(String name, byte[] bytecode) {
             return defineClass(name, bytecode, 0, bytecode.length);
+        }
+    }
+
+    /**
+     * Holds information about a generated proxy class.
+     */
+    private static class ProxyClassInfo {
+        final Class<?> proxyClass;
+        final List<MethodHandle> methodHandles;
+        final List<Method> methods;
+
+        ProxyClassInfo(Class<?> proxyClass, List<MethodHandle> methodHandles, List<Method> methods) {
+            this.proxyClass = proxyClass;
+            this.methodHandles = methodHandles;
+            this.methods = methods;
+        }
+
+        @SuppressWarnings("unchecked")
+        void setInterceptors(Object proxy) {
+            try {
+                java.lang.reflect.Field interceptorsField = proxy.getClass().getDeclaredField(INTERCEPTORS_FIELD);
+                interceptorsField.setAccessible(true);
+
+                // Collect all interceptors for methods
+                List<MethodInterceptor> interceptors = new ArrayList<>();
+                for (Method method : methods) {
+                    List<MethodInterceptor> methodInterceptors = InterceptorRegistry.getInstance().getInterceptors(method);
+                    interceptors.addAll(methodInterceptors);
+                }
+
+                if (!interceptors.isEmpty()) {
+                    MethodHandle[] handles = new MethodHandle[interceptors.size()];
+                    MethodHandles.Lookup lookup = MethodHandles.lookup();
+
+                    for (int i = 0; i < interceptors.size(); i++) {
+                        MethodInterceptor interceptor = interceptors.get(i);
+                        handles[i] = lookup.bind(interceptor, "invoke",
+                                java.lang.invoke.MethodType.methodType(Object.class, io.github.yasmramos.veld.aop.InvocationContext.class));
+                    }
+
+                    interceptorsField.set(proxy, handles);
+                }
+            } catch (Exception e) {
+                // Silently fail - interceptors will be looked up at runtime
+            }
         }
     }
 }
