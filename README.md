@@ -6,6 +6,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-11%2B-orange.svg)](https://openjdk.java.net/)
 [![Maven](https://img.shields.io/badge/Maven-3.6%2B-red.svg)](https://maven.apache.org/)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/yasmramos/veld)
 
 Veld is a **compile-time Dependency Injection framework** that generates pure bytecode using ASM. Zero reflection at runtime means **maximum performance** - up to 100x faster than Spring for dependency resolution.
 
