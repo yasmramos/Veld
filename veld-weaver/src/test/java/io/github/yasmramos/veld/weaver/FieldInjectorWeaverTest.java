@@ -296,6 +296,76 @@ class FieldInjectorWeaverTest {
             MethodNode setter = findMethod(weavedClass, "__di_set_enabled");
             assertEquals("(Z)V", setter.desc);
         }
+        
+        @Test
+        @DisplayName("Should generate setter for float field")
+        void shouldGenerateSetterForFloatField() {
+            byte[] originalClass = generateClassWithPrivateInjectField(
+                "com/example/TestService", "ratio", "F", "Lcom/veld/annotation/Value;");
+            
+            FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
+            
+            assertTrue(result.wasModified());
+            ClassNode weavedClass = parseClass(result.getBytecode());
+            MethodNode setter = findMethod(weavedClass, "__di_set_ratio");
+            assertEquals("(F)V", setter.desc);
+        }
+        
+        @Test
+        @DisplayName("Should generate setter for char field")
+        void shouldGenerateSetterForCharField() {
+            byte[] originalClass = generateClassWithPrivateInjectField(
+                "com/example/TestService", "code", "C", "Lcom/veld/annotation/Value;");
+            
+            FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
+            
+            assertTrue(result.wasModified());
+            ClassNode weavedClass = parseClass(result.getBytecode());
+            MethodNode setter = findMethod(weavedClass, "__di_set_code");
+            assertEquals("(C)V", setter.desc);
+        }
+        
+        @Test
+        @DisplayName("Should generate setter for byte field")
+        void shouldGenerateSetterForByteField() {
+            byte[] originalClass = generateClassWithPrivateInjectField(
+                "com/example/TestService", "data", "B", "Lcom/veld/annotation/Value;");
+            
+            FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
+            
+            assertTrue(result.wasModified());
+            ClassNode weavedClass = parseClass(result.getBytecode());
+            MethodNode setter = findMethod(weavedClass, "__di_set_data");
+            assertEquals("(B)V", setter.desc);
+        }
+        
+        @Test
+        @DisplayName("Should generate setter for short field")
+        void shouldGenerateSetterForShortField() {
+            byte[] originalClass = generateClassWithPrivateInjectField(
+                "com/example/TestService", "port", "S", "Lcom/veld/annotation/Value;");
+            
+            FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
+            
+            assertTrue(result.wasModified());
+            ClassNode weavedClass = parseClass(result.getBytecode());
+            MethodNode setter = findMethod(weavedClass, "__di_set_port");
+            assertEquals("(S)V", setter.desc);
+        }
+        
+        @Test
+        @DisplayName("Should generate setter for array field")
+        void shouldGenerateSetterForArrayField() {
+            byte[] originalClass = generateClassWithPrivateInjectField(
+                "com/example/TestService", "items", "[Ljava/lang/String;", "Lcom/veld/annotation/Value;");
+            
+            FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
+            
+            assertTrue(result.wasModified());
+            ClassNode weavedClass = parseClass(result.getBytecode());
+            MethodNode setter = findMethod(weavedClass, "__di_set_items");
+            assertEquals("([Ljava/lang/String;)V", setter.desc);
+        }
     }
     
     @Nested
