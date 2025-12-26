@@ -4,7 +4,7 @@
 
 [![Build Status](https://github.com/yasmramos/Veld/actions/workflows/maven.yml/badge.svg)](https://github.com/yasmramos/Veld/actions)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Java](https://img.shields.io/badge/Java-11%2B-orange.svg)](https://openjdk.java.net/)
+[![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://openjdk.java.net/)
 [![Maven](https://img.shields.io/badge/Maven-3.6%2B-red.svg)](https://maven.apache.org/)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/yasmramos/veld)
 
@@ -477,7 +477,7 @@ Use Veld alongside Spring Boot:
 
 ## Requirements
 
-- **Java 11+** (tested up to Java 21)
+- **Java 17+** (tested up to Java 21)
 - **Maven 3.6+**
 
 ## Performance Benchmarks
