@@ -160,22 +160,7 @@ public class UserManagementService {
     }
     
     /**
-     * Statistics DTO
+     * Statistics DTO (Java 17 record)
      */
-    public static class UserStatistics {
-        private final int totalUsers;
-        private final int activeUsers;
-        private final int inactiveUsers;
-        
-        public UserStatistics(int totalUsers, int activeUsers, int inactiveUsers) {
-            this.totalUsers = totalUsers;
-            this.activeUsers = activeUsers;
-            this.inactiveUsers = inactiveUsers;
-        }
-        
-        // Getters
-        public int getTotalUsers() { return totalUsers; }
-        public int getActiveUsers() { return activeUsers; }
-        public int getInactiveUsers() { return inactiveUsers; }
-    }
+    public record UserStatistics(int totalUsers, int activeUsers, int inactiveUsers) {}
 }

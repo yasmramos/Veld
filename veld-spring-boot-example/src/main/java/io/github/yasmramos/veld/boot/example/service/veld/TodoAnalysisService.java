@@ -40,9 +40,9 @@ public class TodoAnalysisService {
         TodoBusinessService.TodoStatistics stats = springTodoService.getTodoStatistics(userId);
         
         return new CompletionAnalysis(
-            stats.getTotal(),
-            stats.getCompleted(),
-            stats.getPending(),
+            stats.total(),
+            stats.completed(),
+            stats.pending(),
             stats.getCompletionRate()
         );
     }
@@ -65,7 +65,7 @@ public class TodoAnalysisService {
         return new ProductivityInsights(
             stats.getCompletionRate(),
             productivityLevel,
-            stats.getPending()
+            stats.pending()
         );
     }
     
@@ -83,58 +83,10 @@ public class TodoAnalysisService {
         );
     }
     
-    // DTOs for analysis results
-    public static class CompletionAnalysis {
-        private final long totalTodos;
-        private final long completedTodos;
-        private final long pendingTodos;
-        private final double completionRate;
-        
-        public CompletionAnalysis(long totalTodos, long completedTodos, long pendingTodos, double completionRate) {
-            this.totalTodos = totalTodos;
-            this.completedTodos = completedTodos;
-            this.pendingTodos = pendingTodos;
-            this.completionRate = completionRate;
-        }
-        
-        // Getters
-        public long getTotalTodos() { return totalTodos; }
-        public long getCompletedTodos() { return completedTodos; }
-        public long getPendingTodos() { return pendingTodos; }
-        public double getCompletionRate() { return completionRate; }
-    }
+    // DTOs for analysis results (Java 17 records)
+    public record CompletionAnalysis(long totalTodos, long completedTodos, long pendingTodos, double completionRate) {}
     
-    public static class ProductivityInsights {
-        private final double completionRate;
-        private final String productivityLevel;
-        private final long pendingCount;
-        
-        public ProductivityInsights(double completionRate, String productivityLevel, long pendingCount) {
-            this.completionRate = completionRate;
-            this.productivityLevel = productivityLevel;
-            this.pendingCount = pendingCount;
-        }
-        
-        // Getters
-        public double getCompletionRate() { return completionRate; }
-        public String getProductivityLevel() { return productivityLevel; }
-        public long getPendingCount() { return pendingCount; }
-    }
+    public record ProductivityInsights(double completionRate, String productivityLevel, long pendingCount) {}
     
-    public static class ActivitySummary {
-        private final int totalRecent;
-        private final int completedRecent;
-        private final int pendingRecent;
-        
-        public ActivitySummary(int totalRecent, int completedRecent, int pendingRecent) {
-            this.totalRecent = totalRecent;
-            this.completedRecent = completedRecent;
-            this.pendingRecent = pendingRecent;
-        }
-        
-        // Getters
-        public int getTotalRecent() { return totalRecent; }
-        public int getCompletedRecent() { return completedRecent; }
-        public int getPendingRecent() { return pendingRecent; }
-    }
+    public record ActivitySummary(int totalRecent, int completedRecent, int pendingRecent) {}
 }
