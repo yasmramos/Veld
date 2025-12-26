@@ -102,7 +102,7 @@ jobs:
         name: validation-reports
         path: |
           target/
-        retention-days: 7
+        retention-days: 90
 
   build-test:
     name: 🔨 Build & Test
@@ -143,7 +143,7 @@ jobs:
         path: |
           target/*.jar
           target/surefire-reports/
-        retention-days: 7
+        retention-days: 90
 
   integration-tests:
     name: 🔗 Integration Tests
@@ -174,7 +174,7 @@ jobs:
         name: integration-test-reports
         path: |
           target/surefire-reports/
-        retention-days: 7
+        retention-days: 90
 
   security-compliance:
     name: 🔒 Security & Compliance
