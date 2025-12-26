@@ -62,6 +62,7 @@ public class VeldAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "veld", name = "spring-integration.bridge-beans", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnBean(VeldSpringBootService.class)
     @DependsOn("veldSpringBootService")
     public VeldToSpringBridge veldToSpringBridge(VeldProperties properties, 
                                                   VeldSpringBootService veldService) {
@@ -74,6 +75,7 @@ public class VeldAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "veld", name = "spring-integration.health-indicator", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnBean(VeldSpringBootService.class)
     public VeldHealthIndicator veldHealthIndicator(VeldSpringBootService veldService) {
         return new VeldHealthIndicator(veldService);
     }
