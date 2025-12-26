@@ -60,7 +60,7 @@ public final class RegistryGenerator {
     private static final String REGISTRY_NAME = "io/github/yasmramos/VeldRegistry";
     private static final String COMPONENT_REGISTRY = "io/github/yasmramos/runtime/ComponentRegistry";
     private static final String COMPONENT_FACTORY = "io/github/yasmramos/runtime/ComponentFactory";
-    private static final String VELD_CLASS = "io/github/yasmramos/Veld";
+    private static final String VELD_CLASS = "io/github/yasmramos/veld/Veld";
     private static final String VELD_EXCEPTION = "io/github/yasmramos/veld/VeldException";
     private static final String SCOPE = "io/github/yasmramos/runtime/Scope";
     private static final String OBJECT = "java/lang/Object";

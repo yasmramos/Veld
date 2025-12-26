@@ -78,8 +78,8 @@ class VeldClassGeneratorNamedTest {
             Map<String, byte[]> result = generator.generateAll();
             
             // Should generate Veld.class
-            assertTrue(result.containsKey("com/veld/Veld"));
-            byte[] veldBytes = result.get("com/veld/Veld");
+            assertTrue(result.containsKey("io/github/yasmramos/veld/Veld"));
+            byte[] veldBytes = result.get("io/github/yasmramos/veld/Veld");
             assertNotNull(veldBytes);
             assertTrue(veldBytes.length > 0);
         }
@@ -104,7 +104,7 @@ class VeldClassGeneratorNamedTest {
             VeldClassGenerator generator = new VeldClassGenerator(List.of(namedComp, unnamedComp));
             Map<String, byte[]> result = generator.generateAll();
             
-            assertTrue(result.containsKey("com/veld/Veld"));
+            assertTrue(result.containsKey("io/github/yasmramos/veld/Veld"));
         }
         
         @Test
@@ -120,7 +120,7 @@ class VeldClassGeneratorNamedTest {
             VeldClassGenerator generator = new VeldClassGenerator(List.of(prototypeNamed));
             Map<String, byte[]> result = generator.generateAll();
             
-            assertTrue(result.containsKey("com/veld/Veld"));
+            assertTrue(result.containsKey("io/github/yasmramos/veld/Veld"));
         }
     }
     
