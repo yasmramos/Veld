@@ -127,9 +127,9 @@ public class TodoController {
             "springService", "TodoBusinessService",
             "veldService", "TodoAnalysisService",
             "userId", userId,
-            "totalTodos", springStats.getTotal(),
-            "springCompleted", springStats.getCompleted(),
-            "veldAnalysisCompleted", veldStats.getCompletedTodos(),
+            "totalTodos", springStats.total(),
+            "springCompleted", springStats.completed(),
+            "veldAnalysisCompleted", veldStats.completedTodos(),
             "todos", todos
         );
     }
