@@ -137,6 +137,122 @@ class InjectionPointTest {
             
             assertFalse(dep.hasQualifier());
         }
+
+        @Test
+        @DisplayName("Should create Provider dependency")
+        void shouldCreateProviderDependency() {
+            InjectionPoint.Dependency dep = new InjectionPoint.Dependency(
+                "javax.inject.Provider", "Ljavax/inject/Provider;", null,
+                true, false, "com.example.Service", "Lcom/example/Service;"
+            );
+
+            assertTrue(dep.isProvider());
+            assertFalse(dep.isLazy());
+            assertEquals("com.example.Service", dep.getActualTypeName());
+            assertEquals("Lcom/example/Service;", dep.getActualTypeDescriptor());
+            assertTrue(dep.needsSpecialHandling());
+        }
+
+        @Test
+        @DisplayName("Should create Lazy dependency")
+        void shouldCreateLazyDependency() {
+            InjectionPoint.Dependency dep = new InjectionPoint.Dependency(
+                "com.example.Service", "Lcom/example/Service;", null,
+                false, true, "com.example.Service", "Lcom/example/Service;"
+            );
+
+            assertFalse(dep.isProvider());
+            assertTrue(dep.isLazy());
+            assertTrue(dep.needsSpecialHandling());
+        }
+
+        @Test
+        @DisplayName("Should create Optional dependency")
+        void shouldCreateOptionalDependency() {
+            InjectionPoint.Dependency dep = new InjectionPoint.Dependency(
+                "com.example.Service", "Lcom/example/Service;", null,
+                false, false, true, false,
+                "com.example.Service", "Lcom/example/Service;"
+            );
+
+            assertTrue(dep.isOptional());
+            assertFalse(dep.isOptionalWrapper());
+            assertTrue(dep.allowsMissing());
+            assertTrue(dep.needsSpecialHandling());
+        }
+
+        @Test
+        @DisplayName("Should create Optional wrapper dependency")
+        void shouldCreateOptionalWrapperDependency() {
+            InjectionPoint.Dependency dep = new InjectionPoint.Dependency(
+                "java.util.Optional", "Ljava/util/Optional;", null,
+                false, false, false, true,
+                "com.example.Service", "Lcom/example/Service;"
+            );
+
+            assertFalse(dep.isOptional());
+            assertTrue(dep.isOptionalWrapper());
+            assertTrue(dep.allowsMissing());
+            assertTrue(dep.needsSpecialHandling());
+        }
+
+        @Test
+        @DisplayName("Should create Value dependency")
+        void shouldCreateValueDependency() {
+            InjectionPoint.Dependency dep = InjectionPoint.Dependency.forValue(
+                "java.lang.String", "Ljava/lang/String;", "${app.name}"
+            );
+
+            assertTrue(dep.isValueInjection());
+            assertEquals("${app.name}", dep.getValueExpression());
+            assertFalse(dep.isProvider());
+            assertFalse(dep.isLazy());
+        }
+
+        @Test
+        @DisplayName("Non-value dependency should not be value injection")
+        void nonValueDependencyShouldNotBeValueInjection() {
+            InjectionPoint.Dependency dep = new InjectionPoint.Dependency(
+                "com.example.Service", "Lcom/example/Service;", null
+            );
+
+            assertFalse(dep.isValueInjection());
+            assertNull(dep.getValueExpression());
+        }
+
+        @Test
+        @DisplayName("Simple dependency should not need special handling")
+        void simpleDependencyShouldNotNeedSpecialHandling() {
+            InjectionPoint.Dependency dep = new InjectionPoint.Dependency(
+                "com.example.Service", "Lcom/example/Service;", null
+            );
+
+            assertFalse(dep.needsSpecialHandling());
+            assertFalse(dep.allowsMissing());
+        }
+
+        @Test
+        @DisplayName("Full constructor should set all properties")
+        void fullConstructorShouldSetAllProperties() {
+            InjectionPoint.Dependency dep = new InjectionPoint.Dependency(
+                "javax.inject.Provider", "Ljavax/inject/Provider;", "named",
+                true, true, true, true,
+                "com.example.Service", "Lcom/example/Service;", "${value}"
+            );
+
+            assertEquals("javax.inject.Provider", dep.getTypeName());
+            assertEquals("named", dep.getQualifierName());
+            assertTrue(dep.hasQualifier());
+            assertTrue(dep.isProvider());
+            assertTrue(dep.isLazy());
+            assertTrue(dep.isOptional());
+            assertTrue(dep.isOptionalWrapper());
+            assertTrue(dep.allowsMissing());
+            assertTrue(dep.needsSpecialHandling());
+            assertEquals("com.example.Service", dep.getActualTypeName());
+            assertEquals("${value}", dep.getValueExpression());
+            assertTrue(dep.isValueInjection());
+        }
     }
     
     @Nested
