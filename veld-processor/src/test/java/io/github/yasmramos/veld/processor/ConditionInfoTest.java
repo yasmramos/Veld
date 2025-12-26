@@ -92,9 +92,9 @@ class ConditionInfoTest {
             conditionInfo.addPropertyCondition("my.property", "expectedValue", true);
             
             ConditionInfo.PropertyConditionInfo info = conditionInfo.getPropertyConditions().get(0);
-            assertEquals("my.property", info.getName());
-            assertEquals("expectedValue", info.getHavingValue());
-            assertTrue(info.isMatchIfMissing());
+            assertEquals("my.property", info.name());
+            assertEquals("expectedValue", info.havingValue());
+            assertTrue(info.matchIfMissing());
         }
 
         @Test
@@ -113,7 +113,7 @@ class ConditionInfoTest {
             conditionInfo.addPropertyCondition("feature.flag", "", false);
             
             ConditionInfo.PropertyConditionInfo info = conditionInfo.getPropertyConditions().get(0);
-            assertEquals("", info.getHavingValue());
+            assertEquals("", info.havingValue());
         }
     }
 
@@ -142,10 +142,10 @@ class ConditionInfoTest {
             conditionInfo.addClassCondition(classes);
             
             ConditionInfo.ClassConditionInfo info = conditionInfo.getClassConditions().get(0);
-            assertEquals(3, info.getClassNames().size());
-            assertTrue(info.getClassNames().contains("com.example.ClassA"));
-            assertTrue(info.getClassNames().contains("com.example.ClassB"));
-            assertTrue(info.getClassNames().contains("com.example.ClassC"));
+            assertEquals(3, info.classNames().size());
+            assertTrue(info.classNames().contains("com.example.ClassA"));
+            assertTrue(info.classNames().contains("com.example.ClassB"));
+            assertTrue(info.classNames().contains("com.example.ClassC"));
         }
 
         @Test
@@ -182,8 +182,8 @@ class ConditionInfoTest {
             conditionInfo.addMissingBeanTypeCondition(types);
             
             ConditionInfo.MissingBeanConditionInfo info = conditionInfo.getMissingBeanConditions().get(0);
-            assertEquals(2, info.getBeanTypes().size());
-            assertTrue(info.getBeanNames().isEmpty());
+            assertEquals(2, info.beanTypes().size());
+            assertTrue(info.beanNames().isEmpty());
         }
 
         @Test
@@ -194,8 +194,8 @@ class ConditionInfoTest {
             
             assertTrue(conditionInfo.hasConditions());
             ConditionInfo.MissingBeanConditionInfo info = conditionInfo.getMissingBeanConditions().get(0);
-            assertEquals(2, info.getBeanNames().size());
-            assertTrue(info.getBeanTypes().isEmpty());
+            assertEquals(2, info.beanNames().size());
+            assertTrue(info.beanTypes().isEmpty());
         }
 
         @Test
@@ -229,9 +229,9 @@ class ConditionInfoTest {
             conditionInfo.addProfileCondition(profiles);
             
             ConditionInfo.ProfileConditionInfo info = conditionInfo.getProfileConditions().get(0);
-            assertEquals(2, info.getProfiles().size());
-            assertTrue(info.getProfiles().contains("production"));
-            assertTrue(info.getProfiles().contains("cloud"));
+            assertEquals(2, info.profiles().size());
+            assertTrue(info.profiles().contains("production"));
+            assertTrue(info.profiles().contains("cloud"));
         }
 
         @Test

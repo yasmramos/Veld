@@ -82,81 +82,15 @@ public final class ConditionInfo {
         return profileConditions;
     }
     
-    /**
-     * Property condition info.
-     */
-    public static final class PropertyConditionInfo {
-        private final String name;
-        private final String havingValue;
-        private final boolean matchIfMissing;
-        
-        public PropertyConditionInfo(String name, String havingValue, boolean matchIfMissing) {
-            this.name = name;
-            this.havingValue = havingValue;
-            this.matchIfMissing = matchIfMissing;
-        }
-        
-        public String getName() {
-            return name;
-        }
-        
-        public String getHavingValue() {
-            return havingValue;
-        }
-        
-        public boolean isMatchIfMissing() {
-            return matchIfMissing;
-        }
-    }
+    /** Property condition info (Java 17 record) */
+    public record PropertyConditionInfo(String name, String havingValue, boolean matchIfMissing) {}
     
-    /**
-     * Class condition info.
-     */
-    public static final class ClassConditionInfo {
-        private final List<String> classNames;
-        
-        public ClassConditionInfo(List<String> classNames) {
-            this.classNames = classNames;
-        }
-        
-        public List<String> getClassNames() {
-            return classNames;
-        }
-    }
+    /** Class condition info (Java 17 record) */
+    public record ClassConditionInfo(List<String> classNames) {}
     
-    /**
-     * Missing bean condition info.
-     */
-    public static final class MissingBeanConditionInfo {
-        private final List<String> beanTypes;
-        private final List<String> beanNames;
-        
-        public MissingBeanConditionInfo(List<String> beanTypes, List<String> beanNames) {
-            this.beanTypes = beanTypes;
-            this.beanNames = beanNames;
-        }
-        
-        public List<String> getBeanTypes() {
-            return beanTypes;
-        }
-        
-        public List<String> getBeanNames() {
-            return beanNames;
-        }
-    }
+    /** Missing bean condition info (Java 17 record) */
+    public record MissingBeanConditionInfo(List<String> beanTypes, List<String> beanNames) {}
     
-    /**
-     * Profile condition info.
-     */
-    public static final class ProfileConditionInfo {
-        private final List<String> profiles;
-        
-        public ProfileConditionInfo(List<String> profiles) {
-            this.profiles = profiles;
-        }
-        
-        public List<String> getProfiles() {
-            return profiles;
-        }
-    }
+    /** Profile condition info (Java 17 record) */
+    public record ProfileConditionInfo(List<String> profiles) {}
 }
