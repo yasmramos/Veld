@@ -52,6 +52,53 @@ public interface ComponentRegistry {
      */
     <T> List<ComponentFactory<? extends T>> getFactoriesForType(Class<T> type);
     
+    /**
+     * Returns the primary factory for the given type.
+     * When multiple beans of the same type exist, returns the one marked with @Primary.
+     * If no @Primary bean exists and multiple beans match, returns null (caller should handle ambiguity).
+     *
+     * @param type the component type
+     * @param <T> the component type
+     * @return the primary factory, null if not found, or null if multiple exist without a primary
+     * @throws VeldException if multiple @Primary beans are found for the same type
+     */
+    default <T> ComponentFactory<T> getPrimaryFactory(Class<T> type) {
+        List<ComponentFactory<? extends T>> factories = getFactoriesForType(type);
+        
+        if (factories.isEmpty()) {
+            return null;
+        }
+        
+        // Find primary factory
+        ComponentFactory<T> primary = null;
+        for (ComponentFactory<? extends T> factory : factories) {
+            if (factory.isPrimary()) {
+                if (primary != null) {
+                    throw new VeldException("Multiple @Primary beans found for type: " + type.getName() + 
+                        ". Only one bean can be marked as @Primary.");
+                }
+                @SuppressWarnings("unchecked")
+                ComponentFactory<T> casted = (ComponentFactory<T>) factory;
+                primary = casted;
+            }
+        }
+        
+        // If a primary was found, return it
+        if (primary != null) {
+            return primary;
+        }
+        
+        // No primary found - if only one factory, return it
+        if (factories.size() == 1) {
+            @SuppressWarnings("unchecked")
+            ComponentFactory<T> casted = (ComponentFactory<T>) factories.get(0);
+            return casted;
+        }
+        
+        // Multiple factories but none is primary - return null to let caller handle ambiguity
+        return null;
+    }
+    
     // ==================== Ultra-Fast Index-Based API ====================
     
     /**

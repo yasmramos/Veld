@@ -99,6 +99,11 @@ public final class ComponentFactoryGenerator {
             generateIsLazy(cw);
         }
         
+        // isPrimary() method (only if component is primary)
+        if (component.isPrimary()) {
+            generateIsPrimary(cw);
+        }
+        
         // invokePostConstruct(T) method
         generateInvokePostConstruct(cw, componentInternal);
         
@@ -421,6 +426,18 @@ public final class ComponentFactoryGenerator {
     
     private void generateIsLazy(ClassWriter cw) {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "isLazy",
+                "()Z", null, null);
+        mv.visitCode();
+        
+        mv.visitInsn(ICONST_1); // return true
+        mv.visitInsn(IRETURN);
+        
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    
+    private void generateIsPrimary(ClassWriter cw) {
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "isPrimary",
                 "()Z", null, null);
         mv.visitCode();
         

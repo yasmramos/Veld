@@ -36,17 +36,23 @@ public final class ComponentInfo {
     private String preDestroyDescriptor;
     
     private boolean hasSubscribeMethods;          // Has @Subscribe methods (EventBus)
+    private boolean isPrimary;                    // @Primary - preferred bean for type
     
     public ComponentInfo(String className, String componentName, Scope scope) {
         this(className, componentName, scope, false);
     }
     
     public ComponentInfo(String className, String componentName, Scope scope, boolean lazy) {
+        this(className, componentName, scope, lazy, false);
+    }
+    
+    public ComponentInfo(String className, String componentName, Scope scope, boolean lazy, boolean isPrimary) {
         this.className = className;
         this.internalName = className.replace('.', '/');
         this.componentName = componentName;
         this.scope = scope;
         this.lazy = lazy;
+        this.isPrimary = isPrimary;
     }
     
     public String getClassName() {
@@ -258,5 +264,25 @@ public final class ComponentInfo {
      */
     public boolean hasExplicitDependencies() {
         return !explicitDependencies.isEmpty();
+    }
+    
+    // Primary bean support (@Primary)
+    
+    /**
+     * Checks if this component is marked as @Primary.
+     * 
+     * @return true if @Primary annotation is present
+     */
+    public boolean isPrimary() {
+        return isPrimary;
+    }
+    
+    /**
+     * Sets whether this component is primary.
+     * 
+     * @param isPrimary true if this bean should be primary
+     */
+    public void setPrimary(boolean isPrimary) {
+        this.isPrimary = isPrimary;
     }
 }

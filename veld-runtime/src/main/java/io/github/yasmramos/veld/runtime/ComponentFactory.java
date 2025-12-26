@@ -108,6 +108,16 @@ public interface ComponentFactory<T> {
     }
     
     /**
+     * Returns true if this component is marked as primary.
+     * Primary beans are selected when multiple beans of the same type exist.
+     *
+     * @return true if this bean is primary
+     */
+    default boolean isPrimary() {
+        return false;
+    }
+    
+    /**
      * Returns the numeric index of this component in the registry.
      * Used for ultra-fast array-based lookups.
      *

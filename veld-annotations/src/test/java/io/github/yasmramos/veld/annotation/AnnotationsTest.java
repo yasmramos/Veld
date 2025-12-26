@@ -653,4 +653,172 @@ class AnnotationsTest {
             assertTrue(targets.contains(ElementType.FIELD) || targets.contains(ElementType.PARAMETER));
         }
     }
+
+    // ========== NEW RUNTIME Annotations Tests ==========
+
+    @Nested
+    @DisplayName("Primary Annotation Tests")
+    class PrimaryAnnotationTests {
+
+        @Test
+        @DisplayName("Should have RUNTIME retention")
+        void shouldHaveRuntimeRetention() {
+            Retention retention = Primary.class.getAnnotation(Retention.class);
+
+            assertNotNull(retention);
+            assertEquals(RetentionPolicy.RUNTIME, retention.value());
+        }
+
+        @Test
+        @DisplayName("Should target TYPE only")
+        void shouldTargetTypeOnly() {
+            Target target = Primary.class.getAnnotation(Target.class);
+
+            assertNotNull(target);
+            java.util.List<ElementType> targets = java.util.Arrays.asList(target.value());
+            assertEquals(1, targets.size());
+            assertTrue(targets.contains(ElementType.TYPE));
+        }
+
+        @Test
+        @DisplayName("Should be Documented")
+        void shouldBeDocumented() {
+            Documented documented = Primary.class.getAnnotation(Documented.class);
+            assertNotNull(documented);
+        }
+    }
+
+    @Nested
+    @DisplayName("Qualifier Annotation Tests")
+    class QualifierAnnotationTests {
+
+        @Test
+        @DisplayName("Should have RUNTIME retention")
+        void shouldHaveRuntimeRetention() {
+            Retention retention = Qualifier.class.getAnnotation(Retention.class);
+
+            assertNotNull(retention);
+            assertEquals(RetentionPolicy.RUNTIME, retention.value());
+        }
+
+        @Test
+        @DisplayName("Should target FIELD, METHOD, PARAMETER, and CONSTRUCTOR")
+        void shouldTargetMultipleElements() {
+            Target target = Qualifier.class.getAnnotation(Target.class);
+
+            assertNotNull(target);
+            java.util.List<ElementType> targets = java.util.Arrays.asList(target.value());
+            assertTrue(targets.contains(ElementType.FIELD));
+            assertTrue(targets.contains(ElementType.METHOD));
+            assertTrue(targets.contains(ElementType.PARAMETER));
+            assertTrue(targets.contains(ElementType.CONSTRUCTOR));
+        }
+
+        @Test
+        @DisplayName("Should have value attribute with empty default")
+        void shouldHaveValueAttribute() throws Exception {
+            var method = Qualifier.class.getDeclaredMethod("value");
+            assertNotNull(method);
+            assertEquals(String.class, method.getReturnType());
+            assertEquals("", method.getDefaultValue());
+        }
+
+        @Test
+        @DisplayName("Should be Documented")
+        void shouldBeDocumented() {
+            Documented documented = Qualifier.class.getAnnotation(Documented.class);
+            assertNotNull(documented);
+        }
+    }
+
+    @Nested
+    @DisplayName("Factory Annotation Tests")
+    class FactoryAnnotationTests {
+
+        @Test
+        @DisplayName("Should have RUNTIME retention")
+        void shouldHaveRuntimeRetention() {
+            Retention retention = Factory.class.getAnnotation(Retention.class);
+
+            assertNotNull(retention);
+            assertEquals(RetentionPolicy.RUNTIME, retention.value());
+        }
+
+        @Test
+        @DisplayName("Should target TYPE only")
+        void shouldTargetTypeOnly() {
+            Target target = Factory.class.getAnnotation(Target.class);
+
+            assertNotNull(target);
+            java.util.List<ElementType> targets = java.util.Arrays.asList(target.value());
+            assertEquals(1, targets.size());
+            assertTrue(targets.contains(ElementType.TYPE));
+        }
+
+        @Test
+        @DisplayName("Should have name attribute with empty default")
+        void shouldHaveNameAttribute() throws Exception {
+            var method = Factory.class.getDeclaredMethod("name");
+            assertNotNull(method);
+            assertEquals(String.class, method.getReturnType());
+            assertEquals("", method.getDefaultValue());
+        }
+
+        @Test
+        @DisplayName("Should be Documented")
+        void shouldBeDocumented() {
+            Documented documented = Factory.class.getAnnotation(Documented.class);
+            assertNotNull(documented);
+        }
+    }
+
+    @Nested
+    @DisplayName("Bean Annotation Tests")
+    class BeanAnnotationTests {
+
+        @Test
+        @DisplayName("Should have RUNTIME retention")
+        void shouldHaveRuntimeRetention() {
+            Retention retention = Bean.class.getAnnotation(Retention.class);
+
+            assertNotNull(retention);
+            assertEquals(RetentionPolicy.RUNTIME, retention.value());
+        }
+
+        @Test
+        @DisplayName("Should target METHOD only")
+        void shouldTargetMethodOnly() {
+            Target target = Bean.class.getAnnotation(Target.class);
+
+            assertNotNull(target);
+            java.util.List<ElementType> targets = java.util.Arrays.asList(target.value());
+            assertEquals(1, targets.size());
+            assertTrue(targets.contains(ElementType.METHOD));
+        }
+
+        @Test
+        @DisplayName("Should have name attribute with empty default")
+        void shouldHaveNameAttribute() throws Exception {
+            var method = Bean.class.getDeclaredMethod("name");
+            assertNotNull(method);
+            assertEquals(String.class, method.getReturnType());
+            assertEquals("", method.getDefaultValue());
+        }
+
+        @Test
+        @DisplayName("Should have primary attribute with false default")
+        void shouldHavePrimaryAttribute() throws Exception {
+            var method = Bean.class.getDeclaredMethod("primary");
+            assertNotNull(method);
+            assertEquals(boolean.class, method.getReturnType());
+            assertEquals(false, method.getDefaultValue());
+        }
+
+        @Test
+        @DisplayName("Should be Documented")
+        void shouldBeDocumented() {
+            Documented documented = Bean.class.getAnnotation(Documented.class);
+            assertNotNull(documented);
+        }
+    }
 }

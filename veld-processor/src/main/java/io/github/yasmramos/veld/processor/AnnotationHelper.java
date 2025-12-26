@@ -19,6 +19,10 @@ public final class AnnotationHelper {
     private static final String VELD_INJECT = "io.github.yasmramos.veld.annotation.Inject";
     private static final String VELD_NAMED = "io.github.yasmramos.veld.annotation.Named";
     private static final String VELD_SINGLETON = "io.github.yasmramos.veld.annotation.Singleton";
+    private static final String VELD_PRIMARY = "io.github.yasmramos.veld.annotation.Primary";
+    private static final String VELD_QUALIFIER = "io.github.yasmramos.veld.annotation.Qualifier";
+    private static final String VELD_FACTORY = "io.github.yasmramos.veld.annotation.Factory";
+    private static final String VELD_BEAN = "io.github.yasmramos.veld.annotation.Bean";
     
     // JSR-330 annotations (javax.inject)
     private static final String JAVAX_INJECT = "javax.inject.Inject";
@@ -53,6 +57,20 @@ public final class AnnotationHelper {
     }
     
     /**
+     * Checks if an element has @Primary annotation (Veld native).
+     */
+    public static boolean hasPrimaryAnnotation(Element element) {
+        return hasAnnotation(element, VELD_PRIMARY);
+    }
+    
+    /**
+     * Checks if an element has @Qualifier annotation (Veld native).
+     */
+    public static boolean hasQualifierAnnotation(Element element) {
+        return hasAnnotation(element, VELD_QUALIFIER);
+    }
+    
+    /**
      * Gets the value from @Named annotation if present (Veld, JSR-330, or Jakarta).
      * Returns Optional.empty() if no @Named annotation is present.
      */
@@ -84,10 +102,16 @@ public final class AnnotationHelper {
     }
     
     /**
-     * Gets the qualifier value from any @Named or custom @Qualifier annotation.
+     * Gets the qualifier value from @Qualifier or @Named annotation.
      */
     public static Optional<String> getQualifierValue(Element element) {
-        // First try to get @Named value
+        // First check @Qualifier annotation (Veld native)
+        Optional<String> qualifierValue = getAnnotationValue(element, VELD_QUALIFIER, "value");
+        if (qualifierValue.isPresent() && !qualifierValue.get().isEmpty()) {
+            return qualifierValue;
+        }
+        
+        // Then try to get @Named value
         Optional<String> named = getNamedValue(element);
         if (named.isPresent()) {
             return named;

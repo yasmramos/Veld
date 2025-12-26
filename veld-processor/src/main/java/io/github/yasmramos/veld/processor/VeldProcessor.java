@@ -41,12 +41,16 @@ import java.util.Set;
  * - Singleton and Prototype scopes
  * - JSR-330 compatibility (javax.inject.*)
  * - Jakarta Inject compatibility (jakarta.inject.*)
+ * - Primary bean selection (@Primary)
+ * - Qualifier-based injection (@Qualifier, @Named)
+ * - Factory pattern (@Factory, @Bean)
  * 
  * Supported Component Annotations (use only ONE - they are mutually exclusive):
  * - @io.github.yasmramos.veld.annotation.Component (Veld native - requires scope annotation)
  * - @io.github.yasmramos.veld.annotation.Singleton (Veld native - singleton scope, implies @Component)
  * - @io.github.yasmramos.veld.annotation.Prototype (Veld native - prototype scope, implies @Component)
  * - @io.github.yasmramos.veld.annotation.Lazy (Veld native - lazy singleton, implies @Component)
+ * - @io.github.yasmramos.veld.annotation.Factory (Veld native - factory class)
  * - @javax.inject.Singleton (JSR-330 - singleton scope)
  * - @jakarta.inject.Singleton (Jakarta EE - singleton scope)
  * 
@@ -57,8 +61,12 @@ import java.util.Set;
  * 
  * Supported Qualifier Annotations:
  * - @io.github.yasmramos.veld.annotation.Named (Veld native)
+ * - @io.github.yasmramos.veld.annotation.Qualifier (Veld native)
  * - @javax.inject.Named (JSR-330)
  * - @jakarta.inject.Named (Jakarta EE)
+ * 
+ * Supported Bean Selection Annotations:
+ * - @io.github.yasmramos.veld.annotation.Primary (Veld native - marks primary bean)
  */
 @SupportedAnnotationTypes({
     "io.github.yasmramos.veld.annotation.Component",
@@ -66,6 +74,10 @@ import java.util.Set;
     "io.github.yasmramos.veld.annotation.Prototype",
     "io.github.yasmramos.veld.annotation.Lazy",
     "io.github.yasmramos.veld.annotation.DependsOn",
+    "io.github.yasmramos.veld.annotation.Primary",
+    "io.github.yasmramos.veld.annotation.Qualifier",
+    "io.github.yasmramos.veld.annotation.Factory",
+    "io.github.yasmramos.veld.annotation.Bean",
     "javax.inject.Singleton",
     "jakarta.inject.Singleton"
 })
@@ -324,11 +336,13 @@ public class VeldProcessor extends AbstractProcessor {
         Scope scope = determineScope(typeElement);
         boolean isLazy = typeElement.getAnnotation(Lazy.class) != null;
         
-        if (isLazy) {
-            note("  -> Lazy initialization enabled");
+        // Check for @Primary annotation
+        boolean isPrimary = typeElement.getAnnotation(Primary.class) != null;
+        if (isPrimary) {
+            note("  -> Primary bean selected");
         }
         
-        ComponentInfo info = new ComponentInfo(className, componentName, scope, isLazy);
+        ComponentInfo info = new ComponentInfo(className, componentName, scope, isLazy, isPrimary);
         
         // Find injection points
         analyzeConstructors(typeElement, info);
