@@ -246,7 +246,7 @@ public class ProxyFactory {
 
         // Call ProxyMethodHandler.invoke(target, methodName, descriptor, args)
         mv.visitMethodInsn(INVOKESTATIC,
-                "com/veld/aop/proxy/ProxyMethodHandler",
+                Type.getInternalName(ProxyMethodHandler.class),
                 "invoke",
                 "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/Object;",
                 false);
