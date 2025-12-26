@@ -86,7 +86,7 @@ jobs:
     - name: Run integration tests
       run: |
         echo "=== Starting Maven integration test phase ==="
-        mvn verify -DskipITs=false -Dgpg.skip=true --batch-mode
+        mvn verify -DskipITs=false -DskipGpg=true --batch-mode
       env:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
       timeout-minutes: 10
