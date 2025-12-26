@@ -2,10 +2,8 @@ name: 🚀 Advanced CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ develop ]
     tags: [ 'v*' ]
-  pull_request:
-    branches: [ main, develop ]
   workflow_dispatch:
     inputs:
       environment:
@@ -17,6 +15,9 @@ on:
           - development
           - staging
           - production
+
+# Comprehensive CI/CD pipeline for develop branch and releases
+# For quick CI feedback on main/PRs, see maven.yml
 
 env:
   JAVA_VERSION: '11'

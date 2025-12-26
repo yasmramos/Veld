@@ -9,6 +9,9 @@ on:
   pull_request:
     branches: [ "main" ]
 
+# Fast CI pipeline for main branch and PRs
+# For comprehensive checks (security, compliance, artifacts), see advanced-ci-cd.yml
+
 jobs:
   build:
     runs-on: ubuntu-latest
