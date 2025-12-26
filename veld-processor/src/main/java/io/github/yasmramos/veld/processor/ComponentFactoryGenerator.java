@@ -580,9 +580,9 @@ public final class ComponentFactoryGenerator {
         // Add property conditions
         for (ConditionInfo.PropertyConditionInfo prop : conditions.getPropertyConditions()) {
             mv.visitVarInsn(ALOAD, 1);
-            mv.visitLdcInsn(prop.getName());
-            mv.visitLdcInsn(prop.getHavingValue() != null ? prop.getHavingValue() : "");
-            mv.visitInsn(prop.isMatchIfMissing() ? ICONST_1 : ICONST_0);
+            mv.visitLdcInsn(prop.name());
+            mv.visitLdcInsn(prop.havingValue() != null ? prop.havingValue() : "");
+            mv.visitInsn(prop.matchIfMissing() ? ICONST_1 : ICONST_0);
             mv.visitMethodInsn(INVOKEVIRTUAL, CONDITION_EVALUATOR, "addPropertyCondition",
                     "(L" + STRING + ";L" + STRING + ";Z)L" + CONDITION_EVALUATOR + ";", false);
             mv.visitInsn(POP);
@@ -592,14 +592,14 @@ public final class ComponentFactoryGenerator {
         for (ConditionInfo.ClassConditionInfo classInfo : conditions.getClassConditions()) {
             mv.visitVarInsn(ALOAD, 1);
             // Create String[] array with class names
-            int size = classInfo.getClassNames().size();
+            int size = classInfo.classNames().size();
             mv.visitIntInsn(BIPUSH, size);
             mv.visitTypeInsn(ANEWARRAY, STRING);
             
             for (int i = 0; i < size; i++) {
                 mv.visitInsn(DUP);
                 mv.visitIntInsn(BIPUSH, i);
-                mv.visitLdcInsn(classInfo.getClassNames().get(i));
+                mv.visitLdcInsn(classInfo.classNames().get(i));
                 mv.visitInsn(AASTORE);
             }
             
@@ -611,16 +611,16 @@ public final class ComponentFactoryGenerator {
         // Add missing bean conditions
         for (ConditionInfo.MissingBeanConditionInfo missing : conditions.getMissingBeanConditions()) {
             // Types
-            if (!missing.getBeanTypes().isEmpty()) {
+            if (!missing.beanTypes().isEmpty()) {
                 mv.visitVarInsn(ALOAD, 1);
-                int size = missing.getBeanTypes().size();
+                int size = missing.beanTypes().size();
                 mv.visitIntInsn(BIPUSH, size);
                 mv.visitTypeInsn(ANEWARRAY, STRING);
                 
                 for (int i = 0; i < size; i++) {
                     mv.visitInsn(DUP);
                     mv.visitIntInsn(BIPUSH, i);
-                    mv.visitLdcInsn(missing.getBeanTypes().get(i));
+                    mv.visitLdcInsn(missing.beanTypes().get(i));
                     mv.visitInsn(AASTORE);
                 }
                 
@@ -630,16 +630,16 @@ public final class ComponentFactoryGenerator {
             }
             
             // Names
-            if (!missing.getBeanNames().isEmpty()) {
+            if (!missing.beanNames().isEmpty()) {
                 mv.visitVarInsn(ALOAD, 1);
-                int size = missing.getBeanNames().size();
+                int size = missing.beanNames().size();
                 mv.visitIntInsn(BIPUSH, size);
                 mv.visitTypeInsn(ANEWARRAY, STRING);
                 
                 for (int i = 0; i < size; i++) {
                     mv.visitInsn(DUP);
                     mv.visitIntInsn(BIPUSH, i);
-                    mv.visitLdcInsn(missing.getBeanNames().get(i));
+                    mv.visitLdcInsn(missing.beanNames().get(i));
                     mv.visitInsn(AASTORE);
                 }
                 
@@ -653,14 +653,14 @@ public final class ComponentFactoryGenerator {
         for (ConditionInfo.ProfileConditionInfo profile : conditions.getProfileConditions()) {
             mv.visitVarInsn(ALOAD, 1);
             // Create String[] array with profile names
-            int size = profile.getProfiles().size();
+            int size = profile.profiles().size();
             mv.visitIntInsn(BIPUSH, size);
             mv.visitTypeInsn(ANEWARRAY, STRING);
             
             for (int i = 0; i < size; i++) {
                 mv.visitInsn(DUP);
                 mv.visitIntInsn(BIPUSH, i);
-                mv.visitLdcInsn(profile.getProfiles().get(i));
+                mv.visitLdcInsn(profile.profiles().get(i));
                 mv.visitInsn(AASTORE);
             }
             
