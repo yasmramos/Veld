@@ -102,4 +102,18 @@ public class ThroughputBenchmark {
         Service service = daggerComponent.simpleService();
         bh.consume(service);
     }
+
+    // === VELD GET BY CLASS BENCHMARKS ===
+    @Benchmark
+    public void veldGetByClass(Blackhole bh) {
+        Service service = Veld.get(Service.class);
+        bh.consume(service);
+    }
+    
+    @Benchmark
+    @Threads(4)
+    public void veldGetByClassConcurrent(Blackhole bh) {
+        Service service = Veld.get(Service.class);
+        bh.consume(service);
+    }
 }

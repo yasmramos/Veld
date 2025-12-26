@@ -58,25 +58,25 @@ public final class Veld {
 
     private Veld() {}
 
-    // === DIRECT GETTERS (ultra-fast) ===
+    // === TYPED GETTERS (delegate to get() for AOP/interceptors) ===
     public static VeldLogger veldLogger() {
-        return _veldLogger;
+        return get(VeldLogger.class);
     }
 
     public static VeldValidator veldValidator() {
-        return _veldValidator;
+        return get(VeldValidator.class);
     }
 
     public static VeldRepository veldRepository() {
-        return _veldRepository;
+        return get(VeldRepository.class);
     }
 
     public static VeldSimpleService veldSimpleService() {
-        return _veldSimpleService;
+        return get(VeldSimpleService.class);
     }
 
     public static VeldComplexService veldComplexService() {
-        return _veldComplexService;
+        return get(VeldComplexService.class);
     }
 
     // === CONTAINER API (O(1) lookup via if-else chain) ===
