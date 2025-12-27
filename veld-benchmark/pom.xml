@@ -284,7 +284,23 @@
                 <groupId>org.sonatype.central</groupId>
                 <artifactId>central-publishing-maven-plugin</artifactId>
                 <configuration>
+                    <skipPublishing>true</skipPublishing>
+                </configuration>
+            </plugin>
+            <!-- Skip Javadoc for benchmark module -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
                     <skip>true</skip>
+                </configuration>
+            </plugin>
+            <!-- Skip source for benchmark module -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <configuration>
+                    <skipSource>true</skipSource>
                 </configuration>
             </plugin>
         </plugins>
