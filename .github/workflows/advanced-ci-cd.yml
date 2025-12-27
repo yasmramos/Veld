@@ -248,13 +248,13 @@ jobs:
         
     - name: 📊 Upload Release Artifacts
       uses: actions/upload-artifact@v4
-      if: always()
       with:
         name: release-artifacts
         path: |
-          target/*-*.jar
+          */target/*.jar
           target/*.zip
           target/*.tar.gz
+        if-no-files-found: warn
         retention-days: 90
         
     - name: 📝 Build Summary

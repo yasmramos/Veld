@@ -68,7 +68,7 @@ jobs:
     - name: Build Veld Annotations
       run: |
         echo "=== Building veld-annotations ==="
-        mvn clean install -pl veld-annotations -DskipTests -Pbenchmark
+        mvn clean install -pl veld-annotations -DskipTests -Pbenchmark -Dmaven.javadoc.skip=true
       env:
         MAVEN_OPTS: "-Ddepgraph.skip=true"
       timeout-minutes: 5
@@ -76,7 +76,7 @@ jobs:
     - name: Build Veld Runtime  
       run: |
         echo "=== Building veld-runtime ==="
-        mvn clean install -pl veld-runtime -am -DskipTests -Pbenchmark
+        mvn clean install -pl veld-runtime -am -DskipTests -Pbenchmark -Dmaven.javadoc.skip=true
       env:
         MAVEN_OPTS: "-Ddepgraph.skip=true"
       timeout-minutes: 5
@@ -84,7 +84,7 @@ jobs:
     - name: Build Veld Processor
       run: |
         echo "=== Building veld-processor ==="
-        mvn clean install -pl veld-processor -am -DskipTests -Pbenchmark
+        mvn clean install -pl veld-processor -am -DskipTests -Pbenchmark -Dmaven.javadoc.skip=true
       env:
         MAVEN_OPTS: "-Ddepgraph.skip=true"
       timeout-minutes: 5
@@ -92,10 +92,18 @@ jobs:
     - name: Build Veld AOP
       run: |
         echo "=== Building veld-aop ==="
-        mvn clean install -pl veld-aop -am -DskipTests -Pbenchmark
+        mvn clean install -pl veld-aop -am -DskipTests -Pbenchmark -Dmaven.javadoc.skip=true
       env:
         MAVEN_OPTS: "-Ddepgraph.skip=true"
       timeout-minutes: 3
+      
+    - name: Build Veld Maven Plugin
+      run: |
+        echo "=== Building veld-maven-plugin ==="
+        mvn clean install -pl veld-maven-plugin -am -DskipTests -Pbenchmark -Dmaven.javadoc.skip=true
+      env:
+        MAVEN_OPTS: "-Ddepgraph.skip=true"
+      timeout-minutes: 5
       
     # Phase 3: Build Benchmark module (if available)
     - name: Build Benchmark Module
