@@ -1,34 +1,16 @@
 package io.github.yasmramos.veld.metrics;
 
 import io.github.yasmramos.veld.annotation.Timed;
-import io.github.yasmramos.veld.aop.AspectHandler;
-import io.github.yasmramos.veld.aop.MethodInvocation;
+import io.github.yasmramos.veld.aop.InvocationContext;
+import io.github.yasmramos.veld.aop.MethodInterceptor;
 
-import java.lang.annotation.Annotation;
-
-/**
- * Records execution time of methods.
- */
-public class TimedHandler implements AspectHandler {
-
+public class TimedHandler implements MethodInterceptor {
     @Override
-    public Class<? extends Annotation> getAnnotationType() {
-        return Timed.class;
-    }
-
-    @Override
-    public Object handle(MethodInvocation invocation) throws Throwable {
-        Timed timed = invocation.getMethod().getAnnotation(Timed.class);
-        String name = timed.value().isEmpty() 
-            ? invocation.getMethod().getDeclaringClass().getSimpleName() + "." + invocation.getMethod().getName()
-            : timed.value();
-        
+    public Object invoke(InvocationContext ctx) throws Throwable {
+        Timed timed = ctx.getMethod().getAnnotation(Timed.class);
+        if (timed == null) return ctx.proceed();
+        String name = timed.value().isEmpty() ? ctx.getMethod().getDeclaringClass().getSimpleName() + "." + ctx.getMethod().getName() : timed.value();
         long start = System.currentTimeMillis();
-        try {
-            return invocation.proceed();
-        } finally {
-            long duration = System.currentTimeMillis() - start;
-            MetricsRegistry.recordTime(name, duration);
-        }
+        try { return ctx.proceed(); } finally { MetricsRegistry.recordTime(name, System.currentTimeMillis() - start); }
     }
 }

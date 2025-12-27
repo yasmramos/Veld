@@ -1,103 +1,43 @@
 package io.github.yasmramos.veld.tx;
 
 import io.github.yasmramos.veld.annotation.Transactional;
-import io.github.yasmramos.veld.aop.AspectHandler;
-import io.github.yasmramos.veld.aop.MethodInvocation;
+import io.github.yasmramos.veld.aop.InvocationContext;
+import io.github.yasmramos.veld.aop.MethodInterceptor;
 
-import java.lang.annotation.Annotation;
-
-/**
- * Manages transactional boundaries for methods.
- */
-public class TransactionalHandler implements AspectHandler {
-
+public class TransactionalHandler implements MethodInterceptor {
     private static TransactionManager transactionManager;
-
-    public static void setTransactionManager(TransactionManager manager) {
-        transactionManager = manager;
-    }
+    public static void setTransactionManager(TransactionManager manager) { transactionManager = manager; }
 
     @Override
-    public Class<? extends Annotation> getAnnotationType() {
-        return Transactional.class;
-    }
-
-    @Override
-    public Object handle(MethodInvocation invocation) throws Throwable {
-        if (transactionManager == null) {
-            // No transaction manager configured, proceed without transaction
-            return invocation.proceed();
-        }
-
-        Transactional tx = invocation.getMethod().getAnnotation(Transactional.class);
-        
-        boolean newTransaction = false;
+    public Object invoke(InvocationContext ctx) throws Throwable {
+        if (transactionManager == null) return ctx.proceed();
+        Transactional tx = ctx.getMethod().getAnnotation(Transactional.class);
+        if (tx == null) return ctx.proceed();
+        boolean newTx = false;
         try {
             switch (tx.propagation()) {
-                case REQUIRED:
-                    if (!transactionManager.isActive()) {
-                        transactionManager.begin();
-                        newTransaction = true;
-                    }
-                    break;
-                case REQUIRES_NEW:
-                    transactionManager.begin();
-                    newTransaction = true;
-                    break;
-                case MANDATORY:
-                    if (!transactionManager.isActive()) {
-                        throw new TransactionRequiredException("Transaction required but none active");
-                    }
-                    break;
-                case NEVER:
-                    if (transactionManager.isActive()) {
-                        throw new TransactionNotAllowedException("Transaction not allowed");
-                    }
-                    break;
-                case SUPPORTS:
-                default:
-                    // Proceed with or without transaction
-                    break;
+                case REQUIRED: if (!transactionManager.isActive()) { transactionManager.begin(); newTx = true; } break;
+                case REQUIRES_NEW: transactionManager.begin(); newTx = true; break;
+                case MANDATORY: if (!transactionManager.isActive()) throw new TransactionRequiredException("Transaction required"); break;
+                case NEVER: if (transactionManager.isActive()) throw new TransactionNotAllowedException("Transaction not allowed"); break;
+                default: break;
             }
-
-            Object result = invocation.proceed();
-            
-            if (newTransaction) {
-                transactionManager.commit();
-            }
-            
+            Object result = ctx.proceed();
+            if (newTx) transactionManager.commit();
             return result;
-            
         } catch (Throwable t) {
-            if (newTransaction && shouldRollback(tx, t)) {
-                transactionManager.rollback();
-            }
+            if (newTx && shouldRollback(tx, t)) transactionManager.rollback();
             throw t;
         }
     }
 
     private boolean shouldRollback(Transactional tx, Throwable t) {
-        for (Class<? extends Throwable> noRollback : tx.noRollbackFor()) {
-            if (noRollback.isInstance(t)) return false;
-        }
-        for (Class<? extends Throwable> rollback : tx.rollbackFor()) {
-            if (rollback.isInstance(t)) return true;
-        }
+        for (Class<? extends Throwable> nr : tx.noRollbackFor()) if (nr.isInstance(t)) return false;
+        for (Class<? extends Throwable> r : tx.rollbackFor()) if (r.isInstance(t)) return true;
         return t instanceof RuntimeException || t instanceof Error;
     }
 
-    public interface TransactionManager {
-        void begin();
-        void commit();
-        void rollback();
-        boolean isActive();
-    }
-
-    public static class TransactionRequiredException extends RuntimeException {
-        public TransactionRequiredException(String message) { super(message); }
-    }
-
-    public static class TransactionNotAllowedException extends RuntimeException {
-        public TransactionNotAllowedException(String message) { super(message); }
-    }
+    public interface TransactionManager { void begin(); void commit(); void rollback(); boolean isActive(); }
+    public static class TransactionRequiredException extends RuntimeException { public TransactionRequiredException(String m) { super(m); } }
+    public static class TransactionNotAllowedException extends RuntimeException { public TransactionNotAllowedException(String m) { super(m); } }
 }
