@@ -21,7 +21,6 @@ public class VeldClassGenerator implements Opcodes {
     private static final String SYNTHETIC_SETTER_PREFIX = "__di_set_";
     
     private final List<ComponentMeta> components;
-    private final List<AopProxyGenerator.ProxyMeta> aopProxies = new ArrayList<>();
     
     public VeldClassGenerator(List<ComponentMeta> components) {
         this.components = components;
@@ -61,12 +60,8 @@ public class VeldClassGenerator implements Opcodes {
             }
         }
         
-        // Generate AOP proxy classes for components that need interception
-        collectAopProxies();
-        if (!aopProxies.isEmpty()) {
-            AopProxyGenerator aopGen = new AopProxyGenerator(aopProxies);
-            result.putAll(aopGen.generateAll());
-        }
+        // Note: AOP wrapper classes are now generated at compile-time by the annotation processor
+        // The weaver just needs to instantiate the $$Aop wrapper classes if they exist
         
         // Generate main Veld.class
         result.put(VELD_CLASS, generate());
@@ -74,27 +69,10 @@ public class VeldClassGenerator implements Opcodes {
     }
     
     /**
-     * Collects AOP proxy metadata for components that require interception.
-     */
-    private void collectAopProxies() {
-        aopProxies.clear();
-        for (ComponentMeta comp : components) {
-            if (comp.needsAopProxy && !comp.aopMethods.isEmpty()) {
-                List<AopProxyGenerator.MethodMeta> methods = new ArrayList<>();
-                for (AopMethodMeta m : comp.aopMethods) {
-                    methods.add(new AopProxyGenerator.MethodMeta(m.name(), m.descriptor(), m.interceptorBindings()));
-                }
-                aopProxies.add(new AopProxyGenerator.ProxyMeta(
-                    comp.internalName, methods, comp.interceptorClasses));
-            }
-        }
-    }
-    
-    /**
      * Returns the proxy internal name for a component, or the original if no proxy.
      */
     private String getEffectiveInternalName(ComponentMeta comp) {
-        return comp.needsAopProxy ? comp.internalName + "$AopProxy" : comp.internalName;
+        return comp.needsAopProxy ? comp.internalName + "$$Aop" : comp.internalName;
     }
     
     public byte[] generate() {

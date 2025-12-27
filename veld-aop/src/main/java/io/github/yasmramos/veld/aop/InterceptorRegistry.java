@@ -16,7 +16,6 @@
 package io.github.yasmramos.veld.aop;
 
 import io.github.yasmramos.veld.annotation.*;
-import io.github.yasmramos.veld.aop.proxy.ProxyMethodHandler.DirectInvoker;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -33,7 +32,7 @@ import java.util.stream.Collectors;
  * 
  * <p><b>Zero-Reflection Principle:</b>
  * <ul>
- *   <li>Interceptors registered with DirectInvoker (no Method.invoke)</li>
+ *   <li>Interceptors use compile-time code generation (no Method.invoke)</li>
  *   <li>Advice methods wrapped in functional interfaces at registration time</li>
  *   <li>No reflection used during method interception</li>
  * </ul>

@@ -16,5 +16,4 @@ module io.github.yasmramos.veld.aop {
     exports io.github.yasmramos.veld.aop;
     exports io.github.yasmramos.veld.aop.interceptor;
     exports io.github.yasmramos.veld.aop.pointcut;
-    exports io.github.yasmramos.veld.aop.proxy;
 }
