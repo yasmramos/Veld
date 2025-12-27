@@ -190,6 +190,12 @@
                             </transformers>
                             <filters>
                                 <filter>
+                                    <artifact>io.github.yasmramos:veld-runtime</artifact>
+                                    <excludes>
+                                        <exclude>io/github/yasmramos/veld/Veld.class</exclude>
+                                    </excludes>
+                                </filter>
+                                <filter>
                                     <artifact>*:*</artifact>
                                     <excludes>
                                         <exclude>META-INF/*.SF</exclude>

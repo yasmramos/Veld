@@ -5,7 +5,7 @@ import java.util.List;
 
 /**
  * Generates Veld.java source code instead of bytecode.
- * The generated class is the main service locator for dependency injection.
+ * Uses the Initialization-on-demand holder idiom for lock-free singleton access.
  */
 public final class VeldSourceGenerator {
     
@@ -37,39 +37,23 @@ public final class VeldSourceGenerator {
         // Class declaration
         sb.append("/**\n");
         sb.append(" * Generated service locator for Veld DI container.\n");
-        sb.append(" * This class is auto-generated - do not modify.\n");
+        sb.append(" * Uses Initialization-on-demand holder idiom for lock-free singleton access.\n");
         sb.append(" */\n");
         sb.append("@SuppressWarnings({\"unchecked\", \"rawtypes\"})\n");
         sb.append("public final class Veld {\n\n");
         
-        // Static fields for singletons
-        for (ComponentInfo comp : components) {
-            if (comp.getScope() == Scope.SINGLETON) {
-                String fieldName = getFieldName(comp);
-                sb.append("    private static volatile ").append(comp.getClassName())
-                  .append(" ").append(fieldName).append(";\n");
-            }
-        }
-        sb.append("\n");
-        
-        // Registry and lifecycle processor
+        // Registry and lifecycle processor (no volatile needed for final fields)
         sb.append("    private static final VeldRegistry _registry = new VeldRegistry();\n");
         sb.append("    private static final LifecycleProcessor _lifecycle;\n");
         sb.append("    private static final ConditionalRegistry _conditionalRegistry;\n");
-        sb.append("    private static final EventBus _eventBus = EventBus.getInstance();\n");
-        sb.append("    private static final Map<Class<?>, Object> _singletons = new ConcurrentHashMap<>();\n");
-        sb.append("    private static volatile boolean _initialized = false;\n\n");
+        sb.append("    private static final EventBus _eventBus = EventBus.getInstance();\n\n");
         
         // Static initializer
         sb.append("    static {\n");
         sb.append("        _lifecycle = new LifecycleProcessor();\n");
         sb.append("        _lifecycle.setEventBus(_eventBus);\n");
         sb.append("        _conditionalRegistry = new ConditionalRegistry(_registry, getActiveProfiles());\n");
-        sb.append("        initialize();\n");
         sb.append("    }\n\n");
-        
-        // Initialize method
-        generateInitializeMethod(sb);
         
         // getActiveProfiles
         sb.append("    private static Set<String> getActiveProfiles() {\n");
@@ -81,8 +65,14 @@ public final class VeldSourceGenerator {
         sb.append("        return Set.of(profiles.split(\",\"));\n");
         sb.append("    }\n\n");
         
+        // Generate Holder classes for singletons
+        generateHolderClasses(sb);
+        
         // get() methods for each component
         generateGetMethods(sb);
+        
+        // createInstance methods
+        generateCreateInstanceMethods(sb);
         
         // Generic get by class
         generateGetByClass(sb);
@@ -97,11 +87,14 @@ public final class VeldSourceGenerator {
         sb.append("        return _eventBus;\n");
         sb.append("    }\n\n");
         
+        // LifecycleProcessor accessor
+        sb.append("    public static LifecycleProcessor getLifecycleProcessor() {\n");
+        sb.append("        return _lifecycle;\n");
+        sb.append("    }\n\n");
+        
         // Shutdown method
         sb.append("    public static void shutdown() {\n");
         sb.append("        _lifecycle.destroy();\n");
-        sb.append("        _singletons.clear();\n");
-        sb.append("        _initialized = false;\n");
         sb.append("    }\n\n");
         
         // Close class
@@ -110,57 +103,45 @@ public final class VeldSourceGenerator {
         return sb.toString();
     }
     
-    private void generateInitializeMethod(StringBuilder sb) {
-        sb.append("    private static void initialize() {\n");
-        sb.append("        if (_initialized) return;\n");
-        sb.append("        synchronized (Veld.class) {\n");
-        sb.append("            if (_initialized) return;\n");
-        
-        // Create singleton instances
+    private void generateHolderClasses(StringBuilder sb) {
+        sb.append("    // === HOLDER CLASSES FOR LOCK-FREE SINGLETON ACCESS ===\n\n");
         for (ComponentInfo comp : components) {
-            if (comp.getScope() == Scope.SINGLETON && !comp.isLazy()) {
-                String fieldName = getFieldName(comp);
-                String getterName = getGetterMethodName(comp);
-                sb.append("            ").append(fieldName).append(" = ").append(getterName).append("();\n");
-                sb.append("            _lifecycle.registerBean(\"").append(comp.getComponentName())
-                  .append("\", ").append(fieldName).append(");\n");
+            if (comp.getScope() == Scope.SINGLETON) {
+                String holderName = getHolderClassName(comp);
+                String returnType = comp.getClassName();
+                String simpleName = getSimpleName(comp);
+                
+                sb.append("    private static final class ").append(holderName).append(" {\n");
+                sb.append("        static final ").append(returnType).append(" INSTANCE = createInstance_").append(simpleName).append("();\n");
+                sb.append("    }\n\n");
             }
         }
-        
-        sb.append("            _initialized = true;\n");
-        sb.append("        }\n");
-        sb.append("    }\n\n");
     }
     
     private void generateGetMethods(StringBuilder sb) {
+        sb.append("    // === GETTER METHODS ===\n\n");
         for (ComponentInfo comp : components) {
             String methodName = getGetterMethodName(comp);
             String returnType = comp.getClassName();
-            String fieldName = getFieldName(comp);
             
             sb.append("    public static ").append(returnType).append(" ").append(methodName).append("() {\n");
             
             if (comp.getScope() == Scope.SINGLETON) {
-                // Singleton - double-checked locking
-                sb.append("        ").append(returnType).append(" result = ").append(fieldName).append(";\n");
-                sb.append("        if (result == null) {\n");
-                sb.append("            synchronized (Veld.class) {\n");
-                sb.append("                result = ").append(fieldName).append(";\n");
-                sb.append("                if (result == null) {\n");
-                sb.append("                    result = createInstance_").append(getSimpleName(comp)).append("();\n");
-                sb.append("                    ").append(fieldName).append(" = result;\n");
-                sb.append("                }\n");
-                sb.append("            }\n");
-                sb.append("        }\n");
-                sb.append("        return result;\n");
+                // Singleton - use holder pattern (lock-free)
+                String holderName = getHolderClassName(comp);
+                sb.append("        return ").append(holderName).append(".INSTANCE;\n");
             } else {
                 // Prototype - always create new
                 sb.append("        return createInstance_").append(getSimpleName(comp)).append("();\n");
             }
             
             sb.append("    }\n\n");
-            
-            // Generate createInstance method
+        }
+    }
+    
+    private void generateCreateInstanceMethods(StringBuilder sb) {
+        sb.append("    // === INSTANCE CREATION METHODS ===\n\n");
+        for (ComponentInfo comp : components) {
             generateCreateInstanceMethod(sb, comp);
         }
     }
@@ -190,7 +171,6 @@ public final class VeldSourceGenerator {
             if (!field.getDependencies().isEmpty()) {
                 InjectionPoint.Dependency dep = field.getDependencies().get(0);
                 if (dep.isValueInjection()) {
-                    // @Value injection - skip for now, handle at runtime
                     continue;
                 }
                 String setterName = "set" + capitalize(field.getName());
@@ -221,6 +201,7 @@ public final class VeldSourceGenerator {
     }
     
     private void generateGetByClass(StringBuilder sb) {
+        sb.append("    // === GENERIC GET BY CLASS ===\n\n");
         sb.append("    @SuppressWarnings(\"unchecked\")\n");
         sb.append("    public static <T> T get(Class<T> type) {\n");
         
@@ -244,12 +225,11 @@ public final class VeldSourceGenerator {
         sb.append("    }\n\n");
     }
     
-    private String getFieldName(ComponentInfo comp) {
-        return "_veld" + getSimpleName(comp);
+    private String getHolderClassName(ComponentInfo comp) {
+        return "Holder_" + getSimpleName(comp);
     }
     
     private String getGetterMethodName(ComponentInfo comp) {
-        // Use decapitalized simple name (e.g., VeldSimpleService -> veldSimpleService)
         String simpleName = getSimpleName(comp);
         return decapitalize(simpleName);
     }
@@ -272,19 +252,16 @@ public final class VeldSourceGenerator {
     }
     
     private String getGetterCallForType(String typeName) {
-        // Find component by type
         for (ComponentInfo comp : components) {
             if (comp.getClassName().equals(typeName)) {
                 return getGetterMethodName(comp) + "()";
             }
-            // Check interfaces
             for (String iface : comp.getImplementedInterfaces()) {
                 if (iface.equals(typeName)) {
                     return getGetterMethodName(comp) + "()";
                 }
             }
         }
-        // Fallback to get(Class)
         return "get(" + typeName + ".class)";
     }
 }

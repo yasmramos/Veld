@@ -53,7 +53,8 @@ public class ThroughputBenchmark {
     
     @Benchmark
     public void veldThroughput(Blackhole bh) {
-        Service service = Veld.get(VeldSimpleService.class);
+        // Direct API - O(1) like Dagger
+        Service service = Veld.veldSimpleService();
         bh.consume(service);
     }
     
@@ -78,7 +79,8 @@ public class ThroughputBenchmark {
     @Benchmark
     @Threads(4)
     public void veldConcurrentThroughput(Blackhole bh) {
-        Service service = Veld.get(VeldSimpleService.class);
+        // Direct API - O(1) like Dagger
+        Service service = Veld.veldSimpleService();
         bh.consume(service);
     }
     
