@@ -17,6 +17,7 @@ module io.github.yasmramos.veld.runtime {
     exports io.github.yasmramos.veld.runtime.lifecycle;
     exports io.github.yasmramos.veld.runtime.lifecycle.event;
     exports io.github.yasmramos.veld.runtime.value;
+    exports io.github.yasmramos.veld.runtime.async;
     
     // Open packages for reflection (needed for DI and lifecycle callbacks)
     opens io.github.yasmramos.veld.runtime;
