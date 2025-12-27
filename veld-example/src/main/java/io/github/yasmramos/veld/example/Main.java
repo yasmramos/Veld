@@ -9,9 +9,6 @@ import io.github.yasmramos.veld.example.dependsOn.DependsOnDemo;
 import io.github.yasmramos.veld.example.dependsOn.DatabaseService;
 import io.github.yasmramos.veld.example.dependsOn.UserService;
 import io.github.yasmramos.veld.aop.interceptor.LoggingInterceptor;
-import io.github.yasmramos.veld.aop.interceptor.TimingInterceptor;
-import io.github.yasmramos.veld.aop.interceptor.TransactionInterceptor;
-import io.github.yasmramos.veld.aop.interceptor.ValidationInterceptor;
 import io.github.yasmramos.veld.runtime.event.EventBus;
 // LifecycleProcessor is integrated automatically through Veld bytecode generation
 import io.github.yasmramos.veld.Veld;
