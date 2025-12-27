@@ -160,4 +160,63 @@ class CronExpressionTest {
         assertNotNull(next);
         assertTrue(next.getSecond() >= 5);
     }
+
+    @Test
+    void next_specificMonth_findsCorrectMonth() {
+        // Only in June
+        SchedulerService.CronExpression cron = SchedulerService.CronExpression.parse("0 0 12 1 6 *");
+        ZonedDateTime from = ZonedDateTime.of(2025, 1, 1, 10, 0, 0, 0, ZoneId.of("UTC"));
+        
+        ZonedDateTime next = cron.next(from);
+        
+        assertNotNull(next);
+        assertEquals(6, next.getMonthValue());
+    }
+
+    @Test
+    void next_specificDayOfMonth_findsCorrectDay() {
+        // Only on 15th
+        SchedulerService.CronExpression cron = SchedulerService.CronExpression.parse("0 0 12 15 * *");
+        ZonedDateTime from = ZonedDateTime.of(2025, 1, 1, 10, 0, 0, 0, ZoneId.of("UTC"));
+        
+        ZonedDateTime next = cron.next(from);
+        
+        assertNotNull(next);
+        assertEquals(15, next.getDayOfMonth());
+    }
+
+    @Test
+    void parse_multipleValues_parsesCorrectly() {
+        SchedulerService.CronExpression cron = SchedulerService.CronExpression.parse("0,15,30,45 * * * * *");
+        ZonedDateTime from = ZonedDateTime.of(2025, 1, 1, 10, 0, 10, 0, ZoneId.of("UTC"));
+        
+        ZonedDateTime next = cron.next(from);
+        
+        assertNotNull(next);
+        assertTrue(next.getSecond() == 15 || next.getSecond() == 30 || next.getSecond() == 45);
+    }
+
+    @Test
+    void next_atEndOfDay_wrapsToNextDay() {
+        SchedulerService.CronExpression cron = SchedulerService.CronExpression.parse("0 0 8 * * *");
+        ZonedDateTime from = ZonedDateTime.of(2025, 1, 1, 23, 59, 59, 0, ZoneId.of("UTC"));
+        
+        ZonedDateTime next = cron.next(from);
+        
+        assertNotNull(next);
+        assertEquals(2, next.getDayOfMonth());
+        assertEquals(8, next.getHour());
+    }
+
+    @Test
+    void next_sunday_calculatesCorrectly() {
+        // Sunday = 0
+        SchedulerService.CronExpression cron = SchedulerService.CronExpression.parse("0 0 12 * * 0");
+        ZonedDateTime from = ZonedDateTime.of(2025, 1, 6, 10, 0, 0, 0, ZoneId.of("UTC")); // Monday
+        
+        ZonedDateTime next = cron.next(from);
+        
+        assertNotNull(next);
+        assertEquals(java.time.DayOfWeek.SUNDAY, next.getDayOfWeek());
+    }
 }

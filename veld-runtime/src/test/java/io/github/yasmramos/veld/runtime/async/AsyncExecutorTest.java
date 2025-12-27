@@ -169,4 +169,61 @@ class AsyncExecutorTest {
         AsyncExecutor second = AsyncExecutor.getInstance();
         assertNotSame(first, second);
     }
+
+    @Test
+    void submit_callable_withNamedExecutor_returnsResult() throws Exception {
+        ExecutorService customExecutor = Executors.newSingleThreadExecutor();
+        AsyncExecutor.getInstance().registerExecutor("calc", customExecutor);
+        
+        CompletableFuture<Integer> future = AsyncExecutor.getInstance()
+            .submit(() -> 100, "calc");
+        
+        assertEquals(100, future.get(5, TimeUnit.SECONDS));
+        customExecutor.shutdown();
+    }
+
+    @Test
+    void submit_callable_withNullExecutorName_usesDefault() throws Exception {
+        CompletableFuture<String> future = AsyncExecutor.getInstance()
+            .submit(() -> "default", null);
+        
+        assertEquals("default", future.get(5, TimeUnit.SECONDS));
+    }
+
+    @Test
+    void registerExecutor_multipleExecutors_worksCorrectly() throws Exception {
+        ExecutorService exec1 = Executors.newSingleThreadExecutor();
+        ExecutorService exec2 = Executors.newSingleThreadExecutor();
+        
+        AsyncExecutor.getInstance().registerExecutor("exec1", exec1);
+        AsyncExecutor.getInstance().registerExecutor("exec2", exec2);
+        
+        CompletableFuture<Integer> f1 = AsyncExecutor.getInstance().submit(() -> 1, "exec1");
+        CompletableFuture<Integer> f2 = AsyncExecutor.getInstance().submit(() -> 2, "exec2");
+        
+        assertEquals(1, f1.get(5, TimeUnit.SECONDS));
+        assertEquals(2, f2.get(5, TimeUnit.SECONDS));
+        
+        exec1.shutdown();
+        exec2.shutdown();
+    }
+
+    @Test
+    void submit_runnable_noArgs_usesDefaultExecutor() throws Exception {
+        AtomicBoolean executed = new AtomicBoolean(false);
+        
+        CompletableFuture<Void> future = AsyncExecutor.getInstance()
+            .submit(() -> executed.set(true));
+        
+        future.get(5, TimeUnit.SECONDS);
+        assertTrue(executed.get());
+    }
+
+    @Test
+    void submit_callable_noArgs_usesDefaultExecutor() throws Exception {
+        CompletableFuture<String> future = AsyncExecutor.getInstance()
+            .submit(() -> "noArgs");
+        
+        assertEquals("noArgs", future.get(5, TimeUnit.SECONDS));
+    }
 }
