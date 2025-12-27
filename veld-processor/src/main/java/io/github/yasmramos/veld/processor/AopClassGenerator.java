@@ -50,7 +50,8 @@ public class AopClassGenerator {
         "io.github.yasmramos.veld.annotation.Before",
         "io.github.yasmramos.veld.annotation.After",
         "io.github.yasmramos.veld.annotation.Async",
-        "io.github.yasmramos.veld.annotation.Scheduled"
+        "io.github.yasmramos.veld.annotation.Scheduled",
+        "io.github.yasmramos.veld.annotation.RateLimiter"
     );
 
     private final Filer filer;
@@ -365,6 +366,12 @@ public class AopClassGenerator {
                 continue;
             }
 
+            // Check for @RateLimiter annotation
+            if (hasAnnotation(method, "io.github.yasmramos.veld.annotation.RateLimiter")) {
+                generateRateLimiterMethod(out, method, simpleClassName);
+                continue;
+            }
+
             // Get method-level interceptors
             Set<String> methodInterceptors = new LinkedHashSet<>(classLevelInterceptors);
             addInterceptorType(methodInterceptors, method);
@@ -471,6 +478,78 @@ public class AopClassGenerator {
             out.println("        }");
         }
 
+        out.println("    }");
+        out.println();
+    }
+
+    /**
+     * Generates a rate-limited method wrapper.
+     */
+    private void generateRateLimiterMethod(PrintWriter out, ExecutableElement method, String simpleClassName) {
+        String methodName = method.getSimpleName().toString();
+        TypeMirror returnType = method.getReturnType();
+        String returnTypeName = returnType.toString();
+        boolean isVoid = returnTypeName.equals("void");
+
+        // Get annotation values
+        String permits = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.RateLimiter", "permits", "10");
+        String period = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.RateLimiter", "period", "1000");
+        String blocking = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.RateLimiter", "blocking", "true");
+        String timeout = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.RateLimiter", "timeout", "5000");
+        String key = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.RateLimiter", "key", "");
+        
+        String limiterKey = key.isEmpty() ? simpleClassName + "." + methodName : key;
+
+        // Build parameter list
+        StringBuilder params = new StringBuilder();
+        StringBuilder args = new StringBuilder();
+        List<? extends VariableElement> parameters = method.getParameters();
+        
+        for (int i = 0; i < parameters.size(); i++) {
+            VariableElement param = parameters.get(i);
+            if (i > 0) {
+                params.append(", ");
+                args.append(", ");
+            }
+            params.append(param.asType().toString()).append(" ").append(param.getSimpleName());
+            args.append(param.getSimpleName());
+        }
+
+        // Build throws clause
+        StringBuilder throwsClause = new StringBuilder();
+        List<? extends TypeMirror> thrownTypes = method.getThrownTypes();
+        if (!thrownTypes.isEmpty()) {
+            throwsClause.append(" throws ");
+            for (int i = 0; i < thrownTypes.size(); i++) {
+                if (i > 0) throwsClause.append(", ");
+                throwsClause.append(thrownTypes.get(i).toString());
+            }
+        }
+
+        // Generate method override
+        out.println("    @Override");
+        out.println("    public " + returnTypeName + " " + methodName + "(" + params + ")" + throwsClause + " {");
+        
+        if (blocking.equals("true")) {
+            out.println("        boolean __acquired__ = io.github.yasmramos.veld.runtime.ratelimit.RateLimiterService.getInstance()");
+            out.println("            .acquire(\"" + limiterKey + "\", " + permits + ", " + period + "L, " + timeout + "L);");
+            out.println("        if (!__acquired__) {");
+            out.println("            throw new io.github.yasmramos.veld.runtime.ratelimit.RateLimiterService.RateLimitExceededException(\"Rate limit timeout for " + methodName + "\");");
+            out.println("        }");
+        } else {
+            out.println("        boolean __acquired__ = io.github.yasmramos.veld.runtime.ratelimit.RateLimiterService.getInstance()");
+            out.println("            .tryAcquire(\"" + limiterKey + "\", " + permits + ", " + period + "L);");
+            out.println("        if (!__acquired__) {");
+            out.println("            throw new io.github.yasmramos.veld.runtime.ratelimit.RateLimiterService.RateLimitExceededException(\"Rate limit exceeded for " + methodName + "\");");
+            out.println("        }");
+        }
+        
+        if (isVoid) {
+            out.println("        super." + methodName + "(" + args + ");");
+        } else {
+            out.println("        return super." + methodName + "(" + args + ");");
+        }
+        
         out.println("    }");
         out.println();
     }
