@@ -122,6 +122,9 @@ public class WeaverMojo extends AbstractMojo {
                 throw new MojoFailureException("Weaving failed for " + errorCount + " class(es)");
             }
             
+            // Note: Veld.class and VeldRegistry.class are now generated as source code by the processor
+            // and compiled by javac. The weaver only adds synthetic setters for private field injection.
+            
         } catch (IOException e) {
             throw new MojoExecutionException("Failed to weave classes", e);
         }

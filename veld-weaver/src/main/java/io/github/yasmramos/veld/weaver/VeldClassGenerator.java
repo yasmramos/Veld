@@ -448,15 +448,17 @@ public class VeldClassGenerator implements Opcodes {
         mv.visitMethodInsn(INVOKESPECIAL, "io/github/yasmramos/veld/runtime/lifecycle/LifecycleProcessor", 
             "<init>", "()V", false);
         
-        // Get EventBus instance and set it on LifecycleProcessor
+        // Store in static field first (stack: [LP] -> [])
+        mv.visitFieldInsn(PUTSTATIC, VELD_CLASS, "_lifecycleProcessor", 
+            "Lio/github/yasmramos/veld/runtime/lifecycle/LifecycleProcessor;");
+        
+        // Get instance back and set EventBus
+        mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_lifecycleProcessor",
+            "Lio/github/yasmramos/veld/runtime/lifecycle/LifecycleProcessor;");
         mv.visitMethodInsn(INVOKESTATIC, "io/github/yasmramos/veld/runtime/event/EventBus", 
             "getInstance", "()Lio/github/yasmramos/veld/runtime/event/EventBus;", false);
         mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/lifecycle/LifecycleProcessor", 
             "setEventBus", "(Lio/github/yasmramos/veld/runtime/event/EventBus;)V", false);
-        
-        // Store in static field
-        mv.visitFieldInsn(PUTSTATIC, VELD_CLASS, "_lifecycleProcessor", 
-            "Lio/github/yasmramos/veld/runtime/lifecycle/LifecycleProcessor;");
         
         // Register all beans with the LifecycleProcessor
         registerBeansWithLifecycleProcessor(mv);
@@ -467,6 +469,11 @@ public class VeldClassGenerator implements Opcodes {
      */
     private void registerBeansWithLifecycleProcessor(MethodVisitor mv) {
         for (ComponentMeta comp : components) {
+            // Only register singletons (they have static fields)
+            if (!"SINGLETON".equals(comp.scope)) {
+                continue;
+            }
+            
             String fieldName = getFieldName(comp);
             String fieldType = "L" + comp.internalName + ";";
             
@@ -480,9 +487,9 @@ public class VeldClassGenerator implements Opcodes {
             // Get bean instance
             mv.visitFieldInsn(GETSTATIC, VELD_CLASS, fieldName, fieldType);
             
-            // Call registerBean
+            // Call registerBean(String, Object)
             mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/lifecycle/LifecycleProcessor", 
-                "registerBean", "(Ljava/lang/Object;Ljava/lang/Object;)V", false);
+                "registerBean", "(Ljava/lang/String;Ljava/lang/Object;)V", false);
         }
     }
     
@@ -491,20 +498,24 @@ public class VeldClassGenerator implements Opcodes {
      * This will filter components based on conditions like @Profile, @ConditionalOnProperty, etc.
      */
     private void initializeConditionalRegistry(MethodVisitor mv) {
-        // Create VeldRegistry instance first (this is the original generated registry)
-        mv.visitTypeInsn(NEW, "veld/VeldRegistry");
-        mv.visitInsn(DUP);
-        mv.visitMethodInsn(INVOKESPECIAL, "veld/VeldRegistry", "<init>", "()V", false);
-        
-        // Create ConditionalRegistry with the original registry
+        // NEW ConditionalRegistry
         mv.visitTypeInsn(NEW, "io/github/yasmramos/veld/runtime/ConditionalRegistry");
         mv.visitInsn(DUP);
-        mv.visitInsn(SWAP); // Swap VeldRegistry instance to top of stack
+        // Stack: [CR_uninit, CR_uninit]
         
-        // Load active profiles from system property or environment variable
+        // Create VeldRegistry instance
+        mv.visitTypeInsn(NEW, "io/github/yasmramos/veld/generated/VeldRegistry");
+        mv.visitInsn(DUP);
+        mv.visitMethodInsn(INVOKESPECIAL, "io/github/yasmramos/veld/generated/VeldRegistry", "<init>", "()V", false);
+        // Stack: [CR_uninit, CR_uninit, VR_instance]
+        
+        // Load active profiles
         mv.visitMethodInsn(INVOKESTATIC, "io/github/yasmramos/veld/runtime/ConditionalRegistry", 
             "getActiveProfiles", "()[Ljava/lang/String;", false);
+        // Stack: [CR_uninit, CR_uninit, VR_instance, String[]]
         
+        // invokespecial consumes: objectref, arg1, arg2 from stack
+        // Stack after: [CR_instance]
         mv.visitMethodInsn(INVOKESPECIAL, "io/github/yasmramos/veld/runtime/ConditionalRegistry", 
             "<init>", "(Lio/github/yasmramos/veld/runtime/ComponentRegistry;[Ljava/lang/String;)V", false);
         
@@ -948,9 +959,7 @@ public class VeldClassGenerator implements Opcodes {
      * Cold path (~15ns): Linear fallback for hash collisions
      */
     private void generateGetByClass(ClassWriter cw) {
-        // Generate thread-local cache field
-        cw.visitField(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "_tlCache",
-            "Ljava/lang/ThreadLocal;", null, null).visitEnd();
+        // _tlCache field is already defined at class level
         
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC | ACC_STATIC, "get",
             "(Ljava/lang/Class;)Ljava/lang/Object;",

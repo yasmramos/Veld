@@ -9,7 +9,7 @@
  */
 package io.github.yasmramos.veld.benchmark.strategic;
 
-import io.github.yasmramos.veld.generated.Veld;
+import io.github.yasmramos.veld.Veld;
 import io.github.yasmramos.veld.benchmark.veld.*;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.annotations.GroupThreads;
