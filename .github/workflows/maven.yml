@@ -47,7 +47,7 @@ jobs:
       run: |
         echo "=== Starting Maven clean compile ==="
         # First build all modules except benchmark (which needs plugins to be installed first)
-        mvn clean install -DskipTests -pl '!veld-benchmark' --batch-mode
+        mvn clean install -DskipTests -Dmaven.gpg.skip=true -pl '!veld-benchmark' --batch-mode
         # Then build benchmark module
         mvn compile -pl veld-benchmark --batch-mode
       env:
