@@ -16,8 +16,8 @@
 package io.github.yasmramos.veld.example.aop;
 
 import io.github.yasmramos.veld.annotation.Component;
-import io.github.yasmramos.veld.aop.interceptor.Timed;
-import io.github.yasmramos.veld.aop.interceptor.Validated;
+import io.github.yasmramos.veld.annotation.Timed;
+import io.github.yasmramos.veld.annotation.Valid;
 
 /**
  * Example service demonstrating AOP with calculator operations.
@@ -65,7 +65,7 @@ public class CalculatorService {
      *
      * @throws ArithmeticException if b is zero
      */
-    @Validated
+    @Valid
     public double divide(int a, int b) {
         if (b == 0) {
             throw new ArithmeticException("Division by zero");

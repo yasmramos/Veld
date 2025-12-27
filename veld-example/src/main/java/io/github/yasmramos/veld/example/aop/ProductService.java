@@ -17,7 +17,7 @@ package io.github.yasmramos.veld.example.aop;
 
 import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.aop.interceptor.Logged;
-import io.github.yasmramos.veld.aop.interceptor.Transactional;
+import io.github.yasmramos.veld.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.Map;

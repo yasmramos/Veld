@@ -50,12 +50,37 @@ Veld is a **compile-time Dependency Injection framework** that generates pure by
 - **Profile Support** - `@Profile` for environment-specific beans
 - **JPMS Compatible** - Full Java Module System support
 
-### Resilience & Fault Tolerance (NEW in 1.1.0)
+### Resilience & Fault Tolerance (`veld-resilience`)
 - **Retry** - `@Retry` automatic retry with exponential backoff
 - **Rate Limiting** - `@RateLimiter` to control method call frequency
-- **Configurable Strategies** - Include/exclude exceptions, max delays, blocking modes
+- **Circuit Breaker** - `@CircuitBreaker` prevents cascading failures
+- **Bulkhead** - `@Bulkhead` limits concurrent executions
+- **Timeout** - `@Timeout` cancels long-running operations
 
-### Async & Scheduling (NEW in 1.1.0)
+### Caching (`veld-cache`)
+- **Cacheable** - `@Cacheable` caches method results
+- **Cache Eviction** - `@CacheEvict` removes cache entries
+- **Cache Put** - `@CachePut` updates cache without checking
+
+### Validation (`veld-validation`)
+- **Bean Validation** - `@Valid`, `@NotNull`, `@NotEmpty`, `@Size`
+- **Numeric Constraints** - `@Min`, `@Max`
+- **Pattern Matching** - `@Email`, `@Pattern`
+
+### Security (`veld-security`)
+- **Role-Based Access** - `@Secured`, `@RolesAllowed`
+- **Method Security** - `@PreAuthorize`, `@PermitAll`, `@DenyAll`
+
+### Metrics (`veld-metrics`)
+- **Timing** - `@Timed` records execution duration
+- **Counting** - `@Counted` tracks invocations
+- **Gauges** - `@Gauge` exposes values as metrics
+
+### Transactions (`veld-tx`)
+- **Declarative TX** - `@Transactional` with propagation control
+- **Rollback Rules** - Configure rollback for specific exceptions
+
+### Async & Scheduling
 - **Async Execution** - `@Async` for background thread execution
 - **Scheduled Tasks** - `@Scheduled` with cron expressions, fixed rate/delay
 - **Managed Executors** - Named executor pools for resource control
@@ -437,6 +462,153 @@ public class ApiService {
 }
 ```
 
+### Circuit Breaker
+
+```java
+@Component
+public class PaymentService {
+    
+    @CircuitBreaker(failureThreshold = 5, waitDuration = 30000, fallbackMethod = "fallbackPayment")
+    public PaymentResult processPayment(Order order) {
+        return paymentGateway.charge(order);
+    }
+    
+    public PaymentResult fallbackPayment(Order order) {
+        return PaymentResult.pending("Service temporarily unavailable");
+    }
+}
+```
+
+### Bulkhead
+
+```java
+@Component
+public class ResourceService {
+    
+    @Bulkhead(maxConcurrentCalls = 10, maxWaitDuration = 5000)
+    public Resource allocateResource(String type) {
+        return resourcePool.allocate(type);
+    }
+}
+```
+
+## Caching
+
+```java
+@Component
+public class ProductService {
+    
+    @Cacheable(value = "products", ttl = 60000)
+    public Product getProduct(Long id) {
+        return productRepository.findById(id);
+    }
+    
+    @CacheEvict(value = "products", allEntries = true)
+    public void clearProductCache() {
+        // Cache cleared after method execution
+    }
+    
+    @CachePut(value = "products")
+    public Product updateProduct(Product product) {
+        return productRepository.save(product);
+    }
+}
+```
+
+## Validation
+
+```java
+public class UserDTO {
+    @NotNull
+    @Size(min = 2, max = 50)
+    private String name;
+    
+    @Email
+    private String email;
+    
+    @Min(18) @Max(120)
+    private int age;
+}
+
+@Component
+public class UserService {
+    public void createUser(@Valid UserDTO user) {
+        // Validation happens automatically
+        userRepository.save(user);
+    }
+}
+```
+
+## Security
+
+```java
+@Component
+@Secured
+public class AdminService {
+    
+    @RolesAllowed({"ADMIN", "MANAGER"})
+    public void deleteUser(Long userId) {
+        userRepository.deleteById(userId);
+    }
+    
+    @PermitAll
+    public List<User> listUsers() {
+        return userRepository.findAll();
+    }
+    
+    @DenyAll
+    public void dangerousOperation() {
+        // Never allowed
+    }
+}
+
+// Set security context
+SecurityContext.setPrincipal(new Principal("admin", Set.of("ADMIN")));
+```
+
+## Metrics
+
+```java
+@Component
+public class OrderService {
+    
+    @Timed("orders.processing")
+    public Order processOrder(Order order) {
+        // Execution time recorded
+        return orderProcessor.process(order);
+    }
+    
+    @Counted("orders.created")
+    public Order createOrder(OrderRequest request) {
+        return orderFactory.create(request);
+    }
+}
+
+// Access metrics
+Map<String, Object> metrics = MetricsRegistry.getAllMetrics();
+```
+
+## Transactions
+
+```java
+@Component
+public class TransferService {
+    
+    @Transactional
+    public void transfer(Account from, Account to, BigDecimal amount) {
+        from.debit(amount);
+        to.credit(amount);
+        // Commits on success, rolls back on exception
+    }
+    
+    @Transactional(propagation = Propagation.REQUIRES_NEW, 
+                   rollbackFor = {BusinessException.class})
+    public void auditTransfer(Transfer transfer) {
+        auditLog.record(transfer);
+    }
+}
+```
+
 ## Async Execution
 
 Execute methods asynchronously without blocking the caller:
@@ -554,6 +726,12 @@ Veld uses a **three-phase build process**:
 | `veld-weaver` | Bytecode weaver for synthetic setters |
 | `veld-maven-plugin` | **Unified plugin** - handles everything |
 | `veld-aop` | Aspect-Oriented Programming support |
+| `veld-resilience` | Circuit Breaker, Bulkhead, Timeout patterns |
+| `veld-cache` | Caching with `@Cacheable`, `@CacheEvict` |
+| `veld-validation` | Bean validation annotations |
+| `veld-security` | Method-level security |
+| `veld-metrics` | Timing, counting, and gauges |
+| `veld-tx` | Declarative transaction management |
 | `veld-spring-boot-starter` | Spring Boot integration |
 
 ## Veld API
