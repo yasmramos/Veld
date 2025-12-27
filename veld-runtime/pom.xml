@@ -56,7 +56,7 @@
                 <executions>
                     <execution>
                         <id>attach-javadoc-jar</id>
-                        <phase>package</phase>
+                        <phase>${build-helper.attach.phase}</phase>
                         <goals>
                             <goal>attach-artifact</goal>
                         </goals>

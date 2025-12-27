@@ -114,6 +114,7 @@
         <maven.deploy.skip>false</maven.deploy.skip>
         <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
         <maven.javadoc.skip>false</maven.javadoc.skip>
+        <build-helper.attach.phase>package</build-helper.attach.phase>
         
         <!-- CI/Benchmark properties -->
         <ci.skip>false</ci.skip>
@@ -577,6 +578,7 @@
                 <maven.deploy.skip>true</maven.deploy.skip>
                 <maven.javadoc.skip>true</maven.javadoc.skip>
                 <maven.source.skip>true</maven.source.skip>
+                <build-helper.attach.phase>none</build-helper.attach.phase>
             </properties>
             <build>
                 <plugins>
