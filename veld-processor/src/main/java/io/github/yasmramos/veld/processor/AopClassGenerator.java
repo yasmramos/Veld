@@ -50,7 +50,8 @@ public class AopClassGenerator {
         "io.github.yasmramos.veld.annotation.Before",
         "io.github.yasmramos.veld.annotation.After",
         "io.github.yasmramos.veld.annotation.Async",
-        "io.github.yasmramos.veld.annotation.Scheduled"
+        "io.github.yasmramos.veld.annotation.Scheduled",
+        "io.github.yasmramos.veld.annotation.Cacheable"
     );
 
     private final Filer filer;
@@ -144,6 +145,7 @@ public class AopClassGenerator {
             out.println("import io.github.yasmramos.veld.aop.JoinPoint;");
             out.println("import io.github.yasmramos.veld.aop.MethodInvocation;");
             out.println("import io.github.yasmramos.veld.runtime.async.AsyncExecutor;");
+            out.println("import io.github.yasmramos.veld.runtime.cache.CacheService;");
             out.println("import io.github.yasmramos.veld.runtime.async.SchedulerService;");
             out.println("import java.lang.reflect.Method;");
             out.println("import java.util.concurrent.CompletableFuture;");
@@ -365,6 +367,12 @@ public class AopClassGenerator {
                 continue;
             }
 
+            // Check for @Cacheable annotation
+            if (hasAnnotation(method, "io.github.yasmramos.veld.annotation.Cacheable")) {
+                generateCacheableMethod(out, method, simpleClassName);
+                continue;
+            }
+
             // Get method-level interceptors
             Set<String> methodInterceptors = new LinkedHashSet<>(classLevelInterceptors);
             addInterceptorType(methodInterceptors, method);
@@ -471,6 +479,56 @@ public class AopClassGenerator {
             out.println("        }");
         }
 
+        out.println("    }");
+        out.println();
+    }
+
+    /**
+     * Generates a cacheable method wrapper.
+     */
+    private void generateCacheableMethod(PrintWriter out, ExecutableElement method, String simpleClassName) {
+        String methodName = method.getSimpleName().toString();
+        TypeMirror returnType = method.getReturnType();
+        String returnTypeName = returnType.toString();
+        
+        if (returnTypeName.equals("void")) {
+            // Can't cache void methods
+            return;
+        }
+
+        // Get annotation values
+        String cacheName = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.Cacheable", "value", "default");
+        String ttl = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.Cacheable", "ttl", "0");
+        String maxSize = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.Cacheable", "maxSize", "1000");
+
+        // Build parameter list
+        StringBuilder params = new StringBuilder();
+        StringBuilder args = new StringBuilder();
+        List<? extends VariableElement> parameters = method.getParameters();
+        
+        for (int i = 0; i < parameters.size(); i++) {
+            VariableElement param = parameters.get(i);
+            if (i > 0) {
+                params.append(", ");
+                args.append(", ");
+            }
+            params.append(param.asType().toString()).append(" ").append(param.getSimpleName());
+            args.append(param.getSimpleName());
+        }
+
+        // Generate method override
+        out.println("    @Override");
+        out.println("    public " + returnTypeName + " " + methodName + "(" + params + ") {");
+        out.println("        Object[] __args__ = new Object[]{" + args + "};");
+        out.println("        Object __cached__ = io.github.yasmramos.veld.runtime.cache.CacheService.getInstance()");
+        out.println("            .get(\"" + cacheName + "\", \"" + methodName + "\", __args__);");
+        out.println("        if (__cached__ != null) {");
+        out.println("            return (" + returnTypeName + ") __cached__;");
+        out.println("        }");
+        out.println("        " + returnTypeName + " __result__ = super." + methodName + "(" + args + ");");
+        out.println("        io.github.yasmramos.veld.runtime.cache.CacheService.getInstance()");
+        out.println("            .put(\"" + cacheName + "\", \"" + methodName + "\", __args__, __result__, " + ttl + "L, " + maxSize + ");");
+        out.println("        return __result__;");
         out.println("    }");
         out.println();
     }
