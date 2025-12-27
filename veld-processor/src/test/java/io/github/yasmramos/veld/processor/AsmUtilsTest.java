@@ -62,7 +62,7 @@ class AsmUtilsTest {
         @Test
         @DisplayName("should define generated class names correctly")
         void shouldDefineGeneratedClassNamesCorrectly() {
-            assertEquals("io/github/yasmramos/VeldRegistry", AsmUtils.VELD_REGISTRY);
+            assertEquals("io/github/yasmramos/veld/generated/VeldRegistry", AsmUtils.VELD_REGISTRY);
             assertEquals("io/github/yasmramos/Veld", AsmUtils.VELD_BOOTSTRAP);
         }
 
