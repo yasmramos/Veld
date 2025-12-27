@@ -50,7 +50,8 @@ public class AopClassGenerator {
         "io.github.yasmramos.veld.annotation.Before",
         "io.github.yasmramos.veld.annotation.After",
         "io.github.yasmramos.veld.annotation.Async",
-        "io.github.yasmramos.veld.annotation.Scheduled"
+        "io.github.yasmramos.veld.annotation.Scheduled",
+        "io.github.yasmramos.veld.annotation.Retry"
     );
 
     private final Filer filer;
@@ -365,6 +366,12 @@ public class AopClassGenerator {
                 continue;
             }
 
+            // Check for @Retry annotation
+            if (hasAnnotation(method, "io.github.yasmramos.veld.annotation.Retry")) {
+                generateRetryMethod(out, method, simpleClassName);
+                continue;
+            }
+
             // Get method-level interceptors
             Set<String> methodInterceptors = new LinkedHashSet<>(classLevelInterceptors);
             addInterceptorType(methodInterceptors, method);
@@ -471,6 +478,78 @@ public class AopClassGenerator {
             out.println("        }");
         }
 
+        out.println("    }");
+        out.println();
+    }
+
+    /**
+     * Generates a retry method wrapper.
+     */
+    private void generateRetryMethod(PrintWriter out, ExecutableElement method, String simpleClassName) {
+        String methodName = method.getSimpleName().toString();
+        TypeMirror returnType = method.getReturnType();
+        String returnTypeName = returnType.toString();
+        boolean isVoid = returnTypeName.equals("void");
+
+        // Get annotation values
+        String maxAttempts = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.Retry", "maxAttempts", "3");
+        String delay = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.Retry", "delay", "1000");
+        String multiplier = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.Retry", "multiplier", "1.0");
+        String maxDelay = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.Retry", "maxDelay", "30000");
+
+        // Build parameter list
+        StringBuilder params = new StringBuilder();
+        StringBuilder args = new StringBuilder();
+        List<? extends VariableElement> parameters = method.getParameters();
+        
+        for (int i = 0; i < parameters.size(); i++) {
+            VariableElement param = parameters.get(i);
+            if (i > 0) {
+                params.append(", ");
+                args.append(", ");
+            }
+            params.append(param.asType().toString()).append(" ").append(param.getSimpleName());
+            args.append(param.getSimpleName());
+        }
+
+        // Build throws clause
+        StringBuilder throwsClause = new StringBuilder();
+        List<? extends TypeMirror> thrownTypes = method.getThrownTypes();
+        if (!thrownTypes.isEmpty()) {
+            throwsClause.append(" throws ");
+            for (int i = 0; i < thrownTypes.size(); i++) {
+                if (i > 0) throwsClause.append(", ");
+                throwsClause.append(thrownTypes.get(i).toString());
+            }
+        }
+
+        // Generate method override
+        out.println("    @Override");
+        out.println("    public " + returnTypeName + " " + methodName + "(" + params + ")" + throwsClause + " {");
+        out.println("        int __maxAttempts__ = " + maxAttempts + ";");
+        out.println("        long __delay__ = " + delay + "L;");
+        out.println("        double __multiplier__ = " + multiplier + ";");
+        out.println("        long __maxDelay__ = " + maxDelay + "L;");
+        out.println("        Throwable __lastException__ = null;");
+        out.println("        for (int __attempt__ = 1; __attempt__ <= __maxAttempts__; __attempt__++) {");
+        out.println("            try {");
+        if (isVoid) {
+            out.println("                super." + methodName + "(" + args + ");");
+            out.println("                return;");
+        } else {
+            out.println("                return super." + methodName + "(" + args + ");");
+        }
+        out.println("            } catch (Throwable __ex__) {");
+        out.println("                __lastException__ = __ex__;");
+        out.println("                if (__attempt__ < __maxAttempts__) {");
+        out.println("                    System.err.println(\"[Veld] Retry \" + __attempt__ + \"/\" + __maxAttempts__ + \" for " + methodName + ": \" + __ex__.getMessage());");
+        out.println("                    try { Thread.sleep(__delay__); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }");
+        out.println("                    __delay__ = Math.min((long)(__delay__ * __multiplier__), __maxDelay__);");
+        out.println("                }");
+        out.println("            }");
+        out.println("        }");
+        out.println("        if (__lastException__ instanceof RuntimeException) throw (RuntimeException) __lastException__;");
+        out.println("        throw new RuntimeException(\"Retry exhausted for " + methodName + "\", __lastException__);");
         out.println("    }");
         out.println();
     }
