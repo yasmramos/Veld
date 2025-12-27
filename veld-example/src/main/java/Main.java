@@ -1,8 +1,6 @@
 package io.github.yasmramos.veld.example;
 
 import io.github.yasmramos.veld.example.aop.CalculatorService;
-import io.github.yasmramos.veld.example.aop.LoggingAspect;
-import io.github.yasmramos.veld.example.aop.PerformanceAspect;
 import io.github.yasmramos.veld.example.aop.ProductService;
 import io.github.yasmramos.veld.example.events.NotificationEvent;
 import io.github.yasmramos.veld.example.events.OrderCreatedEvent;
@@ -10,12 +8,10 @@ import io.github.yasmramos.veld.example.lifecycle.*;
 import io.github.yasmramos.veld.example.dependsOn.DependsOnDemo;
 import io.github.yasmramos.veld.example.dependsOn.DatabaseService;
 import io.github.yasmramos.veld.example.dependsOn.UserService;
-import io.github.yasmramos.veld.aop.InterceptorRegistry;
 import io.github.yasmramos.veld.aop.interceptor.LoggingInterceptor;
 import io.github.yasmramos.veld.aop.interceptor.TimingInterceptor;
 import io.github.yasmramos.veld.aop.interceptor.TransactionInterceptor;
 import io.github.yasmramos.veld.aop.interceptor.ValidationInterceptor;
-import io.github.yasmramos.veld.aop.proxy.ProxyFactory;
 import io.github.yasmramos.veld.runtime.event.EventBus;
 // LifecycleProcessor is integrated automatically through Veld bytecode generation
 import io.github.yasmramos.veld.Veld;
@@ -306,31 +302,19 @@ public class Main {
     }
     
     private static void demonstrateAop() {
-        System.out.println("\n→ AOP - Aspect-Oriented Programming Demo");
+        System.out.println("\n→ AOP - Aspect-Oriented Programming Demo (Compile-Time)");
         
-        InterceptorRegistry registry = InterceptorRegistry.getInstance();
+        // With compile-time AOP, interceptors are automatically applied to annotated classes.
+        // No ProxyFactory needed - Veld generates $$Aop wrapper classes at compile time.
         
-        LoggingAspect loggingAspect = new LoggingAspect();
-        PerformanceAspect performanceAspect = new PerformanceAspect();
-        registry.registerAspect(loggingAspect);
-        registry.registerAspect(performanceAspect);
+        // Get the calculator service (Veld automatically uses the generated AOP wrapper)
+        CalculatorService calculator = get(CalculatorService.class);
         
-        registry.registerInterceptor(new LoggingInterceptor());
-        registry.registerInterceptor(new TimingInterceptor());
-        registry.registerInterceptor(new ValidationInterceptor());
-        registry.registerInterceptor(new TransactionInterceptor());
-        
-        ProxyFactory proxyFactory = ProxyFactory.getInstance();
-        
-        CalculatorService calculator = proxyFactory.createProxy(CalculatorService.class);
-        
-        System.out.println("\n→ Testing CalculatorService:");
+        System.out.println("\n→ Testing CalculatorService with compile-time AOP:");
         System.out.println("  add(5, 3) = " + calculator.add(5, 3));
         System.out.println("  multiply(7, 6) = " + calculator.multiply(7, 6));
         
-        PerformanceAspect.clearStatistics();
         TimingInterceptor.clearStatistics();
-        registry.clear();
     }
     
     private static void demonstrateAdvancedLifecycle() {

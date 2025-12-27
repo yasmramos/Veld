@@ -15,8 +15,6 @@
  */
 package io.github.yasmramos.veld.aop;
 
-import io.github.yasmramos.veld.aop.proxy.ProxyMethodHandler.DirectInvoker;
-
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -40,6 +38,14 @@ import java.util.Map;
  * @since 1.0.0-alpha.5
  */
 public class MethodInvocation implements InvocationContext {
+
+    /**
+     * Functional interface for direct method invocation without reflection.
+     */
+    @FunctionalInterface
+    public interface DirectInvoker {
+        Object invoke(Object target, Object[] args) throws Throwable;
+    }
 
     private final Object target;
     private final String className;
