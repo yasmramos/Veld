@@ -17,6 +17,7 @@ package io.github.yasmramos.veld.aop.interceptor;
 
 import io.github.yasmramos.veld.annotation.AroundInvoke;
 import io.github.yasmramos.veld.annotation.Interceptor;
+import io.github.yasmramos.veld.aop.CompileTimeInterceptor;
 import io.github.yasmramos.veld.aop.InvocationContext;
 
 import java.lang.reflect.Method;
@@ -29,13 +30,17 @@ import java.util.concurrent.atomic.LongAdder;
  * Interceptor that measures method execution time.
  *
  * <p>Records execution time and provides statistics.
+ * Supports both runtime proxy mode and compile-time code generation.
  *
  * @author Veld Framework Team
  * @since 1.0.0-alpha.5
  */
 @Interceptor(priority = 50)
 @Timed
-public class TimingInterceptor {
+public class TimingInterceptor implements CompileTimeInterceptor {
+
+    // ThreadLocal to track timing state for compile-time mode
+    private static final ThreadLocal<Long> startTime = new ThreadLocal<>();
 
     private static final Map<String, MethodStats> statistics = new ConcurrentHashMap<>();
 
@@ -206,5 +211,42 @@ public class TimingInterceptor {
         System.out.println("\n=== Method Timing Statistics ===");
         statistics.values().forEach(System.out::println);
         System.out.println("================================\n");
+    }
+
+    // ========== CompileTimeInterceptor methods (for code generation) ==========
+
+    @Override
+    public void beforeMethod(String methodName, Object[] args) {
+        startTime.set(System.nanoTime());
+    }
+
+    @Override
+    public void afterMethod(String methodName, Object result) {
+        Long start = startTime.get();
+        if (start != null) {
+            long elapsed = System.nanoTime() - start;
+            startTime.remove();
+            
+            // Record statistics
+            statistics.computeIfAbsent(methodName, MethodStats::new).record(elapsed);
+            
+            double elapsedMs = elapsed / 1_000_000.0;
+            System.out.printf("[TIMING] %s executed in %.3f ms%n", methodName, elapsedMs);
+        }
+    }
+
+    @Override
+    public void afterThrowing(String methodName, Throwable ex) {
+        Long start = startTime.get();
+        if (start != null) {
+            long elapsed = System.nanoTime() - start;
+            startTime.remove();
+            
+            // Record statistics even for exceptions
+            statistics.computeIfAbsent(methodName, MethodStats::new).record(elapsed);
+            
+            double elapsedMs = elapsed / 1_000_000.0;
+            System.out.printf("[TIMING] %s threw exception after %.3f ms%n", methodName, elapsedMs);
+        }
     }
 }

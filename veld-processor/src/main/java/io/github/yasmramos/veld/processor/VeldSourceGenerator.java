@@ -1,7 +1,9 @@
 package io.github.yasmramos.veld.processor;
 
 import io.github.yasmramos.veld.runtime.Scope;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Generates Veld.java source code instead of bytecode.
@@ -10,9 +12,15 @@ import java.util.List;
 public final class VeldSourceGenerator {
     
     private final List<ComponentInfo> components;
+    private final Map<String, String> aopClassMap;
     
     public VeldSourceGenerator(List<ComponentInfo> components) {
+        this(components, Collections.emptyMap());
+    }
+    
+    public VeldSourceGenerator(List<ComponentInfo> components, Map<String, String> aopClassMap) {
         this.components = components;
+        this.aopClassMap = aopClassMap;
     }
     
     public String generate() {
@@ -150,10 +158,13 @@ public final class VeldSourceGenerator {
         String simpleName = getSimpleName(comp);
         String returnType = comp.getClassName();
         
+        // Use AOP wrapper class if available
+        String instantiationType = aopClassMap.getOrDefault(comp.getClassName(), comp.getClassName());
+        
         sb.append("    private static ").append(returnType).append(" createInstance_").append(simpleName).append("() {\n");
         
-        // Create instance with constructor dependencies
-        sb.append("        ").append(returnType).append(" instance = new ").append(returnType).append("(");
+        // Create instance with constructor dependencies (using AOP class if present)
+        sb.append("        ").append(returnType).append(" instance = new ").append(instantiationType).append("(");
         
         InjectionPoint ctor = comp.getConstructorInjection();
         if (ctor != null && !ctor.getDependencies().isEmpty()) {

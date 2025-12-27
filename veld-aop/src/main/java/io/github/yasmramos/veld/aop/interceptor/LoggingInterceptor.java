@@ -17,6 +17,7 @@ package io.github.yasmramos.veld.aop.interceptor;
 
 import io.github.yasmramos.veld.annotation.AroundInvoke;
 import io.github.yasmramos.veld.annotation.Interceptor;
+import io.github.yasmramos.veld.aop.CompileTimeInterceptor;
 import io.github.yasmramos.veld.aop.InvocationContext;
 
 import java.lang.reflect.Method;
@@ -28,15 +29,15 @@ import java.util.Arrays;
  * <p>Logs method entry with arguments, exit with return value or exception,
  * and optionally execution time.
  *
- * <p>This implementation uses a hybrid approach: it prefers zero-reflection
- * methods but falls back to Method object when available for annotation access.
+ * <p>This implementation supports both runtime proxy mode (via @AroundInvoke)
+ * and compile-time code generation (via CompileTimeInterceptor interface).
  *
  * @author Veld Framework Team
  * @since 1.0.0-alpha.5
  */
 @Interceptor(priority = 100)
 @Logged
-public class LoggingInterceptor {
+public class LoggingInterceptor implements CompileTimeInterceptor {
 
     @AroundInvoke
     public Object logMethodCall(InvocationContext ctx) throws Throwable {
@@ -93,5 +94,26 @@ public class LoggingInterceptor {
             System.out.printf("[LOG] !!! %s threw exception: %s%n", methodName, t.getMessage());
             throw t;
         }
+    }
+
+    // ========== CompileTimeInterceptor methods (for code generation) ==========
+
+    @Override
+    public void beforeMethod(String methodName, Object[] args) {
+        System.out.printf("[LOG] >>> Entering %s with args: %s%n", methodName, Arrays.toString(args));
+    }
+
+    @Override
+    public void afterMethod(String methodName, Object result) {
+        if (result != null) {
+            System.out.printf("[LOG] <<< Exiting %s with result: %s%n", methodName, result);
+        } else {
+            System.out.printf("[LOG] <<< Exiting %s%n", methodName);
+        }
+    }
+
+    @Override
+    public void afterThrowing(String methodName, Throwable ex) {
+        System.out.printf("[LOG] !!! %s threw exception: %s%n", methodName, ex.getMessage());
     }
 }
