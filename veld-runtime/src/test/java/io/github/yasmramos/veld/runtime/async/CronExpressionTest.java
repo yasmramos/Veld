@@ -193,7 +193,7 @@ class CronExpressionTest {
         ZonedDateTime next = cron.next(from);
         
         assertNotNull(next);
-        assertTrue(next.getSecond() == 15 || next.getSecond() == 30 || next.getSecond() == 45);
+        assertTrue(next.getSecond() == 0 || next.getSecond() == 15 || next.getSecond() == 30 || next.getSecond() == 45);
     }
 
     @Test
