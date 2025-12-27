@@ -17,6 +17,7 @@ package io.github.yasmramos.veld.aop.interceptor;
 
 import io.github.yasmramos.veld.annotation.AroundInvoke;
 import io.github.yasmramos.veld.annotation.Interceptor;
+import io.github.yasmramos.veld.aop.CompileTimeInterceptor;
 import io.github.yasmramos.veld.aop.InvocationContext;
 
 import java.lang.annotation.Annotation;
@@ -30,13 +31,14 @@ import java.util.List;
  * Interceptor that validates method arguments.
  *
  * <p>Performs null checks and basic validation on method parameters.
+ * Supports both runtime proxy mode and compile-time code generation.
  *
  * @author Veld Framework Team
  * @since 1.0.0-alpha.5
  */
 @Interceptor(priority = 200)
 @Validated
-public class ValidationInterceptor {
+public class ValidationInterceptor implements CompileTimeInterceptor {
 
     @AroundInvoke
     public Object validateArguments(InvocationContext ctx) throws Throwable {
@@ -115,5 +117,47 @@ public class ValidationInterceptor {
             }
         }
         return false;
+    }
+
+    // ========== CompileTimeInterceptor methods (for code generation) ==========
+
+    @Override
+    public void beforeMethod(String methodName, Object[] args) {
+        List<String> violations = new ArrayList<>();
+
+        for (int i = 0; i < args.length; i++) {
+            Object arg = args[i];
+
+            // Check for null
+            if (arg == null) {
+                violations.add(String.format("Parameter at index %d cannot be null", i));
+                continue;
+            }
+
+            // Check empty strings
+            if (arg instanceof String strValue && strValue.isEmpty()) {
+                violations.add(String.format("Parameter at index %d cannot be empty", i));
+            }
+
+            // Check empty collections
+            if (arg instanceof Collection<?> collValue && collValue.isEmpty()) {
+                violations.add(String.format("Parameter at index %d cannot be empty", i));
+            }
+        }
+
+        if (!violations.isEmpty()) {
+            throw new IllegalArgumentException(
+                String.format("Validation failed for %s: %s", methodName, violations));
+        }
+    }
+
+    @Override
+    public void afterMethod(String methodName, Object result) {
+        // No-op for validation
+    }
+
+    @Override
+    public void afterThrowing(String methodName, Throwable ex) {
+        // No-op for validation
     }
 }

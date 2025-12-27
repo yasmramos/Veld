@@ -17,6 +17,7 @@ package io.github.yasmramos.veld.aop.interceptor;
 
 import io.github.yasmramos.veld.annotation.AroundInvoke;
 import io.github.yasmramos.veld.annotation.Interceptor;
+import io.github.yasmramos.veld.aop.CompileTimeInterceptor;
 import io.github.yasmramos.veld.aop.InvocationContext;
 
 import java.lang.reflect.Method;
@@ -29,12 +30,15 @@ import java.util.concurrent.atomic.AtomicLong;
  * behavior. In a real application, this would integrate with a database
  * transaction manager.
  *
+ * <p>Supports both runtime proxy mode (via @AroundInvoke) and compile-time
+ * code generation (via CompileTimeInterceptor interface).
+ *
  * @author Veld Framework Team
  * @since 1.0.0-alpha.5
  */
 @Interceptor(priority = 300)
 @Transactional
-public class TransactionInterceptor {
+public class TransactionInterceptor implements CompileTimeInterceptor {
 
     private static final AtomicLong transactionCounter = new AtomicLong(0);
     private static final ThreadLocal<TransactionContext> currentTransaction = new ThreadLocal<>();
@@ -189,5 +193,42 @@ public class TransactionInterceptor {
      */
     public static long getTransactionCount() {
         return transactionCounter.get();
+    }
+
+    // ========== CompileTimeInterceptor methods (for code generation) ==========
+
+    @Override
+    public void beforeMethod(String methodName, Object[] args) {
+        // Check if already in transaction
+        TransactionContext existing = currentTransaction.get();
+        if (existing != null) {
+            System.out.printf("[TX] Joining existing transaction %d for %s%n", 
+                    existing.getId(), methodName);
+            return;
+        }
+
+        // Start new transaction
+        long txId = transactionCounter.incrementAndGet();
+        TransactionContext tx = new TransactionContext(txId, methodName);
+        System.out.printf("[TX] Starting transaction %d for %s%n", txId, methodName);
+        currentTransaction.set(tx);
+    }
+
+    @Override
+    public void afterMethod(String methodName, Object result) {
+        TransactionContext tx = currentTransaction.get();
+        if (tx != null && tx.getMethodName().equals(methodName)) {
+            tx.commit();
+            currentTransaction.remove();
+        }
+    }
+
+    @Override
+    public void afterThrowing(String methodName, Throwable ex) {
+        TransactionContext tx = currentTransaction.get();
+        if (tx != null && tx.getMethodName().equals(methodName)) {
+            tx.rollback(ex);
+            currentTransaction.remove();
+        }
     }
 }
