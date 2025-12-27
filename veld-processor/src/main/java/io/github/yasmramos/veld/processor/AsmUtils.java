@@ -37,7 +37,7 @@ public final class AsmUtils implements Opcodes {
     public static final String SCOPE = "io/github/yasmramos/veld/runtime/Scope";
     
     // Generated classes
-    public static final String VELD_REGISTRY = "io/github/yasmramos/VeldRegistry";
+    public static final String VELD_REGISTRY = "io/github/yasmramos/veld/generated/VeldRegistry";
     public static final String VELD_BOOTSTRAP = "io/github/yasmramos/Veld";
     
     // ═══════════════════════════════════════════════════════════════════════════

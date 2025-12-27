@@ -15,7 +15,8 @@ import io.github.yasmramos.veld.benchmark.dagger.BenchmarkComponent;
 import io.github.yasmramos.veld.benchmark.dagger.DaggerBenchmarkComponent;
 import io.github.yasmramos.veld.benchmark.guice.GuiceModule;
 import io.github.yasmramos.veld.benchmark.spring.SpringConfig;
-import io.github.yasmramos.veld.generated.Veld;
+import io.github.yasmramos.veld.Veld;
+import io.github.yasmramos.veld.benchmark.veld.VeldSimpleService;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -42,7 +43,7 @@ public class StartupBenchmark {
     public void veldStartup(Blackhole bh) {
         // Veld startup = accessing static methods (class already loaded)
         // In real app, first access triggers class loading + static init
-        bh.consume(Veld.veldSimpleService());
+        bh.consume(Veld.get(VeldSimpleService.class));
     }
     
     // ==================== SPRING ====================

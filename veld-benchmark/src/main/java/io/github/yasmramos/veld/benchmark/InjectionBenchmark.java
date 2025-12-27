@@ -22,7 +22,7 @@ import io.github.yasmramos.veld.benchmark.spring.SpringConfig;
 import io.github.yasmramos.veld.benchmark.veld.VeldComplexService;
 import io.github.yasmramos.veld.benchmark.veld.VeldLogger;
 import io.github.yasmramos.veld.benchmark.veld.VeldSimpleService;
-import io.github.yasmramos.veld.generated.Veld;
+import io.github.yasmramos.veld.Veld;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -60,7 +60,7 @@ public class InjectionBenchmark {
     
     @Benchmark
     public void veldSimpleInjection(Blackhole bh) {
-        Service service = Veld.veldSimpleService();
+        Service service = Veld.get(VeldSimpleService.class);
         bh.consume(service);
     }
     
@@ -86,7 +86,7 @@ public class InjectionBenchmark {
     
     @Benchmark
     public void veldComplexInjection(Blackhole bh) {
-        Service service = Veld.veldComplexService();
+        Service service = Veld.get(VeldComplexService.class);
         bh.consume(service);
     }
     
@@ -132,7 +132,7 @@ public class InjectionBenchmark {
     
     @Benchmark
     public void veldLoggerLookup(Blackhole bh) {
-        Logger logger = Veld.veldLogger();
+        Logger logger = Veld.get(VeldLogger.class);
         bh.consume(logger);
     }
     

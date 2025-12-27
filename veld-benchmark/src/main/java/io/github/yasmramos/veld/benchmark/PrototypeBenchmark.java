@@ -18,7 +18,8 @@ import io.github.yasmramos.veld.benchmark.dagger.PrototypeComponent;
 import io.github.yasmramos.veld.benchmark.guice.GuicePrototypeModule;
 import io.github.yasmramos.veld.benchmark.spring.SpringPrototypeConfig;
 import io.github.yasmramos.veld.benchmark.veld.VeldPrototypeService;
-import io.github.yasmramos.veld.generated.Veld;
+import io.github.yasmramos.veld.Veld;
+import io.github.yasmramos.veld.benchmark.veld.VeldLogger;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -60,7 +61,7 @@ public class PrototypeBenchmark {
     public void veldPrototypeSimple(Blackhole bh) {
         // For prototypes, Veld generates a factory method
         // Using direct instantiation to match prototype behavior
-        Service service = new VeldPrototypeService(Veld.veldLogger());
+        Service service = new VeldPrototypeService(Veld.get(VeldLogger.class));
         bh.consume(service);
     }
     
