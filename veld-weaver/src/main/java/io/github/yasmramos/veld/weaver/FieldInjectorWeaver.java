@@ -93,35 +93,6 @@ public class FieldInjectorWeaver {
     }
     
     /**
-     * Generates Veld.class from component metadata.
-     * This must be called AFTER weaving so synthetic setters exist.
-     */
-    private void generateVeldClass(Path classesDirectory) throws IOException {
-        List<VeldClassGenerator.ComponentMeta> components = 
-            VeldClassGenerator.readMetadata(classesDirectory);
-        
-        if (components.isEmpty()) {
-            return; // No components found
-        }
-        
-        VeldClassGenerator generator = new VeldClassGenerator(components);
-        Map<String, byte[]> allClasses = generator.generateAll();
-        
-        // Write all generated classes (Veld.class + $VeldLifecycle helpers)
-        for (Map.Entry<String, byte[]> entry : allClasses.entrySet()) {
-            String className = entry.getKey();
-            byte[] bytecode = entry.getValue();
-            
-            Path classPath = classesDirectory.resolve(className + ".class");
-            Files.createDirectories(classPath.getParent());
-            Files.write(classPath, bytecode);
-            
-            results.add(WeavingResult.modified(className, bytecode, 
-                List.of("Generated " + className)));
-        }
-    }
-    
-    /**
      * Weaves a single class file.
      * 
      * @param classFile path to the .class file
