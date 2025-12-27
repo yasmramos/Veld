@@ -27,6 +27,11 @@
             <artifactId>veld-runtime</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.github.yasmramos</groupId>
+            <artifactId>veld-aop</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         
         <!-- Optional: Micrometer integration -->
         <dependency>
