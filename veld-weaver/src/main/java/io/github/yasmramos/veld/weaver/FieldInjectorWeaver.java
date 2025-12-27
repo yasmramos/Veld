@@ -84,8 +84,10 @@ public class FieldInjectorWeaver {
             .filter(path -> path.toString().endsWith(".class"))
             .forEach(this::weaveClassFile);
         
-        // Then generate Veld.class from metadata (after synthetic setters exist)
-        generateVeldClass(classesDirectory);
+        // Note: Veld.class is now generated as source code by the processor and compiled by javac.
+        // The weaver no longer regenerates it - this avoids signature conflicts between
+        // the source-generated version (using Set<String>) and the bytecode-generated version.
+        // generateVeldClass(classesDirectory);
         
         return new ArrayList<>(results);
     }
