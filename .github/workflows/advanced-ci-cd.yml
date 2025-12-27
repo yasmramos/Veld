@@ -266,7 +266,7 @@ jobs:
   deploy-staging:
     name: 🚀 Deploy to Staging
     runs-on: ubuntu-latest
-    needs: [build-test, security-compliance]
+    needs: [build-artifacts]
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     environment: staging
     
