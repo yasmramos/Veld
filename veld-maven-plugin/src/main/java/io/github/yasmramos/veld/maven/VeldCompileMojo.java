@@ -55,6 +55,9 @@ public class VeldCompileMojo extends AbstractMojo {
     @Parameter(property = "veld.verbose", defaultValue = "false")
     private boolean verbose;
 
+    @Parameter(property = "veld.skipCompile", defaultValue = "false")
+    private boolean skipCompile;
+
     @Parameter
     private List<String> compilerArgs;
 
@@ -74,10 +77,14 @@ public class VeldCompileMojo extends AbstractMojo {
             return;
         }
 
-        getLog().info("Veld Maven Plugin: Compiling and weaving...");
+        getLog().info("Veld Maven Plugin: " + (skipCompile ? "Weaving only..." : "Compiling and weaving..."));
 
         try {
-            compile();
+            if (!skipCompile) {
+                compile();
+            } else {
+                getLog().info("  Skipping compilation (veld.skipCompile=true)");
+            }
             weave();
             getLog().info("Veld Maven Plugin: Build complete");
         } catch (Exception e) {
