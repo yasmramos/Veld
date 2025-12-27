@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.github.yasmramos</groupId>
         <artifactId>veld-parent</artifactId>
-        <version>1.0.3</version>
+        <version>1.0.4</version>
     </parent>
 
     <artifactId>veld-benchmark</artifactId>
@@ -269,6 +269,22 @@
                             <Automatic-Module-Name>veld.benchmark</Automatic-Module-Name>
                         </manifestEntries>
                     </archive>
+                </configuration>
+            </plugin>
+            <!-- Skip GPG signing for benchmark module -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+            <!-- Skip Central publishing for benchmark module -->
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
                 </configuration>
             </plugin>
         </plugins>
