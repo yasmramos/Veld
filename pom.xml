@@ -529,16 +529,11 @@
         <!-- CI/Benchmark profile - Skip GPG signing and other release-only plugins -->
         <profile>
             <id>ci</id>
-            <activation>
-                <property>
-                    <name>ci.skip</name>
-                    <value>true</value>
-                </property>
-            </activation>
             <properties>
                 <skipGpg>true</skipGpg>
                 <skipTests>false</skipTests>
                 <maven.deploy.skip>true</maven.deploy.skip>
+                <jacoco.skip>true</jacoco.skip>
             </properties>
             <build>
                 <plugins>
@@ -579,6 +574,7 @@
                 <maven.javadoc.skip>true</maven.javadoc.skip>
                 <maven.source.skip>true</maven.source.skip>
                 <build-helper.attach.phase>none</build-helper.attach.phase>
+                <jacoco.skip>true</jacoco.skip>
             </properties>
             <build>
                 <plugins>
