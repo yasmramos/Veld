@@ -48,7 +48,9 @@ public class AopClassGenerator {
         "io.github.yasmramos.veld.aop.interceptor.Validated",
         "io.github.yasmramos.veld.annotation.Around",
         "io.github.yasmramos.veld.annotation.Before",
-        "io.github.yasmramos.veld.annotation.After"
+        "io.github.yasmramos.veld.annotation.After",
+        "io.github.yasmramos.veld.annotation.Async",
+        "io.github.yasmramos.veld.annotation.Scheduled"
     );
 
     private final Filer filer;
@@ -141,7 +143,11 @@ public class AopClassGenerator {
             out.println("import io.github.yasmramos.veld.aop.InvocationContext;");
             out.println("import io.github.yasmramos.veld.aop.JoinPoint;");
             out.println("import io.github.yasmramos.veld.aop.MethodInvocation;");
+            out.println("import io.github.yasmramos.veld.runtime.async.AsyncExecutor;");
+            out.println("import io.github.yasmramos.veld.runtime.async.SchedulerService;");
             out.println("import java.lang.reflect.Method;");
+            out.println("import java.util.concurrent.CompletableFuture;");
+            out.println("import java.util.concurrent.TimeUnit;");
             out.println();
 
             // Class declaration
@@ -285,6 +291,12 @@ public class AopClassGenerator {
                 continue;
             }
 
+            // Check for @Async annotation
+            if (hasAnnotation(method, "io.github.yasmramos.veld.annotation.Async")) {
+                generateAsyncMethod(out, method, simpleClassName);
+                continue;
+            }
+
             // Get method-level interceptors
             Set<String> methodInterceptors = new LinkedHashSet<>(classLevelInterceptors);
             addInterceptorType(methodInterceptors, method);
@@ -295,6 +307,104 @@ public class AopClassGenerator {
 
             generateInterceptedMethod(out, method, methodInterceptors, simpleClassName);
         }
+    }
+
+    /**
+     * Checks if an element has a specific annotation.
+     */
+    private boolean hasAnnotation(Element element, String annotationName) {
+        for (AnnotationMirror annotation : element.getAnnotationMirrors()) {
+            if (annotation.getAnnotationType().toString().equals(annotationName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Gets an annotation value from an element.
+     */
+    private String getAnnotationValue(Element element, String annotationName, String attributeName, String defaultValue) {
+        for (AnnotationMirror annotation : element.getAnnotationMirrors()) {
+            if (annotation.getAnnotationType().toString().equals(annotationName)) {
+                for (var entry : annotation.getElementValues().entrySet()) {
+                    if (entry.getKey().getSimpleName().toString().equals(attributeName)) {
+                        Object value = entry.getValue().getValue();
+                        return value != null ? value.toString() : defaultValue;
+                    }
+                }
+            }
+        }
+        return defaultValue;
+    }
+
+    /**
+     * Generates an async method wrapper.
+     */
+    private void generateAsyncMethod(PrintWriter out, ExecutableElement method, String simpleClassName) {
+        String methodName = method.getSimpleName().toString();
+        TypeMirror returnType = method.getReturnType();
+        String returnTypeName = returnType.toString();
+        boolean isVoid = returnTypeName.equals("void");
+        boolean isCompletableFuture = returnTypeName.startsWith("java.util.concurrent.CompletableFuture");
+
+        // Get executor name from annotation
+        String executorName = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.Async", "value", "");
+
+        // Build parameter list
+        StringBuilder params = new StringBuilder();
+        StringBuilder args = new StringBuilder();
+        List<? extends VariableElement> parameters = method.getParameters();
+        
+        for (int i = 0; i < parameters.size(); i++) {
+            VariableElement param = parameters.get(i);
+            if (i > 0) {
+                params.append(", ");
+                args.append(", ");
+            }
+            params.append(param.asType().toString()).append(" ").append(param.getSimpleName());
+            args.append(param.getSimpleName());
+        }
+
+        // Generate method override
+        out.println("    @Override");
+        out.println("    public " + returnTypeName + " " + methodName + "(" + params + ") {");
+
+        if (isVoid) {
+            // Fire and forget
+            out.println("        AsyncExecutor.getInstance().submit(() -> {");
+            out.println("            try {");
+            out.println("                super." + methodName + "(" + args + ");");
+            out.println("            } catch (Exception e) {");
+            out.println("                System.err.println(\"[Veld] Async method failed: " + methodName + " - \" + e.getMessage());");
+            out.println("            }");
+            out.println("        }" + (executorName.isEmpty() ? "" : ", \"" + executorName + "\"") + ");");
+        } else if (isCompletableFuture) {
+            // Return CompletableFuture
+            out.println("        return AsyncExecutor.getInstance().submit(() -> {");
+            out.println("            try {");
+            out.println("                return super." + methodName + "(" + args + ").join();");
+            out.println("            } catch (Exception e) {");
+            out.println("                throw new RuntimeException(e);");
+            out.println("            }");
+            out.println("        }" + (executorName.isEmpty() ? "" : ", \"" + executorName + "\"") + ");");
+        } else {
+            // Other return types - wrap in CompletableFuture and block (not recommended)
+            out.println("        try {");
+            out.println("            return AsyncExecutor.getInstance().submit(() -> {");
+            out.println("                try {");
+            out.println("                    return super." + methodName + "(" + args + ");");
+            out.println("                } catch (Exception e) {");
+            out.println("                    throw new RuntimeException(e);");
+            out.println("                }");
+            out.println("            }" + (executorName.isEmpty() ? "" : ", \"" + executorName + "\"") + ").get();");
+            out.println("        } catch (Exception e) {");
+            out.println("            throw new RuntimeException(e);");
+            out.println("        }");
+        }
+
+        out.println("    }");
+        out.println();
     }
 
     /**
