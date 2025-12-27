@@ -156,7 +156,7 @@ class RegistryGeneratorTest {
             byte[] bytecode = generator.generate();
             ClassNode cn = parseClass(bytecode);
             
-            assertEquals("io/github/yasmramos/VeldRegistry", cn.name);
+            assertEquals("io/github/yasmramos/veld/generated/VeldRegistry", cn.name);
         }
 
         @Test
@@ -172,7 +172,7 @@ class RegistryGeneratorTest {
         void shouldReturnCorrectInternalName() {
             RegistryGenerator generator = new RegistryGenerator(new ArrayList<>());
             
-            assertEquals("io/github/yasmramos/VeldRegistry", generator.getRegistryInternalName());
+            assertEquals("io/github/yasmramos/veld/generated/VeldRegistry", generator.getRegistryInternalName());
         }
     }
 
@@ -448,7 +448,7 @@ class RegistryGeneratorTest {
             // Verify it's valid bytecode
             ClassNode cn = parseClass(bytecode);
             assertNotNull(cn);
-            assertEquals("io/github/yasmramos/VeldRegistry", cn.name);
+            assertEquals("io/github/yasmramos/veld/generated/VeldRegistry", cn.name);
         }
 
         @Test
