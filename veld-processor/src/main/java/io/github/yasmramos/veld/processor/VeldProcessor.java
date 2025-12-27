@@ -343,6 +343,7 @@ public class VeldProcessor extends AbstractProcessor {
         }
         
         ComponentInfo info = new ComponentInfo(className, componentName, scope, isLazy, isPrimary);
+        info.setTypeElement(typeElement);
         
         // Find injection points
         analyzeConstructors(typeElement, info);
@@ -1034,14 +1035,22 @@ public class VeldProcessor extends AbstractProcessor {
     
     private void generateRegistry() {
         try {
+            // Generate AOP wrapper classes for components with interceptors
+            AopClassGenerator aopGen = new AopClassGenerator(filer, messager, elementUtils, typeUtils);
+            Map<String, String> aopClassMap = aopGen.generateAopClasses(discoveredComponents);
+            
+            if (!aopClassMap.isEmpty()) {
+                note("Generated " + aopClassMap.size() + " AOP wrapper classes");
+            }
+            
             // Generate VeldRegistry bytecode (standard container - for compatibility)
             RegistryGenerator registryGen = new RegistryGenerator(discoveredComponents);
             byte[] registryBytecode = registryGen.generate();
             writeClassFile(registryGen.getRegistryClassName(), registryBytecode);
             note("Generated VeldRegistry with " + discoveredComponents.size() + " components");
             
-            // Generate Veld.java source code
-            VeldSourceGenerator veldGen = new VeldSourceGenerator(discoveredComponents);
+            // Generate Veld.java source code (passing AOP class map for wrapper instantiation)
+            VeldSourceGenerator veldGen = new VeldSourceGenerator(discoveredComponents, aopClassMap);
             String veldSource = veldGen.generate();
             writeJavaSource("io.github.yasmramos.veld.Veld", veldSource);
             note("Generated Veld.java with " + discoveredComponents.size() + " components");
