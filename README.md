@@ -50,6 +50,16 @@ Veld is a **compile-time Dependency Injection framework** that generates pure by
 - **Profile Support** - `@Profile` for environment-specific beans
 - **JPMS Compatible** - Full Java Module System support
 
+### Resilience & Fault Tolerance (NEW in 1.1.0)
+- **Retry** - `@Retry` automatic retry with exponential backoff
+- **Rate Limiting** - `@RateLimiter` to control method call frequency
+- **Configurable Strategies** - Include/exclude exceptions, max delays, blocking modes
+
+### Async & Scheduling (NEW in 1.1.0)
+- **Async Execution** - `@Async` for background thread execution
+- **Scheduled Tasks** - `@Scheduled` with cron expressions, fixed rate/delay
+- **Managed Executors** - Named executor pools for resource control
+
 ## Quick Start
 
 ### 1. Add Dependencies
@@ -59,20 +69,20 @@ Veld is a **compile-time Dependency Injection framework** that generates pure by
 <dependency>
     <groupId>io.github.yasmramos</groupId>
     <artifactId>veld-runtime</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.4</version>
 </dependency>
 
 <dependency>
     <groupId>io.github.yasmramos</groupId>
     <artifactId>veld-annotations</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.4</version>
 </dependency>
 ```
 
 **Gradle:**
 ```gradle
-implementation 'io.github.yasmramos:veld-runtime:1.0.0'
-implementation 'io.github.yasmramos:veld-annotations:1.0.0'
+implementation 'io.github.yasmramos:veld-runtime:1.0.4'
+implementation 'io.github.yasmramos:veld-annotations:1.0.4'
 ```
 
 **Note:** Veld uses a unified plugin approach that handles everything automatically.
@@ -88,7 +98,7 @@ implementation 'io.github.yasmramos:veld-annotations:1.0.0'
         <plugin>
             <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-maven-plugin</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.4</version>
         </plugin>
     </plugins>
 </build>
@@ -106,7 +116,7 @@ implementation 'io.github.yasmramos:veld-annotations:1.0.0'
         <plugin>
             <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-maven-plugin</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.4</version>
             <executions>
                 <execution>
                     <id>veld-compile</id>
@@ -241,6 +251,20 @@ public class Main {
 | `@Interceptor` | Mark as interceptor |
 | `@InterceptorBinding` | Custom interceptor binding |
 
+### Resilience (NEW in 1.1.0)
+
+| Annotation | Description |
+|------------|-------------|
+| `@Retry` | Automatic retry with configurable attempts, delay, and exponential backoff |
+| `@RateLimiter` | Limit method call frequency with permits per period |
+
+### Async & Scheduling (NEW in 1.1.0)
+
+| Annotation | Description |
+|------------|-------------|
+| `@Async` | Execute method asynchronously in a background thread |
+| `@Scheduled` | Schedule method execution with cron, fixedRate, or fixedDelay |
+
 ### Events
 
 | Annotation | Description |
@@ -369,6 +393,94 @@ public class OrderService {
     public void createOrder(Order order) {
         // ... create order
         EventBus.getInstance().publish(new OrderCreatedEvent(order.getId()));
+    }
+}
+```
+
+## Resilience Features
+
+Veld 1.1.0 introduces powerful resilience patterns for fault-tolerant applications:
+
+### Retry with Exponential Backoff
+
+```java
+@Component
+public class ExternalApiClient {
+    
+    @Retry(maxAttempts = 3, delay = 1000, multiplier = 2.0)
+    public Response callApi(Request request) {
+        return httpClient.execute(request);
+    }
+    
+    @Retry(maxAttempts = 5, delay = 500, include = {IOException.class, TimeoutException.class})
+    public Data fetchData(String id) {
+        return remoteService.get(id);
+    }
+}
+```
+
+### Rate Limiting
+
+```java
+@Component
+public class ApiService {
+    
+    @RateLimiter(permits = 10, period = 1000)  // 10 calls per second
+    public Response callExternalApi(Request request) {
+        return httpClient.execute(request);
+    }
+    
+    @RateLimiter(permits = 100, period = 60000, blocking = false)  // 100 calls per minute
+    public Data getData(String id) {
+        return repository.findById(id);
+    }
+}
+```
+
+## Async Execution
+
+Execute methods asynchronously without blocking the caller:
+
+```java
+@Component
+public class EmailService {
+    
+    @Async
+    public void sendEmail(String to, String subject, String body) {
+        // Runs in background thread
+        emailClient.send(to, subject, body);
+    }
+    
+    @Async
+    public CompletableFuture<Boolean> sendEmailWithResult(String to, String subject) {
+        boolean sent = emailClient.send(to, subject, "Hello");
+        return CompletableFuture.completedFuture(sent);
+    }
+}
+```
+
+## Scheduled Tasks
+
+Schedule methods to run periodically or at specific times:
+
+```java
+@Component
+public class CleanupService {
+    
+    @Scheduled(fixedRate = 60000)  // Every minute
+    public void cleanupTempFiles() {
+        fileService.deleteOldTempFiles();
+    }
+    
+    @Scheduled(cron = "0 0 2 * * ?")  // Daily at 2 AM
+    public void dailyBackup() {
+        backupService.performBackup();
+    }
+    
+    @Scheduled(fixedDelay = 5000, initialDelay = 10000)
+    public void processQueue() {
+        // First run after 10s, then 5s after each completion
+        queueProcessor.processNext();
     }
 }
 ```
