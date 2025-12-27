@@ -310,8 +310,6 @@ public class Main {
         System.out.println("\n→ Testing CalculatorService with compile-time AOP:");
         System.out.println("  add(5, 3) = " + calculator.add(5, 3));
         System.out.println("  multiply(7, 6) = " + calculator.multiply(7, 6));
-        
-        TimingInterceptor.clearStatistics();
     }
     
     private static void demonstrateAdvancedLifecycle() {
