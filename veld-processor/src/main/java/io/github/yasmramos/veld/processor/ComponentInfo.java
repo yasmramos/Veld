@@ -1,6 +1,7 @@
 package io.github.yasmramos.veld.processor;
 
 import io.github.yasmramos.veld.runtime.Scope;
+import javax.lang.model.element.TypeElement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -37,6 +38,9 @@ public final class ComponentInfo {
     
     private boolean hasSubscribeMethods;          // Has @Subscribe methods (EventBus)
     private boolean isPrimary;                    // @Primary - preferred bean for type
+    
+    // TypeElement for AOP processing (transient - not serialized)
+    private transient TypeElement typeElement;
     
     public ComponentInfo(String className, String componentName, Scope scope) {
         this(className, componentName, scope, false);
@@ -284,6 +288,20 @@ public final class ComponentInfo {
      */
     public void setPrimary(boolean isPrimary) {
         this.isPrimary = isPrimary;
+    }
+    
+    /**
+     * Gets the TypeElement for this component (used for AOP processing).
+     */
+    public TypeElement getTypeElement() {
+        return typeElement;
+    }
+    
+    /**
+     * Sets the TypeElement for this component.
+     */
+    public void setTypeElement(TypeElement typeElement) {
+        this.typeElement = typeElement;
     }
     
     // === AOP SUPPORT ===
