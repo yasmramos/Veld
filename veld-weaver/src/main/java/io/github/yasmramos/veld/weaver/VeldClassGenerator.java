@@ -519,21 +519,88 @@ public class VeldClassGenerator implements Opcodes {
      * Generates bytecode to load a value from ValueResolver for @Value fields.
      */
     private void loadValueFromResolver(MethodVisitor mv, FieldInjectionMeta field) {
+        String descriptor = field.descriptor();
+        String valueExpr = field.valueExpression() != null ? field.valueExpression() : "${" + field.name() + "}";
+        
         // Get ValueResolver instance
         mv.visitFieldInsn(GETSTATIC, VELD_CLASS, "_valueResolver", 
             "Lio/github/yasmramos/veld/runtime/value/ValueResolver;");
         
-        // For now, we'll use a placeholder value expression
-        // In a real implementation, we'd need to store the actual @Value expression
-        // from the annotation processing and use it here
-        mv.visitLdcInsn("${" + field.name() + "}"); // placeholder - would be actual expression
+        // Push the value expression
+        mv.visitLdcInsn(valueExpr);
         
-        // Call resolve method (we'll need to extend this to support type conversion)
-        mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/value/ValueResolver", 
-            "resolve", "(Ljava/lang/String;)Ljava/lang/String;", false);
-        
-        // TODO: Add type conversion logic based on field.descriptor
-        // For now, this only handles String fields
+        // Handle based on target type
+        switch (descriptor) {
+            case "Ljava/lang/String;" -> {
+                // String: just call resolve(String)
+                mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/value/ValueResolver",
+                    "resolve", "(Ljava/lang/String;)Ljava/lang/String;", false);
+            }
+            case "I" -> { // int
+                mv.visitLdcInsn(Type.getType("Ljava/lang/Integer;"));
+                mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/value/ValueResolver",
+                    "resolve", "(Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;", false);
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Integer");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
+            }
+            case "J" -> { // long
+                mv.visitLdcInsn(Type.getType("Ljava/lang/Long;"));
+                mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/value/ValueResolver",
+                    "resolve", "(Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;", false);
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Long");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Long", "longValue", "()J", false);
+            }
+            case "D" -> { // double
+                mv.visitLdcInsn(Type.getType("Ljava/lang/Double;"));
+                mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/value/ValueResolver",
+                    "resolve", "(Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;", false);
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Double");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Double", "doubleValue", "()D", false);
+            }
+            case "F" -> { // float
+                mv.visitLdcInsn(Type.getType("Ljava/lang/Float;"));
+                mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/value/ValueResolver",
+                    "resolve", "(Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;", false);
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Float");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Float", "floatValue", "()F", false);
+            }
+            case "Z" -> { // boolean
+                mv.visitLdcInsn(Type.getType("Ljava/lang/Boolean;"));
+                mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/value/ValueResolver",
+                    "resolve", "(Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;", false);
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
+            }
+            case "S" -> { // short
+                mv.visitLdcInsn(Type.getType("Ljava/lang/Short;"));
+                mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/value/ValueResolver",
+                    "resolve", "(Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;", false);
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Short");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Short", "shortValue", "()S", false);
+            }
+            case "B" -> { // byte
+                mv.visitLdcInsn(Type.getType("Ljava/lang/Byte;"));
+                mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/value/ValueResolver",
+                    "resolve", "(Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;", false);
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Byte");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Byte", "byteValue", "()B", false);
+            }
+            case "C" -> { // char
+                mv.visitLdcInsn(Type.getType("Ljava/lang/Character;"));
+                mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/value/ValueResolver",
+                    "resolve", "(Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;", false);
+                mv.visitTypeInsn(CHECKCAST, "java/lang/Character");
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Character", "charValue", "()C", false);
+            }
+            default -> {
+                // Wrapper types or other objects - use typed resolve
+                mv.visitLdcInsn(Type.getType(descriptor));
+                mv.visitMethodInsn(INVOKEVIRTUAL, "io/github/yasmramos/veld/runtime/value/ValueResolver",
+                    "resolve", "(Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;", false);
+                String internalType = descriptor.substring(1, descriptor.length() - 1);
+                mv.visitTypeInsn(CHECKCAST, internalType);
+            }
+        }
     }
     
     private int computeHashSlot(String typeInternal, int mask, List<TypeMapping> allMappings, int upToIndex) {
@@ -1616,11 +1683,12 @@ public class VeldClassGenerator implements Opcodes {
             if (parts.length > 4 && !parts[4].isEmpty()) {
                 for (String f : parts[4].split("@")) {
                     if (f.isEmpty()) continue;
-                    String[] fp = f.split("~", 6); // use ~ as delimiter
+                    String[] fp = f.split("~", 7); // use ~ as delimiter
                     if (fp.length >= 4) {
                         boolean isOptional = fp.length > 4 && Boolean.parseBoolean(fp[4]);
                         boolean isProvider = fp.length > 5 && Boolean.parseBoolean(fp[5]);
-                        fields.add(new FieldInjectionMeta(fp[0], fp[1], fp[2], fp[3], isOptional, isProvider));
+                        String valueExpr = fp.length > 6 ? fp[6] : null;
+                        fields.add(new FieldInjectionMeta(fp[0], fp[1], fp[2], fp[3], isOptional, isProvider, valueExpr));
                     }
                 }
             }
@@ -1719,8 +1787,8 @@ public class VeldClassGenerator implements Opcodes {
     // Java 17 records for injection metadata
     public record AopMethodMeta(String name, String descriptor, List<String> interceptorBindings) {}
     
-    /** Field injection metadata. depType is the actual type (not wrapper), isOptional/isProvider for Optional<T>/Provider<T> */
-    public record FieldInjectionMeta(String name, String depType, String descriptor, String visibility, boolean isOptional, boolean isProvider) {}
+    /** Field injection metadata. depType is the actual type (not wrapper), isOptional/isProvider for Optional<T>/Provider<T>, valueExpression for @Value */
+    public record FieldInjectionMeta(String name, String depType, String descriptor, String visibility, boolean isOptional, boolean isProvider, String valueExpression) {}
     
     public record MethodInjectionMeta(String name, String descriptor, List<String> depTypes) {}
 }
