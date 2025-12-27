@@ -237,7 +237,7 @@ jobs:
     - name: 🔨 Package Build
       run: |
         echo "🔨 Building package artifacts..."
-        mvn clean package -DskipTests -DskipGpg=true -q
+        mvn clean package -DskipTests -DskipGpg=true -pl '!veld-benchmark,!veld-example,!veld-spring-boot-example' -q
         
     - name: 📦 Create Distribution
       run: |
@@ -251,9 +251,13 @@ jobs:
       with:
         name: release-artifacts
         path: |
-          */target/*.jar
-          target/*.zip
-          target/*.tar.gz
+          veld-annotations/target/*.jar
+          veld-runtime/target/*.jar
+          veld-processor/target/*.jar
+          veld-aop/target/*.jar
+          veld-weaver/target/*.jar
+          veld-maven-plugin/target/*.jar
+          veld-spring-boot-starter/target/*.jar
         if-no-files-found: warn
         retention-days: 90
         

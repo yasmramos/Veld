@@ -114,6 +114,7 @@
         <maven.deploy.skip>false</maven.deploy.skip>
         <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
         <maven.javadoc.skip>false</maven.javadoc.skip>
+        <build-helper.attach.phase>package</build-helper.attach.phase>
         
         <!-- CI/Benchmark properties -->
         <ci.skip>false</ci.skip>
@@ -528,16 +529,11 @@
         <!-- CI/Benchmark profile - Skip GPG signing and other release-only plugins -->
         <profile>
             <id>ci</id>
-            <activation>
-                <property>
-                    <name>ci.skip</name>
-                    <value>true</value>
-                </property>
-            </activation>
             <properties>
                 <skipGpg>true</skipGpg>
                 <skipTests>false</skipTests>
                 <maven.deploy.skip>true</maven.deploy.skip>
+                <jacoco.skip>true</jacoco.skip>
             </properties>
             <build>
                 <plugins>
@@ -577,6 +573,8 @@
                 <maven.deploy.skip>true</maven.deploy.skip>
                 <maven.javadoc.skip>true</maven.javadoc.skip>
                 <maven.source.skip>true</maven.source.skip>
+                <build-helper.attach.phase>none</build-helper.attach.phase>
+                <jacoco.skip>true</jacoco.skip>
             </properties>
             <build>
                 <plugins>
@@ -613,7 +611,17 @@
                         <artifactId>maven-javadoc-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>skip-javadoc-in-benchmark</id>
+                                <id>attach-javadocs</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
                                 <phase>none</phase>
                             </execution>
                         </executions>
