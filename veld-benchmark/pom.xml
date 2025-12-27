@@ -209,13 +209,14 @@
                 </executions>
             </plugin>
 
-            <!-- Veld Weaver Plugin -->
+            <!-- Veld Weaver Plugin (weave only, no recompile) -->
             <plugin>
                 <groupId>io.github.yasmramos</groupId>
                 <artifactId>veld-weaver</artifactId>
                 <version>${project.version}</version>
                 <executions>
                     <execution>
+                        <phase>process-classes</phase>
                         <goals>
                             <goal>weave</goal>
                         </goals>
