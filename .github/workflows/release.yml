@@ -222,6 +222,7 @@ jobs:
         echo "Using GPG key: $GPG_KEYNAME"
         
         mvn clean deploy -DskipTests=false -DfailIfNoTests=false \
+          -DskipGpg=false \
           -Dgpg.executable=gpg \
           -Dgpg.keyname=$GPG_KEYNAME \
           -Dgpg.passphrase="${GPG_PASSPHRASE:-}" \
