@@ -30,7 +30,7 @@ public class QuickPerformanceTest {
         MethodHandle veldStaticGetter = null;
         MethodHandle veldGetByClass = null;
         try {
-            Class<?> veldClass = Class.forName("io.github.yasmramos.veld.generated.Veld");
+            Class<?> veldClass = Class.forName("io.github.yasmramos.veld.Veld");
             veldStaticGetter = MethodHandles.lookup()
                 .findStatic(veldClass, "veldSimpleService", 
                     MethodType.methodType(VeldSimpleService.class));
@@ -38,7 +38,7 @@ public class QuickPerformanceTest {
                 .findStatic(veldClass, "get",
                     MethodType.methodType(Object.class, Class.class));
             veldStaticGetter.invoke(); // Warmup
-            System.out.println("Veld static method found: Veld.veldSimpleService()");
+            System.out.println("Veld static method found: Veld.get(VeldSimpleService.class)");
         } catch (Exception e) {
             System.out.println("Veld static accessor not available: " + e.getMessage());
         }
@@ -65,7 +65,7 @@ public class QuickPerformanceTest {
         long getByClassTime = System.nanoTime() - getByClassStart;
         
         // Measure Veld static access
-        System.out.println("Measuring Veld.veldSimpleService() (" + MEASURE_ITERATIONS + " iterations)...");
+        System.out.println("Measuring Veld.get(VeldSimpleService.class) (" + MEASURE_ITERATIONS + " iterations)...");
         long staticStart = System.nanoTime();
         for (int i = 0; i < MEASURE_ITERATIONS; i++) {
             VeldSimpleService s = (VeldSimpleService) veldStaticGetter.invokeExact();

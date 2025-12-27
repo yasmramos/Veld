@@ -17,7 +17,7 @@ import io.github.yasmramos.veld.benchmark.dagger.DaggerBenchmarkComponent;
 import io.github.yasmramos.veld.benchmark.guice.GuiceModule;
 import io.github.yasmramos.veld.benchmark.spring.SpringConfig;
 import io.github.yasmramos.veld.benchmark.veld.VeldSimpleService;
-import io.github.yasmramos.veld.generated.Veld;
+import io.github.yasmramos.veld.Veld;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -53,7 +53,7 @@ public class ThroughputBenchmark {
     
     @Benchmark
     public void veldThroughput(Blackhole bh) {
-        Service service = Veld.veldSimpleService();
+        Service service = Veld.get(VeldSimpleService.class);
         bh.consume(service);
     }
     
@@ -78,7 +78,7 @@ public class ThroughputBenchmark {
     @Benchmark
     @Threads(4)
     public void veldConcurrentThroughput(Blackhole bh) {
-        Service service = Veld.veldSimpleService();
+        Service service = Veld.get(VeldSimpleService.class);
         bh.consume(service);
     }
     

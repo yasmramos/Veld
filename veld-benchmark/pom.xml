@@ -42,13 +42,6 @@
             <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-runtime</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.github.yasmramos</groupId>
-            <artifactId>veld-processor</artifactId>
-            <version>${project.version}</version>
-            <scope>provided</scope>
-        </dependency>
-
         <!-- JMH -->
         <dependency>
             <groupId>org.openjdk.jmh</groupId>
@@ -206,6 +199,20 @@
                                 </filter>
                             </filters>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Veld Weaver Plugin -->
+            <plugin>
+                <groupId>io.github.yasmramos</groupId>
+                <artifactId>veld-weaver</artifactId>
+                <version>${project.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>weave</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>

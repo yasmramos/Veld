@@ -15,7 +15,8 @@ import io.github.yasmramos.veld.benchmark.dagger.BenchmarkComponent;
 import io.github.yasmramos.veld.benchmark.dagger.DaggerBenchmarkComponent;
 import io.github.yasmramos.veld.benchmark.guice.GuiceModule;
 import io.github.yasmramos.veld.benchmark.spring.SpringConfig;
-import io.github.yasmramos.veld.generated.Veld;
+import io.github.yasmramos.veld.Veld;
+import io.github.yasmramos.veld.benchmark.veld.VeldSimpleService;
 import org.openjdk.jmh.annotations.*;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
@@ -46,7 +47,7 @@ public class MemoryBenchmark {
         // Just access the singleton to trigger class loading
         Object result = null;
         for (int i = 0; i < containerCount; i++) {
-            result = Veld.veldSimpleService();
+            result = Veld.get(VeldSimpleService.class);
         }
         return result;
     }
