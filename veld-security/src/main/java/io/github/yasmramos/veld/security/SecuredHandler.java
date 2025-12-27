@@ -1,58 +1,27 @@
 package io.github.yasmramos.veld.security;
 
 import io.github.yasmramos.veld.annotation.*;
-import io.github.yasmramos.veld.aop.AspectHandler;
-import io.github.yasmramos.veld.aop.MethodInvocation;
+import io.github.yasmramos.veld.aop.InvocationContext;
+import io.github.yasmramos.veld.aop.MethodInterceptor;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 
-/**
- * Handles security annotations for method access control.
- */
-public class SecuredHandler implements AspectHandler {
-
+public class SecuredHandler implements MethodInterceptor {
     @Override
-    public Class<? extends Annotation> getAnnotationType() {
-        return Secured.class;
-    }
-
-    @Override
-    public Object handle(MethodInvocation invocation) throws Throwable {
-        Method method = invocation.getMethod();
-        
-        // Check @DenyAll first
-        if (method.isAnnotationPresent(DenyAll.class)) {
-            throw new AccessDeniedException("Access denied");
-        }
-        
-        // Check @PermitAll
-        if (method.isAnnotationPresent(PermitAll.class)) {
-            return invocation.proceed();
-        }
-        
-        // Require authentication
-        if (!SecurityContext.isAuthenticated()) {
-            throw new AccessDeniedException("Authentication required");
-        }
-        
-        // Check @RolesAllowed
+    public Object invoke(InvocationContext ctx) throws Throwable {
+        Method method = ctx.getMethod();
+        if (method.isAnnotationPresent(DenyAll.class)) throw new AccessDeniedException("Access denied");
+        if (method.isAnnotationPresent(PermitAll.class)) return ctx.proceed();
+        if (!SecurityContext.isAuthenticated()) throw new AccessDeniedException("Authentication required");
         if (method.isAnnotationPresent(RolesAllowed.class)) {
-            RolesAllowed rolesAllowed = method.getAnnotation(RolesAllowed.class);
-            if (!SecurityContext.hasAnyRole(rolesAllowed.value())) {
-                throw new AccessDeniedException("Required roles: " + String.join(", ", rolesAllowed.value()));
-            }
+            RolesAllowed r = method.getAnnotation(RolesAllowed.class);
+            if (!SecurityContext.hasAnyRole(r.value())) throw new AccessDeniedException("Required roles: " + String.join(", ", r.value()));
         }
-        
-        // Check @Secured roles
         if (method.isAnnotationPresent(Secured.class)) {
-            Secured secured = method.getAnnotation(Secured.class);
-            if (secured.value().length > 0 && !SecurityContext.hasAnyRole(secured.value())) {
-                throw new AccessDeniedException("Required roles: " + String.join(", ", secured.value()));
-            }
+            Secured s = method.getAnnotation(Secured.class);
+            if (s.value().length > 0 && !SecurityContext.hasAnyRole(s.value())) throw new AccessDeniedException("Required roles: " + String.join(", ", s.value()));
         }
-        
-        return invocation.proceed();
+        return ctx.proceed();
     }
 
     public static class AccessDeniedException extends RuntimeException {

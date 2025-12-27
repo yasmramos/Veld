@@ -1,43 +1,25 @@
 package io.github.yasmramos.veld.resilience;
 
 import io.github.yasmramos.veld.annotation.Bulkhead;
-import io.github.yasmramos.veld.aop.AspectHandler;
-import io.github.yasmramos.veld.aop.MethodInvocation;
+import io.github.yasmramos.veld.aop.InvocationContext;
+import io.github.yasmramos.veld.aop.MethodInterceptor;
 
-import java.lang.annotation.Annotation;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Bulkhead pattern - limits concurrent executions to prevent resource exhaustion.
- */
-public class BulkheadHandler implements AspectHandler {
-
+public class BulkheadHandler implements MethodInterceptor {
     private static final ConcurrentHashMap<String, Semaphore> bulkheads = new ConcurrentHashMap<>();
 
     @Override
-    public Class<? extends Annotation> getAnnotationType() {
-        return Bulkhead.class;
-    }
-
-    @Override
-    public Object handle(MethodInvocation invocation) throws Throwable {
-        Bulkhead bh = invocation.getMethod().getAnnotation(Bulkhead.class);
-        String key = bh.name().isEmpty() ? invocation.getMethod().toString() : bh.name();
-        
-        Semaphore semaphore = bulkheads.computeIfAbsent(key, k -> new Semaphore(bh.maxConcurrentCalls()));
-        
-        boolean acquired = semaphore.tryAcquire(bh.maxWaitDuration(), TimeUnit.MILLISECONDS);
-        if (!acquired) {
-            throw new BulkheadFullException("Bulkhead " + key + " is full");
-        }
-        
-        try {
-            return invocation.proceed();
-        } finally {
-            semaphore.release();
-        }
+    public Object invoke(InvocationContext ctx) throws Throwable {
+        Bulkhead bh = ctx.getMethod().getAnnotation(Bulkhead.class);
+        if (bh == null) return ctx.proceed();
+        String key = bh.name().isEmpty() ? ctx.getMethod().toString() : bh.name();
+        Semaphore semaphore = bulkheads.computeIfAbsent(key, k -> new Semaphore(bh.maxConcurrent()));
+        boolean acquired = semaphore.tryAcquire(bh.maxWait(), TimeUnit.MILLISECONDS);
+        if (!acquired) throw new BulkheadFullException("Bulkhead " + key + " is full");
+        try { return ctx.proceed(); } finally { semaphore.release(); }
     }
 
     public static class BulkheadFullException extends RuntimeException {

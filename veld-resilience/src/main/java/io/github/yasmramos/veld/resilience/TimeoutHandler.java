@@ -1,41 +1,27 @@
 package io.github.yasmramos.veld.resilience;
 
 import io.github.yasmramos.veld.annotation.Timeout;
-import io.github.yasmramos.veld.aop.AspectHandler;
-import io.github.yasmramos.veld.aop.MethodInvocation;
+import io.github.yasmramos.veld.aop.InvocationContext;
+import io.github.yasmramos.veld.aop.MethodInterceptor;
 
-import java.lang.annotation.Annotation;
 import java.util.concurrent.*;
 
-/**
- * Timeout handler - cancels execution if it exceeds the time limit.
- */
-public class TimeoutHandler implements AspectHandler {
-
+public class TimeoutHandler implements MethodInterceptor {
     private static final ExecutorService executor = Executors.newCachedThreadPool();
 
     @Override
-    public Class<? extends Annotation> getAnnotationType() {
-        return Timeout.class;
-    }
-
-    @Override
-    public Object handle(MethodInvocation invocation) throws Throwable {
-        Timeout timeout = invocation.getMethod().getAnnotation(Timeout.class);
-        
+    public Object invoke(InvocationContext ctx) throws Throwable {
+        Timeout timeout = ctx.getMethod().getAnnotation(Timeout.class);
+        if (timeout == null) return ctx.proceed();
         Future<Object> future = executor.submit(() -> {
-            try {
-                return invocation.proceed();
-            } catch (Throwable t) {
-                throw new ExecutionException(t);
-            }
+            try { return ctx.proceed(); } 
+            catch (Throwable t) { throw new RuntimeException(t); }
         });
-        
         try {
             return future.get(timeout.value(), timeout.unit());
         } catch (TimeoutException e) {
             future.cancel(true);
-            throw new TimeoutExceededException("Method execution exceeded timeout of " + timeout.value() + " " + timeout.unit());
+            throw new TimeoutExceededException("Timeout exceeded");
         } catch (ExecutionException e) {
             throw e.getCause();
         }
