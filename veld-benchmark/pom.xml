@@ -209,14 +209,11 @@
                 </executions>
             </plugin>
 
-            <!-- Veld Maven Plugin (weave only, skip recompilation) -->
+            <!-- Veld Maven Plugin (weave only by default) -->
             <plugin>
                 <groupId>io.github.yasmramos</groupId>
                 <artifactId>veld-maven-plugin</artifactId>
                 <version>${project.version}</version>
-                <configuration>
-                    <skipCompile>true</skipCompile>
-                </configuration>
                 <executions>
                     <execution>
                         <phase>process-classes</phase>
