@@ -18,7 +18,6 @@ package io.github.yasmramos.veld.aop.interceptor;
 import io.github.yasmramos.veld.aop.CompileTimeInterceptor;
 import io.github.yasmramos.veld.runtime.async.AsyncExecutor;
 
-import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
@@ -32,23 +31,19 @@ import java.util.concurrent.Future;
  */
 public class AsyncInterceptor implements CompileTimeInterceptor {
     
-    private static final ThreadLocal<AsyncContext> ASYNC_CONTEXT = new ThreadLocal<>();
-    
     @Override
-    public void beforeMethod(Object target, String methodName, Object[] args, Method method) {
-        // Store context for use in wrapExecution
-        ASYNC_CONTEXT.set(new AsyncContext(target, methodName, args, method));
+    public void beforeMethod(String methodName, Object[] args) {
+        // No-op: async execution is handled by wrapAsync
     }
     
     @Override
-    public Object afterMethod(Object target, String methodName, Object[] args, Object result, Method method) {
-        ASYNC_CONTEXT.remove();
-        return result;
+    public void afterMethod(String methodName, Object result) {
+        // No-op
     }
     
     @Override
-    public void afterThrowing(Object target, String methodName, Object[] args, Throwable throwable, Method method) {
-        ASYNC_CONTEXT.remove();
+    public void afterThrowing(String methodName, Throwable ex) {
+        System.err.println("[Veld] Async method failed: " + methodName + " - " + ex.getMessage());
     }
     
     /**
@@ -118,6 +113,4 @@ public class AsyncInterceptor implements CompileTimeInterceptor {
             return Object.class;
         }
     }
-    
-    private record AsyncContext(Object target, String methodName, Object[] args, Method method) {}
 }
