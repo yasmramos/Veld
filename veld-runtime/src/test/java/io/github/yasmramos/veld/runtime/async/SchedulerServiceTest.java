@@ -158,4 +158,56 @@ class SchedulerServiceTest {
         
         assertNotNull(SchedulerService.getInstance());
     }
+
+    @Test
+    void scheduleCron_executesOnTime() throws Exception {
+        AtomicInteger counter = new AtomicInteger(0);
+        CountDownLatch latch = new CountDownLatch(1);
+        
+        // Schedule for every second
+        SchedulerService.getInstance().scheduleCron(() -> {
+            counter.incrementAndGet();
+            latch.countDown();
+        }, "* * * * * *", ZoneId.of("UTC"));
+        
+        assertTrue(latch.await(3, TimeUnit.SECONDS));
+        assertTrue(counter.get() >= 1);
+    }
+
+    @Test
+    void scheduleWithFixedDelay_handlesExceptionGracefully() throws Exception {
+        AtomicInteger counter = new AtomicInteger(0);
+        CountDownLatch latch = new CountDownLatch(2);
+        
+        SchedulerService.getInstance().scheduleWithFixedDelay(() -> {
+            counter.incrementAndGet();
+            latch.countDown();
+            if (counter.get() == 1) {
+                throw new RuntimeException("test exception");
+            }
+        }, 0, 50, TimeUnit.MILLISECONDS);
+        
+        assertTrue(latch.await(5, TimeUnit.SECONDS));
+        assertTrue(counter.get() >= 2);
+    }
+
+    @Test
+    void scheduleAtFixedRate_returnsFuture() {
+        ScheduledFuture<?> future = SchedulerService.getInstance()
+            .scheduleAtFixedRate(() -> {}, 100, 100, TimeUnit.MILLISECONDS);
+        
+        assertNotNull(future);
+        assertFalse(future.isDone());
+        future.cancel(true);
+    }
+
+    @Test
+    void scheduleWithFixedDelay_returnsFuture() {
+        ScheduledFuture<?> future = SchedulerService.getInstance()
+            .scheduleWithFixedDelay(() -> {}, 100, 100, TimeUnit.MILLISECONDS);
+        
+        assertNotNull(future);
+        assertFalse(future.isDone());
+        future.cancel(true);
+    }
 }

@@ -306,5 +306,45 @@ class EventFilterTest {
 
             assertTrue(EventFilter.evaluate("event.priority < 0", event));
         }
+        
+        @Test
+        @DisplayName("Should handle property without event prefix")
+        void shouldHandlePropertyWithoutEventPrefix() {
+            TestEvent event = new TestEvent("PREMIUM", 5, 100.0, true);
+
+            assertTrue(EventFilter.evaluate("type == 'PREMIUM'", event));
+        }
+        
+        @Test
+        @DisplayName("Should handle integer not equals")
+        void shouldHandleIntegerNotEquals() {
+            TestEvent event = new TestEvent("TEST", 5, 100.0, true);
+
+            assertTrue(EventFilter.evaluate("event.priority != 10", event));
+        }
+        
+        @Test
+        @DisplayName("Should handle double less than")
+        void shouldHandleDoubleLessThan() {
+            TestEvent event = new TestEvent("TEST", 5, 50.0, true);
+
+            assertTrue(EventFilter.evaluate("event.amount < 100.0", event));
+        }
+        
+        @Test
+        @DisplayName("Should handle double less than or equal")
+        void shouldHandleDoubleLessThanOrEqual() {
+            TestEvent event = new TestEvent("TEST", 5, 100.0, true);
+
+            assertTrue(EventFilter.evaluate("event.amount <= 100.0", event));
+        }
+        
+        @Test
+        @DisplayName("Should handle double greater than or equal")
+        void shouldHandleDoubleGreaterThanOrEqual() {
+            TestEvent event = new TestEvent("TEST", 5, 100.0, true);
+
+            assertTrue(EventFilter.evaluate("event.amount >= 100.0", event));
+        }
     }
 }

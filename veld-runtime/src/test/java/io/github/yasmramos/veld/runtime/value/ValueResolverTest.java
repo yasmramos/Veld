@@ -333,6 +333,55 @@ class ValueResolverTest {
             Integer result = resolver.resolve(null, Integer.class);
             assertNull(result);
         }
+        
+        @Test
+        @DisplayName("Should convert to primitive long")
+        void shouldConvertToPrimitiveLong() {
+            long result = resolver.resolve("${long.value}", long.class);
+            assertEquals(1234567890123L, result);
+        }
+        
+        @Test
+        @DisplayName("Should convert to primitive double")
+        void shouldConvertToPrimitiveDouble() {
+            double result = resolver.resolve("${double.value}", double.class);
+            assertEquals(3.14159, result, 0.00001);
+        }
+        
+        @Test
+        @DisplayName("Should convert to primitive float")
+        void shouldConvertToPrimitiveFloat() {
+            float result = resolver.resolve("${float.value}", float.class);
+            assertEquals(2.5f, result, 0.001f);
+        }
+        
+        @Test
+        @DisplayName("Should convert to primitive boolean")
+        void shouldConvertToPrimitiveBoolean() {
+            boolean result = resolver.resolve("${boolean.true}", boolean.class);
+            assertTrue(result);
+        }
+        
+        @Test
+        @DisplayName("Should convert to primitive byte")
+        void shouldConvertToPrimitiveByte() {
+            byte result = resolver.resolve("${byte.value}", byte.class);
+            assertEquals((byte) 127, result);
+        }
+        
+        @Test
+        @DisplayName("Should convert to primitive short")
+        void shouldConvertToPrimitiveShort() {
+            short result = resolver.resolve("${short.value}", short.class);
+            assertEquals((short) 32000, result);
+        }
+        
+        @Test
+        @DisplayName("Should convert to primitive char")
+        void shouldConvertToPrimitiveChar() {
+            char result = resolver.resolve("${char.value}", char.class);
+            assertEquals('X', result);
+        }
     }
     
     @Nested
