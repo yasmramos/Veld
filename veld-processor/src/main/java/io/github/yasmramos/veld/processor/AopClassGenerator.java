@@ -162,7 +162,13 @@ public class AopClassGenerator {
             generateInterceptorFields(out, typeElement);
 
             // Generate constructor
-            generateConstructor(out, aopSimpleClassName, typeElement);
+            boolean hasScheduled = hasScheduledMethods(typeElement);
+            generateConstructor(out, aopSimpleClassName, typeElement, hasScheduled);
+
+            // Generate scheduled tasks initializer
+            if (hasScheduled) {
+                generateScheduledInitializer(out, typeElement);
+            }
 
             // Generate intercepted methods
             generateInterceptedMethods(out, typeElement, simpleClassName);
@@ -234,7 +240,7 @@ public class AopClassGenerator {
     /**
      * Generates constructor that calls super constructor.
      */
-    private void generateConstructor(PrintWriter out, String aopSimpleClassName, TypeElement typeElement) {
+    private void generateConstructor(PrintWriter out, String aopSimpleClassName, TypeElement typeElement, boolean hasScheduled) {
         // Find constructors
         List<ExecutableElement> constructors = new ArrayList<>();
         for (Element enclosed : typeElement.getEnclosedElements()) {
@@ -265,9 +271,71 @@ public class AopClassGenerator {
 
             out.println("    public " + aopSimpleClassName + "(" + params + ") {");
             out.println("        super(" + superArgs + ");");
+            if (hasScheduled) {
+                out.println("        initScheduledTasks();");
+            }
             out.println("    }");
             out.println();
         }
+    }
+
+    /**
+     * Checks if the class has any @Scheduled methods.
+     */
+    private boolean hasScheduledMethods(TypeElement typeElement) {
+        for (Element enclosed : typeElement.getEnclosedElements()) {
+            if (enclosed.getKind() == ElementKind.METHOD) {
+                if (hasAnnotation(enclosed, "io.github.yasmramos.veld.annotation.Scheduled")) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Generates the scheduled tasks initializer method.
+     */
+    private void generateScheduledInitializer(PrintWriter out, TypeElement typeElement) {
+        out.println("    private void initScheduledTasks() {");
+        out.println("        SchedulerService scheduler = SchedulerService.getInstance();");
+        
+        for (Element enclosed : typeElement.getEnclosedElements()) {
+            if (enclosed.getKind() != ElementKind.METHOD) continue;
+            
+            ExecutableElement method = (ExecutableElement) enclosed;
+            if (!hasAnnotation(method, "io.github.yasmramos.veld.annotation.Scheduled")) continue;
+            
+            String methodName = method.getSimpleName().toString();
+            String cron = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.Scheduled", "cron", "");
+            String fixedRate = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.Scheduled", "fixedRate", "-1");
+            String fixedDelay = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.Scheduled", "fixedDelay", "-1");
+            String initialDelay = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.Scheduled", "initialDelay", "0");
+            String zone = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.Scheduled", "zone", "");
+            
+            // Generate Runnable
+            out.println("        Runnable task_" + methodName + " = () -> {");
+            out.println("            try {");
+            out.println("                this." + methodName + "();");
+            out.println("            } catch (Exception e) {");
+            out.println("                System.err.println(\"[Veld] Scheduled task failed: " + methodName + " - \" + e.getMessage());");
+            out.println("            }");
+            out.println("        };");
+            
+            if (!cron.isEmpty()) {
+                // Cron-based scheduling
+                out.println("        scheduler.scheduleCron(task_" + methodName + ", \"" + cron + "\", \"" + zone + "\");");
+            } else if (!fixedRate.equals("-1") && Long.parseLong(fixedRate) > 0) {
+                // Fixed rate scheduling
+                out.println("        scheduler.scheduleAtFixedRate(task_" + methodName + ", " + initialDelay + "L, " + fixedRate + "L, TimeUnit.MILLISECONDS);");
+            } else if (!fixedDelay.equals("-1") && Long.parseLong(fixedDelay) > 0) {
+                // Fixed delay scheduling
+                out.println("        scheduler.scheduleWithFixedDelay(task_" + methodName + ", " + initialDelay + "L, " + fixedDelay + "L, TimeUnit.MILLISECONDS);");
+            }
+        }
+        
+        out.println("    }");
+        out.println();
     }
 
     /**
