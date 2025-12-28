@@ -104,6 +104,9 @@ public final class ComponentFactoryGenerator {
             generateIsPrimary(cw);
         }
         
+        // getOrder() method (always generated, but returns 0 if not annotated)
+        generateGetOrder(cw);
+        
         // invokePostConstruct(T) method
         generateInvokePostConstruct(cw, componentInternal);
         
@@ -442,6 +445,29 @@ public final class ComponentFactoryGenerator {
         mv.visitCode();
         
         mv.visitInsn(ICONST_1); // return true
+        mv.visitInsn(IRETURN);
+        
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    
+    private void generateGetOrder(ClassWriter cw) {
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "getOrder",
+                "()I", null, null);
+        mv.visitCode();
+        
+        int orderValue = component.getOrder();
+        // Push the order value
+        if (orderValue >= -1 && orderValue <= 5) {
+            mv.visitInsn(ICONST_0 + orderValue);
+        } else if (orderValue >= Byte.MIN_VALUE && orderValue <= Byte.MAX_VALUE) {
+            mv.visitIntInsn(BIPUSH, orderValue);
+        } else if (orderValue >= Short.MIN_VALUE && orderValue <= Short.MAX_VALUE) {
+            mv.visitIntInsn(SIPUSH, orderValue);
+        } else {
+            mv.visitLdcInsn(orderValue);
+        }
+        
         mv.visitInsn(IRETURN);
         
         mv.visitMaxs(0, 0);

@@ -308,4 +308,63 @@ class ComponentInfoTest {
             assertTrue(componentInfo.getExplicitDependencies().contains("anotherBean"));
         }
     }
+    
+    @Nested
+    @DisplayName("Order")
+    class OrderTests {
+        
+        @Test
+        @DisplayName("Should return 0 for order by default")
+        void shouldReturnZeroByDefault() {
+            assertEquals(0, componentInfo.getOrder());
+        }
+        
+        @Test
+        @DisplayName("Should set and get order value")
+        void shouldSetAndGetOrderValue() {
+            componentInfo.setOrder(100);
+            assertEquals(100, componentInfo.getOrder());
+        }
+        
+        @Test
+        @DisplayName("Should handle negative order values")
+        void shouldHandleNegativeOrderValues() {
+            componentInfo.setOrder(-1);
+            assertEquals(-1, componentInfo.getOrder());
+        }
+        
+        @Test
+        @DisplayName("Should handle zero order value")
+        void shouldHandleZeroOrderValue() {
+            componentInfo.setOrder(0);
+            assertEquals(0, componentInfo.getOrder());
+        }
+        
+        @Test
+        @DisplayName("Should handle high positive order values")
+        void shouldHandleHighPositiveOrderValues() {
+            componentInfo.setOrder(Integer.MAX_VALUE);
+            assertEquals(Integer.MAX_VALUE, componentInfo.getOrder());
+        }
+        
+        @Test
+        @DisplayName("Should handle high negative order values")
+        void shouldHandleHighNegativeOrderValues() {
+            componentInfo.setOrder(Integer.MIN_VALUE);
+            assertEquals(Integer.MIN_VALUE, componentInfo.getOrder());
+        }
+        
+        @Test
+        @DisplayName("Should update order value correctly")
+        void shouldUpdateOrderValueCorrectly() {
+            componentInfo.setOrder(10);
+            assertEquals(10, componentInfo.getOrder());
+            
+            componentInfo.setOrder(20);
+            assertEquals(20, componentInfo.getOrder());
+            
+            componentInfo.setOrder(5);
+            assertEquals(5, componentInfo.getOrder());
+        }
+    }
 }

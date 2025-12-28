@@ -38,6 +38,7 @@ public final class ComponentInfo {
     
     private boolean hasSubscribeMethods;          // Has @Subscribe methods (EventBus)
     private boolean isPrimary;                    // @Primary - preferred bean for type
+    private int order;                            // @Order - bean initialization order
     
     // TypeElement for AOP processing (transient - not serialized)
     private transient TypeElement typeElement;
@@ -279,6 +280,25 @@ public final class ComponentInfo {
      */
     public boolean isPrimary() {
         return isPrimary;
+    }
+    
+    /**
+     * Gets the order value for this component.
+     * Lower values have higher priority.
+     * 
+     * @return the order value, defaults to 0
+     */
+    public int getOrder() {
+        return order;
+    }
+    
+    /**
+     * Sets the order value for this component.
+     * 
+     * @param order the order value, lower values have higher priority
+     */
+    public void setOrder(int order) {
+        this.order = order;
     }
     
     /**
