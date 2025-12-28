@@ -178,6 +178,16 @@ public final class FactoryInfo {
             return returnType.replace('.', '$') + "$$Bean";
         }
 
+        public String getFactoryClassName() {
+            // Construct factory class name from return type
+            // Example: com.example.MyService -> com.example.MyService$$Bean
+            int lastDot = returnType.lastIndexOf('.');
+            if (lastDot >= 0) {
+                return returnType.substring(0, lastDot + 1) + returnType.substring(lastDot + 1).replace('.', '$') + "$$Bean";
+            }
+            return returnType + "$$Bean";
+        }
+
         @Override
         public String toString() {
             return "BeanMethod{" +
