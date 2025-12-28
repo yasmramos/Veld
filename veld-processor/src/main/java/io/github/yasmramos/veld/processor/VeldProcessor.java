@@ -93,6 +93,9 @@ public class VeldProcessor extends AbstractProcessor {
     private final List<FactoryInfo> discoveredFactories = new ArrayList<>();
     private final DependencyGraph dependencyGraph = new DependencyGraph();
     
+    // External beans loaded from classpath (multi-module support)
+    private final List<BeanMetadataReader.ExternalBeanInfo> externalBeans = new ArrayList<>();
+    
     // Maps interface -> list of implementing components (for conflict detection)
     private final Map<String, List<String>> interfaceImplementors = new HashMap<>();
     
@@ -1339,6 +1342,124 @@ public class VeldProcessor extends AbstractProcessor {
         }
     }
     
+    /**
+     * Gets a unique module identifier for metadata file naming.
+     * Uses groupId:artifactId format if available, otherwise uses package name.
+     */
+    private String getModuleId() {
+        // Try to get module info from processing environment
+        // This is a best-effort attempt to create a unique module identifier
+        try {
+            // Check if we can get the source file to determine the module
+            // For now, use a combination of package and a hash
+            String moduleName = System.getProperty("veld.module.name", "");
+            if (!moduleName.isEmpty()) {
+                return moduleName;
+            }
+            
+            // Fallback: use a hash based on discovered components/factories
+            if (!discoveredComponents.isEmpty()) {
+                String firstPackage = discoveredComponents.get(0).getClassName();
+                int lastDot = firstPackage.lastIndexOf('.');
+                String basePackage = lastDot >= 0 ? firstPackage.substring(0, lastDot) : firstPackage;
+                return basePackage;
+            }
+            
+            if (!discoveredFactories.isEmpty()) {
+                String firstPackage = discoveredFactories.get(0).getFactoryClassName();
+                int lastDot = firstPackage.lastIndexOf('.');
+                String basePackage = lastDot >= 0 ? firstPackage.substring(0, lastDot) : firstPackage;
+                return basePackage;
+            }
+            
+            return "veld-module";
+        } catch (Exception e) {
+            return "veld-module";
+        }
+    }
+    
+    /**
+     * Exports bean metadata for multi-module support.
+     * Writes metadata to META-INF/veld/ for consumption by dependent modules.
+     */
+    private void exportBeanMetadata() throws IOException {
+        String moduleId = getModuleId();
+        List<BeanMetadata> beansToExport = new ArrayList<>();
+
+        // Export @Component beans
+        for (ComponentInfo component : discoveredComponents) {
+            BeanMetadata bean = new BeanMetadata(
+                moduleId,
+                component.getComponentName(),
+                component.getClassName()
+            );
+            
+            // Get factory class name
+            String factoryClassName = component.getFactoryClassName();
+            if (factoryClassName != null && !factoryClassName.isEmpty()) {
+                // Extract method name from class name
+                String simpleName = factoryClassName.substring(factoryClassName.lastIndexOf('.') + 1);
+                String methodName = "create" + simpleName.replace("Factory", "");
+                bean = bean.withFactory(factoryClassName, methodName, "()V");
+            }
+            
+            bean = bean.withScope(component.getScope());
+            if (component.isPrimary()) {
+                bean = bean.asPrimary();
+            }
+            
+            // Add dependencies
+            if (component.getConstructorInjection() != null) {
+                for (InjectionPoint.Dependency dep : component.getConstructorInjection().getDependencies()) {
+                    bean.addDependency(dep.getActualTypeName());
+                }
+            }
+            
+            beansToExport.add(bean);
+        }
+
+        // Export @Bean methods from factories
+        for (FactoryInfo factory : discoveredFactories) {
+            for (FactoryInfo.BeanMethod beanMethod : factory.getBeanMethods()) {
+                BeanMetadata bean = new BeanMetadata(
+                    moduleId,
+                    beanMethod.getBeanName(),
+                    beanMethod.getReturnType()
+                );
+                
+                // Get factory class name from BeanMethod
+                String factoryClassName = beanMethod.getFactoryClassName();
+                if (factoryClassName != null && !factoryClassName.isEmpty()) {
+                    String simpleName = factoryClassName.substring(factoryClassName.lastIndexOf('.') + 1);
+                    String methodName = beanMethod.getMethodName();
+                    bean = bean.withFactory(factoryClassName, methodName, beanMethod.getMethodDescriptor());
+                }
+                
+                bean = bean.withScope(beanMethod.getScope());
+                if (beanMethod.isPrimary()) {
+                    bean = bean.asPrimary();
+                }
+                if (beanMethod.hasQualifier()) {
+                    bean = bean.withQualifier(beanMethod.getQualifier());
+                }
+                
+                // Add dependencies from parameters
+                for (String paramType : beanMethod.getParameterTypes()) {
+                    bean.addDependency(paramType);
+                }
+                
+                beansToExport.add(bean);
+            }
+        }
+
+        // Write metadata file
+        int exportedCount = BeanMetadataWriter.writeMetadata(moduleId, beansToExport, filer, this::note);
+        
+        if (exportedCount > 0) {
+            note("Exported " + exportedCount + " bean(s) for multi-module support");
+        }
+    }
+    
     private void generateRegistry() {
         try {
             // Generate AOP wrapper classes for components with interceptors
@@ -1371,6 +1492,9 @@ public class VeldProcessor extends AbstractProcessor {
             // Write component metadata for weaver
             writeComponentMetadata();
             note("Wrote component metadata for weaver (" + discoveredComponents.size() + " components)");
+
+            // Export bean metadata for multi-module support
+            exportBeanMetadata();
         } catch (IOException e) {
             error(null, "Failed to generate VeldRegistry: " + e.getMessage());
         }
