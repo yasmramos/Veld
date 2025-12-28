@@ -16,7 +16,7 @@ import io.github.yasmramos.veld.annotation.Value;
  * </ol>
  * 
  * @author Veld Framework
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  */
 @Singleton
 public class AppConfigService {

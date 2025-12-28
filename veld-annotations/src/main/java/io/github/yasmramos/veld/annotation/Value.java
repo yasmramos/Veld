@@ -92,7 +92,7 @@ import java.lang.annotation.Target;
  * }</pre>
  * 
  * @author Veld Framework
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  * @see io.github.yasmramos.veld.annotation.Inject
  */
 @Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD})

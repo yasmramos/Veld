@@ -14,7 +14,7 @@ import java.util.Set;
  * </ul>
  * 
  * @author Veld Framework
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  */
 public class ProfileCondition implements Condition {
     

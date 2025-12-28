@@ -49,7 +49,7 @@ import java.lang.annotation.Target;
  * attribute determines the execution order. Lower values have higher priority.
  *
  * @author Veld Framework Team
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  * @see Around
  * @see Before
  * @see After

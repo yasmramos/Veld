@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
  * </ul>
  *
  * @author Veld Framework Team
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  */
 public class InterceptorRegistry {
 

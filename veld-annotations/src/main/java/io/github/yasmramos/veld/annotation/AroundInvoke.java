@@ -59,7 +59,7 @@ import java.lang.annotation.Target;
  * }</pre>
  *
  * @author Veld Framework Team
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  * @see Interceptor
  */
 @Documented

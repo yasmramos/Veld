@@ -24,7 +24,7 @@ import java.lang.reflect.Method;
  * Represents an advice (around, before, after) in an aspect.
  *
  * @author Veld Framework Team
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  */
 public class Advice implements Comparable<Advice> {
 

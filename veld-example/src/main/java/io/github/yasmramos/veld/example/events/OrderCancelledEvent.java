@@ -22,7 +22,7 @@ package io.github.yasmramos.veld.example.events;
  * for cancellation.
  *
  * @author Veld Framework Team
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  */
 public class OrderCancelledEvent extends OrderEvent {
 

@@ -35,7 +35,7 @@ import java.util.Map;
  * </ul>
  *
  * @author Veld Framework Team
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  */
 public class MethodInvocation implements InvocationContext {
 

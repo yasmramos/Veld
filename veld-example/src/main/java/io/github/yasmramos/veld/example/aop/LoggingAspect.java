@@ -32,7 +32,7 @@ import java.util.Arrays;
  * all methods in the example.service package.
  *
  * @author Veld Framework Team
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  */
 @Aspect(order = 1)
 public class LoggingAspect {

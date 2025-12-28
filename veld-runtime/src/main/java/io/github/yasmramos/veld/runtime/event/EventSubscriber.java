@@ -25,7 +25,7 @@ import java.util.Objects;
  * be invoked when matching events are published.
  *
  * @author Veld Framework Team
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  */
 public class EventSubscriber implements Comparable<EventSubscriber> {
 

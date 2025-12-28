@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * the application without tight coupling.
  *
  * @author Veld Framework Team
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  */
 @Component
 public class EventDemoService {

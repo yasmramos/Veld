@@ -24,7 +24,7 @@ import java.util.List;
  * the items purchased and shipping details.
  *
  * @author Veld Framework Team
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  */
 public class OrderCreatedEvent extends OrderEvent {
 

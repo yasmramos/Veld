@@ -61,7 +61,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * }</pre>
  *
  * @author Veld Framework Team
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  * @see Event
  * @see Subscribe
  * @see EventSubscriber

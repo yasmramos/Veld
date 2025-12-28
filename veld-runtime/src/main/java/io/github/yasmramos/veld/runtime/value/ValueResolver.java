@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
  * </ol>
  * 
  * @author Veld Framework
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  */
 public class ValueResolver {
     
