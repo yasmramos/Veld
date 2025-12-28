@@ -75,6 +75,7 @@ import java.util.Set;
     "io.github.yasmramos.veld.annotation.Lazy",
     "io.github.yasmramos.veld.annotation.DependsOn",
     "io.github.yasmramos.veld.annotation.Primary",
+    "io.github.yasmramos.veld.annotation.Order",
     "io.github.yasmramos.veld.annotation.Qualifier",
     "io.github.yasmramos.veld.annotation.Factory",
     "io.github.yasmramos.veld.annotation.Bean",
@@ -828,6 +829,15 @@ public class VeldProcessor extends AbstractProcessor {
         }
         
         ComponentInfo info = new ComponentInfo(className, componentName, scope, isLazy, isPrimary);
+        
+        // Check for @Order annotation (must be after info is created)
+        Order orderAnnotation = typeElement.getAnnotation(Order.class);
+        if (orderAnnotation != null) {
+            int orderValue = orderAnnotation.value();
+            info.setOrder(orderValue);
+            note("  -> Order: " + orderValue);
+        }
+        
         info.setTypeElement(typeElement);
         
         // Find injection points
