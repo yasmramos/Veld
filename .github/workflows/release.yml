@@ -211,17 +211,23 @@ jobs:
         GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         GPG_KEYNAME: ${{ steps.import_gpg.outputs.keyid }}
       run: |
-        # Set GPG_TTY for non-interactive mode
-        export GPG_TTY=$(tty)
+        # Ensure GPG uses non-interactive mode
+        export GPG_TTY=/dev/null
+        export GNUPGHOME=$HOME/.gnupg
         
         echo "=== Deploying Veld ${{ needs.prepare-release.outputs.version }} to Staging ==="
-        echo "Using GPG key: $GPG_KEYNAME"
+        echo "Using GPG key ID: $GPG_KEYNAME"
+        
+        # Verify GPG is working
+        gpg --list-secret-keys --keyid-format LONG 2>&1 || true
         
         mvn clean deploy -DskipTests=false -DfailIfNoTests=false \
           -DskipGpg=false \
           -Dgpg.executable=gpg \
+          -Dgpg.useAgent=false \
           -Dgpg.keyname="$GPG_KEYNAME" \
-          -Dgpg.passphrase="$GPG_PASSPHRASE"
+          -Dgpg.passphrase="$GPG_PASSPHRASE" \
+          -Dgpg.verbose=true
         
     - name: Create Staging Repository Summary
       run: |
