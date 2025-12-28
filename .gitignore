@@ -903,3 +903,6 @@
 **/.git/hooks/*.sample
 !**/.git/hooks/pre-commit
 !**/.git/hooks/pre-push
+
+settings.xml
+**/settings.xml
