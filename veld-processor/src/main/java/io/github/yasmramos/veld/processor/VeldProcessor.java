@@ -79,6 +79,7 @@ import java.util.Set;
     "io.github.yasmramos.veld.annotation.Qualifier",
     "io.github.yasmramos.veld.annotation.Factory",
     "io.github.yasmramos.veld.annotation.Bean",
+    "io.github.yasmramos.veld.annotation.Lookup",
     "javax.inject.Singleton",
     "jakarta.inject.Singleton"
 })
@@ -1289,6 +1290,7 @@ public class VeldProcessor extends AbstractProcessor {
             if (presentBeanCondition != null) {
                 List<String> presentBeanTypes = new ArrayList<>();
                 List<String> presentBeanNames = new ArrayList<>();
+                boolean matchAll = presentBeanCondition.strategy() == ConditionalOnBean.Strategy.ALL;
                 
                 try {
                     // Get bean types
@@ -1321,13 +1323,11 @@ public class VeldProcessor extends AbstractProcessor {
                     warning(null, "Could not process @ConditionalOnBean annotation names: " + e.getMessage());
                 }
                 
-                if (!presentBeanTypes.isEmpty()) {
-                    conditionInfo.addPresentBeanTypeCondition(presentBeanTypes);
-                    note("  -> Conditional on present bean types: " + String.join(", ", presentBeanTypes));
-                }
-                if (!presentBeanNames.isEmpty()) {
-                    conditionInfo.addPresentBeanNameCondition(presentBeanNames);
-                    note("  -> Conditional on present bean names: " + String.join(", ", presentBeanNames));
+                if (!presentBeanTypes.isEmpty() || !presentBeanNames.isEmpty()) {
+                    conditionInfo.addPresentBeanCondition(presentBeanTypes, presentBeanNames, matchAll);
+                    String strategy = matchAll ? "ALL" : "ANY";
+                    note("  -> Conditional on present beans (strategy=" + strategy + "): " + 
+                         String.join(", ", presentBeanTypes.isEmpty() ? presentBeanNames : presentBeanTypes));
                 }
             }
             
@@ -1342,9 +1342,31 @@ public class VeldProcessor extends AbstractProcessor {
                         }
                     }
                     
-                    if (!profiles.isEmpty()) {
-                        conditionInfo.addProfileCondition(profiles);
-                        note("  -> Profile: " + String.join(", ", profiles));
+                    // Also check 'name' attribute as alias
+                    if (profiles.isEmpty()) {
+                        String nameValue = profileAnnotation.name();
+                        if (!nameValue.isEmpty() && !nameValue.isEmpty()) {
+                            profiles.add(nameValue);
+                        }
+                    }
+                    
+                    // Get expression and strategy
+                    String expression = profileAnnotation.expression();
+                    Profile.MatchStrategy strategy = profileAnnotation.strategy();
+                    
+                    if (!profiles.isEmpty() || !expression.isEmpty()) {
+                        conditionInfo.addProfileCondition(profiles, expression, strategy);
+                        StringBuilder profileNote = new StringBuilder("  -> Profile: ");
+                        if (!profiles.isEmpty()) {
+                            profileNote.append(String.join(", ", profiles));
+                        }
+                        if (!expression.isEmpty()) {
+                            profileNote.append(" [expression: ").append(expression).append("]");
+                        }
+                        if (strategy != Profile.MatchStrategy.ALL) {
+                            profileNote.append(" [strategy: ").append(strategy).append("]");
+                        }
+                        note(profileNote.toString());
                     }
                 } catch (Exception e) {
                     warning(null, "Could not process @Profile annotation: " + e.getMessage());
@@ -1361,7 +1383,7 @@ public class VeldProcessor extends AbstractProcessor {
     }
     
     /**
-     * Analyzes @DependsOn annotation for explicit initialization dependencies.
+     * Analyzes @DependsOn annotation for explicit initialization and destruction dependencies.
      * 
      * @param typeElement the component type element
      * @param info the component info to update
@@ -1369,6 +1391,7 @@ public class VeldProcessor extends AbstractProcessor {
     private void analyzeDependsOn(TypeElement typeElement, ComponentInfo info) {
         DependsOn dependsOn = typeElement.getAnnotation(DependsOn.class);
         if (dependsOn != null) {
+            // Parse initialization dependencies
             String[] dependencies = dependsOn.value();
             if (dependencies.length > 0) {
                 for (String dependency : dependencies) {
@@ -1378,6 +1401,25 @@ public class VeldProcessor extends AbstractProcessor {
                     }
                 }
                 note("  -> Explicit dependencies: " + String.join(", ", dependencies));
+            }
+            
+            // Parse destruction dependencies
+            String[] destroyOrder = dependsOn.destroyOrder();
+            if (destroyOrder.length > 0) {
+                for (String dependency : destroyOrder) {
+                    if (dependency != null && !dependency.trim().isEmpty()) {
+                        info.addExplicitDestructionDependency(dependency.trim());
+                        note("  -> Must outlive bean: " + dependency.trim());
+                    }
+                }
+                note("  -> Destruction order dependencies: " + String.join(", ", destroyOrder));
+            }
+            
+            // Parse destruction order value
+            int destroyOrderValue = dependsOn.destroyOrderValue();
+            if (destroyOrderValue != 0) {
+                info.setDestroyOrderValue(destroyOrderValue);
+                note("  -> Destruction order value: " + destroyOrderValue);
             }
         }
     }

@@ -128,6 +128,16 @@ public final class ComponentFactoryGenerator {
         // getIndex() method for ultra-fast array-based lookups
         generateGetIndex(cw);
         
+        // getDestructionDependencies() method
+        if (component.hasExplicitDestructionDependencies()) {
+            generateGetDestroyDependencies(cw);
+        }
+        
+        // getDestroyOrder() method
+        if (component.getDestroyOrderValue() != 0) {
+            generateGetDestroyOrder(cw);
+        }
+        
         // Bridge methods for type erasure
         generateBridgeMethods(cw, factoryInternal, componentInternal);
         
@@ -786,6 +796,57 @@ public final class ComponentFactoryGenerator {
             mv.visitIntInsn(SIPUSH, componentIndex);
         } else {
             mv.visitLdcInsn(componentIndex);
+        }
+        
+        mv.visitInsn(IRETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    
+    private void generateGetDestroyDependencies(ClassWriter cw) {
+        // public List<String> getDestroyDependencies()
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "getDestroyDependencies",
+                "()L" + LIST + ";", "()L" + LIST + "<L" + STRING + ";>;", null);
+        mv.visitCode();
+        
+        java.util.List<String> dependencies = component.getExplicitDestructionDependencies();
+        int size = dependencies.size();
+        
+        // return Arrays.asList("Dependency1", "Dependency2", ...);
+        mv.visitIntInsn(BIPUSH, size);
+        mv.visitTypeInsn(ANEWARRAY, STRING);
+        
+        for (int i = 0; i < size; i++) {
+            mv.visitInsn(DUP);
+            mv.visitIntInsn(BIPUSH, i);
+            mv.visitLdcInsn(dependencies.get(i));
+            mv.visitInsn(AASTORE);
+        }
+        
+        mv.visitMethodInsn(INVOKESTATIC, ARRAYS, "asList",
+                "([L" + OBJECT + ";)L" + LIST + ";", false);
+        mv.visitInsn(ARETURN);
+        
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    
+    private void generateGetDestroyOrder(ClassWriter cw) {
+        // public int getDestroyOrder()
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "getDestroyOrder",
+                "()I", null, null);
+        mv.visitCode();
+        
+        int destroyOrderValue = component.getDestroyOrderValue();
+        // Push the destroy order value
+        if (destroyOrderValue >= -1 && destroyOrderValue <= 5) {
+            mv.visitInsn(ICONST_0 + destroyOrderValue);
+        } else if (destroyOrderValue >= Byte.MIN_VALUE && destroyOrderValue <= Byte.MAX_VALUE) {
+            mv.visitIntInsn(BIPUSH, destroyOrderValue);
+        } else if (destroyOrderValue >= Short.MIN_VALUE && destroyOrderValue <= Short.MAX_VALUE) {
+            mv.visitIntInsn(SIPUSH, destroyOrderValue);
+        } else {
+            mv.visitLdcInsn(destroyOrderValue);
         }
         
         mv.visitInsn(IRETURN);

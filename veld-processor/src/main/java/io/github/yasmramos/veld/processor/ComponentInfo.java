@@ -271,6 +271,68 @@ public final class ComponentInfo {
         return !explicitDependencies.isEmpty();
     }
     
+    // Destruction order support (@DependsOn destroyOrder)
+    
+    private final List<String> explicitDestructionDependencies = new ArrayList<>();
+    private int destroyOrderValue = 0;
+    
+    /**
+     * Gets the explicit destruction dependencies declared via @DependsOn.
+     * These beans will be destroyed AFTER this bean.
+     * 
+     * @return list of bean names this component must outlive
+     */
+    public List<String> getExplicitDestructionDependencies() {
+        return explicitDestructionDependencies;
+    }
+    
+    /**
+     * Adds an explicit destruction dependency.
+     * 
+     * @param dependencyBeanName the name of the bean this component must outlive
+     */
+    public void addExplicitDestructionDependency(String dependencyBeanName) {
+        this.explicitDestructionDependencies.add(dependencyBeanName);
+    }
+    
+    /**
+     * Sets all explicit destruction dependencies at once.
+     * 
+     * @param dependencies list of bean names
+     */
+    public void setExplicitDestructionDependencies(List<String> dependencies) {
+        this.explicitDestructionDependencies.clear();
+        this.explicitDestructionDependencies.addAll(dependencies);
+    }
+    
+    /**
+     * Checks if this component has explicit destruction dependencies.
+     * 
+     * @return true if @DependsOn destroyOrder is specified
+     */
+    public boolean hasExplicitDestructionDependencies() {
+        return !explicitDestructionDependencies.isEmpty();
+    }
+    
+    /**
+     * Gets the destruction order value for this component.
+     * Lower values are destroyed first, higher values are destroyed last.
+     * 
+     * @return the destruction order value
+     */
+    public int getDestroyOrderValue() {
+        return destroyOrderValue;
+    }
+    
+    /**
+     * Sets the destruction order value for this component.
+     * 
+     * @param value the destruction order value
+     */
+    public void setDestroyOrderValue(int value) {
+        this.destroyOrderValue = value;
+    }
+    
     // Primary bean support (@Primary)
     
     /**
