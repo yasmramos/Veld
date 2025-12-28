@@ -128,7 +128,7 @@ jobs:
     - name: 🔨 Build Project
       run: |
         echo "🔨 Building project with JDK ${{ matrix.java-version }}"
-        mvn clean install -DskipTests -DskipGpg=true -Dmaven.javadoc.skip=true -q
+        mvn clean install -DskipTests -DskipGpg=true -Dmaven.javadoc.skip=true -Pci -q
         
     - name: 🧪 Test Project
       run: |
@@ -237,7 +237,7 @@ jobs:
     - name: 🔨 Package Build
       run: |
         echo "🔨 Building package artifacts..."
-        mvn clean package -DskipTests -DskipGpg=true -Dmaven.javadoc.skip=true -pl '!veld-benchmark,!veld-example,!veld-spring-boot-example' -q
+        mvn clean package -DskipTests -DskipGpg=true -Dmaven.javadoc.skip=true -Pci -pl '!veld-benchmark,!veld-example,!veld-spring-boot-example' -q
         
     - name: 📦 Create Distribution
       run: |
