@@ -359,11 +359,41 @@ public class VeldProcessor extends AbstractProcessor {
                 throw new ProcessingException("@Bean cannot be applied to static methods: " +
                     method.getSimpleName());
             }
+            if (method.getModifiers().contains(Modifier.PRIVATE)) {
+                throw new ProcessingException("@Bean methods cannot be private: " +
+                    method.getSimpleName() + ". Make the method package-private or public.");
+            }
 
-            // Get bean name from annotation
+            // Get bean name from annotation (must be done before validation)
             String beanName = !beanAnnotation.name().isEmpty()
                 ? beanAnnotation.name()
                 : method.getSimpleName().toString();
+
+            // Get return type (must be done before validation)
+            TypeMirror returnType = method.getReturnType();
+
+            // Validate return type is not primitive or void
+            if (returnType.getKind() == TypeKind.VOID) {
+                throw new ProcessingException("@Bean methods must return a bean type, not void: " +
+                    method.getSimpleName());
+            }
+            if (returnType.getKind().isPrimitive() && returnType.getKind() != TypeKind.BOOLEAN && 
+                returnType.getKind() != TypeKind.BYTE && returnType.getKind() != TypeKind.CHAR &&
+                returnType.getKind() != TypeKind.DOUBLE && returnType.getKind() != TypeKind.FLOAT &&
+                returnType.getKind() != TypeKind.INT && returnType.getKind() != TypeKind.LONG &&
+                returnType.getKind() != TypeKind.SHORT) {
+                // This condition checks for primitive types that are not primitives
+                // Actually, primitive types in Java are: BOOLEAN, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, SHORT
+                // Boxed types are DECLARED types, so we just check if it's primitive
+                // The validation message below handles the suggestion
+            }
+            if (returnType.getKind().isPrimitive()) {
+                throw new ProcessingException("@Bean methods cannot return primitive types: " +
+                    method.getSimpleName() + ". Use the boxed type (e.g., Integer instead of int, String instead of char).");
+            }
+
+            // Validate no duplicate bean names in the same factory
+            validateNoDuplicateBeanNames(factoryInfo, beanName, method);
 
             boolean isPrimary = beanAnnotation.primary();
 
@@ -374,8 +404,7 @@ public class VeldProcessor extends AbstractProcessor {
                     ? io.github.yasmramos.veld.runtime.Scope.PROTOTYPE
                     : io.github.yasmramos.veld.runtime.Scope.SINGLETON;
 
-            // Get return type
-            TypeMirror returnType = method.getReturnType();
+            // Get return type info
             String returnTypeName = getTypeName(returnType);
             String returnTypeDescriptor = getTypeDescriptor(returnType);
 
@@ -403,7 +432,16 @@ public class VeldProcessor extends AbstractProcessor {
 
             // Add parameter types (for dependency resolution)
             for (VariableElement param : method.getParameters()) {
-                beanMethod.addParameterType(getTypeName(param.asType()));
+                String paramType = getTypeName(param.asType());
+                beanMethod.addParameterType(paramType);
+
+                // Validate parameter is injectable
+                if (!isInjectableType(param.asType())) {
+                    warning(method, "Parameter '" + param.getSimpleName() + 
+                        "' of @Bean method '" + method.getSimpleName() + 
+                        "' has type '" + paramType + "' which may not be directly injectable. " +
+                        "Consider using Provider<T> or Optional<T> for lazy/optional injection.");
+                }
             }
 
             // Analyze lifecycle methods in the return type class
@@ -422,6 +460,66 @@ public class VeldProcessor extends AbstractProcessor {
         }
 
         return factoryInfo;
+    }
+
+    /**
+     * Validates that no duplicate bean names exist within the same factory.
+     * 
+     * @param factoryInfo the factory being analyzed
+     * @param beanName the proposed bean name
+     * @param method the method element (for error reporting)
+     * @throws ProcessingException if a duplicate is found
+     */
+    private void validateNoDuplicateBeanNames(FactoryInfo factoryInfo, String beanName, 
+                                               ExecutableElement method) throws ProcessingException {
+        for (FactoryInfo.BeanMethod existing : factoryInfo.getBeanMethods()) {
+            if (existing.getBeanName().equals(beanName)) {
+                throw new ProcessingException(
+                    "Duplicate bean name '" + beanName + "' in factory " + factoryInfo.getFactoryClassName() + ".\n" +
+                    "  - First defined in method: " + existing.getMethodName() + "\n" +
+                    "  - Second definition in method: " + method.getSimpleName() + "\n" +
+                    "  Fix: Use unique bean names via @Bean(name=\"uniqueName\") or rename one of the methods."
+                );
+            }
+        }
+    }
+
+    /**
+     * Checks if a type is potentially injectable.
+     * Returns false for primitives, arrays, and wildcard types.
+     * 
+     * @param type the type to check
+     * @return true if the type can be injected
+     */
+    private boolean isInjectableType(TypeMirror type) {
+        if (type == null) {
+            return false;
+        }
+        
+        TypeKind kind = type.getKind();
+        
+        // Primitives are not directly injectable (box them first)
+        if (kind.isPrimitive()) {
+            return false;
+        }
+        
+        // Arrays can only be injected if element type is injectable
+        if (kind == TypeKind.ARRAY) {
+            javax.lang.model.type.ArrayType arrayType = (javax.lang.model.type.ArrayType) type;
+            return isInjectableType(arrayType.getComponentType());
+        }
+        
+        // Wildcards are not directly injectable
+        if (kind == TypeKind.WILDCARD) {
+            return false;
+        }
+        
+        // Void is not injectable
+        if (kind == TypeKind.VOID) {
+            return false;
+        }
+        
+        return true;
     }
 
     /**
@@ -619,17 +717,56 @@ public class VeldProcessor extends AbstractProcessor {
         
         if (cycle.isPresent()) {
             String cyclePath = DependencyGraph.formatCycle(cycle.get());
-            error(null, "Circular dependency detected: " + cyclePath + 
-                "\n  Circular dependencies are not allowed. " +
-                "Consider using:\n" +
-                "    - Setter/method injection instead of constructor injection\n" +
-                "    - @Lazy injection (if supported)\n" +
-                "    - Refactoring to break the cycle");
+            String cycleDetail = buildCycleDetailMessage(cycle.get());
+            
+            error(null, "Circular dependency detected: " + cyclePath + "\n" +
+                cycleDetail + "\n" +
+                "  Circular dependencies are not allowed in Veld.\n" +
+                "  Possible solutions:\n" +
+                "    - Use setter/method injection instead of constructor injection\n" +
+                "    - Break the dependency cycle by refactoring\n" +
+                "    - Use @Lazy on one of the dependencies (if supported by your use case)\n" +
+                "    - For @Bean methods, use Provider<T> for lazy injection");
             return false;
         }
         
         note("Dependency graph validated: no circular dependencies found");
         return true;
+    }
+
+    /**
+     * Builds a detailed message explaining the circular dependency.
+     * 
+     * @param cycle the cycle path
+     * @return detailed message about the cycle
+     */
+    private String buildCycleDetailMessage(List<String> cycle) {
+        if (cycle == null || cycle.size() < 2) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("  Dependency chain:\n");
+
+        for (int i = 0; i < cycle.size(); i++) {
+            String current = cycle.get(i);
+            String next = cycle.get((i + 1) % cycle.size());
+
+            // Extract simple class name
+            String currentName = current.substring(current.lastIndexOf('.') + 1);
+            String nextName = next.substring(next.lastIndexOf('.') + 1);
+
+            sb.append("    ").append(i + 1).append(". ").append(currentName);
+            
+            // Try to identify the injection point
+            if (i < cycle.size() - 1) {
+                sb.append(" → ");
+            } else {
+                sb.append(" → (back to start)");
+            }
+        }
+
+        return sb.toString();
     }
     
     private ComponentInfo analyzeComponent(TypeElement typeElement) throws ProcessingException {
@@ -807,6 +944,7 @@ public class VeldProcessor extends AbstractProcessor {
         ExecutableElement injectConstructor = null;
         ExecutableElement defaultConstructor = null;
         InjectSource injectSource = InjectSource.NONE;
+        int injectConstructorCount = 0;
         
         for (Element enclosed : typeElement.getEnclosedElements()) {
             if (enclosed.getKind() != ElementKind.CONSTRUCTOR) continue;
@@ -815,8 +953,14 @@ public class VeldProcessor extends AbstractProcessor {
             
             // Check for any @Inject annotation (Veld, javax.inject, or jakarta.inject)
             if (AnnotationHelper.hasInjectAnnotation(constructor)) {
-                if (injectConstructor != null) {
-                    throw new ProcessingException("Only one constructor can be annotated with @Inject");
+                injectConstructorCount++;
+                if (injectConstructorCount > 1) {
+                    throw new ProcessingException(
+                        "Only one constructor can be annotated with @Inject in class " + 
+                        typeElement.getQualifiedName() + ".\n" +
+                        "  Found " + injectConstructorCount + " @Inject constructors.\n" +
+                        "  Fix: Remove @Inject from all but one constructor, or use @Inject on exactly one constructor."
+                    );
                 }
                 injectConstructor = constructor;
                 injectSource = AnnotationHelper.getInjectSource(constructor);
@@ -828,8 +972,14 @@ public class VeldProcessor extends AbstractProcessor {
         ExecutableElement chosenConstructor = injectConstructor != null ? injectConstructor : defaultConstructor;
         
         if (chosenConstructor == null) {
-            throw new ProcessingException("No suitable constructor found. " +
-                    "Must have either @Inject constructor or no-arg constructor");
+            String className = typeElement.getQualifiedName().toString();
+            throw new ProcessingException(
+                "No suitable constructor found in class: " + className + ".\n" +
+                "  Veld requires either:\n" +
+                "  1. A constructor annotated with @Inject (recommended), or\n" +
+                "  2. A public no-argument constructor\n" +
+                "  Fix: Add @Inject to your preferred constructor, or ensure a public no-arg constructor exists."
+            );
         }
         
         // Log which annotation specification is being used
