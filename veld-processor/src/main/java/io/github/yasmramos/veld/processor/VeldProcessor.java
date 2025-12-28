@@ -90,6 +90,7 @@ public class VeldProcessor extends AbstractProcessor {
     private Types typeUtils;
     
     private final List<ComponentInfo> discoveredComponents = new ArrayList<>();
+    private final List<FactoryInfo> discoveredFactories = new ArrayList<>();
     private final DependencyGraph dependencyGraph = new DependencyGraph();
     
     // Maps interface -> list of implementing components (for conflict detection)
@@ -207,10 +208,280 @@ public class VeldProcessor extends AbstractProcessor {
                 error(typeElement, e.getMessage());
             }
         }
-        
+
+        // Process @Factory classes and @Bean methods
+        processFactories(roundEnv);
+
+        // Generate source code for @Bean methods
+        generateBeanFactories();
+
         return true;
     }
-    
+
+    /**
+     * Processes classes annotated with @Factory and their @Bean methods.
+     */
+    private void processFactories(RoundEnvironment roundEnv) {
+        // Find all @Factory classes
+        Set<TypeElement> factoryElements = new HashSet<>();
+        for (Element element : roundEnv.getElementsAnnotatedWith(Factory.class)) {
+            if (element.getKind() == ElementKind.CLASS) {
+                factoryElements.add((TypeElement) element);
+            }
+        }
+
+        // Also find @Bean methods (which might be in non-@Factory classes)
+        Set<ExecutableElement> beanMethods = new HashSet<>();
+        for (Element element : roundEnv.getElementsAnnotatedWith(io.github.yasmramos.veld.annotation.Bean.class)) {
+            if (element.getKind() == ElementKind.METHOD) {
+                beanMethods.add((ExecutableElement) element);
+            }
+        }
+
+        // Process each factory class
+        for (TypeElement factoryElement : factoryElements) {
+            String factoryClassName = factoryElement.getQualifiedName().toString();
+
+            // Skip if already processed
+            if (processedClasses.contains(factoryClassName)) {
+                continue;
+            }
+            processedClasses.add(factoryClassName);
+
+            // Validate class
+            if (factoryElement.getModifiers().contains(Modifier.ABSTRACT)) {
+                error(factoryElement, "@Factory cannot be applied to abstract classes");
+                continue;
+            }
+
+            try {
+                FactoryInfo factoryInfo = analyzeFactory(factoryElement, beanMethods);
+                discoveredFactories.add(factoryInfo);
+                note("Discovered factory: " + factoryClassName + " with " +
+                     factoryInfo.getBeanMethods().size() + " @Bean methods");
+            } catch (ProcessingException e) {
+                error(factoryElement, e.getMessage());
+            }
+        }
+
+        // Process standalone @Bean methods (not inside a @Factory)
+        for (ExecutableElement beanMethod : beanMethods) {
+            TypeElement enclosingClass = (TypeElement) beanMethod.getEnclosingElement();
+            if (enclosingClass.getAnnotation(Factory.class) == null) {
+                // This @Bean is in a non-@Factory class
+                // For now, we can log a warning or handle differently
+                note("Found @Bean method outside @Factory class: " +
+                     enclosingClass.getQualifiedName() + "." + beanMethod.getSimpleName());
+            }
+        }
+    }
+
+    /**
+     * Generates source code for all @Bean methods discovered in @Factory classes.
+     * Each @Bean method gets its own factory class that implements ComponentFactory.
+     */
+    private void generateBeanFactories() {
+        int globalBeanIndex = 0;
+
+        for (FactoryInfo factory : discoveredFactories) {
+            int factoryBeanIndex = 0;
+
+            for (FactoryInfo.BeanMethod beanMethod : factory.getBeanMethods()) {
+                try {
+                    // Create the source generator for this @Bean method
+                    BeanFactorySourceGenerator generator = new BeanFactorySourceGenerator(
+                        factory, beanMethod, globalBeanIndex);
+
+                    // Generate the source code
+                    String sourceCode = generator.generate();
+                    String factoryClassName = generator.getFactoryClassName();
+
+                    // Write the generated source file
+                    writeJavaSource(factoryClassName, sourceCode);
+
+                    note("Generated BeanFactory for @Bean method: " + beanMethod.getMethodName() +
+                         " (index: " + globalBeanIndex + ")");
+
+                    globalBeanIndex++;
+                    factoryBeanIndex++;
+                } catch (IOException e) {
+                    error(null, "Failed to generate BeanFactory for @Bean method " +
+                          beanMethod.getMethodName() + ": " + e.getMessage());
+                }
+            }
+        }
+
+        if (globalBeanIndex > 0) {
+            note("Generated " + globalBeanIndex + " BeanFactory classes for @Bean methods");
+        }
+    }
+
+    /**
+     * Analyzes a @Factory class and extracts @Bean methods.
+     */
+    private FactoryInfo analyzeFactory(TypeElement factoryElement,
+                                       Set<ExecutableElement> allBeanMethods) throws ProcessingException {
+        String factoryClassName = factoryElement.getQualifiedName().toString();
+
+        // Get factory name from annotation
+        io.github.yasmramos.veld.annotation.Factory factoryAnnotation =
+            factoryElement.getAnnotation(io.github.yasmramos.veld.annotation.Factory.class);
+        String factoryName = factoryAnnotation != null && !factoryAnnotation.name().isEmpty()
+            ? factoryAnnotation.name()
+            : decapitalize(factoryElement.getSimpleName().toString());
+
+        FactoryInfo factoryInfo = new FactoryInfo(factoryClassName, factoryName);
+        factoryInfo.setTypeElement(factoryElement);
+
+        // Find @Bean methods in this factory class
+        for (Element enclosed : factoryElement.getEnclosedElements()) {
+            if (enclosed.getKind() != ElementKind.METHOD) continue;
+
+            ExecutableElement method = (ExecutableElement) enclosed;
+            io.github.yasmramos.veld.annotation.Bean beanAnnotation =
+                method.getAnnotation(io.github.yasmramos.veld.annotation.Bean.class);
+
+            if (beanAnnotation == null) continue;
+
+            // Validate @Bean method
+            if (method.getModifiers().contains(Modifier.ABSTRACT)) {
+                throw new ProcessingException("@Bean cannot be applied to abstract methods: " +
+                    method.getSimpleName());
+            }
+            if (method.getModifiers().contains(Modifier.STATIC)) {
+                throw new ProcessingException("@Bean cannot be applied to static methods: " +
+                    method.getSimpleName());
+            }
+
+            // Get bean name from annotation
+            String beanName = !beanAnnotation.name().isEmpty()
+                ? beanAnnotation.name()
+                : method.getSimpleName().toString();
+
+            boolean isPrimary = beanAnnotation.primary();
+
+            // Get scope from annotation
+            io.github.yasmramos.veld.runtime.Scope scope = beanAnnotation.scope();
+
+            // Get return type
+            TypeMirror returnType = method.getReturnType();
+            String returnTypeName = getTypeName(returnType);
+            String returnTypeDescriptor = getTypeDescriptor(returnType);
+
+            // Get method descriptor
+            String methodDescriptor = getMethodDescriptor(method);
+
+            // Create BeanMethod
+            FactoryInfo.BeanMethod beanMethod = new FactoryInfo.BeanMethod(
+                method.getSimpleName().toString(),
+                methodDescriptor,
+                returnTypeName,
+                returnTypeDescriptor,
+                beanName,
+                isPrimary
+            );
+
+            // Set scope
+            beanMethod.setScope(scope);
+            if (scope == io.github.yasmramos.veld.runtime.Scope.PROTOTYPE) {
+                note("  -> @Bean scope: PROTOTYPE");
+            }
+
+            // Analyze qualifier from method parameters
+            analyzeBeanQualifier(method, beanMethod);
+
+            // Add parameter types (for dependency resolution)
+            for (VariableElement param : method.getParameters()) {
+                beanMethod.addParameterType(getTypeName(param.asType()));
+            }
+
+            // Analyze lifecycle methods in the return type class
+            analyzeBeanLifecycle(returnType, beanMethod);
+
+            factoryInfo.addBeanMethod(beanMethod);
+            note("  -> @Bean method: " + method.getSimpleName() +
+                 " produces: " + returnTypeName +
+                 " (name: " + beanName + ")" +
+                 (isPrimary ? " [PRIMARY]" : ""));
+        }
+
+        if (!factoryInfo.hasBeanMethods()) {
+            warning(null, "@Factory class " + factoryClassName +
+                 " has no @Bean methods. It will be registered but won't produce any beans.");
+        }
+
+        return factoryInfo;
+    }
+
+    /**
+     * Analyzes lifecycle methods (@PostConstruct, @PreDestroy) in the bean return type class.
+     * These methods will be called by the generated BeanFactory during bean lifecycle.
+     *
+     * @param returnType the return type of the @Bean method
+     * @param beanMethod the BeanMethod to store lifecycle information
+     */
+    private void analyzeBeanLifecycle(TypeMirror returnType, FactoryInfo.BeanMethod beanMethod) {
+        if (returnType.getKind() != TypeKind.DECLARED) {
+            return; // Only analyze declared types (classes/interfaces)
+        }
+
+        DeclaredType declaredType = (DeclaredType) returnType;
+        TypeElement returnElement = (TypeElement) declaredType.asElement();
+
+        // Find @PostConstruct method
+        for (Element enclosed : returnElement.getEnclosedElements()) {
+            if (enclosed.getKind() != ElementKind.METHOD) continue;
+
+            ExecutableElement method = (ExecutableElement) enclosed;
+            if (method.getAnnotation(PostConstruct.class) != null) {
+                validateLifecycleMethod(method, "@PostConstruct");
+                beanMethod.setPostConstruct(method.getSimpleName().toString(), getMethodDescriptor(method));
+                note("  -> @PostConstruct method: " + method.getSimpleName());
+                break; // Only one @PostConstruct allowed
+            }
+        }
+
+        // Find @PreDestroy method
+        for (Element enclosed : returnElement.getEnclosedElements()) {
+            if (enclosed.getKind() != ElementKind.METHOD) continue;
+
+            ExecutableElement method = (ExecutableElement) enclosed;
+            if (method.getAnnotation(PreDestroy.class) != null) {
+                validateLifecycleMethod(method, "@PreDestroy");
+                beanMethod.setPreDestroy(method.getSimpleName().toString(), getMethodDescriptor(method));
+                note("  -> @PreDestroy method: " + method.getSimpleName());
+                break; // Only one @PreDestroy allowed
+            }
+        }
+    }
+
+    /**
+     * Analyzes qualifier annotations on the @Bean method itself.
+     * Supports @Named, @Qualifier, and custom qualifier annotations.
+     *
+     * @param beanMethod the @Bean method element
+     * @param beanMethodInfo the BeanMethod to store qualifier information
+     */
+    private void analyzeBeanQualifier(ExecutableElement beanMethod, FactoryInfo.BeanMethod beanMethodInfo) {
+        // Check for @Named annotation (Veld, javax.inject, or jakarta.inject)
+        Optional<String> qualifier = AnnotationHelper.getQualifierValue(beanMethod);
+        if (qualifier.isPresent()) {
+            beanMethodInfo.setQualifier(qualifier.get());
+            note("  -> @Bean qualifier: @" + qualifier.get());
+        }
+
+        // Check for @Qualifier annotation
+        TypeElement qualifierAnnotation = elementUtils.getTypeElement("io.github.yasmramos.veld.annotation.Qualifier");
+        if (qualifierAnnotation != null) {
+            io.github.yasmramos.veld.annotation.Qualifier qualAnn =
+                beanMethod.getAnnotation(io.github.yasmramos.veld.annotation.Qualifier.class);
+            if (qualAnn != null && !qualAnn.value().isEmpty()) {
+                beanMethodInfo.setQualifier(qualAnn.value());
+                note("  -> @Bean @Qualifier: " + qualAnn.value());
+            }
+        }
+    }
+
     /**
      * Builds the dependency graph for a component.
      * Adds the component and all its dependencies to the graph.
@@ -1038,28 +1309,59 @@ public class VeldProcessor extends AbstractProcessor {
             // Generate AOP wrapper classes for components with interceptors
             AopClassGenerator aopGen = new AopClassGenerator(filer, messager, elementUtils, typeUtils);
             Map<String, String> aopClassMap = aopGen.generateAopClasses(discoveredComponents);
-            
+
             if (!aopClassMap.isEmpty()) {
                 note("Generated " + aopClassMap.size() + " AOP wrapper classes");
             }
-            
-            // Generate VeldRegistry bytecode (standard container - for compatibility)
-            RegistryGenerator registryGen = new RegistryGenerator(discoveredComponents);
+
+            // Generate VeldRegistry bytecode (including factory beans)
+            RegistryGenerator registryGen = new RegistryGenerator(discoveredComponents, discoveredFactories);
             byte[] registryBytecode = registryGen.generate();
             writeClassFile(registryGen.getRegistryClassName(), registryBytecode);
-            note("Generated VeldRegistry with " + discoveredComponents.size() + " components");
-            
+            note("Generated VeldRegistry with " + discoveredComponents.size() + " components and " +
+                 discoveredFactories.size() + " factories");
+
+            // Generate factory metadata for weaver
+            if (!discoveredFactories.isEmpty()) {
+                writeFactoryMetadata();
+                note("Wrote factory metadata for " + discoveredFactories.size() + " factories");
+            }
+
             // Generate Veld.java source code (passing AOP class map for wrapper instantiation)
             VeldSourceGenerator veldGen = new VeldSourceGenerator(discoveredComponents, aopClassMap);
             String veldSource = veldGen.generate();
             writeJavaSource("io.github.yasmramos.veld.Veld", veldSource);
             note("Generated Veld.java with " + discoveredComponents.size() + " components");
-            
-            // Write metadata for weaver
+
+            // Write component metadata for weaver
             writeComponentMetadata();
             note("Wrote component metadata for weaver (" + discoveredComponents.size() + " components)");
         } catch (IOException e) {
             error(null, "Failed to generate VeldRegistry: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Writes factory metadata to a file that the weaver will read.
+     * Format: One factory per line with fields separated by ||
+     */
+    private void writeFactoryMetadata() throws IOException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("# Veld Factory Metadata - DO NOT EDIT\n");
+        sb.append("# Generated by VeldProcessor\n");
+        sb.append("# Format: factoryClassName||factoryName||beanCount\n");
+
+        for (FactoryInfo factory : discoveredFactories) {
+            sb.append(factory.getFactoryClassName()).append("||");
+            sb.append(factory.getFactoryName()).append("||");
+            sb.append(factory.getBeanMethods().size());
+            sb.append("\n");
+        }
+
+        FileObject file = filer.createResource(StandardLocation.CLASS_OUTPUT, "",
+            "META-INF/veld/factories.meta");
+        try (Writer writer = file.openWriter()) {
+            writer.write(sb.toString());
         }
     }
     
