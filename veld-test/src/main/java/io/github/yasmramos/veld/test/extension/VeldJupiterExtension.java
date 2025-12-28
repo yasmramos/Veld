@@ -20,28 +20,28 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Extensión JUnit 5 para integración automática de Veld en pruebas.
+ * JUnit 5 extension for automatic Veld integration in tests.
  * 
- * <p>Esta extensión gestiona automáticamente el ciclo de vida del
- * contenedor de pruebas, incluyendo:</p>
+ * <p>This extension automatically manages the lifecycle of the
+ * test container, including:</p>
  * <ul>
- *   <li>Creación de mocks para campos anotados con {@code @RegisterMock}</li>
- *   <li>Inicialización del contexto de pruebas</li>
- *   <li>Inyección de beans en campos anotados con {@code @Inject}</li>
- *   <li>Reset de mocks entre pruebas</li>
- *   <li>Cierre del contexto al finalizar</li>
+ *   <li>Creating mocks for fields annotated with {@code @RegisterMock}</li>
+ *   <li>Initializing the test context</li>
+ *   <li>Injecting beans into fields annotated with {@code @Inject}</li>
+ *   <li>Resetting mocks between tests</li>
+ *   <li>Closing the context at the end</li>
  * </ul>
  * 
- * <h2>Activación</h2>
- * <p>La extensión se activa automáticamente cuando una clase de prueba
- * está anotada con {@code @VeldTest}.</p>
+ * <h2>Activation</h2>
+ * <p>The extension is automatically activated when a test class
+ * is annotated with {@code @VeldTest}.</p>
  * 
- * <h2>Ciclo de Vida</h2>
+ * <h2>Lifecycle</h2>
  * <ol>
- *   <li><b>PostProcessTestInstance:</b> Detecta mocks, crea contexto, inyecta campos</li>
- *   <li><b>BeforeEachCallback:</b> Resetea mocks para aislamiento</li>
- *   <li><b>AfterEachCallback:</b> Opcional: limpieza por prueba</li>
- *   <li><b>AfterAllCallback:</b> Cierra el contexto</li>
+ *   <li><b>PostProcessTestInstance:</b> Detects mocks, creates context, injects fields</li>
+ *   <li><b>BeforeEachCallback:</b> Resets mocks for isolation</li>
+ *   <li><b>AfterEachCallback:</b> Optional: per-test cleanup</li>
+ *   <li><b>AfterAllCallback:</b> Closes the context</li>
  * </ol>
  * 
  * @author Veld Framework
@@ -64,30 +64,30 @@ public class VeldJupiterExtension implements
     public void postProcessTestInstance(Object testInstance, ExtensionContext context) {
         Class<?> testClass = context.getRequiredTestClass();
         
-        // Obtener configuración de la anotación @VeldTest
+        // Get configuration from @VeldTest annotation
         VeldTest veldTest = testClass.getAnnotation(VeldTest.class);
         if (veldTest == null) {
-            return; // No es una prueba Veld
+            return; // Not a Veld test
         }
         
-        // Obtener perfil si está definido
+        // Get profile if defined
         String profile = extractProfile(testClass, veldTest);
         
         try {
-            // Escanear y crear mocks
+            // Scan and create mocks
             Map<Class<?>, Object> mocks = scanAndCreateMocks(testInstance);
             storeMocks(context, mocks);
             
-            // Crear contexto de pruebas
+            // Create test context
             TestContext testContext = createTestContext(veldTest, mocks, profile);
             storeContext(context, testContext);
             
-            // Inyectar campos en la instancia de prueba
+            // Inject fields into test instance
             injectFields(testInstance, testContext, mocks);
             
         } catch (Exception e) {
             throw new ExtensionInitializationException(
-                "Error al inicializar contexto Veld para prueba: " + 
+                "Error initializing Veld context for test: " + 
                 testClass.getName(), e);
         }
     }
@@ -96,15 +96,15 @@ public class VeldJupiterExtension implements
     public void beforeEach(ExtensionContext context) {
         TestContext testContext = getContext(context);
         if (testContext != null) {
-            // Resetear mocks para aislamiento entre pruebas
+            // Reset mocks for test isolation
             testContext.resetMocks();
         }
     }
     
     @Override
     public void afterEach(ExtensionContext context) {
-        // Opcional: limpieza específica por prueba
-        // Por defecto no hacemos nada para mantener rendimiento
+        // Optional: per-test specific cleanup
+        // By default, we do nothing to maintain performance
     }
     
     @Override
@@ -114,30 +114,30 @@ public class VeldJupiterExtension implements
             try {
                 testContext.close();
             } catch (Exception e) {
-                // Log warning pero no fallar la prueba
-                System.err.println("Warning: Error al cerrar contexto Veld: " + e.getMessage());
+                // Log warning but don't fail the test
+                System.err.println("Warning: Error closing Veld context: " + e.getMessage());
             }
             removeContext(context);
         }
     }
     
     /**
-     * Extrae el perfil de la clase de prueba.
+     * Extracts the profile from the test class.
      */
     private String extractProfile(Class<?> testClass, VeldTest veldTest) {
-        // Verificar anotación @TestProfile en la clase
+        // Check @TestProfile annotation on the class
         TestProfile profileAnnotation = testClass.getAnnotation(TestProfile.class);
         if (profileAnnotation != null) {
             return profileAnnotation.value();
         }
         
-        // Usar perfil de @VeldTest
+        // Use profile from @VeldTest
         return veldTest.profile();
     }
     
     /**
-     * Escanea la instancia de prueba en busca de campos anotados
-     * con @RegisterMock y crea los correspondientes mocks.
+     * Scans the test instance for fields annotated
+     * with @RegisterMock and creates the corresponding mocks.
      */
     private Map<Class<?>, Object> scanAndCreateMocks(Object testInstance) {
         Map<Class<?>, Object> mocks = new HashMap<>();
@@ -157,29 +157,29 @@ public class VeldJupiterExtension implements
     }
     
     /**
-     * Crea un mock para un campo específico.
+     * Creates a mock for a specific field.
      */
     private Object createMockForField(Field field, Object testInstance) {
         Class<?> fieldType = field.getType();
         RegisterMock annotation = field.getAnnotation(RegisterMock.class);
         
-        // Crear mock
+        // Create mock
         Object mock = MockFactory.createMock(fieldType, annotation);
         
-        // Inyectar en el campo de la instancia de prueba
+        // Inject into test instance field
         field.setAccessible(true);
         try {
             field.set(testInstance, mock);
         } catch (IllegalAccessException e) {
             throw new ExtensionInitializationException(
-                "No se pudo injectar mock en campo: " + field.getName(), e);
+                "Could not inject mock into field: " + field.getName(), e);
         }
         
         return mock;
     }
     
     /**
-     * Crea el contexto de pruebas.
+     * Creates the test context.
      */
     private TestContext createTestContext(VeldTest veldTest, 
                                           Map<Class<?>, Object> mocks,
@@ -188,12 +188,12 @@ public class VeldJupiterExtension implements
             .withProfile(profile)
             .withProperties(veldTest.properties());
         
-        // Registrar mocks en el contexto
+        // Register mocks in context
         for (Map.Entry<Class<?>, Object> entry : mocks.entrySet()) {
             builder.withMockRaw(entry.getKey(), entry.getValue());
         }
         
-        // Registrar clases de configuración si están definidas
+        // Register configuration classes if defined
         for (Class<?> configClass : veldTest.classes()) {
             builder.withMock(configClass.getSimpleName(), createInstance(configClass));
         }
@@ -202,7 +202,7 @@ public class VeldJupiterExtension implements
     }
     
     /**
-     * Inyecta beans en los campos de la instancia de prueba.
+     * Injects beans into the fields of the test instance.
      */
     private void injectFields(Object testInstance, TestContext context, 
                              Map<Class<?>, Object> mocks) {
@@ -219,65 +219,65 @@ public class VeldJupiterExtension implements
     }
     
     /**
-     * Determina si un campo debe ser inyectado.
+     * Determines if a field should be injected.
      */
     private boolean shouldInject(Field field, Map<Class<?>, Object> mocks) {
-        // Si ya tiene @RegisterMock, ya fue manejado
+        // If already has @RegisterMock, already handled
         if (field.isAnnotationPresent(RegisterMock.class)) {
             return false;
         }
         
-        // Si tiene @Inject, inyectar
+        // If has @Inject, inject
         return field.isAnnotationPresent(Inject.class) ||
                field.getType().getAnnotation(Component.class) != null;
     }
     
     /**
-     * Inyecta un campo específico.
+     * Injects a specific field.
      */
     private void injectField(Object testInstance, Field field, 
                            TestContext context) {
         field.setAccessible(true);
         
         try {
-            // Verificar si existe un mock para este tipo
+            // Check if a mock exists for this type
             if (context.hasMock(field.getType())) {
                 Object mock = context.getMock(field.getType()).orElse(null);
                 field.set(testInstance, mock);
             } else {
-                // Intentar obtener bean del contexto
+                // Try to get bean from context
                 Object bean = context.getBean(field.getType());
                 field.set(testInstance, bean);
             }
         } catch (IllegalAccessException e) {
-            // Campo no accesible, ignorar
+            // Field not accessible, ignore
         } catch (Exception e) {
-            // Bean no encontrado, verificar si es opcional
+            // Bean not found, check if it's optional
             Inject inject = field.getAnnotation(Inject.class);
             if (inject != null && inject.optional()) {
-                // Opcional, ignorar
+                // Optional, ignore
             } else {
-                // No optional, lanzar excepción
+                // Not optional, throw exception
                 throw new ExtensionInitializationException(
-                    "No se pudo injectar campo: " + field.getName(), e);
+                    "Could not inject field: " + field.getName(), e);
             }
         }
     }
     
     /**
-     * Crea una instancia de una clase de configuración.
+     * Creates an instance of a configuration class.
      */
     private Object createInstance(Class<?> clazz) {
         try {
             return clazz.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
             throw new ExtensionInitializationException(
-                "No se pudo crear instancia de: " + clazz.getName(), e);
+                "Could not create instance of: " + clazz.getName(), e);
         }
     }
     
     /**
-     * Almacena el contexto en el store de JUnit.
+     * Stores the context in the JUnit store.
      */
     private void storeContext(ExtensionContext context, TestContext testContext) {
         context.getStore(Namespace.create(CONTEXT_KEY))
@@ -285,7 +285,7 @@ public class VeldJupiterExtension implements
     }
     
     /**
-     * Obtiene el contexto del store de JUnit.
+     * Gets the context from the JUnit store.
      */
     private TestContext getContext(ExtensionContext context) {
         return context.getStore(Namespace.create(CONTEXT_KEY))
@@ -293,7 +293,7 @@ public class VeldJupiterExtension implements
     }
     
     /**
-     * Remueve el contexto del store de JUnit.
+     * Removes the context from the JUnit store.
      */
     private void removeContext(ExtensionContext context) {
         context.getStore(Namespace.create(CONTEXT_KEY))
@@ -301,7 +301,7 @@ public class VeldJupiterExtension implements
     }
     
     /**
-     * Almacena los mocks en el store de JUnit.
+     * Stores the mocks in the JUnit store.
      */
     private void storeMocks(ExtensionContext context, Map<Class<?>, Object> mocks) {
         context.getStore(Namespace.create(MOCKS_KEY))
@@ -309,7 +309,7 @@ public class VeldJupiterExtension implements
     }
     
     /**
-     * Namespace para el store de la extensión.
+     * Namespace for the extension store.
      */
     private static final class Namespace {
         static ExtensionContext.Namespace create(Object... ids) {
@@ -319,7 +319,7 @@ public class VeldJupiterExtension implements
     }
     
     /**
-     * Excepción para errores de inicialización de la extensión.
+     * Exception for extension initialization errors.
      */
     public static class ExtensionInitializationException extends RuntimeException {
         public ExtensionInitializationException(String message) {

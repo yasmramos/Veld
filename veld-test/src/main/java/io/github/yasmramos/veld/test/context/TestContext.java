@@ -10,19 +10,19 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Contenedor de pruebas ligero que gestiona el ciclo de vida
- * de beans Veld para propósitos de testing.
+ * Lightweight test container that manages the lifecycle
+ * of Veld beans for testing purposes.
  * 
- * <p>Esta clase proporciona un wrapper alrededor del contenedor Veld
- * con funcionalidades adicionales específicas para pruebas:</p>
+ * <p>This class provides a wrapper around the Veld container
+ * with additional functionalities specific to testing:</p>
  * <ul>
- *   <li>Registro de mocks antes del inicio del contenedor</li>
- *   <li>Gestión del ciclo de vida (inicio/parada)</li>
- *   <li>Inyección de beans en campos de prueba</li>
- *   <li>Acceso a beans registrados y mocks</li>
+ *   <li>Registering mocks before container startup</li>
+ *   <li>Lifecycle management (start/stop)</li>
+ *   <li>Bean injection in test fields</li>
+ *   <li>Access to registered beans and mocks</li>
  * </ul>
  * 
- * <h2>Uso Básico</h2>
+ * <h2>Basic Usage</h2>
  * <pre>{@code
  * TestContext context = TestContextBuilder.create()
  *     .withProfile("test")
@@ -31,7 +31,7 @@ import java.util.Optional;
  * 
  * try {
  *     MyService service = context.getBean(MyService.class);
- *     // Ejecutar pruebas...
+ *     // Run tests...
  * } finally {
  *     context.close();
  * }
@@ -54,13 +54,13 @@ public final class TestContext implements AutoCloseable {
     }
     
     /**
-     * Obtiene un bean del contenedor por tipo.
+     * Gets a bean from the container by type.
      * 
-     * @param <T> tipo del bean
-     * @param type clase del bean
-     * @return bean del tipo especificado
-     * @throws IllegalStateException si el contexto está cerrado
-     * @throws RuntimeException si el bean no existe
+     * @param <T> bean type
+     * @param type bean class
+     * @return bean of the specified type
+     * @throws IllegalStateException if the context is closed
+     * @throws RuntimeException if the bean does not exist
      */
     @SuppressWarnings("unchecked")
     public <T> T getBean(Class<T> type) {
@@ -80,16 +80,16 @@ public final class TestContext implements AutoCloseable {
             return Veld.get(type);
         } catch (Exception e) {
             throw new TestContextException(
-                "No se pudo obtener bean de tipo: " + type.getName(), e);
+                "Could not obtain bean of type: " + type.getName(), e);
         }
     }
     
     /**
-     * Obtiene un bean de forma opcional.
+     * Gets a bean optionally.
      * 
-     * @param <T> tipo del bean
-     * @param type clase del bean
-     * @return Optional con el bean o vacío si no existe
+     * @param <T> bean type
+     * @param type bean class
+     * @return Optional with the bean or empty if it does not exist
      */
     public <T> Optional<T> findBean(Class<T> type) {
         checkOpen();
@@ -102,10 +102,10 @@ public final class TestContext implements AutoCloseable {
     }
     
     /**
-     * Resetea todos los mocks registrados.
+     * Resets all registered mocks.
      * 
-     * <p>Este método es útil para limpiar el estado de los mocks
-     * entre pruebas sin reiniciar todo el contenedor.</p>
+     * <p>This method is useful for clearing the mock state
+     * between tests without restarting the entire container.</p>
      */
     public void resetMocks() {
         mocks.values().forEach(Mockito::reset);
@@ -113,11 +113,11 @@ public final class TestContext implements AutoCloseable {
     }
     
     /**
-     * Inyecta beans en los campos anotados de un objeto.
+     * Injects beans into annotated fields of an object.
      * 
-     * @param instance objeto a inyectar
-     * @param <T> tipo del objeto
-     * @return el objeto con los campos inyectados
+     * @param instance object to inject
+     * @param <T> object type
+     * @return the object with injected fields
      */
     public <T> T injectFields(T instance) {
         checkOpen();
@@ -138,18 +138,18 @@ public final class TestContext implements AutoCloseable {
         
         Class<?> fieldType = field.getType();
         
-        // Verificar si existe un mock para este tipo
+        // Check if a mock exists for this type
         if (mocks.containsKey(fieldType)) {
             try {
                 field.set(instance, mocks.get(fieldType));
                 return;
             } catch (IllegalAccessException e) {
                 throw new TestContextException(
-                    "No se pudo inyectar mock en campo: " + field.getName(), e);
+                    "Could not inject mock into field: " + field.getName(), e);
             }
         }
         
-        // Verificar si existe un mock con nombre que coincida con el campo
+        // Check if a named mock matches the field
         String fieldName = field.getName();
         if (namedMocks.containsKey(fieldName)) {
             try {
@@ -160,33 +160,33 @@ public final class TestContext implements AutoCloseable {
                 }
             } catch (IllegalAccessException e) {
                 throw new TestContextException(
-                    "No se pudo inyectar mock en campo: " + field.getName(), e);
+                    "Could not inject mock into field: " + field.getName(), e);
             }
         }
         
-        // Intentar obtener bean por tipo del contenedor Veld
+        // Try to get bean by type from Veld container
         try {
             Object bean = Veld.get(fieldType);
             field.set(instance, bean);
         } catch (Exception e) {
-            // Campo opcional o no inyectable, ignorar
+            // Optional or non-injectable field, ignore
         }
     }
     
     /**
-     * Verifica si el contexto está abierto.
+     * Checks if the context is open.
      */
     private void checkOpen() {
         if (closed) {
             throw new IllegalStateException(
-                "El TestContext está cerrado y no puede ser usado");
+                "TestContext is closed and cannot be used");
         }
     }
     
     /**
-     * Cierra el contexto y libera recursos.
+     * Closes the context and frees resources.
      * 
-     * <p>Este método limpia todos los mocks registrados.</p>
+     * <p>This method clears all registered mocks.</p>
      */
     @Override
     public void close() {
@@ -198,30 +198,30 @@ public final class TestContext implements AutoCloseable {
     }
     
     /**
-     * Obtiene el perfil activo del contexto.
+     * Gets the active profile of the context.
      * 
-     * @return nombre del perfil activo
+     * @return active profile name
      */
     public String getActiveProfile() {
         return activeProfile;
     }
     
     /**
-     * Verifica si un mock existe para el tipo especificado.
+     * Checks if a mock exists for the specified type.
      * 
-     * @param type tipo a verificar
-     * @return true si existe un mock para el tipo
+     * @param type type to check
+     * @return true if a mock exists for the type
      */
     public boolean hasMock(Class<?> type) {
         return mocks.containsKey(type);
     }
     
     /**
-     * Obtiene el mock para el tipo especificado.
+     * Gets the mock for the specified type.
      * 
-     * @param <T> tipo del mock
-     * @param type clase del mock
-     * @return Optional con el mock o vacío si no existe
+     * @param <T> mock type
+     * @param type mock class
+     * @return Optional with the mock or empty if it does not exist
      */
     @SuppressWarnings("unchecked")
     public <T> Optional<T> getMock(Class<T> type) {
@@ -229,7 +229,7 @@ public final class TestContext implements AutoCloseable {
     }
     
     /**
-     * Builder para crear instancias de TestContext.
+     * Builder for creating TestContext instances.
      */
     public static final class Builder {
         private final Map<Class<?>, Object> mocks = new HashMap<>();
@@ -240,19 +240,19 @@ public final class TestContext implements AutoCloseable {
         private Builder() {}
         
         /**
-         * Crea un nuevo builder.
+         * Creates a new builder.
          * 
-         * @return builder configurado
+         * @return configured builder
          */
         public static Builder create() {
             return new Builder();
         }
         
         /**
-         * Establece el perfil de pruebas.
+         * Sets the test profile.
          * 
-         * @param profile nombre del perfil
-         * @return este builder
+         * @param profile profile name
+         * @return this builder
          */
         public Builder withProfile(String profile) {
             this.profile = profile;
@@ -260,11 +260,11 @@ public final class TestContext implements AutoCloseable {
         }
         
         /**
-         * Agrega propiedades del sistema.
+         * Adds system properties.
          * 
-         * @param key clave de la propiedad
-         * @param value valor de la propiedad
-         * @return este builder
+         * @param key property key
+         * @param value property value
+         * @return this builder
          */
         public Builder withProperty(String key, String value) {
             this.properties.put(key, value);
@@ -272,10 +272,10 @@ public final class TestContext implements AutoCloseable {
         }
         
         /**
-         * Agrega múltiples propiedades.
+         * Adds multiple properties.
          * 
-         * @param props propiedades en formato "key=value"
-         * @return este builder
+         * @param props properties in "key=value" format
+         * @return this builder
          */
         public Builder withProperties(String... props) {
             for (String prop : props) {
@@ -288,12 +288,12 @@ public final class TestContext implements AutoCloseable {
         }
         
         /**
-         * Registra un mock para un tipo específico.
+         * Registers a mock for a specific type.
          * 
-         * @param type tipo del mock
-         * @param mock instancia del mock
-         * @param <T> tipo del mock
-         * @return este builder
+         * @param type mock type
+         * @param mock mock instance
+         * @param <T> mock type
+         * @return this builder
          */
         public <T> Builder withMock(Class<T> type, T mock) {
             this.mocks.put(type, mock);
@@ -301,11 +301,11 @@ public final class TestContext implements AutoCloseable {
         }
         
         /**
-         * Registra un mock para un tipo específico (acepta wildcards).
+         * Registers a mock for a specific type (accepts wildcards).
          * 
-         * @param type tipo del mock
-         * @param mock instancia del mock
-         * @return este builder
+         * @param type mock type
+         * @param mock mock instance
+         * @return this builder
          */
         @SuppressWarnings("unchecked")
         public Builder withMockRaw(Class<?> type, Object mock) {
@@ -314,11 +314,11 @@ public final class TestContext implements AutoCloseable {
         }
         
         /**
-         * Registra un mock con nombre específico.
+         * Registers a mock with a specific name.
          * 
-         * @param name nombre del mock
-         * @param mock instancia del mock
-         * @return este builder
+         * @param name mock name
+         * @param mock mock instance
+         * @return this builder
          */
         public Builder withMock(String name, Object mock) {
             this.namedMocks.put(name, mock);
@@ -326,11 +326,11 @@ public final class TestContext implements AutoCloseable {
         }
         
         /**
-         * Crea y registra un mock para un tipo específico.
+         * Creates and registers a mock for a specific type.
          * 
-         * @param type tipo del mock
-         * @param <T> tipo del mock
-         * @return mock creado
+         * @param type mock type
+         * @param <T> mock type
+         * @return created mock
          */
         public <T> T withAutoMock(Class<T> type) {
             T mock = MockFactory.createMock(type);
@@ -339,25 +339,25 @@ public final class TestContext implements AutoCloseable {
         }
         
         /**
-         * Construye el TestContext.
+         * Builds the TestContext.
          * 
-         * @return contexto de pruebas configurado
+         * @return configured test context
          */
         public TestContext build() {
-            // Configurar propiedades del sistema
+            // Configure system properties
             properties.forEach(System::setProperty);
             
-            // Configurar perfil en Veld
+            // Configure profile in Veld
             Veld.setActiveProfiles(profile);
             
-            // El builder retorna un contexto que maneja mocks manualmente
+            // The builder returns a context that handles mocks manually
             return new TestContext(new HashMap<>(mocks), 
                                   new HashMap<>(namedMocks), profile);
         }
     }
     
     /**
-     * Excepción específica para errores del contexto de pruebas.
+     * Exception specific for test context errors.
      */
     public static class TestContextException extends RuntimeException {
         public TestContextException(String message) {

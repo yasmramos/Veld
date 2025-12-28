@@ -11,19 +11,19 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Anotación principal para marcar clases de prueba que requieren
- * integración con el contenedor Veld.
+ * Main annotation to mark test classes that require
+ * integration with the Veld container.
  * 
- * <p>Esta anotación configura automáticamente un contexto de pruebas
- * ligero que proporciona:</p>
+ * <p>This annotation automatically configures a lightweight test
+ * context that provides:</p>
  * <ul>
- *   <li>Inyección automática de beans reales y mocks en campos de prueba</li>
- *   <li>Gestión del ciclo de vida del contenedor entre pruebas</li>
- *   <li>Soporte para perfiles de prueba configurables</li>
- *   <li>Integración transparente con Mockito para mocks</li>
+ *   <li>Automatic injection of real beans and mocks into test fields</li>
+ *   <li>Container lifecycle management between tests</li>
+ *   <li>Support for configurable test profiles</li>
+ *   <li>Transparent integration with Mockito for mocks</li>
  * </ul>
  * 
- * <h2>Ejemplo de Uso</h2>
+ * <h2>Usage Example</h2>
  * <pre>{@code
  * @VeldTest
  * class UserServiceTest {
@@ -36,11 +36,11 @@ import java.lang.annotation.Target;
  *     
  *     @Test
  *     void testFindUserById() {
- *         // Configurar comportamiento del mock
+ *         // Configure mock behavior
  *         when(userRepository.findById(1L))
  *             .thenReturn(new User(1, "Test User"));
  *         
- *         // El servicio usa el mock automáticamente
+ *         // The service uses the mock automatically
  *         User result = userService.findUserById(1L);
  *         
  *         assertThat(result.getName()).isEqualTo("Test User");
@@ -49,30 +49,30 @@ import java.lang.annotation.Target;
  * }
  * }</pre>
  * 
- * <h2>Configuración de Perfiles</h2>
+ * <h2>Profile Configuration</h2>
  * <pre>{@code
  * @VeldTest(profile = "integration")
  * class DatabaseIntegrationTest {
- *     // El perfil "integration" carga configuración específica
- *     // para pruebas de integración con base de datos real
+ *     // The "integration" profile loads specific configuration
+ *     // for integration tests with real database
  * }
  * 
  * @VeldTest(profile = "mock")
  * class MockedServiceTest {
- *     // El perfil "mock" reemplaza automáticamente todos los
- *     // beans de infraestructura con mocks
+ *     // The "mock" profile automatically replaces all
+ *     // infrastructure beans with mocks
  * }
  * }</pre>
  * 
- * <h2>Propiedades Personalizadas</h2>
+ * <h2>Custom Properties</h2>
  * <pre>{@code
  * @VeldTest(properties = {
  *     "database.url=jdbc:h2:mem:testdb",
  *     "server.port=0"
  * })
  * class CustomPropertiesTest {
- *     // Las propiedades personalizadas están disponibles
- *     // en el contexto de pruebas
+ *     // Custom properties are available
+ *     // in the test context
  * }
  * }</pre>
  * 
@@ -90,50 +90,50 @@ import java.lang.annotation.Target;
 public @interface VeldTest {
     
     /**
-     * Perfil de configuración de pruebas a activar.
+     * Test configuration profile to activate.
      * 
-     * <p>Los perfiles permiten cargar diferentes configuraciones
-     * según el tipo de prueba:</p>
+     * <p>Profiles allow loading different configurations
+     * based on the test type:</p>
      * <ul>
-     *   <li>{@code "test"} - Perfil por defecto, configuración básica</li>
-     *   <li>{@code "mock"} - Reemplaza beans de infraestructura con mocks</li>
-     *   <li>{@code "in-memory"} - Usa implementaciones en memoria</li>
-     *   <li>{@code "integration"} - Configuración completa de integración</li>
-     *   <li>{@code "fast"} - Configuración optimizada para velocidad</li>
+ *   <li>{@code "test"} - Default profile, basic configuration</li>
+ *   <li>{@code "mock"} - Replaces infrastructure beans with mocks</li>
+ *   <li>{@code "in-memory"} - Uses in-memory implementations</li>
+ *   <li>{@code "integration"} - Full integration configuration</li>
+ *   <li>{@code "fast"} - Configuration optimized for speed</li>
      * </ul>
      * 
-     * @return el nombre del perfil a activar
+     * @return the profile name to activate
      */
     String profile() default "test";
     
     /**
-     * Clases de configuración adicionales a cargar.
+     * Additional configuration classes to load.
      * 
-     * <p>Estas clases se cargan además del escaneo de componentes
-     * y permiten definir configuración explícita para las pruebas.</p>
+     * <p>These classes are loaded in addition to component scanning
+     * and allow defining explicit configuration for tests.</p>
      * 
-     * @return clases de configuración a cargar
+     * @return configuration classes to load
      */
     Class<?>[] classes() default {};
     
     /**
-     * Propiedades del sistema a sobrescribir para las pruebas.
+     * System properties to override for tests.
      * 
-     * <p>Formato: {@code "key=value"}. Estas propiedades están
-     * disponibles para los beans mediante {@code @Value}.</p>
+     * <p>Format: {@code "key=value"}. These properties are
+     * available for beans through {@code @Value}.</p>
      * 
-     * @return propiedades en formato "key=value"
+     * @return properties in "key=value" format
      */
     String[] properties() default {};
     
     /**
-     * Indica si se debe limpiar el contexto entre cada método de prueba.
+     * Indicates if the context should be cleaned up between each test method.
      * 
-     * <p>Cuando está habilitado, el contexto se reinicia completamente
-     * antes de cada prueba, garantizando completo aislamiento.
-     * Deshabilitado por defecto para mejorar rendimiento.</p>
+     * <p>When enabled, the context is completely restarted
+     * before each test, ensuring full isolation.
+     * Disabled by default for better performance.</p>
      * 
-     * @return true si se requiere aislamiento completo entre pruebas
+     * @return true if full isolation is required between tests
      */
     boolean isolateBetweenTests() default false;
 }

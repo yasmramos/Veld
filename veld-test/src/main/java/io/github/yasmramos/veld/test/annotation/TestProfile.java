@@ -7,24 +7,24 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Anotación para seleccionar el perfil de configuración de pruebas.
+ * Annotation to select the test configuration profile.
  * 
- * <p>Los perfiles permiten definir diferentes configuraciones para
- * distintos tipos de pruebas. Cada perfil puede cargar diferentes
- * beans, propiedades y comportamientos.</p>
+ * <p>Profiles allow defining different configurations for
+ * different test types. Each profile can load different
+ * beans, properties, and behaviors.</p>
  * 
- * <h2>Perfiles Disponibles</h2>
+ * <h2>Available Profiles</h2>
  * <ul>
- *   <li>{@code "test"} - Perfil por defecto, configuración básica</li>
- *   <li>{@code "mock"} - Reemplaza todos los beans de infraestructura con mocks</li>
- *   <li>{@code "in-memory"} - Usa implementaciones en memoria (H2, etc.)</li>
- *   <li>{@code "integration"} - Configuración completa de integración</li>
- *   <li>{@code "fast"} - Optimizado para velocidad, deshabilita características costosas</li>
+ *   <li>{@code "test"} - Default profile, basic configuration</li>
+ *   <li>{@code "mock"} - Replaces all infrastructure beans with mocks</li>
+ *   <li>{@code "in-memory"} - Uses in-memory implementations (H2, etc.)</li>
+ *   <li>{@code "integration"} - Full integration configuration</li>
+ *   <li>{@code "fast"} - Optimized for speed, disables expensive features</li>
  * </ul>
  * 
- * <h2>Ejemplo de Uso</h2>
+ * <h2>Usage Example</h2>
  * <pre>{@code
- * // Prueba unitaria con mocks
+ * // Unit test with mocks
  * @VeldTest
  * @TestProfile("mock")
  * class MockedUserServiceTest {
@@ -44,7 +44,7 @@ import java.lang.annotation.Target;
  *     }
  * }
  * 
- * // Prueba de integración con base de datos en memoria
+ * // Integration test with in-memory database
  * @VeldTest
  * @TestProfile("in-memory")
  * class InMemoryUserRepositoryTest {
@@ -62,8 +62,8 @@ import java.lang.annotation.Target;
  * }
  * }</pre>
  * 
- * <h2>Configuración de Perfiles</h2>
- * <p>Los perfiles se configuran mediante archivos de propiedades o clases de configuración:</p>
+ * <h2>Profile Configuration</h2>
+ * <p>Profiles are configured through properties files or configuration classes:</p>
  * <pre>{@code
  * // application-mock.properties
  * database.enabled=false
@@ -84,19 +84,19 @@ import java.lang.annotation.Target;
 public @interface TestProfile {
     
     /**
-     * Nombre del perfil a activar.
+     * Name of the profile to activate.
      * 
-     * @return nombre del perfil de prueba
+     * @return test profile name
      */
     String value() default "test";
     
     /**
-     * Indicador para activar todos los perfiles con prefijo.
+     * Indicator to activate all profiles with a prefix.
      * 
-     * <p>Si es {@code true}, activa todos los perfiles que
-     * empiecen con el valor especificado.</p>
+     * <p>If {@code true}, activates all profiles that
+     * start with the specified value.</p>
      * 
-     * @return true para activar perfiles con prefijo
+     * @return true to activate prefix-matched profiles
      */
     boolean prefixMatch() default false;
 }
