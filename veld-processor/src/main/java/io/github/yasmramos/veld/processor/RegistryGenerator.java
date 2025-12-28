@@ -74,10 +74,16 @@ public final class RegistryGenerator {
     private static final String ARRAYLIST = "java/util/ArrayList";
     
     private final List<ComponentInfo> components;
+    private final List<FactoryInfo> factories;
     private final Map<String, List<Integer>> supertypeIndices = new HashMap<>();
-    
+
     public RegistryGenerator(List<ComponentInfo> components) {
+        this(components, new ArrayList<>());
+    }
+
+    public RegistryGenerator(List<ComponentInfo> components, List<FactoryInfo> factories) {
         this.components = components;
+        this.factories = factories;
         buildSupertypeIndices();
     }
     
@@ -285,56 +291,56 @@ public final class RegistryGenerator {
     private void generateConstructor(ClassWriter cw) {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
         mv.visitCode();
-        
+
         // super()
         mv.visitVarInsn(ALOAD, 0);
         mv.visitMethodInsn(INVOKESPECIAL, OBJECT, "<init>", "()V", false);
-        
+
         // this.factories = new ComponentFactory[count]
         mv.visitVarInsn(ALOAD, 0);
         pushInteger(mv, components.size());
         mv.visitTypeInsn(ANEWARRAY, COMPONENT_FACTORY);
         mv.visitFieldInsn(PUTFIELD, REGISTRY_NAME, "factories", "[L" + COMPONENT_FACTORY + ";");
-        
+
         // Legacy maps
         mv.visitVarInsn(ALOAD, 0);
         mv.visitTypeInsn(NEW, HASHMAP);
         mv.visitInsn(DUP);
         mv.visitMethodInsn(INVOKESPECIAL, HASHMAP, "<init>", "()V", false);
         mv.visitFieldInsn(PUTFIELD, REGISTRY_NAME, "factoriesByType", "L" + MAP + ";");
-        
+
         mv.visitVarInsn(ALOAD, 0);
         mv.visitTypeInsn(NEW, HASHMAP);
         mv.visitInsn(DUP);
         mv.visitMethodInsn(INVOKESPECIAL, HASHMAP, "<init>", "()V", false);
         mv.visitFieldInsn(PUTFIELD, REGISTRY_NAME, "factoriesByName", "L" + MAP + ";");
-        
+
         mv.visitVarInsn(ALOAD, 0);
         mv.visitTypeInsn(NEW, HASHMAP);
         mv.visitInsn(DUP);
         mv.visitMethodInsn(INVOKESPECIAL, HASHMAP, "<init>", "()V", false);
         mv.visitFieldInsn(PUTFIELD, REGISTRY_NAME, "factoriesBySupertype", "L" + MAP + ";");
-        
-        // Register all factories
+
+        // Register all component factories
         for (int i = 0; i < components.size(); i++) {
             ComponentInfo comp = components.get(i);
             String factoryInternal = comp.getFactoryInternalName();
             String componentInternal = comp.getInternalName();
-            
+
             // Create factory
             mv.visitTypeInsn(NEW, factoryInternal);
             mv.visitInsn(DUP);
             mv.visitMethodInsn(INVOKESPECIAL, factoryInternal, "<init>", "()V", false);
             int localVar = i + 1;
             mv.visitVarInsn(ASTORE, localVar);
-            
+
             // factories[i] = factory
             mv.visitVarInsn(ALOAD, 0);
             mv.visitFieldInsn(GETFIELD, REGISTRY_NAME, "factories", "[L" + COMPONENT_FACTORY + ";");
             pushInteger(mv, i);
             mv.visitVarInsn(ALOAD, localVar);
             mv.visitInsn(AASTORE);
-            
+
             // Legacy: factoriesByType.put(Component.class, factory)
             mv.visitVarInsn(ALOAD, 0);
             mv.visitFieldInsn(GETFIELD, REGISTRY_NAME, "factoriesByType", "L" + MAP + ";");
@@ -343,7 +349,7 @@ public final class RegistryGenerator {
             mv.visitMethodInsn(INVOKEINTERFACE, MAP, "put",
                     "(L" + OBJECT + ";L" + OBJECT + ";)L" + OBJECT + ";", true);
             mv.visitInsn(POP);
-            
+
             // Legacy: factoriesByName.put("name", factory)
             mv.visitVarInsn(ALOAD, 0);
             mv.visitFieldInsn(GETFIELD, REGISTRY_NAME, "factoriesByName", "L" + MAP + ";");
@@ -352,7 +358,7 @@ public final class RegistryGenerator {
             mv.visitMethodInsn(INVOKEINTERFACE, MAP, "put",
                     "(L" + OBJECT + ";L" + OBJECT + ";)L" + OBJECT + ";", true);
             mv.visitInsn(POP);
-            
+
             // Legacy: register by interfaces
             for (String iface : comp.getImplementedInterfacesInternal()) {
                 mv.visitVarInsn(ALOAD, 0);
@@ -363,14 +369,14 @@ public final class RegistryGenerator {
                         "(L" + OBJECT + ";L" + OBJECT + ";)L" + OBJECT + ";", true);
                 mv.visitInsn(POP);
             }
-            
+
             // Legacy: register in factoriesBySupertype
             registerInSupertypeMap(mv, localVar, componentInternal);
             for (String iface : comp.getImplementedInterfacesInternal()) {
                 registerInSupertypeMap(mv, localVar, iface);
             }
         }
-        
+
         mv.visitInsn(RETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();

@@ -116,7 +116,47 @@ public interface ComponentFactory<T> {
     default boolean isPrimary() {
         return false;
     }
-    
+
+    /**
+     * Returns the qualifier name for this component.
+     * Used for qualified bean injection (@Named, @Qualifier).
+     *
+     * @return the qualifier name, or null if no qualifier
+     */
+    default String getQualifier() {
+        return null;
+    }
+
+    /**
+     * Returns the factory class that contains this bean method.
+     * Used by @Factory and @Bean processing.
+     *
+     * @return the factory class
+     */
+    default Class<?> getFactoryClass() {
+        return null;
+    }
+
+    /**
+     * Returns the name of the @Bean method.
+     * Used by @Factory and @Bean processing.
+     *
+     * @return the bean method name
+     */
+    default String getBeanMethodName() {
+        return null;
+    }
+
+    /**
+     * Returns the parameter types of the factory method.
+     * Used for dependency resolution in @Bean methods.
+     *
+     * @return list of parameter types
+     */
+    default List<Class<?>> getFactoryMethodParameters() {
+        return Collections.emptyList();
+    }
+
     /**
      * Returns the numeric index of this component in the registry.
      * Used for ultra-fast array-based lookups.

@@ -25,8 +25,8 @@ import java.lang.annotation.Target;
  *         return new UserService();
  *     }
  *
- *     // Named bean
- *     {@code @Bean(name = "premiumService")}
+ *     // Named bean with custom scope
+ *     {@code @Bean(name = "premiumService", scope = "prototype")}
  *     public UserService createPremiumService() {
  *         return new UserService(PREMIUM_CONFIG);
  *     }
@@ -79,4 +79,14 @@ public @interface Bean {
      * @return true if this bean should be treated as primary
      */
     boolean primary() default false;
+
+    /**
+     * The scope of the produced bean.
+     * By default, beans created from factory methods are "singleton".
+     * Use "prototype" to create a new instance each time the bean is requested.
+     * Valid values: "singleton", "prototype"
+     *
+     * @return the scope of the bean as a string
+     */
+    String scope() default "singleton";
 }

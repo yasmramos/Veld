@@ -649,6 +649,47 @@ public final class ComponentFactoryGenerator {
             }
         }
         
+        // Add present bean conditions
+        for (ConditionInfo.PresentBeanConditionInfo present : conditions.getPresentBeanConditions()) {
+            // Types
+            if (!present.beanTypes().isEmpty()) {
+                mv.visitVarInsn(ALOAD, 1);
+                int size = present.beanTypes().size();
+                mv.visitIntInsn(BIPUSH, size);
+                mv.visitTypeInsn(ANEWARRAY, STRING);
+                
+                for (int i = 0; i < size; i++) {
+                    mv.visitInsn(DUP);
+                    mv.visitIntInsn(BIPUSH, i);
+                    mv.visitLdcInsn(present.beanTypes().get(i));
+                    mv.visitInsn(AASTORE);
+                }
+                
+                mv.visitMethodInsn(INVOKEVIRTUAL, CONDITION_EVALUATOR, "addPresentBeanCondition",
+                        "([L" + STRING + ";)L" + CONDITION_EVALUATOR + ";", false);
+                mv.visitInsn(POP);
+            }
+            
+            // Names
+            if (!present.beanNames().isEmpty()) {
+                mv.visitVarInsn(ALOAD, 1);
+                int size = present.beanNames().size();
+                mv.visitIntInsn(BIPUSH, size);
+                mv.visitTypeInsn(ANEWARRAY, STRING);
+                
+                for (int i = 0; i < size; i++) {
+                    mv.visitInsn(DUP);
+                    mv.visitIntInsn(BIPUSH, i);
+                    mv.visitLdcInsn(present.beanNames().get(i));
+                    mv.visitInsn(AASTORE);
+                }
+                
+                mv.visitMethodInsn(INVOKEVIRTUAL, CONDITION_EVALUATOR, "addPresentBeanNameCondition",
+                        "([L" + STRING + ";)L" + CONDITION_EVALUATOR + ";", false);
+                mv.visitInsn(POP);
+            }
+        }
+        
         // Add profile conditions
         for (ConditionInfo.ProfileConditionInfo profile : conditions.getProfileConditions()) {
             mv.visitVarInsn(ALOAD, 1);
