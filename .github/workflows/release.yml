@@ -168,12 +168,24 @@ jobs:
         GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       run: |
-        # Set GPG_TTY for non-interactive mode
-        export GPG_TTY=$(tty)
+        # Configure GPG for non-interactive use
+        mkdir -p ~/.gnupg
+        chmod 700 ~/.gnupg
+        echo "use-agent" >> ~/.gnupg/gpg.conf
+        echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
+        echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+        
+        # Restart gpg-agent with new config
+        gpgconf --kill gpg-agent || true
+        gpg-agent --daemon --allow-preset-passphrase || true
         
         # Import the private key
         echo "$GPG_PRIVATE_KEY" | base64 -d | gpg --batch --import
         echo "GPG key imported successfully"
+        
+        # Trust the key
+        KEY_ID=$(gpg --list-keys --keyid-format LONG | grep -A1 "^pub" | tail -1 | awk '{print $1}')
+        echo "${KEY_ID}:6:" | gpg --import-ownertrust
         
         # Verify key is available
         echo "Verifying GPG key..."
