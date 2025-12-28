@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -17,7 +16,6 @@
     <description>Example application demonstrating Veld Framework integration with Spring Boot</description>
 
     <properties>
-        <spring.boot.version>2.7.18</spring.boot.version>
         <!-- Skip deployment for example module -->
         <maven.deploy.skip>true</maven.deploy.skip>
     </properties>
@@ -40,21 +38,18 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
-            <version>${spring.boot.version}</version>
         </dependency>
 
         <!-- Spring Boot Actuator for health checks -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
-            <version>${spring.boot.version}</version>
         </dependency>
 
         <!-- Spring Boot DevTools for development -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
-            <version>${spring.boot.version}</version>
             <scope>runtime</scope>
             <optional>true</optional>
         </dependency>
@@ -63,7 +58,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
-            <version>${spring.boot.version}</version>
         </dependency>
 
         <!-- H2 Database for development -->
@@ -77,14 +71,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
-            <version>${spring.boot.version}</version>
         </dependency>
 
         <!-- Spring Boot Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
-            <version>${spring.boot.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -127,11 +119,10 @@
                     </execution>
                 </executions>
             </plugin>
-            
+
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>${spring.boot.version}</version>
                 <configuration>
                     <mainClass>VeldSpringBootExampleApplication</mainClass>
                 </configuration>
