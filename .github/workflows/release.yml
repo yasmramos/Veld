@@ -164,10 +164,16 @@ jobs:
         cache: maven
         
     - name: Import GPG Key
+      id: import_gpg
       uses: crazy-max/ghaction-import-gpg@v6
       with:
         gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
         passphrase: ${{ secrets.GPG_PASSPHRASE }}
+        
+    - name: Verify GPG Key
+      run: |
+        echo "GPG Key ID: ${{ steps.import_gpg.outputs.keyid }}"
+        gpg --list-secret-keys --keyid-format LONG
         
     - name: Create Maven Settings
       env:
@@ -203,7 +209,7 @@ jobs:
         SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
         SONATYPE_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
         GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-        GPG_KEYNAME: ${{ secrets.GPG_KEYNAME }}
+        GPG_KEYNAME: ${{ steps.import_gpg.outputs.keyid }}
       run: |
         # Set GPG_TTY for non-interactive mode
         export GPG_TTY=$(tty)
@@ -215,9 +221,7 @@ jobs:
           -DskipGpg=false \
           -Dgpg.executable=gpg \
           -Dgpg.keyname="$GPG_KEYNAME" \
-          -Dgpg.passphrase="$GPG_PASSPHRASE" \
-          -Dgpg.useAgent=false \
-          -Dgpg.args="--batch --pinentry-mode loopback"
+          -Dgpg.passphrase="$GPG_PASSPHRASE"
         
     - name: Create Staging Repository Summary
       run: |
