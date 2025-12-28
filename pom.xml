@@ -67,6 +67,12 @@
         <module>veld-example</module>
         <module>veld-spring-boot-example</module>
         <module>veld-benchmark</module>
+        <module>veld-resilience</module>
+        <module>veld-cache</module>
+        <module>veld-validation</module>
+        <module>veld-security</module>
+        <module>veld-metrics</module>
+        <module>veld-tx</module>
     </modules>
 
     <properties>
@@ -534,6 +540,9 @@
                 <skipTests>false</skipTests>
                 <maven.deploy.skip>true</maven.deploy.skip>
                 <jacoco.skip>true</jacoco.skip>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+                <maven.source.skip>true</maven.source.skip>
+                <build-helper.attach.phase>none</build-helper.attach.phase>
             </properties>
             <build>
                 <plugins>
