@@ -39,7 +39,27 @@ import java.lang.annotation.Target;
  * @Singleton
  * @Profile("!prod")
  * public class DebugInterceptor { }
+ * 
+ * // Expression - registered when "dev" AND "local" are both active
+ * @Singleton
+ * @Profile(expression = "dev && local")
+ * public class LocalDevConfig { }
+ * 
+ * // Combined value and expression
+ * @Singleton
+ * @Profile(value = "dev", expression = "database.exists")
+ * public class DevWithDbConfig { }
  * }</pre>
+ * 
+ * <h2>Expression Syntax</h2>
+ * <p>The expression language supports:
+ * <ul>
+ *   <li>AND: {@code &&} or {@code and}</li>
+ *   <li>OR: {@code ||} or {@code or}</li>
+ *   <li>NOT: {@code !} or {@code not}</li>
+ *   <li>Parentheses for grouping: {@code (expr)}</li>
+ *   <li>Property-based conditions: {@code property.name}</li>
+ * </ul>
  * 
  * <h2>Activating Profiles</h2>
  * 
@@ -71,7 +91,7 @@ public @interface Profile {
      * 
      * @return the profiles that must be active for the component to be registered
      */
-    String[] value();
+    String[] value() default {};
 
     /**
      * Alias for {@link #value()} for single-profile use cases.
@@ -79,4 +99,49 @@ public @interface Profile {
      * @return the profile name
      */
     String name() default "";
+    
+    /**
+     * SpEL-style expression for complex profile conditions.
+     * 
+     * <p>Supports:
+     * <ul>
+     *   <li>Logical operators: {@code &&}, {@code ||}, {@code !}</li>
+     *   <li>Comparison: {@code ==}, {@code !=}, {@code >}, {@code <}, {@code >=}, {@code <=}</li>
+     *   <li>Property-based: {@code property.name} evaluates to true if property exists</li>
+     *   <li>Regex matching: {@code value matches "pattern"}</li>
+     * </ul>
+     * 
+     * <p>Example:
+     * <pre>{@code
+     * @Profile(expression = "dev && database.type == 'h2'")
+     * @Profile(expression = "!prod && (debug.enabled || local)")
+     * }</pre>
+     * 
+     * @return the expression string
+     */
+    String expression() default "";
+    
+    /**
+     * Strategy for evaluating multiple conditions.
+     * ALL: All conditions (value + expression) must match
+     * ANY: At least one condition must match
+     * 
+     * @return the match strategy
+     */
+    MatchStrategy strategy() default MatchStrategy.ALL;
+    
+    /**
+     * Strategy for matching profile conditions.
+     */
+    enum MatchStrategy {
+        /**
+         * All conditions must be satisfied (AND logic)
+         */
+        ALL,
+        
+        /**
+         * At least one condition must be satisfied (OR logic)
+         */
+        ANY
+    }
 }

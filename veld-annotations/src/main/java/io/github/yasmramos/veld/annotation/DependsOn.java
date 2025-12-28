@@ -22,7 +22,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Specifies explicit initialization dependencies between beans.
+ * Specifies explicit initialization and destruction dependencies between beans.
  *
  * <p>While Veld automatically handles dependencies based on injection points,
  * there are cases where a bean depends on another bean being fully initialized
@@ -35,6 +35,7 @@ import java.lang.annotation.Target;
  *   <li>Event-based dependencies where no direct injection exists</li>
  *   <li>Initialization order requirements for non-injected collaborators</li>
  *   <li>Database schema initialization before repository beans</li>
+ *   <li>Ensuring proper shutdown order for dependent resources</li>
  * </ul>
  *
  * <h2>Usage Example</h2>
@@ -55,11 +56,12 @@ import java.lang.annotation.Target;
  *     // Safe to use database - migrations are complete
  * }
  * 
- * // Multiple dependencies
+ * // Multiple dependencies with destruction order
  * @Singleton
- * @DependsOn({"cacheManager", "configService"})
+ * @DependsOn(value = {"cacheManager", "configService"}, destroyOrder = {"configService", "cacheManager"})
  * public class ApplicationService {
  *     // Both CacheManager and ConfigService are initialized first
+ *     // ConfigService is destroyed before CacheManager on shutdown
  * }
  * }</pre>
  *
@@ -74,6 +76,7 @@ import java.lang.annotation.Target;
  * @author Veld Framework
  * @since 1.0.0-alpha.6
  * @see PostConstruct
+ * @see PreDestroy
  * @see PostInitialize
  */
 @Documented
@@ -82,10 +85,46 @@ import java.lang.annotation.Target;
 public @interface DependsOn {
     
     /**
-     * Names of beans that this bean depends on.
+     * Names of beans that this bean depends on for initialization.
      * All specified beans will be initialized before this bean.
      *
-     * @return array of bean names
+     * @return array of bean names for initialization
      */
-    String[] value();
+    String[] value() default {};
+    
+    /**
+     * Names of beans that this bean depends on for destruction.
+     * All specified beans will be destroyed AFTER this bean.
+     * Use this to ensure proper shutdown order for dependent resources.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @Singleton
+     * @DependsOn(destroyOrder = {"databaseConnection"})
+     * public class CacheManager {
+     *     // Will be destroyed AFTER databaseConnection
+     *     // Useful when cache needs to flush to DB during shutdown
+     * }
+     * }</pre>
+     *
+     * @return array of bean names for destruction (destroyed after this bean)
+     */
+    String[] destroyOrder() default {};
+    
+    /**
+     * Relative destruction order for this bean.
+     * Lower values are destroyed first, higher values are destroyed last.
+     * Default is 0. Used in combination with destroyOrder for fine control.
+     *
+     * @return destruction order value
+     */
+    int destroyOrderValue() default 0;
+    
+    /**
+     * Whether to fail initialization if any dependency bean is missing.
+     * When false (default), missing dependencies are logged as warnings.
+     *
+     * @return true if strict mode (fail on missing)
+     */
+    boolean strict() default false;
 }
