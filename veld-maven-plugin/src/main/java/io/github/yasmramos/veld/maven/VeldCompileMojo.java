@@ -55,8 +55,8 @@ public class VeldCompileMojo extends AbstractMojo {
     @Parameter(property = "veld.verbose", defaultValue = "false")
     private boolean verbose;
 
-    @Parameter(property = "veld.compile", defaultValue = "false")
-    private boolean compile;
+    @Parameter(property = "veld.skipCompile", defaultValue = "false")
+    private boolean skipCompile;
 
     @Parameter
     private List<String> compilerArgs;
@@ -77,11 +77,13 @@ public class VeldCompileMojo extends AbstractMojo {
             return;
         }
 
-        getLog().info("Veld Maven Plugin: " + (compile ? "Compiling and weaving..." : "Weaving..."));
+        getLog().info("Veld Maven Plugin: " + (skipCompile ? "Weaving only..." : "Compiling and weaving..."));
 
         try {
-            if (compile) {
-                doCompile();
+            if (!skipCompile) {
+                compile();
+            } else {
+                getLog().info("  Skipping compilation (veld.skipCompile=true)");
             }
             weave();
             getLog().info("Veld Maven Plugin: Build complete");
@@ -90,7 +92,7 @@ public class VeldCompileMojo extends AbstractMojo {
         }
     }
 
-    private void doCompile() throws MojoExecutionException {
+    private void compile() throws MojoExecutionException {
         getLog().info("  Phase 1: Compiling with Veld annotation processor...");
 
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
