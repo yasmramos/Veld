@@ -174,12 +174,47 @@ jobs:
       run: |
         echo "GPG Key ID: ${{ steps.import_gpg.outputs.keyid }}"
         gpg --list-secret-keys --keyid-format LONG
-        
-    - name: Create Maven Settings
-      env:
-        SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-        SONATYPE_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
+    - name: Install GPG
       run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y gnupg gpg-agent
+        
+    - name: Setup GPG
+      id: setup-gpg
+      env:
+        GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+      run: |
+        # Create GPG configuration directory
+        mkdir -p ~/.gnupg
+        chmod 700 ~/.gnupg
+        
+        # Configure gpg for non-interactive use
+        echo "use-agent" >> ~/.gnupg/gpg.conf
+        echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
+        echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+        chmod 600 ~/.gnupg/*
+        
+        # Import private key
+        echo "$GPG_PRIVATE_KEY" | base64 -d > private.key
+        gpg --batch --import private.key
+        rm -f private.key
+        
+        # Configure gpg-agent
+        echo $GPG_PASSPHRASE | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback -a --export-secret-keys > /dev/null 2>&1
+        
+        # List keys to verify import
+        echo "=== Imported GPG Keys ==="
+        gpg --list-secret-keys --keyid-format LONG
+        
+        # Get key ID
+        KEY_ID=$(gpg --list-secret-keys --keyid-format LONG | grep sec | awk '{print $2}' | cut -d'/' -f2)
+        echo "key_id=$KEY_ID" >> $GITHUB_OUTPUT
+        echo "Using GPG Key ID: $KEY_ID"
+        
+    - name: Configure Maven for GPG
+      run: |
+        # Create maven settings with GPG configuration
         mkdir -p ~/.m2
         
         cat > ~/.m2/settings.xml << EOF
@@ -200,12 +235,29 @@ jobs:
               <password>\${env.SONATYPE_TOKEN}</password>
             </server>
           </servers>
+          <profiles>
+            <profile>
+              <id>release</id>
+              <properties>
+                <gpg.executable>gpg</gpg.executable>
+                <gpg.passphrase>\${env.GPG_PASSPHRASE}</gpg.passphrase>
+                <gpg.useagent>true</gpg.useagent>
+                <gpg.keyname>\${env.GPG_KEYNAME}</gpg.keyname>
+              </properties>
+            </profile>
+          </profiles>
+          <activeProfiles>
+            <activeProfile>release</activeProfile>
+          </activeProfiles>
         </settings>
         EOF
         
+        echo "=== Maven settings configured ==="
+        cat ~/.m2/settings.xml | grep -v password
+        
     - name: Deploy to Sonatype Nexus (Staging)
       env:
-        MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
+        MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN"
         SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
         SONATYPE_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
         GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
@@ -215,19 +267,30 @@ jobs:
         export GPG_TTY=/dev/null
         export GNUPGHOME=$HOME/.gnupg
         
+        GPG_KEYNAME: ${{ steps.setup-gpg.outputs.key_id }}
+      run: |
         echo "=== Deploying Veld ${{ needs.prepare-release.outputs.version }} to Staging ==="
         echo "Using GPG key ID: $GPG_KEYNAME"
         
         # Verify GPG is working
         gpg --list-secret-keys --keyid-format LONG 2>&1 || true
         
-        mvn clean deploy -DskipTests=false -DfailIfNoTests=false \
-          -DskipGpg=false \
+        # Configure GPG agent
+        export GPG_TTY=$(tty)
+        echo $GPG_PASSPHRASE | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback --sign --armor /dev/null
+        
+        # Deploy with Maven
+        mvn clean deploy -B \
+          -DskipTests=true \
+          -Prelease \
+          -Dgpg.passphrase="$GPG_PASSPHRASE" \
+          -Dgpg.keyname="$GPG_KEYNAME" \
           -Dgpg.executable=gpg \
           -Dgpg.useAgent=false \
           -Dgpg.keyname="$GPG_KEYNAME" \
           -Dgpg.passphrase="$GPG_PASSPHRASE" \
           -Dgpg.verbose=true
+          -DaltDeploymentRepository=ossrh::default::https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/
         
     - name: Create Staging Repository Summary
       run: |
@@ -253,16 +316,14 @@ jobs:
         echo "The following modules were built and are available for deployment:" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
-        # Only list modules that exist in the project
-        for module in veld-annotations veld-runtime veld-processor veld-weaver veld-aop veld-spring-boot-starter veld-maven-plugin; do
-          if [ -d "$module" ] && [ -f "$module/pom.xml" ]; then
+        # List modules from parent pom if available
+        if [ -f "pom.xml" ]; then
+          echo "### Detected Modules from Parent POM" >> $GITHUB_STEP_SUMMARY
+          # Extract module names from parent pom (simple approach)
+          grep '<module>' pom.xml | sed 's/.*<module>//' | sed 's/<\/module>.*//' | while read module; do
             echo "- **$module**: \`io.github.yasmramos:$module:${{ needs.prepare-release.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
-          fi
-        done
-        
-        # Note about excluded modules
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Note**: Some modules may be excluded from the reactor (e.g., veld-benchmark, veld-example) and are not deployed." >> $GITHUB_STEP_SUMMARY
+          done
+        fi
         
     - name: Upload Deployment Artifacts
       uses: actions/upload-artifact@v4
