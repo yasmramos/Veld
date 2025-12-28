@@ -116,6 +116,17 @@ public interface ComponentFactory<T> {
     default boolean isPrimary() {
         return false;
     }
+    
+    /**
+     * Returns the order value for this component.
+     * Lower values have higher priority.
+     * Used when injecting collections of beans to determine resolution order.
+     *
+     * @return the order value, defaults to 0
+     */
+    default int getOrder() {
+        return 0;
+    }
 
     /**
      * Returns the qualifier name for this component.
