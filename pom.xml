@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github.yasmramos</groupId>
@@ -90,11 +89,11 @@
         <javax.inject.version>1</javax.inject.version>
         <jakarta.inject.version>2.0.1</jakarta.inject.version>
         <jacoco.version>0.8.12</jacoco.version>
-        
+
         <!-- Spring Boot versions -->
         <spring-boot.version>2.7.18</spring-boot.version>
         <spring.version>5.3.30</spring.version>
-        
+
         <!-- Maven plugins versions -->
         <maven.compiler.plugin.version>3.11.0</maven.compiler.plugin.version>
         <maven.surefire.plugin.version>3.2.2</maven.surefire.plugin.version>
@@ -105,12 +104,12 @@
         <maven.release.plugin.version>3.0.1</maven.release.plugin.version>
         <maven.assembly.plugin.version>3.7.0</maven.assembly.plugin.version>
         <jacoco.maven.plugin.version>0.8.12</jacoco.maven.plugin.version>
-        
+
         <!-- Maven Plugin API versions -->
         <maven-plugin-api.version>3.9.6</maven-plugin-api.version>
         <maven-plugin-annotations.version>3.6.0</maven-plugin-annotations.version>
         <maven-core.version>3.9.6</maven-core.version>
-        
+
         <!-- Release properties -->
         <maven.compiler.release>17</maven.compiler.release>
         <skipTests>false</skipTests>
@@ -121,7 +120,7 @@
         <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
         <maven.javadoc.skip>false</maven.javadoc.skip>
         <build-helper.attach.phase>package</build-helper.attach.phase>
-        
+
         <!-- CI/Benchmark properties -->
         <ci.skip>false</ci.skip>
     </properties>
@@ -206,7 +205,7 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            
+
             <!-- Veld Processor -->
             <dependency>
                 <groupId>io.github.yasmramos</groupId>
@@ -529,7 +528,7 @@
             </plugin>
         </plugins>
     </reporting>
-    
+
     <!-- Profiles for different environments -->
     <profiles>
         <!-- CI/Benchmark profile - Skip GPG signing and other release-only plugins -->
@@ -554,7 +553,7 @@
                             <skip>true</skip>
                         </configuration>
                     </plugin>
-                    
+
                     <!-- Skip deployment in CI -->
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
@@ -566,7 +565,7 @@
                 </plugins>
             </build>
         </profile>
-        
+
         <!-- Benchmark profile - Optimized for performance testing -->
         <profile>
             <id>benchmark</id>
@@ -595,7 +594,7 @@
                             <skip>true</skip>
                         </configuration>
                     </plugin>
-                    
+
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>
@@ -603,18 +602,7 @@
                             <skip>true</skip>
                         </configuration>
                     </plugin>
-                    
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-source-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>skip-sources-in-benchmark</id>
-                                <phase>none</phase>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    
+
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
