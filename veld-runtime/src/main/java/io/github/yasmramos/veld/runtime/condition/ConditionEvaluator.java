@@ -78,6 +78,28 @@ public final class ConditionEvaluator {
     }
     
     /**
+     * Adds a present bean condition by types.
+     * The component will only be registered if all specified bean types exist.
+     * 
+     * @param beanTypes fully qualified class names that MUST be present
+     * @return this evaluator for chaining
+     */
+    public ConditionEvaluator addPresentBeanCondition(String... beanTypes) {
+        return addCondition(PresentBeanCondition.forTypes(beanTypes));
+    }
+    
+    /**
+     * Adds a present bean condition by names.
+     * The component will only be registered if all specified bean names exist.
+     * 
+     * @param beanNames bean names that MUST be present
+     * @return this evaluator for chaining
+     */
+    public ConditionEvaluator addPresentBeanNameCondition(String... beanNames) {
+        return addCondition(PresentBeanCondition.forNames(beanNames));
+    }
+    
+    /**
      * Adds a profile condition.
      * 
      * @param profiles the profiles that must be active (any one of them)

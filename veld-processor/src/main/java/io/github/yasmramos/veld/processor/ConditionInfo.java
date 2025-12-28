@@ -18,6 +18,9 @@ public final class ConditionInfo {
     // Missing bean conditions
     private final List<MissingBeanConditionInfo> missingBeanConditions = new ArrayList<>();
     
+    // Present bean conditions (beans that must exist)
+    private final List<PresentBeanConditionInfo> presentBeanConditions = new ArrayList<>();
+    
     // Profile conditions
     private final List<ProfileConditionInfo> profileConditions = new ArrayList<>();
     
@@ -50,6 +53,22 @@ public final class ConditionInfo {
     }
     
     /**
+     * Adds a present bean condition by types.
+     * The bean will only be registered if all specified bean types exist.
+     */
+    public void addPresentBeanTypeCondition(List<String> beanTypes) {
+        presentBeanConditions.add(new PresentBeanConditionInfo(beanTypes, new ArrayList<>()));
+    }
+    
+    /**
+     * Adds a present bean condition by names.
+     * The bean will only be registered if all specified bean names exist.
+     */
+    public void addPresentBeanNameCondition(List<String> beanNames) {
+        presentBeanConditions.add(new PresentBeanConditionInfo(new ArrayList<>(), beanNames));
+    }
+    
+    /**
      * Adds a profile condition.
      */
     public void addProfileCondition(List<String> profiles) {
@@ -63,7 +82,16 @@ public final class ConditionInfo {
         return !propertyConditions.isEmpty() || 
                !classConditions.isEmpty() || 
                !missingBeanConditions.isEmpty() ||
+               !presentBeanConditions.isEmpty() ||
                !profileConditions.isEmpty();
+    }
+    
+    /**
+     * Checks if any bean presence conditions are defined.
+     * This includes both present and missing bean conditions.
+     */
+    public boolean hasBeanConditions() {
+        return !missingBeanConditions.isEmpty() || !presentBeanConditions.isEmpty();
     }
     
     public List<PropertyConditionInfo> getPropertyConditions() {
@@ -78,6 +106,10 @@ public final class ConditionInfo {
         return missingBeanConditions;
     }
     
+    public List<PresentBeanConditionInfo> getPresentBeanConditions() {
+        return presentBeanConditions;
+    }
+    
     public List<ProfileConditionInfo> getProfileConditions() {
         return profileConditions;
     }
@@ -90,6 +122,9 @@ public final class ConditionInfo {
     
     /** Missing bean condition info (Java 17 record) */
     public record MissingBeanConditionInfo(List<String> beanTypes, List<String> beanNames) {}
+    
+    /** Present bean condition info (Java 17 record) */
+    public record PresentBeanConditionInfo(List<String> beanTypes, List<String> beanNames) {}
     
     /** Profile condition info (Java 17 record) */
     public record ProfileConditionInfo(List<String> profiles) {}

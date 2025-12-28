@@ -1164,7 +1164,8 @@ public class VeldProcessor extends AbstractProcessor {
     
     /**
      * Analyzes conditional annotations on the component.
-     * Supports @ConditionalOnProperty, @ConditionalOnClass, @ConditionalOnMissingBean.
+     * Supports @ConditionalOnProperty, @ConditionalOnClass, @ConditionalOnMissingBean,
+     * @ConditionalOnBean, and @Profile.
      */
     private void analyzeConditions(TypeElement typeElement, ComponentInfo info) {
         ConditionInfo conditionInfo = new ConditionInfo();
@@ -1270,6 +1271,53 @@ public class VeldProcessor extends AbstractProcessor {
                 if (!beanNames.isEmpty()) {
                     conditionInfo.addMissingBeanNameCondition(beanNames);
                     note("  -> Conditional on missing bean names: " + String.join(", ", beanNames));
+                }
+            }
+            
+            // Check for @ConditionalOnBean
+            ConditionalOnBean presentBeanCondition = typeElement.getAnnotation(ConditionalOnBean.class);
+            if (presentBeanCondition != null) {
+                List<String> presentBeanTypes = new ArrayList<>();
+                List<String> presentBeanNames = new ArrayList<>();
+                
+                try {
+                    // Get bean types
+                    for (Class<?> clazz : presentBeanCondition.value()) {
+                        presentBeanTypes.add(clazz.getName());
+                    }
+                } catch (javax.lang.model.type.MirroredTypesException e) {
+                    for (TypeMirror mirror : e.getTypeMirrors()) {
+                        try {
+                            String typeName = getTypeName(mirror);
+                            if (typeName != null && !typeName.isEmpty()) {
+                                presentBeanTypes.add(typeName);
+                            }
+                        } catch (Exception ex) {
+                            warning(null, "Could not resolve type from @ConditionalOnBean: " + ex.getMessage());
+                        }
+                    }
+                } catch (Exception e) {
+                    warning(null, "Could not process @ConditionalOnBean annotation types: " + e.getMessage());
+                }
+                
+                try {
+                    // Get bean names
+                    for (String name : presentBeanCondition.name()) {
+                        if (!name.isEmpty()) {
+                            presentBeanNames.add(name);
+                        }
+                    }
+                } catch (Exception e) {
+                    warning(null, "Could not process @ConditionalOnBean annotation names: " + e.getMessage());
+                }
+                
+                if (!presentBeanTypes.isEmpty()) {
+                    conditionInfo.addPresentBeanTypeCondition(presentBeanTypes);
+                    note("  -> Conditional on present bean types: " + String.join(", ", presentBeanTypes));
+                }
+                if (!presentBeanNames.isEmpty()) {
+                    conditionInfo.addPresentBeanNameCondition(presentBeanNames);
+                    note("  -> Conditional on present bean names: " + String.join(", ", presentBeanNames));
                 }
             }
             
