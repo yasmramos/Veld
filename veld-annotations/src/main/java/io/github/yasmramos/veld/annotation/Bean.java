@@ -1,5 +1,7 @@
 package io.github.yasmramos.veld.annotation;
 
+import io.github.yasmramos.veld.runtime.Scope;
+
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -25,8 +27,8 @@ import java.lang.annotation.Target;
  *         return new UserService();
  *     }
  *
- *     // Named bean
- *     {@code @Bean(name = "premiumService")}
+ *     // Named bean with custom scope
+ *     {@code @Bean(name = "premiumService", scope = Scope.PROTOTYPE)}
  *     public UserService createPremiumService() {
  *         return new UserService(PREMIUM_CONFIG);
  *     }
@@ -79,4 +81,13 @@ public @interface Bean {
      * @return true if this bean should be treated as primary
      */
     boolean primary() default false;
+
+    /**
+     * The scope of the produced bean.
+     * By default, beans created from factory methods are SINGLETON.
+     * Use PROTOTYPE to create a new instance each time the bean is requested.
+     *
+     * @return the scope of the bean
+     */
+    Scope scope() default Scope.SINGLETON;
 }
