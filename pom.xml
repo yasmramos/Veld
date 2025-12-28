@@ -85,17 +85,17 @@
         <junit.version>5.11.3</junit.version>
         <mockito.version>5.20.0</mockito.version>
         <bytebuddy.version>1.17.4</bytebuddy.version>
-        <asm.version>9.9.1</asm.version>
+        <asm.version>9.8</asm.version>
         <javax.inject.version>1</javax.inject.version>
         <jakarta.inject.version>2.0.1</jakarta.inject.version>
         <jacoco.version>0.8.12</jacoco.version>
 
         <!-- Spring Boot versions -->
-        <spring-boot.version>2.7.18</spring-boot.version>
-        <spring.version>5.3.30</spring.version>
+        <spring-boot.version>4.0.1</spring-boot.version>
+        <spring.version>7.0.2</spring.version>
 
         <!-- Maven plugins versions -->
-        <maven.compiler.plugin.version>3.11.0</maven.compiler.plugin.version>
+        <maven.compiler.plugin.version>3.14.1</maven.compiler.plugin.version>
         <maven.surefire.plugin.version>3.2.2</maven.surefire.plugin.version>
         <maven.source.plugin.version>3.3.1</maven.source.plugin.version>
         <maven.javadoc.plugin.version>3.6.3</maven.javadoc.plugin.version>
@@ -103,7 +103,7 @@
         <central.publishing.plugin.version>0.6.0</central.publishing.plugin.version>
         <maven.release.plugin.version>3.0.1</maven.release.plugin.version>
         <maven.assembly.plugin.version>3.7.0</maven.assembly.plugin.version>
-        <jacoco.maven.plugin.version>0.8.12</jacoco.maven.plugin.version>
+        <jacoco.maven.plugin.version>0.8.14</jacoco.maven.plugin.version>
 
         <!-- Maven Plugin API versions -->
         <maven-plugin-api.version>3.9.6</maven-plugin-api.version>
@@ -601,6 +601,17 @@
                         <configuration>
                             <skip>true</skip>
                         </configuration>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>skip-sources-in-benchmark</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
                     </plugin>
 
                     <plugin>

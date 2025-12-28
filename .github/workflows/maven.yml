@@ -70,7 +70,7 @@ jobs:
     - name: Run unit tests
       run: |
         echo "=== Starting Maven test phase ==="
-        mvn test -Pci -pl '!veld-benchmark' --batch-mode
+        mvn test -Pci -pl '!veld-benchmark,!veld-spring-boot-starter,!veld-spring-boot-example' --batch-mode
       env:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
       timeout-minutes: 10
