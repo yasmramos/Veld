@@ -11,22 +11,22 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Pruebas de integración para el módulo veld-test.
+ * Integration tests for the veld-test module.
  * 
- * <p>Estas pruebas verifican el funcionamiento correcto de las
- * anotaciones y la extensión JUnit 5.</p>
+ * <p>These tests verify the correct functioning of the
+ * annotations and JUnit 5 extension.</p>
  */
 class VeldTestIntegrationTest {
     
     /**
-     * Prueba básica de inyección de beans reales.
+     * Basic test for real bean injection.
      */
     @Nested
-    @DisplayName("Pruebas de Inyección Básica")
+    @DisplayName("Basic Injection Tests")
     class BasicInjectionTests {
         
         @Test
-        @DisplayName("Debe inyectar beans reales correctamente")
+        @DisplayName("Should inject real beans correctly")
         void shouldInjectRealBeans() {
             try (TestContext context = TestContext.Builder.create()
                     .withProfile("test")
@@ -38,7 +38,7 @@ class VeldTestIntegrationTest {
         }
         
         @Test
-        @DisplayName("Debe permitir acceso a múltiples beans")
+        @DisplayName("Should allow access to multiple beans")
         void shouldAllowMultipleBeans() {
             try (TestContext context = TestContext.Builder.create()
                     .withProfile("test")
@@ -55,21 +55,21 @@ class VeldTestIntegrationTest {
     }
     
     /**
-     * Prueba de uso de TestContext directamente.
+     * Test for direct TestContext usage.
      */
     @Nested
-    @DisplayName("Pruebas de TestContext")
+    @DisplayName("TestContext Tests")
     class TestContextTests {
         
         @Test
-        @DisplayName("Debe permitir uso directo de TestContext")
+        @DisplayName("Should allow direct TestContext usage")
         void shouldAllowDirectTestContextUsage() {
-            // Crear contexto directamente
+            // Create context directly
             try (TestContext context = TestContext.Builder.create()
                     .withProfile("test")
                     .build()) {
                 
-                // Obtener bean
+                // Get bean
                 GreetingService service = context.getBean(GreetingService.class);
                 assertThat(service).isNotNull();
                 assertThat(service.greet("Direct")).isEqualTo("Hello, Direct!");
@@ -77,7 +77,7 @@ class VeldTestIntegrationTest {
         }
         
         @Test
-        @DisplayName("Debe permitir registro de mocks manuales")
+        @DisplayName("Should allow manual mock registration")
         void shouldAllowManualMockRegistration() {
             MessageRepository mockRepo = org.mockito.Mockito.mock(MessageRepository.class);
             
@@ -93,7 +93,7 @@ class VeldTestIntegrationTest {
         }
     }
     
-    // === Beans de prueba ===
+    // === Test Beans ===
     
     @Singleton
     @Component

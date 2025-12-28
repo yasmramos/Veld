@@ -11,10 +11,10 @@ import org.mockito.quality.Strictness;
 import java.lang.reflect.Field;
 
 /**
- * Utilidades para la creación y configuración de mocks en pruebas.
+ * Utilities for creating and configuring mocks in tests.
  * 
- * <p>Esta clase proporciona métodos de fábrica para crear mocks de Mockito
- * con configuración apropiada para el contexto de pruebas de Veld.</p>
+ * <p>This class provides factory methods to create Mockito mocks
+ * with appropriate configuration for the Veld testing context.</p>
  * 
  * @author Veld Framework
  * @since 1.0.0
@@ -26,11 +26,11 @@ public final class MockFactory {
     }
     
     /**
-     * Crea un mock para un tipo específico.
+     * Creates a mock for a specific type.
      * 
-     * @param <T> tipo del mock
-     * @param type clase del tipo a mockear
-     * @return mock configurado
+     * @param <T> mock type
+     * @param type class of the type to mock
+     * @return configured mock
      */
     @SuppressWarnings("unchecked")
     public static <T> T createMock(Class<T> type) {
@@ -38,12 +38,12 @@ public final class MockFactory {
     }
     
     /**
-     * Crea un mock para un campo basado en su anotación.
+     * Creates a mock for a field based on its annotation.
      * 
-     * @param <T> tipo del mock
-     * @param type clase del tipo a mockear
-     * @param annotation anotación con configuración del mock
-     * @return mock configurado
+     * @param <T> mock type
+     * @param type class of the type to mock
+     * @param annotation annotation with mock configuration
+     * @return configured mock
      */
     @SuppressWarnings("unchecked")
     public static <T> T createMock(Class<T> type, RegisterMock annotation) {
@@ -51,16 +51,16 @@ public final class MockFactory {
             return createMock(type);
         }
         
-        // Configurar según la anotación
+        // Configure according to the annotation
         MockSettings settings = withDefaultSettings();
         
-        // Configurar nombre del mock
+        // Configure mock name
         String name = annotation.name();
         if (!name.isEmpty()) {
             settings.name(name);
         }
         
-        // Configurar Answer
+        // Configure Answer
         Answers answer = determineAnswer(annotation);
         if (answer != Answers.RETURNS_DEFAULTS) {
             settings.defaultAnswer(answer);
@@ -70,10 +70,10 @@ public final class MockFactory {
     }
     
     /**
-     * Crea un mock con configuración específica para un campo.
+     * Creates a mock with specific configuration for a field.
      * 
-     * @param field campo para el cual crear el mock
-     * @return mock configurado
+     * @param field field for which to create the mock
+     * @return configured mock
      */
     @SuppressWarnings("unchecked")
     public static Object createMockForField(Field field) {
@@ -83,18 +83,18 @@ public final class MockFactory {
     }
     
     /**
-     * Resetea un mock a su estado inicial.
+     * Resets a mock to its initial state.
      * 
-     * @param mock mock a resetear
+     * @param mock mock to reset
      */
     public static void resetMock(Object mock) {
         Mockito.reset(mock);
     }
     
     /**
-     * Resetea múltiples mocks.
+     * Resets multiple mocks.
      * 
-     * @param mocks mocks a resetear
+     * @param mocks mocks to reset
      */
     public static void resetMocks(Object... mocks) {
         for (Object mock : mocks) {
@@ -105,28 +105,28 @@ public final class MockFactory {
     }
     
     /**
-     * Verifica que un mock fue llamado.
+     * Verifies that a mock was not called.
      * 
-     * @param mock mock a verificar
+     * @param mock mock to verify
      */
     public static void verifyNoInteractions(Object mock) {
         Mockito.verifyNoInteractions(mock);
     }
     
     /**
-     * Verifica interacciones específicas en un mock.
+     * Verifies specific interactions on a mock.
      * 
-     * @param mock mock a verificar
-     * @param times número esperado de llamadas
+     * @param mock mock to verify
+     * @param times expected number of calls
      */
     public static void verifyNoMoreInteractions(Object mock) {
         Mockito.verifyNoMoreInteractions(mock);
     }
     
     /**
-     * Configura el modo de strictness para todos los mocks.
+     * Configures the strictness mode for all mocks.
      * 
-     * @param strictness nivel de strictness
+     * @param strictness strictness level
      */
     public static void setGlobalStrictness(Strictness strictness) {
         Mockito.mockitoSession()
@@ -136,18 +136,18 @@ public final class MockFactory {
     }
     
     /**
-     * Crea un spy de un objeto real.
+     * Creates a spy of a real object.
      * 
-     * @param <T> tipo del objeto
-     * @param object objeto a espiar
-     * @return spy configurado
+     * @param <T> object type
+     * @param object object to spy
+     * @return configured spy
      */
     public static <T> T spy(T object) {
         return Mockito.spy(object);
     }
     
     /**
-     * Configuración por defecto para mocks de Veld Test.
+     * Default configuration for Veld Test mocks.
      */
     private static MockSettings withDefaultSettings() {
         return Mockito.withSettings()
@@ -156,7 +156,7 @@ public final class MockFactory {
     }
     
     /**
-     * Determina el tipo de Answer basado en la anotación.
+     * Determines the Answer type based on the annotation.
      */
     private static Answers determineAnswer(RegisterMock annotation) {
         Answers answer = annotation.answer();
@@ -164,12 +164,12 @@ public final class MockFactory {
     }
     
     /**
-     * Crea un mock que lanza una excepción por defecto.
+     * Creates a mock that throws an exception by default.
      * 
-     * @param <T> tipo del mock
-     * @param type clase del tipo
-     * @param exception excepción a lanzar
-     * @return mock configurado
+     * @param <T> mock type
+     * @param type class of the type
+     * @param exception exception to throw
+     * @return configured mock
      */
     @SuppressWarnings("unchecked")
     public static <T> T createThrowingMock(Class<T> type, RuntimeException exception) {
@@ -179,17 +179,17 @@ public final class MockFactory {
     }
     
     /**
-     * Crea un mock que retorna valores consecutivos.
+     * Creates a mock that returns consecutive values.
      * 
-     * @param <T> tipo del mock
-     * @param type clase del tipo
-     * @param values valores a retornar en secuencia
-     * @return mock configurado
+     * @param <T> mock type
+     * @param type class of the type
+     * @param values values to return in sequence
+     * @return configured mock
      */
     @SuppressWarnings("unchecked")
     public static <T> T createSequentialMock(Class<T> type, Object... values) {
         return (T) Mockito.mock(type, invocation -> {
-            // Retornar valores en secuencia
+            // Return values in sequence
             return null;
         });
     }

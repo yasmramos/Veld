@@ -7,31 +7,31 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Anotación para inyectar beans del contenedor Veld en campos de prueba.
+ * Annotation to inject beans from the Veld container into test fields.
  * 
- * <p>Los campos anotados con {@code @Inject} se populan automáticamente
- * con beans del contenedor de pruebas después de que los mocks hayan
- * sido registrados. Esto permite acceder a beans reales o beans que
- * dependan de los mocks registrados.</p>
+ * <p>Fields annotated with {@code @Inject} are automatically populated
+ * with beans from the test container after mocks have
+ * been registered. This allows accessing real beans or beans that
+ * depend on the registered mocks.</p>
  * 
- * <h2>Comportamiento</h2>
+ * <h2>Behavior</h2>
  * <ul>
- *   <li>El campo se inyecta con el bean correspondiente del tipo declarado</li>
- *   <li>La resolución sigue las reglas normales del contenedor Veld</li>
- *   <li>Si existen mocks del mismo tipo, los beans que los utilizan serán inyectados</li>
- *   <li>La inyección ocurre después del registro de mocks pero antes de cada prueba</li>
+ *   <li>The field is injected with the corresponding bean of the declared type</li>
+ *   <li>Resolution follows the normal Veld container rules</li>
+ *   <li>If mocks of the same type exist, beans using them will be injected</li>
+ *   <li>Injection occurs after mock registration but before each test</li>
  * </ul>
  * 
- * <h2>Ejemplo de Uso</h2>
+ * <h2>Usage Example</h2>
  * <pre>{@code
  * @VeldTest
  * class UserServiceIntegrationTest {
  *     
- *     // Inyección del bean real (que internamente usa mocks)
+ *     // Injection of the real bean (which internally uses mocks)
  *     @Inject
  *     private UserService userService;
  *     
- *     // Inyección directa de un mock
+ *     // Direct injection of a mock
  *     @RegisterMock
  *     private EmailService emailService;
  *     
@@ -41,19 +41,19 @@ import java.lang.annotation.Target;
  *         
  *         userService.createUser(user);
  *         
- *         // Verificar que el servicio real utilizó el mock
+ *         // Verify that the real service used the mock
  *         verify(emailService).sendWelcomeEmail(user.getEmail());
  *     }
  * }
  * }</pre>
  * 
- * <h2>Tipos Soportados</h2>
+ * <h2>Supported Types</h2>
  * <ul>
- *   <li><b>Interfaces:</b> Se injecta el bean que implementa la interfaz</li>
- *   <li><b>Clases concretas:</b> Se injecta el bean de esa clase</li>
- *   <li><b>Qualifiers:</b> Usar con {@code @Named} o anotaciones personalizadas</li>
- *   <li><b>Proveedores:</b> {@code Provider<T>} para resolución lazy</li>
- *   <li><b>Opcionales:</b> {@code Optional<T>} para beans opcionales</li>
+ *   <li><b>Interfaces:</b> The bean implementing the interface is injected</li>
+ *   <li><b>Concrete classes:</b> The bean of that class is injected</li>
+ *   <li><b>Qualifiers:</b> Use with {@code @Named} or custom annotations</li>
+ *   <li><b>Providers:</b> {@code Provider<T>} for lazy resolution</li>
+ *   <li><b>Optionals:</b> {@code Optional<T>} for optional beans</li>
  * </ul>
  * 
  * @author Veld Framework
@@ -67,22 +67,22 @@ import java.lang.annotation.Target;
 public @interface Inject {
     
     /**
-     * Nombre del bean a inyectar.
+     * Name of the bean to inject.
      * 
-     * <p>Si se especifica, se busca el bean con ese nombre exacto.
-     * Si no se especifica, se utiliza la resolución por tipo.</p>
+     * <p>If specified, the bean with that exact name is searched.
+     * If not specified, type-based resolution is used.</p>
      * 
-     * @return nombre del bean en el contenedor
+     * @return bean name in the container
      */
     String name() default "";
     
     /**
-     * Indica si la inyección es opcional.
+     * Indicates if the injection is optional.
      * 
-     * <p>Cuando es {@code true}, si el bean no existe se injecta {@code null}
-     * en lugar de lanzar una excepción.</p>
+     * <p>When {@code true}, if the bean does not exist, {@code null}
+     * is injected instead of throwing an exception.</p>
      * 
-     * @return true si la inyección es opcional
+     * @return true if injection is optional
      */
     boolean optional() default false;
 }
