@@ -43,7 +43,7 @@ package io.github.yasmramos.veld.aop;
  * }</pre>
  *
  * @author Veld Framework Team
- * @since 1.0.4
+ * @since 1.0.3
  */
 public interface CompileTimeInterceptor {
 

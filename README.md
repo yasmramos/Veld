@@ -94,20 +94,20 @@ Veld is a **compile-time Dependency Injection framework** that generates pure by
 <dependency>
     <groupId>io.github.yasmramos</groupId>
     <artifactId>veld-runtime</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.3</version>
 </dependency>
 
 <dependency>
     <groupId>io.github.yasmramos</groupId>
     <artifactId>veld-annotations</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.3</version>
 </dependency>
 ```
 
 **Gradle:**
 ```gradle
-implementation 'io.github.yasmramos:veld-runtime:1.0.4'
-implementation 'io.github.yasmramos:veld-annotations:1.0.4'
+implementation 'io.github.yasmramos:veld-runtime:1.0.3'
+implementation 'io.github.yasmramos:veld-annotations:1.0.3'
 ```
 
 **Note:** Veld uses a unified plugin approach that handles everything automatically.
@@ -123,7 +123,7 @@ implementation 'io.github.yasmramos:veld-annotations:1.0.4'
         <plugin>
             <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-maven-plugin</artifactId>
-            <version>1.0.4</version>
+            <version>1.0.3</version>
         </plugin>
     </plugins>
 </build>
@@ -141,7 +141,7 @@ implementation 'io.github.yasmramos:veld-annotations:1.0.4'
         <plugin>
             <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-maven-plugin</artifactId>
-            <version>1.0.4</version>
+            <version>1.0.3</version>
             <executions>
                 <execution>
                     <id>veld-compile</id>
