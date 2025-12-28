@@ -113,8 +113,7 @@
         <maven.compiler.release>17</maven.compiler.release>
         <skipTests>false</skipTests>
         <skipGpg>false</skipGpg>
-        <gpg.keyname>${env.GPG_KEYNAME}</gpg.keyname>
-        <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
+        <gpg.useAgent>false</gpg.useAgent>
         <maven.deploy.skip>false</maven.deploy.skip>
         <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
         <maven.javadoc.skip>false</maven.javadoc.skip>
@@ -361,6 +360,7 @@
                 <version>${maven.gpg.plugin.version}</version>
                 <configuration>
                     <skip>${skipGpg}</skip>
+                    <useAgent>${gpg.useAgent}</useAgent>
                     <keyname>${gpg.keyname}</keyname>
                     <passphrase>${gpg.passphrase}</passphrase>
                     <gpgArguments>
@@ -368,6 +368,8 @@
                         <arg>--no-tty</arg>
                         <arg>--pinentry-mode</arg>
                         <arg>loopback</arg>
+                        <arg>--status-fd</arg>
+                        <arg>1</arg>
                     </gpgArguments>
                 </configuration>
                 <executions>
