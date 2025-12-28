@@ -362,8 +362,9 @@
                 <configuration>
                     <skip>${skipGpg}</skip>
                     <keyname>${gpg.keyname}</keyname>
-                    <passphraseServerId>${gpg.keyname}</passphraseServerId>
+                    <passphrase>${gpg.passphrase}</passphrase>
                     <gpgArguments>
+                        <arg>--batch</arg>
                         <arg>--no-tty</arg>
                         <arg>--pinentry-mode</arg>
                         <arg>loopback</arg>
