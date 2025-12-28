@@ -36,11 +36,14 @@ public final class VeldSourceGenerator {
         sb.append("import io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ConditionalRegistry;\n");
         sb.append("import io.github.yasmramos.veld.runtime.event.EventBus;\n");
+        sb.append("import io.github.yasmramos.veld.runtime.ComponentFactory;\n");
         sb.append("import java.util.Map;\n");
         sb.append("import java.util.HashMap;\n");
         sb.append("import java.util.concurrent.ConcurrentHashMap;\n");
         sb.append("import java.util.Set;\n");
-        sb.append("import java.util.function.Supplier;\n\n");
+        sb.append("import java.util.function.Supplier;\n");
+        sb.append("import java.util.Comparator;\n");
+        sb.append("import java.util.stream.Collectors;\n\n");
         
         // Class declaration
         sb.append("/**\n");
@@ -103,6 +106,13 @@ public final class VeldSourceGenerator {
         // Shutdown method
         sb.append("    public static void shutdown() {\n");
         sb.append("        _lifecycle.destroy();\n");
+        sb.append("    }\n\n");
+        
+        // Sort factories by order (lower values have higher priority)
+        sb.append("    private static java.util.List<ComponentFactory<?>> sortByOrder(java.util.List<ComponentFactory<?>> factories) {\n");
+        sb.append("        return factories.stream()\n");
+        sb.append("            .sorted(Comparator.comparingInt(ComponentFactory::getOrder))\n");
+        sb.append("            .collect(Collectors.toList());\n");
         sb.append("    }\n\n");
         
         // Close class
