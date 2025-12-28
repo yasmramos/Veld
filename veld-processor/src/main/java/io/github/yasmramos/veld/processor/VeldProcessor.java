@@ -360,8 +360,12 @@ public class VeldProcessor extends AbstractProcessor {
 
             boolean isPrimary = beanAnnotation.primary();
 
-            // Get scope from annotation
-            io.github.yasmramos.veld.runtime.Scope scope = beanAnnotation.scope();
+            // Get scope from annotation (as string, then convert to enum)
+            String scopeString = beanAnnotation.scope();
+            io.github.yasmramos.veld.runtime.Scope scope =
+                "prototype".equalsIgnoreCase(scopeString)
+                    ? io.github.yasmramos.veld.runtime.Scope.PROTOTYPE
+                    : io.github.yasmramos.veld.runtime.Scope.SINGLETON;
 
             // Get return type
             TypeMirror returnType = method.getReturnType();
