@@ -90,7 +90,11 @@ public class VeldProcessor extends AbstractProcessor {
     private Types typeUtils;
     
     private final List<ComponentInfo> discoveredComponents = new ArrayList<>();
+    private final List<FactoryInfo> discoveredFactories = new ArrayList<>();
     private final DependencyGraph dependencyGraph = new DependencyGraph();
+    
+    // External beans loaded from classpath (multi-module support)
+    private final List<BeanMetadataReader.ExternalBeanInfo> externalBeans = new ArrayList<>();
     
     // Maps interface -> list of implementing components (for conflict detection)
     private final Map<String, List<String>> interfaceImplementors = new HashMap<>();
@@ -110,8 +114,9 @@ public class VeldProcessor extends AbstractProcessor {
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         if (roundEnv.processingOver()) {
-            if (!discoveredComponents.isEmpty()) {
-                // Check for circular dependencies before generating code
+            // Check for circular dependencies before generating code
+            // Validate if we have any components OR factories
+            if (!discoveredComponents.isEmpty() || !discoveredFactories.isEmpty()) {
                 if (validateNoCyclicDependencies()) {
                     // Validate interface implementations (warnings only)
                     validateInterfaceImplementations();
@@ -207,10 +212,425 @@ public class VeldProcessor extends AbstractProcessor {
                 error(typeElement, e.getMessage());
             }
         }
+
+        // Process @Factory classes and @Bean methods
+        processFactories(roundEnv);
+
+        // Build dependency graph for @Bean methods
+        buildFactoryDependencyGraph();
+
+        // Generate source code for @Bean methods
+        generateBeanFactories();
+
+        return true;
+    }
+
+    /**
+     * Processes classes annotated with @Factory and their @Bean methods.
+     */
+    private void processFactories(RoundEnvironment roundEnv) {
+        // Find all @Factory classes
+        Set<TypeElement> factoryElements = new HashSet<>();
+        for (Element element : roundEnv.getElementsAnnotatedWith(Factory.class)) {
+            if (element.getKind() == ElementKind.CLASS) {
+                factoryElements.add((TypeElement) element);
+            }
+        }
+
+        // Also find @Bean methods (which might be in non-@Factory classes)
+        Set<ExecutableElement> beanMethods = new HashSet<>();
+        for (Element element : roundEnv.getElementsAnnotatedWith(io.github.yasmramos.veld.annotation.Bean.class)) {
+            if (element.getKind() == ElementKind.METHOD) {
+                beanMethods.add((ExecutableElement) element);
+            }
+        }
+
+        // Process each factory class
+        for (TypeElement factoryElement : factoryElements) {
+            String factoryClassName = factoryElement.getQualifiedName().toString();
+
+            // Skip if already processed
+            if (processedClasses.contains(factoryClassName)) {
+                continue;
+            }
+            processedClasses.add(factoryClassName);
+
+            // Validate class
+            if (factoryElement.getModifiers().contains(Modifier.ABSTRACT)) {
+                error(factoryElement, "@Factory cannot be applied to abstract classes");
+                continue;
+            }
+
+            try {
+                FactoryInfo factoryInfo = analyzeFactory(factoryElement, beanMethods);
+                discoveredFactories.add(factoryInfo);
+                note("Discovered factory: " + factoryClassName + " with " +
+                     factoryInfo.getBeanMethods().size() + " @Bean methods");
+            } catch (ProcessingException e) {
+                error(factoryElement, e.getMessage());
+            }
+        }
+
+        // Process standalone @Bean methods (not inside a @Factory)
+        for (ExecutableElement beanMethod : beanMethods) {
+            TypeElement enclosingClass = (TypeElement) beanMethod.getEnclosingElement();
+            if (enclosingClass.getAnnotation(Factory.class) == null) {
+                // This @Bean is in a non-@Factory class
+                // For now, we can log a warning or handle differently
+                note("Found @Bean method outside @Factory class: " +
+                     enclosingClass.getQualifiedName() + "." + beanMethod.getSimpleName());
+            }
+        }
+    }
+
+    /**
+     * Generates source code for all @Bean methods discovered in @Factory classes.
+     * Each @Bean method gets its own factory class that implements ComponentFactory.
+     */
+    private void generateBeanFactories() {
+        int globalBeanIndex = 0;
+
+        for (FactoryInfo factory : discoveredFactories) {
+            int factoryBeanIndex = 0;
+
+            for (FactoryInfo.BeanMethod beanMethod : factory.getBeanMethods()) {
+                try {
+                    // Create the source generator for this @Bean method
+                    BeanFactorySourceGenerator generator = new BeanFactorySourceGenerator(
+                        factory, beanMethod, globalBeanIndex);
+
+                    // Generate the source code
+                    String sourceCode = generator.generate();
+                    String factoryClassName = generator.getFactoryClassName();
+
+                    // Write the generated source file
+                    writeJavaSource(factoryClassName, sourceCode);
+
+                    note("Generated BeanFactory for @Bean method: " + beanMethod.getMethodName() +
+                         " (index: " + globalBeanIndex + ")");
+
+                    globalBeanIndex++;
+                    factoryBeanIndex++;
+                } catch (IOException e) {
+                    error(null, "Failed to generate BeanFactory for @Bean method " +
+                          beanMethod.getMethodName() + ": " + e.getMessage());
+                }
+            }
+        }
+
+        if (globalBeanIndex > 0) {
+            note("Generated " + globalBeanIndex + " BeanFactory classes for @Bean methods");
+        }
+    }
+
+    /**
+     * Analyzes a @Factory class and extracts @Bean methods.
+     */
+    private FactoryInfo analyzeFactory(TypeElement factoryElement,
+                                       Set<ExecutableElement> allBeanMethods) throws ProcessingException {
+        String factoryClassName = factoryElement.getQualifiedName().toString();
+
+        // Get factory name from annotation
+        io.github.yasmramos.veld.annotation.Factory factoryAnnotation =
+            factoryElement.getAnnotation(io.github.yasmramos.veld.annotation.Factory.class);
+        String factoryName = factoryAnnotation != null && !factoryAnnotation.name().isEmpty()
+            ? factoryAnnotation.name()
+            : decapitalize(factoryElement.getSimpleName().toString());
+
+        FactoryInfo factoryInfo = new FactoryInfo(factoryClassName, factoryName);
+        factoryInfo.setTypeElement(factoryElement);
+
+        // Find @Bean methods in this factory class
+        for (Element enclosed : factoryElement.getEnclosedElements()) {
+            if (enclosed.getKind() != ElementKind.METHOD) continue;
+
+            ExecutableElement method = (ExecutableElement) enclosed;
+            io.github.yasmramos.veld.annotation.Bean beanAnnotation =
+                method.getAnnotation(io.github.yasmramos.veld.annotation.Bean.class);
+
+            if (beanAnnotation == null) continue;
+
+            // Validate @Bean method
+            if (method.getModifiers().contains(Modifier.ABSTRACT)) {
+                throw new ProcessingException("@Bean cannot be applied to abstract methods: " +
+                    method.getSimpleName());
+            }
+            if (method.getModifiers().contains(Modifier.STATIC)) {
+                throw new ProcessingException("@Bean cannot be applied to static methods: " +
+                    method.getSimpleName());
+            }
+            if (method.getModifiers().contains(Modifier.PRIVATE)) {
+                throw new ProcessingException("@Bean methods cannot be private: " +
+                    method.getSimpleName() + ". Make the method package-private or public.");
+            }
+
+            // Get bean name from annotation (must be done before validation)
+            String beanName = !beanAnnotation.name().isEmpty()
+                ? beanAnnotation.name()
+                : method.getSimpleName().toString();
+
+            // Get return type (must be done before validation)
+            TypeMirror returnType = method.getReturnType();
+
+            // Validate return type is not primitive or void
+            if (returnType.getKind() == TypeKind.VOID) {
+                throw new ProcessingException("@Bean methods must return a bean type, not void: " +
+                    method.getSimpleName());
+            }
+            if (returnType.getKind().isPrimitive() && returnType.getKind() != TypeKind.BOOLEAN && 
+                returnType.getKind() != TypeKind.BYTE && returnType.getKind() != TypeKind.CHAR &&
+                returnType.getKind() != TypeKind.DOUBLE && returnType.getKind() != TypeKind.FLOAT &&
+                returnType.getKind() != TypeKind.INT && returnType.getKind() != TypeKind.LONG &&
+                returnType.getKind() != TypeKind.SHORT) {
+                // This condition checks for primitive types that are not primitives
+                // Actually, primitive types in Java are: BOOLEAN, BYTE, CHAR, DOUBLE, FLOAT, INT, LONG, SHORT
+                // Boxed types are DECLARED types, so we just check if it's primitive
+                // The validation message below handles the suggestion
+            }
+            if (returnType.getKind().isPrimitive()) {
+                throw new ProcessingException("@Bean methods cannot return primitive types: " +
+                    method.getSimpleName() + ". Use the boxed type (e.g., Integer instead of int, String instead of char).");
+            }
+
+            // Validate no duplicate bean names in the same factory
+            validateNoDuplicateBeanNames(factoryInfo, beanName, method);
+
+            boolean isPrimary = beanAnnotation.primary();
+
+            // Get scope from annotation (as string, then convert to enum)
+            String scopeString = beanAnnotation.scope();
+            io.github.yasmramos.veld.runtime.Scope scope =
+                "prototype".equalsIgnoreCase(scopeString)
+                    ? io.github.yasmramos.veld.runtime.Scope.PROTOTYPE
+                    : io.github.yasmramos.veld.runtime.Scope.SINGLETON;
+
+            // Get return type info
+            String returnTypeName = getTypeName(returnType);
+            String returnTypeDescriptor = getTypeDescriptor(returnType);
+
+            // Get method descriptor
+            String methodDescriptor = getMethodDescriptor(method);
+
+            // Create BeanMethod
+            FactoryInfo.BeanMethod beanMethod = new FactoryInfo.BeanMethod(
+                method.getSimpleName().toString(),
+                methodDescriptor,
+                returnTypeName,
+                returnTypeDescriptor,
+                beanName,
+                isPrimary
+            );
+
+            // Set scope
+            beanMethod.setScope(scope);
+            if (scope == io.github.yasmramos.veld.runtime.Scope.PROTOTYPE) {
+                note("  -> @Bean scope: PROTOTYPE");
+            }
+
+            // Analyze qualifier from method parameters
+            analyzeBeanQualifier(method, beanMethod);
+
+            // Analyze @Profile annotation on @Bean method
+            analyzeBeanProfile(method, beanMethod);
+
+            // Add parameter types (for dependency resolution)
+            for (VariableElement param : method.getParameters()) {
+                String paramType = getTypeName(param.asType());
+                beanMethod.addParameterType(paramType);
+
+                // Validate parameter is injectable
+                if (!isInjectableType(param.asType())) {
+                    warning(method, "Parameter '" + param.getSimpleName() + 
+                        "' of @Bean method '" + method.getSimpleName() + 
+                        "' has type '" + paramType + "' which may not be directly injectable. " +
+                        "Consider using Provider<T> or Optional<T> for lazy/optional injection.");
+                }
+            }
+
+            // Analyze lifecycle methods in the return type class
+            analyzeBeanLifecycle(returnType, beanMethod);
+
+            factoryInfo.addBeanMethod(beanMethod);
+            note("  -> @Bean method: " + method.getSimpleName() +
+                 " produces: " + returnTypeName +
+                 " (name: " + beanName + ")" +
+                 (isPrimary ? " [PRIMARY]" : ""));
+        }
+
+        if (!factoryInfo.hasBeanMethods()) {
+            warning(null, "@Factory class " + factoryClassName +
+                 " has no @Bean methods. It will be registered but won't produce any beans.");
+        }
+
+        return factoryInfo;
+    }
+
+    /**
+     * Validates that no duplicate bean names exist within the same factory.
+     * 
+     * @param factoryInfo the factory being analyzed
+     * @param beanName the proposed bean name
+     * @param method the method element (for error reporting)
+     * @throws ProcessingException if a duplicate is found
+     */
+    private void validateNoDuplicateBeanNames(FactoryInfo factoryInfo, String beanName, 
+                                               ExecutableElement method) throws ProcessingException {
+        for (FactoryInfo.BeanMethod existing : factoryInfo.getBeanMethods()) {
+            if (existing.getBeanName().equals(beanName)) {
+                throw new ProcessingException(
+                    "Duplicate bean name '" + beanName + "' in factory " + factoryInfo.getFactoryClassName() + ".\n" +
+                    "  - First defined in method: " + existing.getMethodName() + "\n" +
+                    "  - Second definition in method: " + method.getSimpleName() + "\n" +
+                    "  Fix: Use unique bean names via @Bean(name=\"uniqueName\") or rename one of the methods."
+                );
+            }
+        }
+    }
+
+    /**
+     * Checks if a type is potentially injectable.
+     * Returns false for primitives, arrays, and wildcard types.
+     * 
+     * @param type the type to check
+     * @return true if the type can be injected
+     */
+    private boolean isInjectableType(TypeMirror type) {
+        if (type == null) {
+            return false;
+        }
+        
+        TypeKind kind = type.getKind();
+        
+        // Primitives are not directly injectable (box them first)
+        if (kind.isPrimitive()) {
+            return false;
+        }
+        
+        // Arrays can only be injected if element type is injectable
+        if (kind == TypeKind.ARRAY) {
+            javax.lang.model.type.ArrayType arrayType = (javax.lang.model.type.ArrayType) type;
+            return isInjectableType(arrayType.getComponentType());
+        }
+        
+        // Wildcards are not directly injectable
+        if (kind == TypeKind.WILDCARD) {
+            return false;
+        }
+        
+        // Void is not injectable
+        if (kind == TypeKind.VOID) {
+            return false;
+        }
         
         return true;
     }
-    
+
+    /**
+     * Analyzes lifecycle methods (@PostConstruct, @PreDestroy) in the bean return type class.
+     * These methods will be called by the generated BeanFactory during bean lifecycle.
+     *
+     * @param returnType the return type of the @Bean method
+     * @param beanMethod the BeanMethod to store lifecycle information
+     * @throws ProcessingException if a lifecycle method is invalid
+     */
+    private void analyzeBeanLifecycle(TypeMirror returnType, FactoryInfo.BeanMethod beanMethod) throws ProcessingException {
+        if (returnType.getKind() != TypeKind.DECLARED) {
+            return; // Only analyze declared types (classes/interfaces)
+        }
+
+        DeclaredType declaredType = (DeclaredType) returnType;
+        TypeElement returnElement = (TypeElement) declaredType.asElement();
+
+        // Find @PostConstruct method
+        for (Element enclosed : returnElement.getEnclosedElements()) {
+            if (enclosed.getKind() != ElementKind.METHOD) continue;
+
+            ExecutableElement method = (ExecutableElement) enclosed;
+            if (method.getAnnotation(PostConstruct.class) != null) {
+                validateLifecycleMethod(method, "@PostConstruct");
+                beanMethod.setPostConstruct(method.getSimpleName().toString(), getMethodDescriptor(method));
+                note("  -> @PostConstruct method: " + method.getSimpleName());
+                break; // Only one @PostConstruct allowed
+            }
+        }
+
+        // Find @PreDestroy method
+        for (Element enclosed : returnElement.getEnclosedElements()) {
+            if (enclosed.getKind() != ElementKind.METHOD) continue;
+
+            ExecutableElement method = (ExecutableElement) enclosed;
+            if (method.getAnnotation(PreDestroy.class) != null) {
+                validateLifecycleMethod(method, "@PreDestroy");
+                beanMethod.setPreDestroy(method.getSimpleName().toString(), getMethodDescriptor(method));
+                note("  -> @PreDestroy method: " + method.getSimpleName());
+                break; // Only one @PreDestroy allowed
+            }
+        }
+    }
+
+    /**
+     * Analyzes qualifier annotations on the @Bean method itself.
+     * Supports @Named, @Qualifier, and custom qualifier annotations.
+     *
+     * @param beanMethod the @Bean method element
+     * @param beanMethodInfo the BeanMethod to store qualifier information
+     */
+    private void analyzeBeanQualifier(ExecutableElement beanMethod, FactoryInfo.BeanMethod beanMethodInfo) {
+        // Check for @Named annotation (Veld, javax.inject, or jakarta.inject)
+        Optional<String> qualifier = AnnotationHelper.getQualifierValue(beanMethod);
+        if (qualifier.isPresent()) {
+            beanMethodInfo.setQualifier(qualifier.get());
+            note("  -> @Bean qualifier: @" + qualifier.get());
+        }
+
+        // Check for @Qualifier annotation
+        TypeElement qualifierAnnotation = elementUtils.getTypeElement("io.github.yasmramos.veld.annotation.Qualifier");
+        if (qualifierAnnotation != null) {
+            io.github.yasmramos.veld.annotation.Qualifier qualAnn =
+                beanMethod.getAnnotation(io.github.yasmramos.veld.annotation.Qualifier.class);
+            if (qualAnn != null && !qualAnn.value().isEmpty()) {
+                beanMethodInfo.setQualifier(qualAnn.value());
+                note("  -> @Bean @Qualifier: " + qualAnn.value());
+            }
+        }
+    }
+
+    /**
+     * Analyzes profile annotations on the @Bean method.
+     * Stores profile information for runtime profile-based activation.
+     *
+     * @param beanMethod the @Bean method element
+     * @param beanMethodInfo the BeanMethod to store profile information
+     */
+    private void analyzeBeanProfile(ExecutableElement beanMethod, FactoryInfo.BeanMethod beanMethodInfo) {
+        io.github.yasmramos.veld.annotation.Profile profileAnnotation =
+            beanMethod.getAnnotation(io.github.yasmramos.veld.annotation.Profile.class);
+
+        if (profileAnnotation != null) {
+            List<String> profiles = new ArrayList<>();
+            String[] profileValues = profileAnnotation.value();
+            
+            // Also check 'name' attribute as alias
+            if (profileValues.length == 0 || (profileValues.length == 1 && profileValues[0].isEmpty())) {
+                String nameValue = profileAnnotation.name();
+                if (!nameValue.isEmpty()) {
+                    profileValues = new String[]{nameValue};
+                }
+            }
+
+            for (String profile : profileValues) {
+                if (profile != null && !profile.isEmpty()) {
+                    profiles.add(profile);
+                    beanMethodInfo.addProfile(profile);
+                }
+            }
+
+            if (!profiles.isEmpty()) {
+                note("  -> @Bean profiles: " + String.join(", ", profiles));
+            }
+        }
+    }
+
     /**
      * Builds the dependency graph for a component.
      * Adds the component and all its dependencies to the graph.
@@ -262,7 +682,33 @@ public class VeldProcessor extends AbstractProcessor {
             }
         }
     }
-    
+
+    /**
+     * Builds the dependency graph for @Bean methods.
+     * Adds each bean and its parameter dependencies to the graph.
+     * This allows detecting circular dependencies involving factory beans.
+     */
+    private void buildFactoryDependencyGraph() {
+        for (FactoryInfo factory : discoveredFactories) {
+            for (FactoryInfo.BeanMethod beanMethod : factory.getBeanMethods()) {
+                String beanType = beanMethod.getReturnType();
+                dependencyGraph.addComponent(beanType);
+
+                note("  -> Adding bean to dependency graph: " + beanType);
+
+                // Add dependencies from @Bean method parameters
+                for (String paramType : beanMethod.getParameterTypes()) {
+                    dependencyGraph.addDependency(beanType, paramType);
+                    note("    -> Bean dependency: " + beanType + " → " + paramType);
+                }
+            }
+        }
+
+        if (!discoveredFactories.isEmpty()) {
+            note("Factory dependency graph built with " + discoveredFactories.size() + " factories");
+        }
+    }
+
     /**
      * Resolves a bean name to its corresponding type name.
      * 
@@ -310,17 +756,56 @@ public class VeldProcessor extends AbstractProcessor {
         
         if (cycle.isPresent()) {
             String cyclePath = DependencyGraph.formatCycle(cycle.get());
-            error(null, "Circular dependency detected: " + cyclePath + 
-                "\n  Circular dependencies are not allowed. " +
-                "Consider using:\n" +
-                "    - Setter/method injection instead of constructor injection\n" +
-                "    - @Lazy injection (if supported)\n" +
-                "    - Refactoring to break the cycle");
+            String cycleDetail = buildCycleDetailMessage(cycle.get());
+            
+            error(null, "Circular dependency detected: " + cyclePath + "\n" +
+                cycleDetail + "\n" +
+                "  Circular dependencies are not allowed in Veld.\n" +
+                "  Possible solutions:\n" +
+                "    - Use setter/method injection instead of constructor injection\n" +
+                "    - Break the dependency cycle by refactoring\n" +
+                "    - Use @Lazy on one of the dependencies (if supported by your use case)\n" +
+                "    - For @Bean methods, use Provider<T> for lazy injection");
             return false;
         }
         
         note("Dependency graph validated: no circular dependencies found");
         return true;
+    }
+
+    /**
+     * Builds a detailed message explaining the circular dependency.
+     * 
+     * @param cycle the cycle path
+     * @return detailed message about the cycle
+     */
+    private String buildCycleDetailMessage(List<String> cycle) {
+        if (cycle == null || cycle.size() < 2) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("  Dependency chain:\n");
+
+        for (int i = 0; i < cycle.size(); i++) {
+            String current = cycle.get(i);
+            String next = cycle.get((i + 1) % cycle.size());
+
+            // Extract simple class name
+            String currentName = current.substring(current.lastIndexOf('.') + 1);
+            String nextName = next.substring(next.lastIndexOf('.') + 1);
+
+            sb.append("    ").append(i + 1).append(". ").append(currentName);
+            
+            // Try to identify the injection point
+            if (i < cycle.size() - 1) {
+                sb.append(" → ");
+            } else {
+                sb.append(" → (back to start)");
+            }
+        }
+
+        return sb.toString();
     }
     
     private ComponentInfo analyzeComponent(TypeElement typeElement) throws ProcessingException {
@@ -498,6 +983,7 @@ public class VeldProcessor extends AbstractProcessor {
         ExecutableElement injectConstructor = null;
         ExecutableElement defaultConstructor = null;
         InjectSource injectSource = InjectSource.NONE;
+        int injectConstructorCount = 0;
         
         for (Element enclosed : typeElement.getEnclosedElements()) {
             if (enclosed.getKind() != ElementKind.CONSTRUCTOR) continue;
@@ -506,8 +992,14 @@ public class VeldProcessor extends AbstractProcessor {
             
             // Check for any @Inject annotation (Veld, javax.inject, or jakarta.inject)
             if (AnnotationHelper.hasInjectAnnotation(constructor)) {
-                if (injectConstructor != null) {
-                    throw new ProcessingException("Only one constructor can be annotated with @Inject");
+                injectConstructorCount++;
+                if (injectConstructorCount > 1) {
+                    throw new ProcessingException(
+                        "Only one constructor can be annotated with @Inject in class " + 
+                        typeElement.getQualifiedName() + ".\n" +
+                        "  Found " + injectConstructorCount + " @Inject constructors.\n" +
+                        "  Fix: Remove @Inject from all but one constructor, or use @Inject on exactly one constructor."
+                    );
                 }
                 injectConstructor = constructor;
                 injectSource = AnnotationHelper.getInjectSource(constructor);
@@ -519,8 +1011,14 @@ public class VeldProcessor extends AbstractProcessor {
         ExecutableElement chosenConstructor = injectConstructor != null ? injectConstructor : defaultConstructor;
         
         if (chosenConstructor == null) {
-            throw new ProcessingException("No suitable constructor found. " +
-                    "Must have either @Inject constructor or no-arg constructor");
+            String className = typeElement.getQualifiedName().toString();
+            throw new ProcessingException(
+                "No suitable constructor found in class: " + className + ".\n" +
+                "  Veld requires either:\n" +
+                "  1. A constructor annotated with @Inject (recommended), or\n" +
+                "  2. A public no-argument constructor\n" +
+                "  Fix: Add @Inject to your preferred constructor, or ensure a public no-arg constructor exists."
+            );
         }
         
         // Log which annotation specification is being used
@@ -666,7 +1164,8 @@ public class VeldProcessor extends AbstractProcessor {
     
     /**
      * Analyzes conditional annotations on the component.
-     * Supports @ConditionalOnProperty, @ConditionalOnClass, @ConditionalOnMissingBean.
+     * Supports @ConditionalOnProperty, @ConditionalOnClass, @ConditionalOnMissingBean,
+     * @ConditionalOnBean, and @Profile.
      */
     private void analyzeConditions(TypeElement typeElement, ComponentInfo info) {
         ConditionInfo conditionInfo = new ConditionInfo();
@@ -772,6 +1271,53 @@ public class VeldProcessor extends AbstractProcessor {
                 if (!beanNames.isEmpty()) {
                     conditionInfo.addMissingBeanNameCondition(beanNames);
                     note("  -> Conditional on missing bean names: " + String.join(", ", beanNames));
+                }
+            }
+            
+            // Check for @ConditionalOnBean
+            ConditionalOnBean presentBeanCondition = typeElement.getAnnotation(ConditionalOnBean.class);
+            if (presentBeanCondition != null) {
+                List<String> presentBeanTypes = new ArrayList<>();
+                List<String> presentBeanNames = new ArrayList<>();
+                
+                try {
+                    // Get bean types
+                    for (Class<?> clazz : presentBeanCondition.value()) {
+                        presentBeanTypes.add(clazz.getName());
+                    }
+                } catch (javax.lang.model.type.MirroredTypesException e) {
+                    for (TypeMirror mirror : e.getTypeMirrors()) {
+                        try {
+                            String typeName = getTypeName(mirror);
+                            if (typeName != null && !typeName.isEmpty()) {
+                                presentBeanTypes.add(typeName);
+                            }
+                        } catch (Exception ex) {
+                            warning(null, "Could not resolve type from @ConditionalOnBean: " + ex.getMessage());
+                        }
+                    }
+                } catch (Exception e) {
+                    warning(null, "Could not process @ConditionalOnBean annotation types: " + e.getMessage());
+                }
+                
+                try {
+                    // Get bean names
+                    for (String name : presentBeanCondition.name()) {
+                        if (!name.isEmpty()) {
+                            presentBeanNames.add(name);
+                        }
+                    }
+                } catch (Exception e) {
+                    warning(null, "Could not process @ConditionalOnBean annotation names: " + e.getMessage());
+                }
+                
+                if (!presentBeanTypes.isEmpty()) {
+                    conditionInfo.addPresentBeanTypeCondition(presentBeanTypes);
+                    note("  -> Conditional on present bean types: " + String.join(", ", presentBeanTypes));
+                }
+                if (!presentBeanNames.isEmpty()) {
+                    conditionInfo.addPresentBeanNameCondition(presentBeanNames);
+                    note("  -> Conditional on present bean names: " + String.join(", ", presentBeanNames));
                 }
             }
             
@@ -1033,33 +1579,185 @@ public class VeldProcessor extends AbstractProcessor {
         }
     }
     
+    /**
+     * Gets a unique module identifier for metadata file naming.
+     * Uses groupId:artifactId format if available, otherwise uses package name.
+     */
+    private String getModuleId() {
+        // Try to get module info from processing environment
+        // This is a best-effort attempt to create a unique module identifier
+        try {
+            // Check if we can get the source file to determine the module
+            // For now, use a combination of package and a hash
+            String moduleName = System.getProperty("veld.module.name", "");
+            if (!moduleName.isEmpty()) {
+                return moduleName;
+            }
+            
+            // Fallback: use a hash based on discovered components/factories
+            if (!discoveredComponents.isEmpty()) {
+                String firstPackage = discoveredComponents.get(0).getClassName();
+                int lastDot = firstPackage.lastIndexOf('.');
+                String basePackage = lastDot >= 0 ? firstPackage.substring(0, lastDot) : firstPackage;
+                return basePackage;
+            }
+            
+            if (!discoveredFactories.isEmpty()) {
+                String firstPackage = discoveredFactories.get(0).getFactoryClassName();
+                int lastDot = firstPackage.lastIndexOf('.');
+                String basePackage = lastDot >= 0 ? firstPackage.substring(0, lastDot) : firstPackage;
+                return basePackage;
+            }
+            
+            return "veld-module";
+        } catch (Exception e) {
+            return "veld-module";
+        }
+    }
+    
+    /**
+     * Exports bean metadata for multi-module support.
+     * Writes metadata to META-INF/veld/ for consumption by dependent modules.
+     */
+    private void exportBeanMetadata() throws IOException {
+        String moduleId = getModuleId();
+        List<BeanMetadata> beansToExport = new ArrayList<>();
+
+        // Export @Component beans
+        for (ComponentInfo component : discoveredComponents) {
+            BeanMetadata bean = new BeanMetadata(
+                moduleId,
+                component.getComponentName(),
+                component.getClassName()
+            );
+            
+            // Get factory class name
+            String factoryClassName = component.getFactoryClassName();
+            if (factoryClassName != null && !factoryClassName.isEmpty()) {
+                // Extract method name from class name
+                String simpleName = factoryClassName.substring(factoryClassName.lastIndexOf('.') + 1);
+                String methodName = "create" + simpleName.replace("Factory", "");
+                bean = bean.withFactory(factoryClassName, methodName, "()V");
+            }
+            
+            bean = bean.withScope(component.getScope());
+            if (component.isPrimary()) {
+                bean = bean.asPrimary();
+            }
+            
+            // Add dependencies
+            if (component.getConstructorInjection() != null) {
+                for (InjectionPoint.Dependency dep : component.getConstructorInjection().getDependencies()) {
+                    bean.addDependency(dep.getActualTypeName());
+                }
+            }
+            
+            beansToExport.add(bean);
+        }
+
+        // Export @Bean methods from factories
+        for (FactoryInfo factory : discoveredFactories) {
+            for (FactoryInfo.BeanMethod beanMethod : factory.getBeanMethods()) {
+                BeanMetadata bean = new BeanMetadata(
+                    moduleId,
+                    beanMethod.getBeanName(),
+                    beanMethod.getReturnType()
+                );
+                
+                // Get factory class name from BeanMethod
+                String factoryClassName = beanMethod.getFactoryClassName();
+                if (factoryClassName != null && !factoryClassName.isEmpty()) {
+                    String simpleName = factoryClassName.substring(factoryClassName.lastIndexOf('.') + 1);
+                    String methodName = beanMethod.getMethodName();
+                    bean = bean.withFactory(factoryClassName, methodName, beanMethod.getMethodDescriptor());
+                }
+                
+                bean = bean.withScope(beanMethod.getScope());
+                if (beanMethod.isPrimary()) {
+                    bean = bean.asPrimary();
+                }
+                if (beanMethod.hasQualifier()) {
+                    bean = bean.withQualifier(beanMethod.getQualifier());
+                }
+                
+                // Add dependencies from parameters
+                for (String paramType : beanMethod.getParameterTypes()) {
+                    bean.addDependency(paramType);
+                }
+                
+                beansToExport.add(bean);
+            }
+        }
+
+        // Write metadata file
+        int exportedCount = BeanMetadataWriter.writeMetadata(moduleId, beansToExport, filer, this::note);
+        
+        if (exportedCount > 0) {
+            note("Exported " + exportedCount + " bean(s) for multi-module support");
+        }
+    }
+    
     private void generateRegistry() {
         try {
             // Generate AOP wrapper classes for components with interceptors
             AopClassGenerator aopGen = new AopClassGenerator(filer, messager, elementUtils, typeUtils);
             Map<String, String> aopClassMap = aopGen.generateAopClasses(discoveredComponents);
-            
+
             if (!aopClassMap.isEmpty()) {
                 note("Generated " + aopClassMap.size() + " AOP wrapper classes");
             }
-            
-            // Generate VeldRegistry bytecode (standard container - for compatibility)
-            RegistryGenerator registryGen = new RegistryGenerator(discoveredComponents);
+
+            // Generate VeldRegistry bytecode (including factory beans)
+            RegistryGenerator registryGen = new RegistryGenerator(discoveredComponents, discoveredFactories);
             byte[] registryBytecode = registryGen.generate();
             writeClassFile(registryGen.getRegistryClassName(), registryBytecode);
-            note("Generated VeldRegistry with " + discoveredComponents.size() + " components");
-            
+            note("Generated VeldRegistry with " + discoveredComponents.size() + " components and " +
+                 discoveredFactories.size() + " factories");
+
+            // Generate factory metadata for weaver
+            if (!discoveredFactories.isEmpty()) {
+                writeFactoryMetadata();
+                note("Wrote factory metadata for " + discoveredFactories.size() + " factories");
+            }
+
             // Generate Veld.java source code (passing AOP class map for wrapper instantiation)
             VeldSourceGenerator veldGen = new VeldSourceGenerator(discoveredComponents, aopClassMap);
             String veldSource = veldGen.generate();
             writeJavaSource("io.github.yasmramos.veld.Veld", veldSource);
             note("Generated Veld.java with " + discoveredComponents.size() + " components");
-            
-            // Write metadata for weaver
+
+            // Write component metadata for weaver
             writeComponentMetadata();
             note("Wrote component metadata for weaver (" + discoveredComponents.size() + " components)");
+
+            // Export bean metadata for multi-module support
+            exportBeanMetadata();
         } catch (IOException e) {
             error(null, "Failed to generate VeldRegistry: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Writes factory metadata to a file that the weaver will read.
+     * Format: One factory per line with fields separated by ||
+     */
+    private void writeFactoryMetadata() throws IOException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("# Veld Factory Metadata - DO NOT EDIT\n");
+        sb.append("# Generated by VeldProcessor\n");
+        sb.append("# Format: factoryClassName||factoryName||beanCount\n");
+
+        for (FactoryInfo factory : discoveredFactories) {
+            sb.append(factory.getFactoryClassName()).append("||");
+            sb.append(factory.getFactoryName()).append("||");
+            sb.append(factory.getBeanMethods().size());
+            sb.append("\n");
+        }
+
+        FileObject file = filer.createResource(StandardLocation.CLASS_OUTPUT, "",
+            "META-INF/veld/factories.meta");
+        try (Writer writer = file.openWriter()) {
+            writer.write(sb.toString());
         }
     }
     

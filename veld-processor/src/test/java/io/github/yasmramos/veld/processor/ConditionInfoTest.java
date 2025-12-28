@@ -67,6 +67,12 @@ class ConditionInfoTest {
         }
 
         @Test
+        @DisplayName("should return empty present bean conditions list")
+        void shouldReturnEmptyPresentBeanConditionsList() {
+            assertTrue(conditionInfo.getPresentBeanConditions().isEmpty());
+        }
+
+        @Test
         @DisplayName("should return empty profile conditions list")
         void shouldReturnEmptyProfileConditionsList() {
             assertTrue(conditionInfo.getProfileConditions().isEmpty());
@@ -209,6 +215,80 @@ class ConditionInfoTest {
     }
 
     @Nested
+    @DisplayName("Present Bean Condition Tests")
+    class PresentBeanConditionTests {
+
+        @Test
+        @DisplayName("should add present bean type condition")
+        void shouldAddPresentBeanTypeCondition() {
+            List<String> types = Arrays.asList("com.example.MyService");
+            conditionInfo.addPresentBeanTypeCondition(types);
+            
+            assertTrue(conditionInfo.hasConditions());
+            assertEquals(1, conditionInfo.getPresentBeanConditions().size());
+        }
+
+        @Test
+        @DisplayName("should store bean types correctly")
+        void shouldStoreBeanTypesCorrectly() {
+            List<String> types = Arrays.asList(
+                "com.example.ServiceA",
+                "com.example.ServiceB"
+            );
+            conditionInfo.addPresentBeanTypeCondition(types);
+            
+            ConditionInfo.PresentBeanConditionInfo info = conditionInfo.getPresentBeanConditions().get(0);
+            assertEquals(2, info.beanTypes().size());
+            assertTrue(info.beanNames().isEmpty());
+        }
+
+        @Test
+        @DisplayName("should add present bean name condition")
+        void shouldAddPresentBeanNameCondition() {
+            List<String> names = Arrays.asList("myBean", "anotherBean");
+            conditionInfo.addPresentBeanNameCondition(names);
+            
+            assertTrue(conditionInfo.hasConditions());
+            ConditionInfo.PresentBeanConditionInfo info = conditionInfo.getPresentBeanConditions().get(0);
+            assertEquals(2, info.beanNames().size());
+            assertTrue(info.beanTypes().isEmpty());
+        }
+
+        @Test
+        @DisplayName("should add multiple present bean conditions")
+        void shouldAddMultiplePresentBeanConditions() {
+            conditionInfo.addPresentBeanTypeCondition(Arrays.asList("TypeA"));
+            conditionInfo.addPresentBeanNameCondition(Arrays.asList("beanB"));
+            
+            assertEquals(2, conditionInfo.getPresentBeanConditions().size());
+        }
+
+        @Test
+        @DisplayName("hasBeanConditions should return true for present bean conditions")
+        void hasBeanConditionsShouldReturnTrueForPresentBeanConditions() {
+            conditionInfo.addPresentBeanTypeCondition(Arrays.asList("TypeA"));
+            
+            assertTrue(conditionInfo.hasBeanConditions());
+        }
+
+        @Test
+        @DisplayName("hasBeanConditions should return true for missing bean conditions")
+        void hasBeanConditionsShouldReturnTrueForMissingBeanConditions() {
+            conditionInfo.addMissingBeanTypeCondition(Arrays.asList("TypeA"));
+            
+            assertTrue(conditionInfo.hasBeanConditions());
+        }
+
+        @Test
+        @DisplayName("hasBeanConditions should return false when no bean conditions")
+        void hasBeanConditionsShouldReturnFalseWhenNoBeanConditions() {
+            conditionInfo.addPropertyCondition("prop", "val", false);
+            
+            assertFalse(conditionInfo.hasBeanConditions());
+        }
+    }
+
+    @Nested
     @DisplayName("Profile Condition Tests")
     class ProfileConditionTests {
 
@@ -255,12 +335,14 @@ class ConditionInfoTest {
             conditionInfo.addPropertyCondition("feature.enabled", "true", false);
             conditionInfo.addClassCondition(Arrays.asList("com.optional.Library"));
             conditionInfo.addMissingBeanTypeCondition(Arrays.asList("com.example.Backup"));
+            conditionInfo.addPresentBeanTypeCondition(Arrays.asList("com.example.RequiredService"));
             conditionInfo.addProfileCondition(Arrays.asList("production"));
             
             assertTrue(conditionInfo.hasConditions());
             assertEquals(1, conditionInfo.getPropertyConditions().size());
             assertEquals(1, conditionInfo.getClassConditions().size());
             assertEquals(1, conditionInfo.getMissingBeanConditions().size());
+            assertEquals(1, conditionInfo.getPresentBeanConditions().size());
             assertEquals(1, conditionInfo.getProfileConditions().size());
         }
 
@@ -278,6 +360,10 @@ class ConditionInfoTest {
             ConditionInfo withMissingBean = new ConditionInfo();
             withMissingBean.addMissingBeanTypeCondition(Arrays.asList("Type"));
             assertTrue(withMissingBean.hasConditions());
+            
+            ConditionInfo withPresentBean = new ConditionInfo();
+            withPresentBean.addPresentBeanTypeCondition(Arrays.asList("Type"));
+            assertTrue(withPresentBean.hasConditions());
             
             ConditionInfo withProfile = new ConditionInfo();
             withProfile.addProfileCondition(Arrays.asList("profile"));

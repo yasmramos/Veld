@@ -198,18 +198,105 @@ class DependencyGraphTest {
     @Nested
     @DisplayName("Graph String Representation")
     class ToStringTests {
-        
+
         @Test
         @DisplayName("Should produce readable toString output")
         void shouldProduceReadableToString() {
             graph.addDependency("com.example.ServiceA", "com.example.ServiceB");
-            
+
             String output = graph.toString();
-            
+
             assertTrue(output.contains("ServiceA"));
             assertTrue(output.contains("ServiceB"));
             // Uses Unicode arrow character
             assertTrue(output.contains("→"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Factory Bean Cycle Detection")
+    class FactoryBeanCycleDetection {
+
+        @Test
+        @DisplayName("Should detect cycle between two factory beans")
+        void shouldDetectCycleBetweenFactoryBeans() {
+            // BeanA returns type A and depends on B (parameter)
+            // BeanB returns type B and depends on A (parameter)
+            // This creates: A -> B -> A
+            graph.addComponent("com.example.BeanA");
+            graph.addComponent("com.example.BeanB");
+
+            // BeanA depends on BeanB
+            graph.addDependency("com.example.BeanA", "com.example.BeanB");
+            // BeanB depends on BeanA
+            graph.addDependency("com.example.BeanB", "com.example.BeanA");
+
+            Optional<List<String>> cycle = graph.detectCycle();
+
+            assertTrue(cycle.isPresent(), "Should detect cycle between BeanA and BeanB");
+        }
+
+        @Test
+        @DisplayName("Should detect cycle in factory chain A -> B -> C -> A")
+        void shouldDetectCycleInFactoryChain() {
+            // Three factory beans in a cycle
+            graph.addDependency("com.example.BeanA", "com.example.BeanB");
+            graph.addDependency("com.example.BeanB", "com.example.BeanC");
+            graph.addDependency("com.example.BeanC", "com.example.BeanA");
+
+            Optional<List<String>> cycle = graph.detectCycle();
+
+            assertTrue(cycle.isPresent(), "Should detect cycle A -> B -> C -> A");
+        }
+
+        @Test
+        @DisplayName("Should not detect cycle when factory beans have no circular dependencies")
+        void shouldNotDetectCycleWithNoCircularDependencies() {
+            // BeanA depends on BeanB
+            // BeanB depends on BeanC
+            // BeanC has no dependencies
+            graph.addDependency("com.example.BeanA", "com.example.BeanB");
+            graph.addDependency("com.example.BeanB", "com.example.BeanC");
+
+            Optional<List<String>> cycle = graph.detectCycle();
+
+            assertFalse(cycle.isPresent(), "Should not detect cycle in linear dependency chain");
+        }
+
+        @Test
+        @DisplayName("Should detect cycle involving component and factory bean")
+        void shouldDetectCycleBetweenComponentAndFactoryBean() {
+            // Regular component depends on factory bean
+            graph.addDependency("com.example.RegularComponent", "com.example.FactoryBeanA");
+            // Factory bean depends on regular component
+            graph.addDependency("com.example.FactoryBeanA", "com.example.RegularComponent");
+
+            Optional<List<String>> cycle = graph.detectCycle();
+
+            assertTrue(cycle.isPresent(), "Should detect cycle between component and factory bean");
+        }
+
+        @Test
+        @DisplayName("Should handle multiple factory beans with shared dependencies")
+        void shouldHandleMultipleFactoriesWithSharedDeps() {
+            // BeanA and BeanB both depend on SharedService
+            graph.addDependency("com.example.BeanA", "com.example.SharedService");
+            graph.addDependency("com.example.BeanB", "com.example.SharedService");
+
+            Optional<List<String>> cycle = graph.detectCycle();
+
+            assertFalse(cycle.isPresent(), "Should not detect cycle with shared dependencies");
+        }
+
+        @Test
+        @DisplayName("Should detect self-referencing factory bean")
+        void shouldDetectSelfReferencingBean() {
+            // A factory bean that depends on itself
+            graph.addDependency("com.example.SelfRefBean", "com.example.SelfRefBean");
+
+            Optional<List<String>> cycle = graph.detectCycle();
+
+            assertTrue(cycle.isPresent(), "Should detect self-referencing bean cycle");
         }
     }
 }
