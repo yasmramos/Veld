@@ -11,7 +11,7 @@ package io.github.yasmramos.veld.runtime.value;
  * </ul>
  * 
  * @author Veld Framework
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  */
 public class ValueResolutionException extends RuntimeException {
     

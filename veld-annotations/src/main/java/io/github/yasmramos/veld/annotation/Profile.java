@@ -51,7 +51,7 @@ import java.lang.annotation.Target;
  * </ul>
  * 
  * @author Veld Framework
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  * @see Component
  * @see Singleton
  */

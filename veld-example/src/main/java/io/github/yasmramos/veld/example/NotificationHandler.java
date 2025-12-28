@@ -27,7 +27,7 @@ import io.github.yasmramos.veld.example.events.OrderCreatedEvent;
  * the main execution thread for I/O operations like sending emails.
  *
  * @author Veld Framework Team
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  */
 @Component
 public class NotificationHandler {

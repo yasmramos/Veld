@@ -24,7 +24,7 @@ import io.github.yasmramos.veld.runtime.event.Event;
  * that is shared across all order event types.
  *
  * @author Veld Framework Team
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  */
 public abstract class OrderEvent extends Event {
 

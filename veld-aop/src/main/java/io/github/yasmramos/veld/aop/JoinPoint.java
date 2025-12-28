@@ -25,7 +25,7 @@ import java.lang.reflect.Method;
  * read-only access to join point information.
  *
  * @author Veld Framework Team
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  */
 public interface JoinPoint {
 

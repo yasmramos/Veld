@@ -33,7 +33,7 @@ import io.github.yasmramos.veld.example.events.OrderEvent;
  * </ul>
  *
  * @author Veld Framework Team
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  */
 @Component
 public class OrderEventHandler {

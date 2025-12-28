@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.LongAdder;
  * <p>Tracks execution time and invocation counts for methods.
  *
  * @author Veld Framework Team
- * @since 1.0.0-alpha.5
+ * @since 1.0.0
  */
 @Aspect(order = 2)
 public class PerformanceAspect {
