@@ -905,6 +905,3 @@
 !**/.git/hooks/pre-push
 settings.xml
 **/settings.xml
-
-settings.xml
-**/settings.xml
