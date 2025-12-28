@@ -423,8 +423,9 @@ public class VeldProcessor extends AbstractProcessor {
      *
      * @param returnType the return type of the @Bean method
      * @param beanMethod the BeanMethod to store lifecycle information
+     * @throws ProcessingException if a lifecycle method is invalid
      */
-    private void analyzeBeanLifecycle(TypeMirror returnType, FactoryInfo.BeanMethod beanMethod) {
+    private void analyzeBeanLifecycle(TypeMirror returnType, FactoryInfo.BeanMethod beanMethod) throws ProcessingException {
         if (returnType.getKind() != TypeKind.DECLARED) {
             return; // Only analyze declared types (classes/interfaces)
         }
