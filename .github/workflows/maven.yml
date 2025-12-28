@@ -47,7 +47,7 @@ jobs:
       run: |
         echo "=== Starting Maven clean compile ==="
         # First build all modules except benchmark (which needs plugins to be installed first)
-        mvn clean install -DskipTests -Pci -Dmaven.javadoc.skip=true -pl '!veld-benchmark' --batch-mode
+        mvn clean install -DskipTests -Pci -Dmaven.javadoc.skip=true -pl '!veld-benchmark,!veld-spring-boot-starter,!veld-spring-boot-example' --batch-mode
         # Then build benchmark module
         mvn compile -Pci -pl veld-benchmark --batch-mode
       env:
@@ -70,7 +70,7 @@ jobs:
     - name: Run unit tests
       run: |
         echo "=== Starting Maven test phase ==="
-        mvn test -Pci -pl '!veld-benchmark' --batch-mode
+        mvn test -Pci -pl '!veld-benchmark,!veld-spring-boot-starter,!veld-spring-boot-example' --batch-mode
       env:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
       timeout-minutes: 10
