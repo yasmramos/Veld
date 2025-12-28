@@ -214,9 +214,10 @@ jobs:
         mvn clean deploy -DskipTests=false -DfailIfNoTests=false \
           -DskipGpg=false \
           -Dgpg.executable=gpg \
-          -Dgpg.keyname=$GPG_KEYNAME \
-          -Dgpg.passphrase="${GPG_PASSPHRASE:-}" \
-          -Dgpg.useAgent=false
+          -Dgpg.keyname="$GPG_KEYNAME" \
+          -Dgpg.passphrase="$GPG_PASSPHRASE" \
+          -Dgpg.useAgent=false \
+          -Dgpg.args="--batch --pinentry-mode loopback"
         
     - name: Create Staging Repository Summary
       run: |
