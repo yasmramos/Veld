@@ -97,7 +97,7 @@ public class VeldCompileMojoExclusionTest {
         
         File testFile = createTestFile("com/example/TestService.java");
         File legacyFile = createTestFile("com/legacy/OldService.java");
-        File generatedFile = createTestFile("generated/MyGenerated.java");
+        File generatedFile = createTestFile("target/generated/MyGenerated.java");
         File regularFile = createTestFile("com/example/RegularService.java");
         File sourceRoot = tempDir.toFile();
         
