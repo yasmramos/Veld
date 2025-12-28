@@ -55,7 +55,7 @@ import java.lang.annotation.Target;
  * @see Component
  * @see Singleton
  */
-@Target(ElementType.TYPE)
+@Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface Profile {
@@ -72,4 +72,11 @@ public @interface Profile {
      * @return the profiles that must be active for the component to be registered
      */
     String[] value();
+
+    /**
+     * Alias for {@link #value()} for single-profile use cases.
+     * 
+     * @return the profile name
+     */
+    String name() default "";
 }

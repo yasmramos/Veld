@@ -430,6 +430,9 @@ public class VeldProcessor extends AbstractProcessor {
             // Analyze qualifier from method parameters
             analyzeBeanQualifier(method, beanMethod);
 
+            // Analyze @Profile annotation on @Bean method
+            analyzeBeanProfile(method, beanMethod);
+
             // Add parameter types (for dependency resolution)
             for (VariableElement param : method.getParameters()) {
                 String paramType = getTypeName(param.asType());
@@ -588,6 +591,42 @@ public class VeldProcessor extends AbstractProcessor {
             if (qualAnn != null && !qualAnn.value().isEmpty()) {
                 beanMethodInfo.setQualifier(qualAnn.value());
                 note("  -> @Bean @Qualifier: " + qualAnn.value());
+            }
+        }
+    }
+
+    /**
+     * Analyzes profile annotations on the @Bean method.
+     * Stores profile information for runtime profile-based activation.
+     *
+     * @param beanMethod the @Bean method element
+     * @param beanMethodInfo the BeanMethod to store profile information
+     */
+    private void analyzeBeanProfile(ExecutableElement beanMethod, FactoryInfo.BeanMethod beanMethodInfo) {
+        io.github.yasmramos.veld.annotation.Profile profileAnnotation =
+            beanMethod.getAnnotation(io.github.yasmramos.veld.annotation.Profile.class);
+
+        if (profileAnnotation != null) {
+            List<String> profiles = new ArrayList<>();
+            String[] profileValues = profileAnnotation.value();
+            
+            // Also check 'name' attribute as alias
+            if (profileValues.length == 0 || (profileValues.length == 1 && profileValues[0].isEmpty())) {
+                String nameValue = profileAnnotation.name();
+                if (!nameValue.isEmpty()) {
+                    profileValues = new String[]{nameValue};
+                }
+            }
+
+            for (String profile : profileValues) {
+                if (profile != null && !profile.isEmpty()) {
+                    profiles.add(profile);
+                    beanMethodInfo.addProfile(profile);
+                }
+            }
+
+            if (!profiles.isEmpty()) {
+                note("  -> @Bean profiles: " + String.join(", ", profiles));
             }
         }
     }

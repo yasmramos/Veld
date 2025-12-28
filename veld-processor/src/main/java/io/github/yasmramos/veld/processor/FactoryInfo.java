@@ -6,6 +6,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Holds metadata about a factory class and its @Bean methods.
@@ -77,6 +78,7 @@ public final class FactoryInfo {
         private String preDestroyDescriptor;
         private Scope scope = Scope.SINGLETON;
         private String qualifier;  // For @Qualifier support
+        private List<String> profiles = new ArrayList<>();  // For @Profile support
 
         public BeanMethod(String methodName, String methodDescriptor, String returnType,
                          String returnTypeDescriptor, String beanName, boolean isPrimary) {
@@ -164,6 +166,48 @@ public final class FactoryInfo {
 
         public void setQualifier(String qualifier) {
             this.qualifier = qualifier;
+        }
+
+        public List<String> getProfiles() {
+            return profiles;
+        }
+
+        public void setProfiles(List<String> profiles) {
+            this.profiles = profiles;
+        }
+
+        public void addProfile(String profile) {
+            this.profiles.add(profile);
+        }
+
+        public boolean hasProfiles() {
+            return !profiles.isEmpty();
+        }
+
+        public boolean matchesProfiles(Set<String> activeProfiles) {
+            if (profiles.isEmpty()) {
+                return true; // No profile restriction means always match
+            }
+
+            // All profile conditions must be satisfied
+            for (String profile : profiles) {
+                boolean negated = profile.startsWith("!");
+                String profileName = negated ? profile.substring(1) : profile;
+                boolean isActive = activeProfiles.contains(profileName);
+
+                if (negated) {
+                    // If negated, profile should NOT be active
+                    if (isActive) {
+                        return false;
+                    }
+                } else {
+                    // If not negated, profile MUST be active
+                    if (!isActive) {
+                        return false;
+                    }
+                }
+            }
+            return true;
         }
 
         public String getBeanClassName() {
