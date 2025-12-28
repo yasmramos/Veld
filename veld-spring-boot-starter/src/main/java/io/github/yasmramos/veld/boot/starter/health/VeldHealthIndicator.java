@@ -1,8 +1,8 @@
 package io.github.yasmramos.veld.boot.starter.health;
 
 import io.github.yasmramos.veld.boot.starter.service.VeldSpringBootService;
-import org.springframework.boot.actuate.health.Health;
-import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.boot.actuate.health.contributor.Health;
+import org.springframework.boot.actuate.health.contributor.HealthIndicator;
 import org.springframework.stereotype.Component;
 
 /**
