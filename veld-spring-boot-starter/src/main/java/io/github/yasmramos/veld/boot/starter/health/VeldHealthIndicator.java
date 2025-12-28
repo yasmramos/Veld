@@ -1,9 +1,10 @@
 package io.github.yasmramos.veld.boot.starter.health;
 
-import io.github.yasmramos.veld.boot.starter.service.VeldSpringBootService;
-import org.springframework.boot.actuate.health.contributor.Health;
-import org.springframework.boot.actuate.health.contributor.HealthIndicator;
+import org.springframework.boot.health.contributor.HealthIndicator;
+import org.springframework.boot.health.contributor.Health;
 import org.springframework.stereotype.Component;
+
+import io.github.yasmramos.veld.boot.starter.service.VeldSpringBootService;
 
 /**
  * Spring Boot Health Indicator for Veld Container.
