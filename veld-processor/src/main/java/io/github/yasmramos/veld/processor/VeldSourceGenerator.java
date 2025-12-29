@@ -62,15 +62,15 @@ public final class VeldSourceGenerator {
         
         // Static initializer
         sb.append("    static {\n");
-        sb.append("        Set<String> initialProfiles = getActiveProfiles();\n");
+        sb.append("        Set<String> initialProfiles = computeActiveProfiles();\n");
         sb.append("        _activeProfiles = initialProfiles.toArray(new String[0]);\n");
         sb.append("        _lifecycle = new LifecycleProcessor();\n");
         sb.append("        _lifecycle.setEventBus(_eventBus);\n");
         sb.append("        _conditionalRegistry = new ConditionalRegistry(_registry, initialProfiles);\n");
         sb.append("    }\n\n");
         
-        // getActiveProfiles
-        sb.append("    private static Set<String> getActiveProfiles() {\n");
+        // computeActiveProfiles
+        sb.append("    private static Set<String> computeActiveProfiles() {\n");
         sb.append("        String profiles = System.getProperty(\"veld.profiles.active\", \n");
         sb.append("            System.getenv().getOrDefault(\"VELD_PROFILES_ACTIVE\", \"\"));\n");
         sb.append("        if (profiles.isEmpty()) {\n");
