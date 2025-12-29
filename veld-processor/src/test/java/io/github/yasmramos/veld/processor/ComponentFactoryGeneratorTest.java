@@ -278,7 +278,7 @@ class ComponentFactoryGeneratorTest {
             
             MethodNode method = getMethod(cn, "getScope");
             assertNotNull(method);
-            assertEquals("()Lio/github/yasmramos/veld/runtime/Scope;", method.desc);
+            assertEquals("()Lio/github/yasmramos/veld/runtime/LegacyScope;", method.desc);
         }
 
         @Test
