@@ -1,5 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
+import io.github.yasmramos.veld.annotation.Profile;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,7 +58,17 @@ public final class ConditionInfo {
      * The bean will only be registered if all specified bean types exist.
      */
     public void addPresentBeanTypeCondition(List<String> beanTypes) {
-        presentBeanConditions.add(new PresentBeanConditionInfo(beanTypes, new ArrayList<>()));
+        presentBeanConditions.add(new PresentBeanConditionInfo(beanTypes, new ArrayList<>(), true, false));
+    }
+    
+    /**
+     * Adds a present bean condition by types with strategy.
+     * 
+     * @param beanTypes bean types that must be present
+     * @param matchAll if true, all types must match; if false, any type matches
+     */
+    public void addPresentBeanTypeCondition(List<String> beanTypes, boolean matchAll) {
+        presentBeanConditions.add(new PresentBeanConditionInfo(beanTypes, new ArrayList<>(), matchAll, false));
     }
     
     /**
@@ -65,14 +76,42 @@ public final class ConditionInfo {
      * The bean will only be registered if all specified bean names exist.
      */
     public void addPresentBeanNameCondition(List<String> beanNames) {
-        presentBeanConditions.add(new PresentBeanConditionInfo(new ArrayList<>(), beanNames));
+        presentBeanConditions.add(new PresentBeanConditionInfo(new ArrayList<>(), beanNames, true, false));
+    }
+    
+    /**
+     * Adds a present bean condition by names with strategy.
+     * 
+     * @param beanNames bean names that must be present
+     * @param matchAll if true, all names must match; if false, any name matches
+     */
+    public void addPresentBeanNameCondition(List<String> beanNames, boolean matchAll) {
+        presentBeanConditions.add(new PresentBeanConditionInfo(new ArrayList<>(), beanNames, matchAll, false));
+    }
+    
+    /**
+     * Adds a present bean condition with custom strategy.
+     * 
+     * @param beanTypes bean types that must be present
+     * @param beanNames bean names that must be present
+     * @param matchAll if true, all conditions must match; if false, any condition matches
+     */
+    public void addPresentBeanCondition(List<String> beanTypes, List<String> beanNames, boolean matchAll) {
+        presentBeanConditions.add(new PresentBeanConditionInfo(beanTypes, beanNames, matchAll, false));
     }
     
     /**
      * Adds a profile condition.
      */
     public void addProfileCondition(List<String> profiles) {
-        profileConditions.add(new ProfileConditionInfo(profiles));
+        profileConditions.add(new ProfileConditionInfo(profiles, "", Profile.MatchStrategy.ALL));
+    }
+    
+    /**
+     * Adds a profile condition with expression.
+     */
+    public void addProfileCondition(List<String> profiles, String expression, Profile.MatchStrategy strategy) {
+        profileConditions.add(new ProfileConditionInfo(profiles, expression, strategy));
     }
     
     /**
@@ -124,8 +163,17 @@ public final class ConditionInfo {
     public record MissingBeanConditionInfo(List<String> beanTypes, List<String> beanNames) {}
     
     /** Present bean condition info (Java 17 record) */
-    public record PresentBeanConditionInfo(List<String> beanTypes, List<String> beanNames) {}
+    public record PresentBeanConditionInfo(
+        List<String> beanTypes, 
+        List<String> beanNames,
+        boolean matchAll,
+        boolean considerHierarchy
+    ) {}
     
     /** Profile condition info (Java 17 record) */
-    public record ProfileConditionInfo(List<String> profiles) {}
+    public record ProfileConditionInfo(
+        List<String> profiles,
+        String expression,
+        io.github.yasmramos.veld.annotation.Profile.MatchStrategy strategy
+    ) {}
 }

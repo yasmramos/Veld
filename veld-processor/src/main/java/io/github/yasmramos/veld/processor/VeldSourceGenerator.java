@@ -57,17 +57,20 @@ public final class VeldSourceGenerator {
         sb.append("    private static final VeldRegistry _registry = new VeldRegistry();\n");
         sb.append("    private static final LifecycleProcessor _lifecycle;\n");
         sb.append("    private static final ConditionalRegistry _conditionalRegistry;\n");
-        sb.append("    private static final EventBus _eventBus = EventBus.getInstance();\n\n");
+        sb.append("    private static final EventBus _eventBus = EventBus.getInstance();\n");
+        sb.append("    private static String[] _activeProfiles = new String[0];\n\n");
         
         // Static initializer
         sb.append("    static {\n");
+        sb.append("        Set<String> initialProfiles = computeActiveProfiles();\n");
+        sb.append("        _activeProfiles = initialProfiles.toArray(new String[0]);\n");
         sb.append("        _lifecycle = new LifecycleProcessor();\n");
         sb.append("        _lifecycle.setEventBus(_eventBus);\n");
-        sb.append("        _conditionalRegistry = new ConditionalRegistry(_registry, getActiveProfiles());\n");
+        sb.append("        _conditionalRegistry = new ConditionalRegistry(_registry, initialProfiles);\n");
         sb.append("    }\n\n");
         
-        // getActiveProfiles
-        sb.append("    private static Set<String> getActiveProfiles() {\n");
+        // computeActiveProfiles
+        sb.append("    private static Set<String> computeActiveProfiles() {\n");
         sb.append("        String profiles = System.getProperty(\"veld.profiles.active\", \n");
         sb.append("            System.getenv().getOrDefault(\"VELD_PROFILES_ACTIVE\", \"\"));\n");
         sb.append("        if (profiles.isEmpty()) {\n");
@@ -106,6 +109,22 @@ public final class VeldSourceGenerator {
         // Shutdown method
         sb.append("    public static void shutdown() {\n");
         sb.append("        _lifecycle.destroy();\n");
+        sb.append("    }\n\n");
+
+        // Profile management methods
+        sb.append("    // === PROFILE MANAGEMENT ===\n\n");
+        sb.append("    public static void setActiveProfiles(String... profiles) {\n");
+        sb.append("        _activeProfiles = profiles != null ? profiles : new String[0];\n");
+        sb.append("    }\n\n");
+        sb.append("    public static String[] getActiveProfiles() {\n");
+        sb.append("        return _activeProfiles.clone();\n");
+        sb.append("    }\n\n");
+        sb.append("    public static boolean isProfileActive(String profile) {\n");
+        sb.append("        if (profile == null) return false;\n");
+        sb.append("        for (String p : _activeProfiles) {\n");
+        sb.append("            if (profile.equals(p)) return true;\n");
+        sb.append("        }\n");
+        sb.append("        return false;\n");
         sb.append("    }\n\n");
         
         // Sort factories by order (lower values have higher priority)

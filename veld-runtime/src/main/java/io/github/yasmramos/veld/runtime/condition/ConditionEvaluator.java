@@ -1,6 +1,8 @@
 package io.github.yasmramos.veld.runtime.condition;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -106,7 +108,41 @@ public final class ConditionEvaluator {
      * @return this evaluator for chaining
      */
     public ConditionEvaluator addProfileCondition(String... profiles) {
-        return addCondition(new ProfileCondition(profiles));
+        return addProfileCondition(profiles, "", ProfileCondition.MatchStrategy.ALL);
+    }
+    
+    /**
+     * Adds a profile condition with expression and strategy.
+     * 
+     * @param profiles the profiles that must be active
+     * @param expression SpEL-style expression for complex conditions
+     * @param strategy how to combine value and expression conditions
+     * @return this evaluator for chaining
+     */
+    public ConditionEvaluator addProfileCondition(String[] profiles, String expression, ProfileCondition.MatchStrategy strategy) {
+        return addCondition(new ProfileCondition(profiles, expression, strategy));
+    }
+    
+    /**
+     * Adds a present bean condition by types with custom strategy.
+     * 
+     * @param beanTypes fully qualified class names that MUST be present
+     * @param strategy how to combine conditions (ALL or ANY)
+     * @return this evaluator for chaining
+     */
+    public ConditionEvaluator addPresentBeanCondition(String[] beanTypes, PresentBeanCondition.MatchStrategy strategy) {
+        return addCondition(new PresentBeanCondition(Arrays.asList(beanTypes), Collections.emptyList(), strategy));
+    }
+    
+    /**
+     * Adds a present bean condition by names with custom strategy.
+     * 
+     * @param beanNames bean names that MUST be present
+     * @param strategy how to combine conditions (ALL or ANY)
+     * @return this evaluator for chaining
+     */
+    public ConditionEvaluator addPresentBeanNameCondition(String[] beanNames, PresentBeanCondition.MatchStrategy strategy) {
+        return addCondition(new PresentBeanCondition(Collections.emptyList(), Arrays.asList(beanNames), strategy));
     }
     
     /**
