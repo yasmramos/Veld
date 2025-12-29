@@ -109,9 +109,9 @@ public final class JsonExporter implements GraphExporter {
         sb.append(indent(2)).append("\"edges\": [");
         if (prettyPrint) sb.append("\n");
         
-        List<DependencyEdge> edges = graph.getEdges();
+        List<DependencyGraph.DependencyEdge> edges = graph.getEdges();
         for (int i = 0; i < edges.size(); i++) {
-            DependencyEdge edge = edges.get(i);
+            DependencyGraph.DependencyEdge edge = edges.get(i);
             sb.append(indent(3)).append("{");
             if (prettyPrint) sb.append("\n");
             

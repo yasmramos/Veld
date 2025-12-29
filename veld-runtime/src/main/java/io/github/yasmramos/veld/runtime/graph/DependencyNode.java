@@ -12,7 +12,7 @@ public final class DependencyNode {
     private final String simpleName;
     private final String componentName;
     private final Scope scope;
-    private final boolean isPrimary;
+    private boolean isPrimary;
     private final Set<String> profiles = new HashSet<>();
     private final List<String> constructorDependencies = new ArrayList<>();
     private final List<String> fieldDependencies = new ArrayList<>();

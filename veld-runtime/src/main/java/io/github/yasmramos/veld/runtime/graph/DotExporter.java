@@ -73,7 +73,7 @@ public final class DotExporter implements GraphExporter {
         
         // Add edges with labels
         Set<String> addedEdges = new HashSet<>();
-        for (DependencyEdge edge : graph.getEdges()) {
+        for (DependencyGraph.DependencyEdge edge : graph.getEdges()) {
             String edgeKey = edge.getFrom() + "->" + edge.getTo();
             if (!addedEdges.contains(edgeKey)) {
                 sb.append(INDENT).append("\"").append(escape(edge.getFrom())).append("\"");
