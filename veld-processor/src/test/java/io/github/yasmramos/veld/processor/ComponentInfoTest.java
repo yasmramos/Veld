@@ -228,6 +228,7 @@ class ComponentInfoTest {
                 "com.example.LazyService",
                 "lazyService",
                 LegacyScope.SINGLETON,
+                null,
                 true
             );
             assertTrue(lazyInfo.isLazy());
@@ -240,6 +241,7 @@ class ComponentInfoTest {
                 "com.example.EagerService",
                 "eagerService",
                 LegacyScope.SINGLETON,
+                null,
                 false
             );
             assertFalse(nonLazyInfo.isLazy());

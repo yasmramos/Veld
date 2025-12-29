@@ -475,8 +475,8 @@ class RegistryGeneratorTest {
         @DisplayName("should handle lazy components")
         void shouldHandleLazyComponents() {
             List<ComponentInfo> components = Arrays.asList(
-                new ComponentInfo("com.example.LazyService", "lazyService", LegacyScope.SINGLETON, true),
-                new ComponentInfo("com.example.EagerService", "eagerService", LegacyScope.SINGLETON, false)
+                new ComponentInfo("com.example.LazyService", "lazyService", LegacyScope.SINGLETON, null, true),
+                new ComponentInfo("com.example.EagerService", "eagerService", LegacyScope.SINGLETON, null, false)
             );
             
             RegistryGenerator generator = new RegistryGenerator(components);

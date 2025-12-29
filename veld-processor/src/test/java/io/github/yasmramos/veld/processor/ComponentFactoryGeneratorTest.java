@@ -365,6 +365,7 @@ class ComponentFactoryGeneratorTest {
                 "com.example.LazyService",
                 "lazyService",
                 LegacyScope.SINGLETON,
+                null,
                 true  // lazy = true
             );
             
@@ -386,6 +387,7 @@ class ComponentFactoryGeneratorTest {
                 "com.example.EagerService",
                 "eagerService",
                 LegacyScope.SINGLETON,
+                null,
                 false  // lazy = false
             );
             
