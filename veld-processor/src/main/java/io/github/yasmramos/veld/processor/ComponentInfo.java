@@ -12,8 +12,8 @@ import java.util.stream.Collectors;
  */
 public final class ComponentInfo {
     
-    private final String className;              // Fully qualified: com.example.MyService
-    private final String internalName;           // ASM internal: com/example/MyService
+    private String className;              // Fully qualified: com.example.MyService
+    private String internalName;           // ASM internal: com/example/MyService
     private final String componentName;          // @Component value or simple class name
     private final Scope scope;                   // SINGLETON or PROTOTYPE
     private final boolean lazy;                  // @Lazy - deferred initialization
@@ -62,6 +62,16 @@ public final class ComponentInfo {
     
     public String getClassName() {
         return className;
+    }
+    
+    /**
+     * Sets the class name and updates internal name accordingly.
+     * 
+     * @param className the new fully qualified class name
+     */
+    public void setClassName(String className) {
+        this.className = className;
+        this.internalName = className.replace('.', '/');
     }
     
     public String getInternalName() {
@@ -411,5 +421,38 @@ public final class ComponentInfo {
         return constructorInjection.getDependencies().stream()
             .map(InjectionPoint.Dependency::getTypeName)
             .collect(Collectors.toList());
+    }
+    
+    // === UNRESOLVED INTERFACE DEPENDENCIES ===
+    // Dependencies that are interfaces without @Component implementations
+    
+    private final List<String> unresolvedInterfaceDependencies = new ArrayList<>();
+    
+    /**
+     * Adds an interface dependency that has no implementing component.
+     * These can be resolved at runtime via mock injection or other mechanisms.
+     * 
+     * @param interfaceName fully qualified interface name
+     */
+    public void addUnresolvedInterfaceDependency(String interfaceName) {
+        this.unresolvedInterfaceDependencies.add(interfaceName);
+    }
+    
+    /**
+     * Gets all interface dependencies that have no implementing component.
+     * 
+     * @return list of interface names that need external resolution
+     */
+    public List<String> getUnresolvedInterfaceDependencies() {
+        return unresolvedInterfaceDependencies;
+    }
+    
+    /**
+     * Checks if this component has any unresolved interface dependencies.
+     * 
+     * @return true if there are interfaces without implementations
+     */
+    public boolean hasUnresolvedInterfaceDependencies() {
+        return !unresolvedInterfaceDependencies.isEmpty();
     }
 }
