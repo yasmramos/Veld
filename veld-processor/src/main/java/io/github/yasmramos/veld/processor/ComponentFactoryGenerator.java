@@ -34,7 +34,7 @@ public final class ComponentFactoryGenerator {
     
     private static final String COMPONENT_FACTORY = "io/github/yasmramos/veld/runtime/ComponentFactory";
     private static final String VELD_CLASS = "io/github/yasmramos/veld/Veld";
-    private static final String SCOPE = "io.github.yasmramos.veld.runtime.LegacyScope";
+    private static final String SCOPE = "io/github/yasmramos/veld/runtime/LegacyScope";
     private static final String PROVIDER = "io/github/yasmramos/veld/runtime/Provider";
     private static final String OPTIONAL = "java/util/Optional";
     private static final String OBJECT = "java/lang/Object";
