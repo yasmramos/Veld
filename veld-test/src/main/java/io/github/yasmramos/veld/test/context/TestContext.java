@@ -56,6 +56,11 @@ public final class TestContext implements AutoCloseable {
     /**
      * Gets a bean from the container by type.
      * 
+     * <p>If the bean is registered as a mock, returns the mock.
+     * Otherwise, attempts to get it from the Veld container.
+     * If Veld cannot provide the bean (e.g., dependencies are mocked),
+     * creates the bean manually using reflection and injects the mocks.</p>
+     * 
      * @param <T> bean type
      * @param type bean class
      * @return bean of the specified type
@@ -65,23 +70,109 @@ public final class TestContext implements AutoCloseable {
     @SuppressWarnings("unchecked")
     public <T> T getBean(Class<T> type) {
         checkOpen();
+        
         // Check if we have a mock for this type
         if (mocks.containsKey(type)) {
             return (T) mocks.get(type);
         }
+        
         // Check if we have a named mock that can be cast
         for (Object mock : namedMocks.values()) {
             if (type.isInstance(mock)) {
                 return (T) mock;
             }
         }
+        
         // Try to get from Veld container
         try {
             return Veld.get(type);
+        } catch (ExceptionInInitializerError e) {
+            // Veld failed to initialize, try manual creation
+            return createBeanManually(type);
         } catch (Exception e) {
-            throw new TestContextException(
-                "Could not obtain bean of type: " + type.getName(), e);
+            // Veld.get() threw an exception, try manual creation
+            return createBeanManually(type);
         }
+    }
+    
+    /**
+     * Creates a bean manually using reflection, injecting mocks for dependencies.
+     * 
+     * @param <T> bean type
+     * @param type bean class
+     * @return created bean
+     */
+    @SuppressWarnings("unchecked")
+    private <T> T createBeanManually(Class<T> type) {
+        try {
+            // Find a suitable constructor with all dependencies available as mocks
+            for (java.lang.reflect.Constructor<?> ctor : type.getDeclaredConstructors()) {
+                Class<?>[] paramTypes = ctor.getParameterTypes();
+                Object[] args = new Object[paramTypes.length];
+                boolean allArgsAvailable = true;
+                
+                for (int i = 0; i < paramTypes.length; i++) {
+                    // Check for exact type match in mocks
+                    if (mocks.containsKey(paramTypes[i])) {
+                        args[i] = mocks.get(paramTypes[i]);
+                    }
+                    // Check for interface match in mocks
+                    else {
+                        Object mock = findMockForType(paramTypes[i]);
+                        if (mock != null) {
+                            args[i] = mock;
+                        } else {
+                            allArgsAvailable = false;
+                            break;
+                        }
+                    }
+                }
+                
+                if (allArgsAvailable) {
+                    ctor.setAccessible(true);
+                    return (T) ctor.newInstance(args);
+                }
+            }
+            
+            throw new TestContextException(
+                "Could not find suitable constructor for: " + type.getName() + 
+                " (some dependencies are not mocked)");
+        } catch (Exception e) {
+            if (e instanceof TestContextException) {
+                throw (TestContextException) e;
+            }
+            throw new TestContextException(
+                "Could not create bean of type: " + type.getName(), e);
+        }
+    }
+    
+    /**
+     * Finds a mock that is assignable to the given type.
+     * 
+     * @param type required type
+     * @return mock instance or null if not found
+     */
+    private Object findMockForType(Class<?> type) {
+        // Check exact match
+        if (mocks.containsKey(type)) {
+            return mocks.get(type);
+        }
+        
+        // Check for assignable types (interfaces, superclasses)
+        for (Object mock : mocks.values()) {
+            if (type.isInstance(mock)) {
+                return mock;
+            }
+        }
+        
+        // Check named mocks by type
+        for (Object mock : namedMocks.values()) {
+            if (type.isInstance(mock)) {
+                return mock;
+            }
+        }
+        
+        return null;
     }
     
     /**
