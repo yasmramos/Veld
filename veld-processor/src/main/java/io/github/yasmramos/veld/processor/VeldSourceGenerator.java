@@ -282,6 +282,12 @@ public final class VeldSourceGenerator {
     
     private String getSimpleName(ComponentInfo comp) {
         String className = comp.getClassName();
+        // For inner classes (Outer$Inner), get just the simple name (Inner)
+        int lastDollar = className.lastIndexOf('$');
+        if (lastDollar >= 0) {
+            return className.substring(lastDollar + 1);
+        }
+        // For regular classes (package.Class), get the class name
         int lastDot = className.lastIndexOf('.');
         return lastDot >= 0 ? className.substring(lastDot + 1) : className;
     }
