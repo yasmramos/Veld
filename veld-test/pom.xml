@@ -31,6 +31,14 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Veld Processor (compile-time annotation processing) -->
+        <dependency>
+            <groupId>io.github.yasmramos</groupId>
+            <artifactId>veld-processor</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- JUnit 5 API -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -89,6 +97,13 @@
                 <configuration>
                     <source>11</source>
                     <target>11</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>io.github.yasmramos</groupId>
+                            <artifactId>veld-processor</artifactId>
+                            <version>${project.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
             <plugin>
