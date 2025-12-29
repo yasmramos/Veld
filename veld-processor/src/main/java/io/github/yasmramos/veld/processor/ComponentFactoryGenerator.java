@@ -138,6 +138,9 @@ public final class ComponentFactoryGenerator {
             generateGetDestroyOrder(cw);
         }
         
+        // getDependencyTypes() method - always generated for dependency graph
+        generateGetDependencyTypes(cw);
+        
         // Bridge methods for type erasure
         generateBridgeMethods(cw, factoryInternal, componentInternal);
         
@@ -850,6 +853,63 @@ public final class ComponentFactoryGenerator {
         }
         
         mv.visitInsn(IRETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    
+    private void generateGetDependencyTypes(ClassWriter cw) {
+        // public List<String> getDependencyTypes()
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "getDependencyTypes",
+                "()L" + LIST + ";", "()L" + LIST + "<L" + STRING + ";>;", null);
+        mv.visitCode();
+        
+        // Collect all dependencies
+        java.util.List<String> allDeps = new java.util.ArrayList<>();
+        
+        // Constructor dependencies
+        InjectionPoint ctor = component.getConstructorInjection();
+        if (ctor != null) {
+            for (Dependency dep : ctor.getDependencies()) {
+                if (!dep.isValueInjection()) {
+                    allDeps.add(dep.getActualTypeName());
+                }
+            }
+        }
+        
+        // Field dependencies
+        for (InjectionPoint field : component.getFieldInjections()) {
+            if (!field.getDependencies().isEmpty()) {
+                Dependency dep = field.getDependencies().get(0);
+                if (!dep.isValueInjection()) {
+                    allDeps.add(dep.getActualTypeName());
+                }
+            }
+        }
+        
+        // Method dependencies
+        for (InjectionPoint method : component.getMethodInjections()) {
+            for (Dependency dep : method.getDependencies()) {
+                allDeps.add(dep.getActualTypeName());
+            }
+        }
+        
+        int size = allDeps.size();
+        
+        // return Arrays.asList("Dep1", "Dep2", ...);
+        mv.visitIntInsn(BIPUSH, size);
+        mv.visitTypeInsn(ANEWARRAY, STRING);
+        
+        for (int i = 0; i < size; i++) {
+            mv.visitInsn(DUP);
+            mv.visitIntInsn(BIPUSH, i);
+            mv.visitLdcInsn(allDeps.get(i));
+            mv.visitInsn(AASTORE);
+        }
+        
+        mv.visitMethodInsn(INVOKESTATIC, ARRAYS, "asList",
+                "([L" + OBJECT + ";)L" + LIST + ";", false);
+        mv.visitInsn(ARETURN);
+        
         mv.visitMaxs(0, 0);
         mv.visitEnd();
     }
