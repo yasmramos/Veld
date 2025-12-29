@@ -95,9 +95,9 @@ public final class BeanFactorySourceGenerator {
 
         // getScope() - uses the scope from @Bean annotation
         sb.append("    @Override\n");
-        sb.append("    public Scope getScope() {\n");
+        sb.append("    public LegacyScope getScope() {\n");
         String scopeName = beanMethod.getScope() == LegacyScope.PROTOTYPE ? "PROTOTYPE" : "SINGLETON";
-        sb.append("        return Scope.").append(scopeName).append(";\n");
+        sb.append("        return LegacyScope.").append(scopeName).append(";\n");
         sb.append("    }\n\n");
 
         // getQualifier() - returns the qualifier name if present
