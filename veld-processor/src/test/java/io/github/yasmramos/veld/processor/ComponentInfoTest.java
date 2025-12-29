@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.Scope;
+import io.github.yasmramos.veld.runtime.LegacyScope;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -23,7 +23,7 @@ class ComponentInfoTest {
         componentInfo = new ComponentInfo(
             "com.example.MyService",
             "myService",
-            Scope.SINGLETON
+            LegacyScope.SINGLETON
         );
     }
     
@@ -52,7 +52,7 @@ class ComponentInfoTest {
         @Test
         @DisplayName("Should return correct scope")
         void shouldReturnCorrectScope() {
-            assertEquals(Scope.SINGLETON, componentInfo.getScope());
+            assertEquals(LegacyScope.SINGLETON, componentInfo.getScope());
         }
         
         @Test
@@ -204,10 +204,10 @@ class ComponentInfoTest {
             ComponentInfo prototypeInfo = new ComponentInfo(
                 "com.example.Request",
                 "request",
-                Scope.PROTOTYPE
+                LegacyScope.PROTOTYPE
             );
             
-            assertEquals(Scope.PROTOTYPE, prototypeInfo.getScope());
+            assertEquals(LegacyScope.PROTOTYPE, prototypeInfo.getScope());
         }
     }
     
@@ -227,7 +227,7 @@ class ComponentInfoTest {
             ComponentInfo lazyInfo = new ComponentInfo(
                 "com.example.LazyService",
                 "lazyService",
-                Scope.SINGLETON,
+                LegacyScope.SINGLETON,
                 true
             );
             assertTrue(lazyInfo.isLazy());
@@ -239,7 +239,7 @@ class ComponentInfoTest {
             ComponentInfo nonLazyInfo = new ComponentInfo(
                 "com.example.EagerService",
                 "eagerService",
-                Scope.SINGLETON,
+                LegacyScope.SINGLETON,
                 false
             );
             assertFalse(nonLazyInfo.isLazy());

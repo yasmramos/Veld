@@ -1,7 +1,7 @@
 package io.github.yasmramos.veld.processor;
 
 import io.github.yasmramos.veld.annotation.*;
-import io.github.yasmramos.veld.runtime.Scope;
+import io.github.yasmramos.veld.runtime.LegacyScope;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -43,9 +43,9 @@ class BeanFactorySourceGeneratorTest {
             BeanFactorySourceGenerator generator = new BeanFactorySourceGenerator(factory, beanMethod, 0);
             String code = generator.generate();
 
-            assertTrue(code.contains("return Scope.SINGLETON;"),
-                "Generated code should return Scope.SINGLETON by default");
-            assertFalse(code.contains("Scope.PROTOTYPE"),
+            assertTrue(code.contains("return LegacyScope.SINGLETON;"),
+                "Generated code should return LegacyScope.SINGLETON by default");
+            assertFalse(code.contains("LegacyScope.PROTOTYPE"),
                 "Generated code should not contain PROTOTYPE scope");
         }
 
@@ -54,14 +54,14 @@ class BeanFactorySourceGeneratorTest {
         void shouldGeneratePrototypeScopeWhenSpecified() {
             FactoryInfo factory = createTestFactory();
             FactoryInfo.BeanMethod beanMethod = createTestBeanMethod("MyService", "createService");
-            beanMethod.setScope(Scope.PROTOTYPE);
+            beanMethod.setScope(LegacyScope.PROTOTYPE);
             factory.addBeanMethod(beanMethod);
 
             BeanFactorySourceGenerator generator = new BeanFactorySourceGenerator(factory, beanMethod, 0);
             String code = generator.generate();
 
-            assertTrue(code.contains("return Scope.PROTOTYPE;"),
-                "Generated code should return Scope.PROTOTYPE when specified");
+            assertTrue(code.contains("return LegacyScope.PROTOTYPE;"),
+                "Generated code should return LegacyScope.PROTOTYPE when specified");
         }
     }
 
@@ -218,7 +218,7 @@ class BeanFactorySourceGeneratorTest {
                 "Should import Veld");
             assertTrue(code.contains("import io.github.yasmramos.veld.runtime.ComponentFactory;"),
                 "Should import ComponentFactory");
-            assertTrue(code.contains("import io.github.yasmramos.veld.runtime.Scope;"),
+            assertTrue(code.contains("import io.github.yasmramos.veld.runtime.LegacyScope;"),
                 "Should import Scope");
         }
 
