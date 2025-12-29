@@ -195,14 +195,34 @@ public class VeldProcessor extends AbstractProcessor {
                 continue;
             }
             
-            if (typeElement.getNestingKind() == NestingKind.LOCAL || 
-                typeElement.getNestingKind() == NestingKind.ANONYMOUS) {
+            // Check nesting kind for proper inner class handling
+            NestingKind nestingKind = typeElement.getNestingKind();
+            if (nestingKind == NestingKind.LOCAL || nestingKind == NestingKind.ANONYMOUS) {
                 error(typeElement, "Component annotation cannot be applied to local or anonymous classes");
                 continue;
             }
             
+            // Log nesting kind for debugging inner class processing
+            if (nestingKind == NestingKind.MEMBER) {
+                // Static inner class - get enclosing element for context
+                Element enclosing = typeElement.getEnclosingElement();
+                String enclosingName = enclosing instanceof TypeElement 
+                    ? ((TypeElement) enclosing).getQualifiedName().toString()
+                    : enclosing.toString();
+                note("Processing static inner class: " + className + " (enclosing: " + enclosingName + ")");
+            }
+            
             try {
                 ComponentInfo info = analyzeComponent(typeElement);
+                
+                // For inner classes, ensure the className is fully qualified
+                if (nestingKind == NestingKind.MEMBER) {
+                    String computedClassName = typeElement.getQualifiedName().toString();
+                    if (!computedClassName.equals(info.getClassName())) {
+                        info.setClassName(computedClassName);
+                    }
+                }
+                
                 discoveredComponents.add(info);
                 
                 // Build dependency graph for cycle detection
