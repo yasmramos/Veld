@@ -23,6 +23,7 @@ Veld is a **compile-time Dependency Injection framework** that generates pure by
 ## Features
 
 ### Core DI
+
 - **Zero Reflection** - All injection code generated at compile-time as bytecode
 - **Constructor Injection** - Preferred pattern, supports private constructors
 - **Field Injection** - Works across packages via synthetic setters (bytecode weaving)
@@ -30,6 +31,7 @@ Veld is a **compile-time Dependency Injection framework** that generates pure by
 - **Interface Binding** - Inject by interface, resolved to implementation
 
 ### Scopes & Lifecycle
+
 - **Singleton** - Single instance per application (default)
 - **Prototype** - New instance on every request (`@Prototype`)
 - **Lazy Initialization** - `@Lazy` for deferred creation
@@ -37,11 +39,13 @@ Veld is a **compile-time Dependency Injection framework** that generates pure by
 - **Conditional Registration** - `@ConditionalOnProperty`, `@ConditionalOnMissingBean`, `@ConditionalOnClass`
 
 ### Standards Support
+
 - **JSR-330** - Full support for `javax.inject.*` annotations
 - **Jakarta Inject** - Full support for `jakarta.inject.*` annotations
 - **Mixed Usage** - Use both in the same project
 
 ### Advanced Features
+
 - **Named Injection** - `@Named` qualifier for disambiguation
 - **Value Injection** - `@Value` for configuration properties
 - **Provider Support** - `Provider<T>` for lazy/multiple instances
@@ -51,6 +55,7 @@ Veld is a **compile-time Dependency Injection framework** that generates pure by
 - **JPMS Compatible** - Full Java Module System support
 
 ### Resilience & Fault Tolerance (`veld-resilience`)
+
 - **Retry** - `@Retry` automatic retry with exponential backoff
 - **Rate Limiting** - `@RateLimiter` to control method call frequency
 - **Circuit Breaker** - `@CircuitBreaker` prevents cascading failures
@@ -58,29 +63,35 @@ Veld is a **compile-time Dependency Injection framework** that generates pure by
 - **Timeout** - `@Timeout` cancels long-running operations
 
 ### Caching (`veld-cache`)
+
 - **Cacheable** - `@Cacheable` caches method results
 - **Cache Eviction** - `@CacheEvict` removes cache entries
 - **Cache Put** - `@CachePut` updates cache without checking
 
 ### Validation (`veld-validation`)
+
 - **Bean Validation** - `@Valid`, `@NotNull`, `@NotEmpty`, `@Size`
 - **Numeric Constraints** - `@Min`, `@Max`
 - **Pattern Matching** - `@Email`, `@Pattern`
 
 ### Security (`veld-security`)
+
 - **Role-Based Access** - `@Secured`, `@RolesAllowed`
 - **Method Security** - `@PreAuthorize`, `@PermitAll`, `@DenyAll`
 
 ### Metrics (`veld-metrics`)
+
 - **Timing** - `@Timed` records execution duration
 - **Counting** - `@Counted` tracks invocations
 - **Gauges** - `@Gauge` exposes values as metrics
 
 ### Transactions (`veld-tx`)
+
 - **Declarative TX** - `@Transactional` with propagation control
 - **Rollback Rules** - Configure rollback for specific exceptions
 
 ### Async & Scheduling
+
 - **Async Execution** - `@Async` for background thread execution
 - **Scheduled Tasks** - `@Scheduled` with cron expressions, fixed rate/delay
 - **Managed Executors** - Named executor pools for resource control
@@ -90,6 +101,7 @@ Veld is a **compile-time Dependency Injection framework** that generates pure by
 ### 1. Add Dependencies
 
 **Maven:**
+
 ```xml
 <dependency>
     <groupId>io.github.yasmramos</groupId>
@@ -105,6 +117,7 @@ Veld is a **compile-time Dependency Injection framework** that generates pure by
 ```
 
 **Gradle:**
+
 ```gradle
 implementation 'io.github.yasmramos:veld-runtime:1.0.3'
 implementation 'io.github.yasmramos:veld-annotations:1.0.3'
@@ -117,6 +130,7 @@ implementation 'io.github.yasmramos:veld-annotations:1.0.3'
 **The `veld-maven-plugin` is required for Veld to work properly.** This plugin simplifies the build process and provides all necessary features:
 
 **Minimal Configuration (Required):**
+
 ```xml
 <build>
     <plugins>
@@ -130,11 +144,13 @@ implementation 'io.github.yasmramos:veld-annotations:1.0.3'
 ```
 
 **The plugin handles everything automatically:**
+
 - Compiles your code with the Veld annotation processor
 - Weaves bytecode to add synthetic setters for private field injection
 - Generates the optimized `Veld.class` registry
 
 **Advanced Configuration (Optional):**
+
 ```xml
 <build>
     <plugins>
@@ -157,6 +173,7 @@ implementation 'io.github.yasmramos:veld-annotations:1.0.3'
 ```
 
 **Benefits of using the unified plugin:**
+
 - **Simplified Configuration** - One plugin replaces multiple Maven configurations
 - **Automatic Processing** - Automatically runs annotation processing and bytecode weaving during compile phase
 - **IDE Compatibility** - Better integration with modern IDEs
@@ -841,6 +858,7 @@ Use Veld alongside Spring Boot:
 ```
 
 Run benchmarks yourself:
+
 ```bash
 cd veld-benchmark
 mvn clean package -DskipTests
@@ -850,7 +868,9 @@ java -jar target/veld-benchmark.jar
 ## Example Projects
 
 ### veld-example
+
 Complete working example demonstrating all features:
+
 - All injection types (constructor, field, method)
 - Scopes (singleton, prototype)
 - Interface binding
@@ -868,6 +888,7 @@ mvn clean compile exec:java -Dexec.mainClass="io.github.yasmramos.veld.example.M
 ```
 
 ### veld-spring-boot-example
+
 Example showing Veld integration with Spring Boot.
 
 ```bash
@@ -878,6 +899,7 @@ mvn clean spring-boot:run
 ## Documentation
 
 Full documentation available in [docs/](docs/):
+
 - [Getting Started](docs/getting-started.html)
 - [Annotations Reference](docs/annotations.html)
 - [Core Features](docs/core-features.html)
