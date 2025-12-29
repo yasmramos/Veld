@@ -195,14 +195,34 @@ public class VeldProcessor extends AbstractProcessor {
                 continue;
             }
             
-            if (typeElement.getNestingKind() == NestingKind.LOCAL || 
-                typeElement.getNestingKind() == NestingKind.ANONYMOUS) {
+            // Check nesting kind for proper inner class handling
+            NestingKind nestingKind = typeElement.getNestingKind();
+            if (nestingKind == NestingKind.LOCAL || nestingKind == NestingKind.ANONYMOUS) {
                 error(typeElement, "Component annotation cannot be applied to local or anonymous classes");
                 continue;
             }
             
+            // Log nesting kind for debugging inner class processing
+            if (nestingKind == NestingKind.MEMBER) {
+                // Static inner class - get enclosing element for context
+                Element enclosing = typeElement.getEnclosingElement();
+                String enclosingName = enclosing instanceof TypeElement 
+                    ? ((TypeElement) enclosing).getQualifiedName().toString()
+                    : enclosing.toString();
+                note("Processing static inner class: " + className + " (enclosing: " + enclosingName + ")");
+            }
+            
             try {
                 ComponentInfo info = analyzeComponent(typeElement);
+                
+                // For inner classes, ensure the className is fully qualified
+                if (nestingKind == NestingKind.MEMBER) {
+                    String computedClassName = typeElement.getQualifiedName().toString();
+                    if (!computedClassName.equals(info.getClassName())) {
+                        info.setClassName(computedClassName);
+                    }
+                }
+                
                 discoveredComponents.add(info);
                 
                 // Build dependency graph for cycle detection
@@ -224,7 +244,100 @@ public class VeldProcessor extends AbstractProcessor {
         // Generate source code for @Bean methods
         generateBeanFactories();
 
+        // Identify unresolved interface dependencies (for testing/mock support)
+        identifyUnresolvedInterfaceDependencies();
+
         return true;
+    }
+
+    /**
+     * Identifies dependencies that are interfaces without implementing components.
+     * These are tracked for runtime resolution (e.g., via mocks in tests).
+     */
+    private void identifyUnresolvedInterfaceDependencies() {
+        // Build a set of all concrete component class names
+        Set<String> componentClasses = new HashSet<>();
+        for (ComponentInfo comp : discoveredComponents) {
+            componentClasses.add(comp.getClassName());
+        }
+
+        // Check each component's dependencies
+        for (ComponentInfo comp : discoveredComponents) {
+            // Check constructor dependencies
+            if (comp.getConstructorInjection() != null) {
+                for (InjectionPoint.Dependency dep : comp.getConstructorInjection().getDependencies()) {
+                    checkAndAddUnresolvedDependency(comp, dep.getActualTypeName(), componentClasses);
+                }
+            }
+
+            // Check field dependencies
+            for (InjectionPoint field : comp.getFieldInjections()) {
+                for (InjectionPoint.Dependency dep : field.getDependencies()) {
+                    checkAndAddUnresolvedDependency(comp, dep.getActualTypeName(), componentClasses);
+                }
+            }
+
+            // Check method dependencies
+            for (InjectionPoint method : comp.getMethodInjections()) {
+                for (InjectionPoint.Dependency dep : method.getDependencies()) {
+                    checkAndAddUnresolvedDependency(comp, dep.getActualTypeName(), componentClasses);
+                }
+            }
+        }
+
+        // Report unresolved dependencies
+        int totalUnresolved = discoveredComponents.stream()
+            .mapToInt(c -> c.getUnresolvedInterfaceDependencies().size())
+            .sum();
+        if (totalUnresolved > 0) {
+            note("Found " + totalUnresolved + " unresolved interface dependencies (will be resolved at runtime)");
+        }
+    }
+
+    /**
+     * Checks if a dependency type is an interface without a component implementation,
+     * and adds it to the unresolved list if so.
+     */
+    private void checkAndAddUnresolvedDependency(ComponentInfo component, String dependencyType, 
+                                                  Set<String> componentClasses) {
+        // Skip if already in unresolved list
+        if (component.getUnresolvedInterfaceDependencies().contains(dependencyType)) {
+            return;
+        }
+
+        // Skip if this is the component itself (self-reference)
+        if (dependencyType.equals(component.getClassName())) {
+            return;
+        }
+
+        // Check if dependency type is an interface without an implementing component
+        TypeElement depElement = elementUtils.getTypeElement(dependencyType);
+        if (depElement != null && depElement.getKind() == ElementKind.INTERFACE) {
+            // It's an interface - check if any component implements it
+            boolean hasImplementation = false;
+            for (String compClass : componentClasses) {
+                TypeElement compElement = elementUtils.getTypeElement(compClass);
+                if (compElement != null) {
+                    // Check if this component implements the interface
+                    for (TypeMirror iface : compElement.getInterfaces()) {
+                        if (iface.toString().equals(dependencyType)) {
+                            hasImplementation = true;
+                            break;
+                        }
+                    }
+                    // Also check via type utilities for super interfaces
+                    if (!hasImplementation && typeUtils.isAssignable(compElement.asType(), depElement.asType())) {
+                        hasImplementation = true;
+                    }
+                }
+            }
+
+            if (!hasImplementation) {
+                component.addUnresolvedInterfaceDependency(dependencyType);
+                note("  -> Unresolved interface dependency: " + dependencyType + 
+                     " (for component: " + component.getClassName() + ")");
+            }
+        }
     }
 
     /**
