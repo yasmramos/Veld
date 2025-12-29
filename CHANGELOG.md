@@ -23,18 +23,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Circular dependency detection at runtime
 - `LegacyScope` enum for backward compatibility
 - Comprehensive tests for graph operations and exporters
+- New test files: DependencyGraphTest, DotExporterTest, DependencyNodeTest, LegacyScopeTest
+- EventBusTest for event bus functionality verification
+- AsmUtilsTest for ASM utilities testing
 
 ### Fixed
 - Compilation error in DotExporterTest where assertEquals was used on void method
 - NullPointerException in ComponentFactoryTest by removing null-scope test
 - Incorrect root/leaf node expectations in DependencyGraphTest
+- AsmUtilsTest to expect LegacyScope instead of Scope enum
+- Source generators updated to use LegacyScope for backward compatibility
+- Test fixture constructors updated to use new ComponentInfo signature
 
 ### Changed
-- Enhanced Veld API with dependency graph export methods
+- Enhanced Veld API with dependency graph export methods (exportDependencyGraphDot, exportDependencyGraphJson, getDependencyGraph)
 - Updated README with complete annotations reference (64 annotations documented)
-- Updated README with complete Veld API documentation
-- Added real DOT and JSON output examples to documentation
+- Updated README with complete Veld API documentation (component retrieval, inspection, value resolution, EventBus, profiles, graph export, shutdown)
+- Added real DOT and JSON output examples to documentation with actual format samples
 - Added missing modules to documentation (veld-benchmark, veld-example, veld-spring-boot-example, veld-test)
+- Added Testing Infrastructure section highlighting 543 passing tests
+- Added Dependency Graph Visualization section with complete usage examples
+- Updated veld-runtime description to include dependency graph visualization
 
 ## [1.0.2] - 2025-12-22
 
