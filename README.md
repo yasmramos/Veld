@@ -971,7 +971,7 @@ Veld uses a **three-phase build process**:
 | Module | Description |
 |--------|-------------|
 | `veld-annotations` | Core annotations (`@Component`, `@Inject`, `@Singleton`, etc.) |
-| `veld-runtime` | Runtime utilities, EventBus, lifecycle management |
+| `veld-runtime` | Runtime utilities, EventBus, lifecycle management, dependency graph visualization |
 | `veld-processor` | Annotation processor (compile-time) |
 | `veld-weaver` | Bytecode weaver for synthetic setters |
 | `veld-maven-plugin` | **Unified plugin** - handles everything |
@@ -983,6 +983,10 @@ Veld uses a **three-phase build process**:
 | `veld-metrics` | Timing, counting, and gauges |
 | `veld-tx` | Declarative transaction management |
 | `veld-spring-boot-starter` | Spring Boot integration |
+| `veld-benchmark` | JMH benchmarks for performance testing |
+| `veld-example` | Complete working examples demonstrating all features |
+| `veld-spring-boot-example` | Spring Boot integration examples |
+| `veld-test` | Testing utilities and test framework integration |
 
 ## Veld API
 
