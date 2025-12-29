@@ -177,4 +177,25 @@ public interface ComponentFactory<T> {
     default int getIndex() {
         return -1;
     }
+    
+    /**
+     * Returns the list of beans that this component must outlive during shutdown.
+     * Used for explicit destruction order control via @DependsOn.
+     *
+     * @return list of bean names this component outlives
+     */
+    default List<String> getDestructionDependencies() {
+        return Collections.emptyList();
+    }
+    
+    /**
+     * Returns the destruction order value for this component.
+     * Lower values are destroyed first, higher values are destroyed last.
+     * Used in combination with destruction dependencies for fine-grained shutdown control.
+     *
+     * @return the destruction order value (default 0)
+     */
+    default int getDestroyOrder() {
+        return 0;
+    }
 }
