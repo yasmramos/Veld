@@ -76,7 +76,7 @@ public final class DotExporter implements GraphExporter {
         for (DependencyEdge edge : graph.getEdges()) {
             String edgeKey = edge.getFrom() + "->" + edge.getTo();
             if (!addedEdges.contains(edgeKey)) {
-                sb.append(INDENT).append("\"").append(escape(edge.getFrom")).append("\"");
+                sb.append(INDENT).append("\"").append(escape(edge.getFrom())).append("\"");
                 sb.append(" -> ");
                 sb.append("\"").append(escape(edge.getTo())).append("\"");
                 

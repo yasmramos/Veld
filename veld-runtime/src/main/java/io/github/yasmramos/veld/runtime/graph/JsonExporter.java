@@ -102,7 +102,7 @@ public final class JsonExporter implements GraphExporter {
             if (prettyPrint) sb.append("\n");
         }
         
-        sb.append(indent(2)).append"],");
+        sb.append(indent(2)).append("],");
         if (prettyPrint) sb.append("\n");
         
         // Edges
