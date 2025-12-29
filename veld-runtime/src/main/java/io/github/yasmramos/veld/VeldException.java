@@ -34,4 +34,21 @@ public class VeldException extends RuntimeException {
     public VeldException(String message, Throwable cause) {
         super(message, cause);
     }
+    
+    // ==================== VeldLite Exceptions ====================
+    
+    /**
+     * Exception thrown when a requested component is not found in VeldLite.
+     */
+    public static class ComponentNotFoundException extends VeldException {
+        
+        /**
+         * Creates a new ComponentNotFoundException.
+         * 
+         * @param message the detail message
+         */
+        public ComponentNotFoundException(String message) {
+            super(message);
+        }
+    }
 }
