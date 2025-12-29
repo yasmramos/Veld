@@ -70,27 +70,164 @@ Veld provides powerful dependency graph visualization capabilities for analyzing
 - **Cycle Detection** - Detect circular dependencies at runtime with detailed cycle information
 - **Graph Export** - Export dependency graphs to standard formats for visualization
 
-**DOT Export (Graphviz):**
+**Build Your Dependency Graph:**
 
 ```java
 DependencyGraph graph = new DependencyGraph();
-// Add your components and their dependencies
+
+// Add nodes with their scopes
+graph.addNode(new DependencyNode("com.example.UserService", "UserService", LegacyScope.SINGLETON));
+graph.addNode(new DependencyNode("com.example.UserRepository", "UserRepository", LegacyScope.SINGLETON));
+graph.addNode(new DependencyNode("com.example.EmailService", "EmailService", LegacyScope.PROTOTYPE));
+graph.addNode(new DependencyNode("com.example.NotificationService", "NotificationService", LegacyScope.SINGLETON));
+
+// Define dependencies between components
+graph.addEdge("com.example.UserService", "com.example.UserRepository", "dependsOn");
+graph.addEdge("com.example.UserService", "com.example.EmailService", "dependsOn");
+graph.addEdge("com.example.NotificationService", "com.example.EmailService", "dependsOn");
+```
+
+**DOT Export (Graphviz):**
+
+```java
 DotExporter exporter = new DotExporter();
 String dotOutput = exporter.exportToString(graph);
 
-// Save to file for visualization with Graphviz:
-// dot -Tpng dependency graph.dot -o dependency_graph.png
+// Save to file
+try (Writer writer = new FileWriter("dependencies.dot")) {
+    exporter.export(graph, writer);
+}
+
+// Generate PNG image:
+// dot -Tpng dependencies.dot -o dependencies.png
+```
+
+**Real DOT Output Example:**
+
+```dot
+digraph G {
+  rankdir=TB;
+  node [shape=box, style=rounded, fontname="Arial"];
+  edge [fontname="Arial"];
+
+  { rank=same; "com.example.EmailService" }
+
+  "com.example.UserService" [label="UserService", shape="box"];
+  "com.example.UserRepository" [label="UserRepository", shape="box"];
+  "com.example.EmailService" [label="EmailService", shape="oval"];
+  "com.example.NotificationService" [label="NotificationService", shape="box"];
+
+  "com.example.UserService" -> "com.example.UserRepository" [label="dependsOn"];
+  "com.example.UserService" -> "com.example.EmailService" [label="dependsOn"];
+  "com.example.NotificationService" -> "com.example.EmailService" [label="dependsOn"];
+}
+```
+
+**Visual Result:**
+
+```
+┌─────────────────────┐       ┌─────────────────────┐
+│    UserService      │──────>│  UserRepository     │
+│      (box)          │       │      (box)          │
+└─────────────────────┘       └─────────────────────┘
+           │
+           │ dependsOn
+           ▼
+┌─────────────────────┐
+│   EmailService      │◀──────┌─────────────────────┐
+│     (oval)          │       │ NotificationService │
+└─────────────────────┘       │      (box)          │
+                              └─────────────────────┘
 ```
 
 **JSON Export:**
 
 ```java
-DependencyGraph graph = new DependencyGraph();
-// Build your dependency graph
 JsonExporter exporter = new JsonExporter();
 String jsonOutput = exporter.exportToString(graph);
 
-// Integrates with visualization tools and IDE plugins
+// Pretty print with metadata (default)
+JsonExporter exporter = new JsonExporter(true, true);
+
+// Compact format without metadata
+JsonExporter exporter = new JsonExporter(false, false);
+```
+
+**Real JSON Output Example:**
+
+```json
+{
+  "graph": {
+    "directed": true,
+    "nodes": [
+      {
+        "id": "com.example.UserService",
+        "label": "UserService",
+        "scope": "SINGLETON",
+        "isPrimary": false,
+        "profiles": [],
+        "constructorDependencies": [],
+        "fieldDependencies": ["com.example.UserRepository", "com.example.EmailService"],
+        "methodDependencies": []
+      },
+      {
+        "id": "com.example.UserRepository",
+        "label": "UserRepository",
+        "scope": "SINGLETON",
+        "isPrimary": false,
+        "profiles": [],
+        "constructorDependencies": [],
+        "fieldDependencies": [],
+        "methodDependencies": []
+      },
+      {
+        "id": "com.example.EmailService",
+        "label": "EmailService",
+        "scope": "PROTOTYPE",
+        "isPrimary": false,
+        "profiles": [],
+        "constructorDependencies": [],
+        "fieldDependencies": [],
+        "methodDependencies": []
+      },
+      {
+        "id": "com.example.NotificationService",
+        "label": "NotificationService",
+        "scope": "SINGLETON",
+        "isPrimary": false,
+        "profiles": [],
+        "constructorDependencies": [],
+        "fieldDependencies": ["com.example.EmailService"],
+        "methodDependencies": []
+      }
+    ],
+    "edges": [
+      {
+        "from": "com.example.UserService",
+        "to": "com.example.UserRepository",
+        "relationship": "dependsOn"
+      },
+      {
+        "from": "com.example.UserService",
+        "to": "com.example.EmailService",
+        "relationship": "dependsOn"
+      },
+      {
+        "from": "com.example.NotificationService",
+        "to": "com.example.EmailService",
+        "relationship": "dependsOn"
+      }
+    ]
+  },
+  "metadata": {
+    "nodeCount": 4,
+    "edgeCount": 3,
+    "hasCycles": false,
+    "cycleCount": 0,
+    "rootNodes": ["com.example.NotificationService"],
+    "leafNodes": ["com.example.UserRepository", "com.example.EmailService"]
+  }
+}
 ```
 
 **Graph Analysis:**
@@ -99,16 +236,45 @@ String jsonOutput = exporter.exportToString(graph);
 DependencyGraph graph = buildDependencyGraph();
 
 // Get root nodes (not depended upon by anyone)
+// These are entry points with no incoming dependencies
 List<DependencyNode> roots = graph.getRootNodes();
+System.out.println("Root nodes: " + roots);
+// Output: Root nodes: [NotificationService]
 
 // Get leaf nodes (no outgoing dependencies)
+// These are terminal components with no further dependencies
 List<DependencyNode> leaves = graph.getLeafNodes();
+System.out.println("Leaf nodes: " + leaves);
+// Output: Leaf nodes: [UserRepository, EmailService]
 
 // Detect circular dependencies
 List<List<String>> cycles = graph.findCycles();
 if (!cycles.isEmpty()) {
-    System.out.println("Circular dependencies found: " + cycles);
+    System.out.println("Circular dependencies found:");
+    for (List<String> cycle : cycles) {
+        System.out.println("  " + String.join(" -> ", cycle) + " -> (cycle)");
+    }
+} else {
+    System.out.println("No circular dependencies detected");
 }
+// Output: No circular dependencies detected
+```
+
+**Cycle Detection Example:**
+
+```java
+// Create a graph with a circular dependency
+DependencyGraph graph = new DependencyGraph();
+graph.addNode(new DependencyNode("com.example.A", "A", LegacyScope.SINGLETON));
+graph.addNode(new DependencyNode("com.example.B", "B", LegacyScope.SINGLETON));
+graph.addNode(new DependencyNode("com.example.C", "C", LegacyScope.SINGLETON));
+
+graph.addEdge("com.example.A", "com.example.B", "dependsOn");
+graph.addEdge("com.example.B", "com.example.C", "dependsOn");
+graph.addEdge("com.example.C", "com.example.A", "dependsOn");  // Creates cycle!
+
+List<List<String>> cycles = graph.findCycles();
+// Output: [[com.example.A, com.example.B, com.example.C, com.example.A]]
 ```
 
 ### Advanced Features
