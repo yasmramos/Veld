@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.Scope;
+import io.github.yasmramos.veld.runtime.LegacyScope;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Label;
@@ -62,7 +62,7 @@ public final class RegistryGenerator {
     private static final String COMPONENT_FACTORY = "io/github/yasmramos/veld/runtime/ComponentFactory";
     private static final String VELD_CLASS = "io/github/yasmramos/veld/Veld";
     private static final String VELD_EXCEPTION = "io/github/yasmramos/veld/VeldException";
-    private static final String SCOPE = "io/github/yasmramos/veld/runtime/Scope";
+    private static final String SCOPE = "io/github/yasmramos/veld/runtime/LegacyScope";
     private static final String OBJECT = "java/lang/Object";
     private static final String CLASS = "java/lang/Class";
     private static final String STRING = "java/lang/String";
@@ -127,7 +127,7 @@ public final class RegistryGenerator {
                 "L" + HASHMAP + ";", null, null).visitEnd();
         
         cw.visitField(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "SCOPES",
-                "[L" + SCOPE + ";", null, null).visitEnd();
+                "[L" + STRING + ";", null, null).visitEnd();
         
         cw.visitField(ACC_PRIVATE | ACC_STATIC | ACC_FINAL, "LAZY_FLAGS",
                 "[Z", null, null).visitEnd();
@@ -229,17 +229,17 @@ public final class RegistryGenerator {
             mv.visitInsn(POP);
         }
         
-        // SCOPES = new Scope[count]
+        // SCOPES = new String[count] (stores scope IDs for both built-in and custom scopes)
         pushInteger(mv, components.size());
-        mv.visitTypeInsn(ANEWARRAY, SCOPE);
+        mv.visitTypeInsn(ANEWARRAY, STRING);
         for (int i = 0; i < components.size(); i++) {
             mv.visitInsn(DUP);
             pushInteger(mv, i);
-            String scopeName = components.get(i).getScope() == Scope.SINGLETON ? "SINGLETON" : "PROTOTYPE";
-            mv.visitFieldInsn(GETSTATIC, SCOPE, scopeName, "L" + SCOPE + ";");
+            // Use getScopeId() which returns the scope ID string for both built-in and custom scopes
+            mv.visitLdcInsn(components.get(i).getScopeId());
             mv.visitInsn(AASTORE);
         }
-        mv.visitFieldInsn(PUTSTATIC, REGISTRY_NAME, "SCOPES", "[L" + SCOPE + ";");
+        mv.visitFieldInsn(PUTSTATIC, REGISTRY_NAME, "SCOPES", "[L" + STRING + ";");
         
         // LAZY_FLAGS = new boolean[count]
         pushInteger(mv, components.size());
@@ -492,11 +492,26 @@ public final class RegistryGenerator {
     }
     
     private void generateGetScope(ClassWriter cw) {
+        // Keep backwards compatibility - getScope returns Scope enum for built-in scopes
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "getScope",
                 "(I)L" + SCOPE + ";", null, null);
         mv.visitCode();
         
-        mv.visitFieldInsn(GETSTATIC, REGISTRY_NAME, "SCOPES", "[L" + SCOPE + ";");
+        mv.visitFieldInsn(GETSTATIC, REGISTRY_NAME, "SCOPES", "[L" + STRING + ";");
+        mv.visitVarInsn(ILOAD, 1);
+        mv.visitInsn(AALOAD);
+        mv.visitMethodInsn(INVOKESTATIC, SCOPE, "fromId", "(L" + STRING + ";)L" + SCOPE + ";", false);
+        mv.visitInsn(ARETURN);
+        
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+        
+        // New method: getScopeId returns the scope ID string (supports custom scopes)
+        mv = cw.visitMethod(ACC_PUBLIC, "getScopeId",
+                "(I)L" + STRING + ";", null, null);
+        mv.visitCode();
+        
+        mv.visitFieldInsn(GETSTATIC, REGISTRY_NAME, "SCOPES", "[L" + STRING + ";");
         mv.visitVarInsn(ILOAD, 1);
         mv.visitInsn(AALOAD);
         mv.visitInsn(ARETURN);

@@ -143,12 +143,42 @@ public interface ComponentRegistry {
      * @param index the component index
      * @return the component scope
      */
-    default Scope getScope(int index) {
+    default LegacyScope getScope(int index) {
         List<ComponentFactory<?>> factories = getAllFactories();
         if (index >= 0 && index < factories.size()) {
             return factories.get(index).getScope();
         }
-        return Scope.SINGLETON;
+        return LegacyScope.SINGLETON;
+    }
+    
+    /**
+     * Gets the scope ID for a component by index.
+     * Returns the scope identifier string (e.g., "singleton", "prototype", or custom scope ID).
+     * Direct array access, O(1).
+     *
+     * <p>This method supports custom scopes that are not represented in the LegacyScope enum.
+     * Use this method when you need to distinguish between custom scopes.</p>
+     *
+     * @param index the component index
+     * @return the scope ID string
+     */
+    default String getScopeId(int index) {
+        List<ComponentFactory<?>> factories = getAllFactories();
+        if (index >= 0 && index < factories.size()) {
+            ComponentFactory<?> factory = factories.get(index);
+            // Try to get custom scope ID from factory if available
+            try {
+                java.lang.reflect.Method getScopeIdMethod = factory.getClass().getMethod("getScopeId");
+                Object scopeId = getScopeIdMethod.invoke(factory);
+                if (scopeId instanceof String && !((String) scopeId).isEmpty()) {
+                    return (String) scopeId;
+                }
+            } catch (Exception e) {
+                // Fall back to enum-based scope
+            }
+            return factory.getScope().name().toLowerCase();
+        }
+        return "singleton";
     }
     
     /**

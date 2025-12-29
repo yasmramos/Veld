@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.Scope;
+import io.github.yasmramos.veld.runtime.LegacyScope;
 
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;

@@ -5,9 +5,9 @@ import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for Scope enum.
+ * Tests for LegacyScope enum.
  */
-@DisplayName("Scope Tests")
+@DisplayName("LegacyScope Tests")
 class ScopeTest {
     
     @Nested
@@ -17,19 +17,19 @@ class ScopeTest {
         @Test
         @DisplayName("Should have SINGLETON scope")
         void shouldHaveSingletonScope() {
-            assertNotNull(Scope.SINGLETON);
+            assertNotNull(LegacyScope.SINGLETON);
         }
         
         @Test
         @DisplayName("Should have PROTOTYPE scope")
         void shouldHavePrototypeScope() {
-            assertNotNull(Scope.PROTOTYPE);
+            assertNotNull(LegacyScope.PROTOTYPE);
         }
         
         @Test
         @DisplayName("Should have correct number of scopes")
         void shouldHaveCorrectNumberOfScopes() {
-            Scope[] scopes = Scope.values();
+            LegacyScope[] scopes = LegacyScope.values();
             
             assertTrue(scopes.length >= 2);
         }
@@ -42,15 +42,15 @@ class ScopeTest {
         @Test
         @DisplayName("Should get scope by name")
         void shouldGetScopeByName() {
-            assertEquals(Scope.SINGLETON, Scope.valueOf("SINGLETON"));
-            assertEquals(Scope.PROTOTYPE, Scope.valueOf("PROTOTYPE"));
+            assertEquals(LegacyScope.SINGLETON, LegacyScope.valueOf("SINGLETON"));
+            assertEquals(LegacyScope.PROTOTYPE, LegacyScope.valueOf("PROTOTYPE"));
         }
         
         @Test
         @DisplayName("Should throw for invalid name")
         void shouldThrowForInvalidName() {
             assertThrows(IllegalArgumentException.class, () -> 
-                Scope.valueOf("INVALID"));
+                LegacyScope.valueOf("INVALID"));
         }
     }
     
@@ -61,8 +61,8 @@ class ScopeTest {
         @Test
         @DisplayName("Should return correct name")
         void shouldReturnCorrectName() {
-            assertEquals("SINGLETON", Scope.SINGLETON.name());
-            assertEquals("PROTOTYPE", Scope.PROTOTYPE.name());
+            assertEquals("SINGLETON", LegacyScope.SINGLETON.name());
+            assertEquals("PROTOTYPE", LegacyScope.PROTOTYPE.name());
         }
     }
 }

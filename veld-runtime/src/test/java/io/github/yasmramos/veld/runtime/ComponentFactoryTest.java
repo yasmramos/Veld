@@ -13,7 +13,7 @@ class ComponentFactoryTest {
             @Override public int getIndex() { return 0; }
             @Override public String getComponentName() { return "test"; }
             @Override public Class<String> getComponentType() { return String.class; }
-            @Override public Scope getScope() { return Scope.SINGLETON; }
+            @Override public LegacyScope getScope() { return LegacyScope.SINGLETON; }
             @Override public boolean isLazy() { return false; }
             @Override public String create() { return "value"; }
             @Override public void invokePostConstruct(String instance) {}
@@ -34,7 +34,7 @@ class ComponentFactoryTest {
             @Override public int getIndex() { return 0; }
             @Override public String getComponentName() { return "test"; }
             @Override public Class<String> getComponentType() { return String.class; }
-            @Override public Scope getScope() { return Scope.SINGLETON; }
+            @Override public LegacyScope getScope() { return LegacyScope.SINGLETON; }
             @Override public boolean isLazy() { return false; }
             @Override public String create() { return "value"; }
             @Override public void invokePostConstruct(String instance) {
@@ -59,7 +59,7 @@ class ComponentFactoryTest {
             @Override public int getIndex() { return 0; }
             @Override public String getComponentName() { return "primary"; }
             @Override public Class<String> getComponentType() { return String.class; }
-            @Override public Scope getScope() { return Scope.SINGLETON; }
+            @Override public LegacyScope getScope() { return LegacyScope.SINGLETON; }
             @Override public boolean isLazy() { return false; }
             @Override public String create() { return "primary"; }
             @Override public void invokePostConstruct(String instance) {}
@@ -78,7 +78,7 @@ class ComponentFactoryTest {
             @Override public int getIndex() { return 0; }
             @Override public String getComponentName() { return "qualified"; }
             @Override public Class<String> getComponentType() { return String.class; }
-            @Override public Scope getScope() { return Scope.SINGLETON; }
+            @Override public LegacyScope getScope() { return LegacyScope.SINGLETON; }
             @Override public boolean isLazy() { return false; }
             @Override public String create() { return "qualified"; }
             @Override public void invokePostConstruct(String instance) {}

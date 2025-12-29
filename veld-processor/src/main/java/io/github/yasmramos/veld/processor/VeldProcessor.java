@@ -3,7 +3,7 @@ package io.github.yasmramos.veld.processor;
 import io.github.yasmramos.veld.annotation.*;
 import io.github.yasmramos.veld.processor.AnnotationHelper.InjectSource;
 import io.github.yasmramos.veld.processor.InjectionPoint.Dependency;
-import io.github.yasmramos.veld.runtime.Scope;
+import io.github.yasmramos.veld.runtime.LegacyScope;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
@@ -514,10 +514,10 @@ public class VeldProcessor extends AbstractProcessor {
 
             // Get scope from annotation (as string, then convert to enum)
             String scopeString = beanAnnotation.scope();
-            io.github.yasmramos.veld.runtime.Scope scope =
+            LegacyScope scope =
                 "prototype".equalsIgnoreCase(scopeString)
-                    ? io.github.yasmramos.veld.runtime.Scope.PROTOTYPE
-                    : io.github.yasmramos.veld.runtime.Scope.SINGLETON;
+                    ? LegacyScope.PROTOTYPE
+                    : LegacyScope.SINGLETON;
 
             // Get return type info
             String returnTypeName = getTypeName(returnType);
@@ -538,7 +538,7 @@ public class VeldProcessor extends AbstractProcessor {
 
             // Set scope
             beanMethod.setScope(scope);
-            if (scope == io.github.yasmramos.veld.runtime.Scope.PROTOTYPE) {
+            if (scope == LegacyScope.PROTOTYPE) {
                 note("  -> @Bean scope: PROTOTYPE");
             }
 
@@ -933,7 +933,7 @@ public class VeldProcessor extends AbstractProcessor {
         }
         
         // Determine scope and check for @Lazy
-        Scope scope = determineScope(typeElement);
+        LegacyScope scope = determineScope(typeElement);
         boolean isLazy = typeElement.getAnnotation(Lazy.class) != null;
         
         // Check for @Primary annotation
@@ -942,7 +942,7 @@ public class VeldProcessor extends AbstractProcessor {
             note("  -> Primary bean selected");
         }
         
-        ComponentInfo info = new ComponentInfo(className, componentName, scope, isLazy, isPrimary);
+        ComponentInfo info = new ComponentInfo(className, componentName, scope, null, isLazy, isPrimary);
         
         // Check for @Order annotation (must be after info is created)
         Order orderAnnotation = typeElement.getAnnotation(Order.class);
@@ -1011,29 +1011,29 @@ public class VeldProcessor extends AbstractProcessor {
      * All other scope annotations (Veld @Singleton, javax/jakarta @Singleton) result in SINGLETON.
      * Default is SINGLETON if no explicit scope is specified.
      */
-    private Scope determineScope(TypeElement typeElement) {
+    private LegacyScope determineScope(TypeElement typeElement) {
         // Check for @Prototype first - it's the only way to get prototype scope
         if (typeElement.getAnnotation(Prototype.class) != null) {
             note("  -> Scope: PROTOTYPE");
-            return Scope.PROTOTYPE;
+            return LegacyScope.PROTOTYPE;
         }
         
         // Check for explicit singleton annotations
         if (typeElement.getAnnotation(Singleton.class) != null ||
             AnnotationHelper.hasSingletonAnnotation(typeElement)) {
             note("  -> Scope: SINGLETON (explicit)");
-            return Scope.SINGLETON;
+            return LegacyScope.SINGLETON;
         }
         
         // Check for @Lazy alone (implies singleton)
         if (typeElement.getAnnotation(Lazy.class) != null) {
             note("  -> Scope: SINGLETON (from @Lazy)");
-            return Scope.SINGLETON;
+            return LegacyScope.SINGLETON;
         }
         
         // Default scope
         note("  -> Scope: SINGLETON (default)");
-        return Scope.SINGLETON;
+        return LegacyScope.SINGLETON;
     }
     
     /**

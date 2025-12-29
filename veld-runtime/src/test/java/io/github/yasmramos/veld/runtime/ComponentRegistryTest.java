@@ -16,8 +16,8 @@ class ComponentRegistryTest {
 
     @BeforeEach
     void setUp() {
-        stringFactory = new TestFactory<>(0, "stringBean", String.class, Scope.SINGLETON, false, () -> "Hello");
-        intFactory = new TestFactory<>(1, "intBean", Integer.class, Scope.PROTOTYPE, true, () -> 42);
+        stringFactory = new TestFactory<>(0, "stringBean", String.class, LegacyScope.SINGLETON, false, () -> "Hello");
+        intFactory = new TestFactory<>(1, "intBean", Integer.class, LegacyScope.PROTOTYPE, true, () -> 42);
         
         List<ComponentFactory<?>> factories = new ArrayList<>();
         factories.add(stringFactory);
@@ -47,10 +47,10 @@ class ComponentRegistryTest {
 
     @Test
     void testGetScope() {
-        assertEquals(Scope.SINGLETON, registry.getScope(0));
-        assertEquals(Scope.PROTOTYPE, registry.getScope(1));
-        assertEquals(Scope.SINGLETON, registry.getScope(-1));
-        assertEquals(Scope.SINGLETON, registry.getScope(100));
+        assertEquals(LegacyScope.SINGLETON, registry.getScope(0));
+        assertEquals(LegacyScope.PROTOTYPE, registry.getScope(1));
+        assertEquals(LegacyScope.SINGLETON, registry.getScope(-1));
+        assertEquals(LegacyScope.SINGLETON, registry.getScope(100));
     }
 
     @Test
@@ -95,8 +95,8 @@ class ComponentRegistryTest {
 
     @Test
     void testGetPrimaryFactory_WithPrimary() {
-        ComponentFactory<String> primaryFactory = new TestFactory<>(2, "primaryString", String.class, Scope.SINGLETON, false, () -> "Primary", true);
-        ComponentFactory<String> nonPrimaryFactory = new TestFactory<>(3, "otherString", String.class, Scope.SINGLETON, false, () -> "Other", false);
+        ComponentFactory<String> primaryFactory = new TestFactory<>(2, "primaryString", String.class, LegacyScope.SINGLETON, false, () -> "Primary", true);
+        ComponentFactory<String> nonPrimaryFactory = new TestFactory<>(3, "otherString", String.class, LegacyScope.SINGLETON, false, () -> "Other", false);
         
         List<ComponentFactory<?>> factories = new ArrayList<>();
         factories.add(primaryFactory);
@@ -110,8 +110,8 @@ class ComponentRegistryTest {
 
     @Test
     void testGetPrimaryFactory_MultiplePrimaryThrows() {
-        ComponentFactory<String> primary1 = new TestFactory<>(2, "primary1", String.class, Scope.SINGLETON, false, () -> "P1", true);
-        ComponentFactory<String> primary2 = new TestFactory<>(3, "primary2", String.class, Scope.SINGLETON, false, () -> "P2", true);
+        ComponentFactory<String> primary1 = new TestFactory<>(2, "primary1", String.class, LegacyScope.SINGLETON, false, () -> "P1", true);
+        ComponentFactory<String> primary2 = new TestFactory<>(3, "primary2", String.class, LegacyScope.SINGLETON, false, () -> "P2", true);
         
         List<ComponentFactory<?>> factories = new ArrayList<>();
         factories.add(primary1);
@@ -123,8 +123,8 @@ class ComponentRegistryTest {
 
     @Test
     void testGetPrimaryFactory_MultipleNoPrimary() {
-        ComponentFactory<String> f1 = new TestFactory<>(2, "s1", String.class, Scope.SINGLETON, false, () -> "S1", false);
-        ComponentFactory<String> f2 = new TestFactory<>(3, "s2", String.class, Scope.SINGLETON, false, () -> "S2", false);
+        ComponentFactory<String> f1 = new TestFactory<>(2, "s1", String.class, LegacyScope.SINGLETON, false, () -> "S1", false);
+        ComponentFactory<String> f2 = new TestFactory<>(3, "s2", String.class, LegacyScope.SINGLETON, false, () -> "S2", false);
         
         List<ComponentFactory<?>> factories = new ArrayList<>();
         factories.add(f1);
@@ -211,16 +211,16 @@ class ComponentRegistryTest {
         private final int index;
         private final String name;
         private final Class<T> type;
-        private final Scope scope;
+        private final LegacyScope scope;
         private final boolean lazy;
         private final Provider<T> supplier;
         private final boolean primary;
 
-        TestFactory(int index, String name, Class<T> type, Scope scope, boolean lazy, Provider<T> supplier) {
+        TestFactory(int index, String name, Class<T> type, LegacyScope scope, boolean lazy, Provider<T> supplier) {
             this(index, name, type, scope, lazy, supplier, false);
         }
 
-        TestFactory(int index, String name, Class<T> type, Scope scope, boolean lazy, Provider<T> supplier, boolean primary) {
+        TestFactory(int index, String name, Class<T> type, LegacyScope scope, boolean lazy, Provider<T> supplier, boolean primary) {
             this.index = index;
             this.name = name;
             this.type = type;
@@ -233,7 +233,7 @@ class ComponentRegistryTest {
         @Override public int getIndex() { return index; }
         @Override public String getComponentName() { return name; }
         @Override public Class<T> getComponentType() { return type; }
-        @Override public Scope getScope() { return scope; }
+        @Override public LegacyScope getScope() { return scope; }
         @Override public boolean isLazy() { return lazy; }
         @Override public boolean isPrimary() { return primary; }
         @Override public T create() { return supplier.get(); }

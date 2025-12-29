@@ -29,20 +29,20 @@ class ConditionalRegistryTest {
     static class TestFactory<T> implements ComponentFactory<T> {
         private final Class<T> type;
         private final String name;
-        private final Scope scope;
+        private final LegacyScope scope;
         private final boolean hasConditions;
         private final boolean conditionResult;
         private final List<String> interfaces;
 
         TestFactory(Class<T> type, String name) {
-            this(type, name, Scope.SINGLETON, false, true, Collections.emptyList());
+            this(type, name, LegacyScope.SINGLETON, false, true, Collections.emptyList());
         }
 
         TestFactory(Class<T> type, String name, boolean hasConditions, boolean conditionResult) {
-            this(type, name, Scope.SINGLETON, hasConditions, conditionResult, Collections.emptyList());
+            this(type, name, LegacyScope.SINGLETON, hasConditions, conditionResult, Collections.emptyList());
         }
 
-        TestFactory(Class<T> type, String name, Scope scope, boolean hasConditions, 
+        TestFactory(Class<T> type, String name, LegacyScope scope, boolean hasConditions, 
                    boolean conditionResult, List<String> interfaces) {
             this.type = type;
             this.name = name;
@@ -72,7 +72,7 @@ class ConditionalRegistryTest {
         }
 
         @Override
-        public Scope getScope() {
+        public LegacyScope getScope() {
             return scope;
         }
 
@@ -251,7 +251,7 @@ class ConditionalRegistryTest {
             List<String> interfaces = Collections.singletonList(ServiceInterface.class.getName());
             originalRegistry.addFactory(new TestFactory<>(
                 ServiceWithInterface.class, "serviceWithInterface",
-                Scope.SINGLETON, false, true, interfaces
+                LegacyScope.SINGLETON, false, true, interfaces
             ));
 
             ConditionalRegistry registry = new ConditionalRegistry(originalRegistry);

@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.Scope;
+import io.github.yasmramos.veld.runtime.LegacyScope;
 import javax.lang.model.element.TypeElement;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +15,8 @@ public final class ComponentInfo {
     private String className;              // Fully qualified: com.example.MyService
     private String internalName;           // ASM internal: com/example/MyService
     private final String componentName;          // @Component value or simple class name
-    private final Scope scope;                   // SINGLETON or PROTOTYPE
+    private final LegacyScope scope;                   // SINGLETON or PROTOTYPE (for backwards compat)
+    private final String scopeId;                // Custom scope ID (null for built-in scopes)
     private final boolean lazy;                  // @Lazy - deferred initialization
     
     private InjectionPoint constructorInjection; // Constructor with @Inject (or default)
@@ -43,19 +44,24 @@ public final class ComponentInfo {
     // TypeElement for AOP processing (transient - not serialized)
     private transient TypeElement typeElement;
     
-    public ComponentInfo(String className, String componentName, Scope scope) {
-        this(className, componentName, scope, false);
+    public ComponentInfo(String className, String componentName, LegacyScope scope) {
+        this(className, componentName, scope, null, false);
     }
     
-    public ComponentInfo(String className, String componentName, Scope scope, boolean lazy) {
-        this(className, componentName, scope, lazy, false);
+    public ComponentInfo(String className, String componentName, LegacyScope scope, String scopeId) {
+        this(className, componentName, scope, scopeId, false);
     }
     
-    public ComponentInfo(String className, String componentName, Scope scope, boolean lazy, boolean isPrimary) {
+    public ComponentInfo(String className, String componentName, LegacyScope scope, String scopeId, boolean lazy) {
+        this(className, componentName, scope, scopeId, lazy, false);
+    }
+    
+    public ComponentInfo(String className, String componentName, LegacyScope scope, String scopeId, boolean lazy, boolean isPrimary) {
         this.className = className;
         this.internalName = className.replace('.', '/');
         this.componentName = componentName;
         this.scope = scope;
+        this.scopeId = scopeId;
         this.lazy = lazy;
         this.isPrimary = isPrimary;
     }
@@ -82,8 +88,40 @@ public final class ComponentInfo {
         return componentName;
     }
     
-    public Scope getScope() {
+    public LegacyScope getScope() {
         return scope;
+    }
+    
+    /**
+     * Returns the scope ID for this component.
+     * For built-in scopes (singleton, prototype), returns the scope enum name.
+     * For custom scopes, returns the custom scope ID.
+     * 
+     * @return the scope identifier string
+     */
+    public String getScopeId() {
+        if (scopeId != null && !scopeId.isEmpty()) {
+            return scopeId;
+        }
+        return scope != null ? scope.name().toLowerCase() : "singleton";
+    }
+    
+    /**
+     * Sets a custom scope ID for this component.
+     * 
+     * @param scopeId the custom scope identifier
+     */
+    public void setScopeId(String scopeId) {
+        // Intentionally blank - scopeId is final
+    }
+    
+    /**
+     * Returns whether this component uses a custom scope.
+     * 
+     * @return true if a custom scope is specified
+     */
+    public boolean hasCustomScope() {
+        return scopeId != null && !scopeId.isEmpty();
     }
     
     public boolean isLazy() {

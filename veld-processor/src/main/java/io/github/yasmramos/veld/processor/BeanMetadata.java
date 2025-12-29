@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.Scope;
+import io.github.yasmramos.veld.runtime.LegacyScope;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +21,7 @@ public final class BeanMetadata {
     private String factoryClassName;
     private String factoryMethodName;
     private String factoryMethodDescriptor;
-    private Scope scope;
+    private LegacyScope scope;
     private String qualifier;
     private boolean isPrimary;
     private List<String> dependencies = new ArrayList<>();
@@ -43,7 +43,7 @@ public final class BeanMetadata {
         return this;
     }
 
-    public BeanMetadata withScope(Scope scope) {
+    public BeanMetadata withScope(LegacyScope scope) {
         this.scope = scope;
         return this;
     }
@@ -88,7 +88,7 @@ public final class BeanMetadata {
         return factoryMethodDescriptor;
     }
 
-    public Scope getScope() {
+    public LegacyScope getScope() {
         return scope;
     }
 

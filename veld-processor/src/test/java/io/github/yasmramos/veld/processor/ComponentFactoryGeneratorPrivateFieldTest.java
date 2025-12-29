@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.Scope;
+import io.github.yasmramos.veld.runtime.LegacyScope;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -31,7 +31,7 @@ class ComponentFactoryGeneratorPrivateFieldTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.MyService",
                 "myService",
-                Scope.SINGLETON
+                LegacyScope.SINGLETON
             );
             
             // Add private field injection point
@@ -86,7 +86,7 @@ class ComponentFactoryGeneratorPrivateFieldTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.MyService",
                 "myService",
-                Scope.SINGLETON
+                LegacyScope.SINGLETON
             );
             
             // Add package-private field injection point (default visibility)
@@ -144,7 +144,7 @@ class ComponentFactoryGeneratorPrivateFieldTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.MyService",
                 "myService",
-                Scope.SINGLETON
+                LegacyScope.SINGLETON
             );
             
             // Add private field
@@ -213,7 +213,7 @@ class ComponentFactoryGeneratorPrivateFieldTest {
         @DisplayName("Should generate correct setter call for primitive int field")
         void shouldGenerateCorrectSetterForIntField() {
             ComponentInfo component = new ComponentInfo(
-                "com.example.MyService", "myService", Scope.SINGLETON);
+                "com.example.MyService", "myService", LegacyScope.SINGLETON);
             
             component.addFieldInjection(new InjectionPoint(
                 InjectionPoint.Type.FIELD,
@@ -251,7 +251,7 @@ class ComponentFactoryGeneratorPrivateFieldTest {
         @DisplayName("Should generate correct setter call for primitive boolean field")
         void shouldGenerateCorrectSetterForBooleanField() {
             ComponentInfo component = new ComponentInfo(
-                "com.example.MyService", "myService", Scope.SINGLETON);
+                "com.example.MyService", "myService", LegacyScope.SINGLETON);
             
             component.addFieldInjection(new InjectionPoint(
                 InjectionPoint.Type.FIELD,

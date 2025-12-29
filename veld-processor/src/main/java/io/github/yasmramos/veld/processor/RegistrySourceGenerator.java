@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.Scope;
+import io.github.yasmramos.veld.runtime.LegacyScope;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,7 +42,7 @@ public final class RegistrySourceGenerator {
         // Imports
         sb.append("import io.github.yasmramos.veld.runtime.ComponentFactory;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ComponentRegistry;\n");
-        sb.append("import io.github.yasmramos.veld.runtime.Scope;\n");
+        sb.append("import io.github.yasmramos.veld.runtime.LegacyScope;\n");
         sb.append("import java.util.*;\n\n");
         
         // Class declaration
@@ -117,7 +117,7 @@ public final class RegistrySourceGenerator {
         sb.append("        SCOPES = new Scope[] {\n");
         for (int i = 0; i < components.size(); i++) {
             ComponentInfo comp = components.get(i);
-            String scopeName = comp.getScope() == Scope.SINGLETON ? "SINGLETON" : "PROTOTYPE";
+            String scopeName = comp.getScope() == LegacyScope.SINGLETON ? "SINGLETON" : "PROTOTYPE";
             sb.append("            Scope.").append(scopeName);
             if (i < components.size() - 1) sb.append(",");
             sb.append("\n");
@@ -201,7 +201,7 @@ public final class RegistrySourceGenerator {
     
     private void generateGetScope(StringBuilder sb) {
         sb.append("    @Override\n");
-        sb.append("    public Scope getScope(int index) {\n");
+        sb.append("    public LegacyScope getScope(int index) {\n");
         sb.append("        return SCOPES[index];\n");
         sb.append("    }\n\n");
     }
