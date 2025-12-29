@@ -113,7 +113,7 @@
         <!-- Release properties -->
         <maven.compiler.release>17</maven.compiler.release>
         <skipTests>false</skipTests>
-        <skipGpg>false</skipGpg>
+        <skipGpg>true</skipGpg>
         <gpg.useAgent>false</gpg.useAgent>
         <maven.deploy.skip>false</maven.deploy.skip>
         <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
