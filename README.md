@@ -990,21 +990,119 @@ Veld uses a **three-phase build process**:
 
 ## Veld API
 
+The Veld class provides a unified API for all dependency injection operations:
+
+### Component Retrieval
+
 ```java
 // Get a component by type
 UserService userService = Veld.get(UserService.class);
 
-// Get a component by interface
-IUserRepository repo = Veld.get(IUserRepository.class);
+// Get a component by name qualifier
+PaymentService payment = Veld.get(PaymentService.class, "stripe");
 
 // Get all implementations of an interface
 List<DataSource> dataSources = Veld.getAll(DataSource.class);
 
+// Get a provider for lazy/multiple instance creation
+Provider<UserSession> sessionProvider = Veld.getProvider(UserSession.class);
+UserSession session1 = sessionProvider.get();
+UserSession session2 = sessionProvider.get();
+```
+
+### Component Inspection
+
+```java
 // Check if a component exists
 boolean exists = Veld.contains(MyService.class);
 
-// Get component count
+// Get total component count
 int count = Veld.componentCount();
+
+// Get lifecycle processor for managing component lifecycle
+LifecycleProcessor lifecycle = Veld.getLifecycleProcessor();
+```
+
+### Value Resolution
+
+```java
+// Get the value resolver for configuration properties
+ValueResolver resolver = Veld.getValueResolver();
+
+// Resolve a value expression
+String appName = Veld.resolveValue("app.name");
+int maxConnections = Veld.resolveValue("app.maxConnections", Integer.class);
+```
+
+### EventBus Integration
+
+```java
+// Get the event bus for publishing and subscribing to events
+EventBus eventBus = Veld.getEventBus();
+
+// Publish an event
+eventBus.publish(new OrderCreatedEvent(orderId));
+
+// Subscribe to events (use @Subscribe annotation on component methods)
+```
+
+### Profile Management
+
+```java
+// Set active profiles for conditional bean loading
+Veld.setActiveProfiles("dev", "database");
+
+// Check if a profile is active
+boolean isDev = Veld.isProfileActive("dev");
+
+// Get all active profiles
+String[] activeProfiles = Veld.getActiveProfiles();
+```
+
+### Dependency Graph Export
+
+Export your application's dependency graph for visualization and analysis:
+
+```java
+// Export to DOT (Graphviz format)
+String dotOutput = Veld.exportDependencyGraphDot();
+try (Writer writer = new FileWriter("dependencies.dot")) {
+    Veld.exportDependencyGraphDot(writer);
+}
+
+// Export to JSON format
+String jsonOutput = Veld.exportDependencyGraphJson();
+try (Writer writer = new FileWriter("dependencies.json")) {
+    Veld.exportDependencyGraphJson(writer);
+}
+
+// Export using custom exporter
+GraphExporter exporter = new DotExporter();
+String output = Veld.exportDependencyGraph(exporter);
+
+// Get the dependency graph directly for analysis
+DependencyGraph graph = Veld.getDependencyGraph();
+List<DependencyNode> roots = graph.getRootNodes();
+List<DependencyNode> leaves = graph.getLeafNodes();
+List<List<String>> cycles = graph.findCycles();
+```
+
+### Shutdown
+
+```java
+// Gracefully shutdown Veld and cleanup resources
+// This calls @PreDestroy on all components and cleans up internal state
+Veld.shutdown();
+```
+
+### Annotations Helper
+
+```java
+// Access Veld annotations without full import
+Veld.Annotations.Component
+Veld.Annotations.Inject
+Veld.Annotations.Singleton
+// ... and all other Veld annotations
 ```
 
 ## Spring Boot Integration
