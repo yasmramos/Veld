@@ -84,8 +84,9 @@ public final class TestContext implements AutoCloseable {
         }
         
         // Try to get from Veld container
+        T bean = null;
         try {
-            return Veld.get(type);
+            bean = Veld.get(type);
         } catch (ExceptionInInitializerError e) {
             // Veld failed to initialize, try manual creation
             return createBeanManually(type);
@@ -93,6 +94,84 @@ public final class TestContext implements AutoCloseable {
             // Veld.get() threw an exception, try manual creation
             return createBeanManually(type);
         }
+        
+        // Bean was created but may have null dependencies for interfaces
+        // Check if any field that should have a mock is null
+        if (bean != null && hasMocksForDependencies(type)) {
+            // Need to create manually with mocks injected
+            return createBeanManually(type);
+        }
+        
+        return bean;
+    }
+    
+    /**
+     * Checks if there are mocks registered for the dependencies of the given type.
+     * 
+     * @param type the bean type to check
+     * @return true if mocks are registered for some dependencies
+     */
+    private boolean hasMocksForDependencies(Class<?> type) {
+        // Check constructor parameters against mocks
+        for (java.lang.reflect.Constructor<?> ctor : type.getDeclaredConstructors()) {
+            for (Class<?> paramType : ctor.getParameterTypes()) {
+                if (isMockableType(paramType) && hasMockFor(paramType)) {
+                    return true;
+                }
+            }
+        }
+        
+        // Check fields for injection
+        for (java.lang.reflect.Field field : type.getDeclaredFields()) {
+            if (!java.lang.reflect.Modifier.isStatic(field.getModifiers()) &&
+                !java.lang.reflect.Modifier.isFinal(field.getModifiers())) {
+                Class<?> fieldType = field.getType();
+                if (isMockableType(fieldType) && hasMockFor(fieldType)) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Checks if a type can be mocked (interface or class with mock).
+     * 
+     * @param type the type to check
+     * @return true if the type is mockable
+     */
+    private boolean isMockableType(Class<?> type) {
+        return type.isInterface() || mocks.containsKey(type) || hasMockFor(type);
+    }
+    
+    /**
+     * Checks if we have a mock for the given type (exact or interface match).
+     * 
+     * @param type the type to check
+     * @return true if a mock is available
+     */
+    private boolean hasMockFor(Class<?> type) {
+        // Check exact match
+        if (mocks.containsKey(type)) {
+            return true;
+        }
+        
+        // Check if any mock implements this interface
+        for (Object mock : mocks.values()) {
+            if (type.isInstance(mock)) {
+                return true;
+            }
+        }
+        
+        // Check named mocks
+        for (Object mock : namedMocks.values()) {
+            if (type.isInstance(mock)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     /**
