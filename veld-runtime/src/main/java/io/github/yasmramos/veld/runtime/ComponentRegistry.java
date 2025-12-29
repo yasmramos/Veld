@@ -1,6 +1,9 @@
 package io.github.yasmramos.veld.runtime;
 
 import io.github.yasmramos.veld.VeldException;
+import io.github.yasmramos.veld.runtime.graph.DependencyGraph;
+import io.github.yasmramos.veld.runtime.graph.DependencyNode;
+
 import java.util.List;
 
 /**
@@ -224,5 +227,43 @@ public interface ComponentRegistry {
             ComponentFactory<Object> factory = (ComponentFactory<Object>) factories.get(index);
             factory.invokePreDestroy(instance);
         }
+    }
+    
+    /**
+     * Builds a dependency graph from all registered components.
+     * The graph shows the relationships between components and can be
+     * exported to DOT or JSON formats for visualization.
+     *
+     * @return a new DependencyGraph representing the component relationships
+     */
+    default DependencyGraph buildDependencyGraph() {
+        DependencyGraph graph = new DependencyGraph();
+        List<ComponentFactory<?>> factories = getAllFactories();
+        
+        // Create nodes for each component
+        for (ComponentFactory<?> factory : factories) {
+            DependencyNode node = new DependencyNode(
+                factory.getComponentType().getName(),
+                factory.getComponentName(),
+                factory.getScope()
+            );
+            node.setPrimary(factory.isPrimary());
+            graph.addNode(node);
+        }
+        
+        // Create edges based on dependencies
+        for (ComponentFactory<?> factory : factories) {
+            String fromClass = factory.getComponentType().getName();
+            List<String> dependencies = factory.getDependencyTypes();
+            
+            for (String depClass : dependencies) {
+                // Only add edge if the dependency is also a registered component
+                if (getFactory(depClass) != null) {
+                    graph.addEdge(fromClass, depClass, "depends on");
+                }
+            }
+        }
+        
+        return graph;
     }
 }

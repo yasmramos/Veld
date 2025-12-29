@@ -90,7 +90,8 @@ public final class ComponentFactorySourceGenerator {
         }
         sb.append("    }\n\n");
         
-
+        // getDependencyTypes() - for dependency graph visualization
+        generateGetDependencyTypes(sb);
         
         // Close class
         sb.append("}\n");
@@ -152,6 +153,51 @@ public final class ComponentFactorySourceGenerator {
         }
         
         sb.append("        return instance;\n");
+        sb.append("    }\n\n");
+    }
+    
+    private void generateGetDependencyTypes(StringBuilder sb) {
+        sb.append("    @Override\n");
+        sb.append("    public List<String> getDependencyTypes() {\n");
+        
+        // Collect all dependencies
+        sb.append("        return Arrays.asList(\n");
+        
+        boolean first = true;
+        
+        // Constructor dependencies
+        InjectionPoint ctor = component.getConstructorInjection();
+        if (ctor != null) {
+            for (InjectionPoint.Dependency dep : ctor.getDependencies()) {
+                if (!first) sb.append(",\n            ");
+                first = false;
+                sb.append("\"").append(dep.getActualTypeName()).append("\"");
+            }
+        }
+        
+        // Field dependencies
+        for (InjectionPoint field : component.getFieldInjections()) {
+            if (!field.getDependencies().isEmpty()) {
+                InjectionPoint.Dependency dep = field.getDependencies().get(0);
+                if (dep.isValueInjection()) {
+                    continue;
+                }
+                if (!first) sb.append(",\n            ");
+                first = false;
+                sb.append("\"").append(dep.getActualTypeName()).append("\"");
+            }
+        }
+        
+        // Method dependencies
+        for (InjectionPoint method : component.getMethodInjections()) {
+            for (InjectionPoint.Dependency dep : method.getDependencies()) {
+                if (!first) sb.append(",\n            ");
+                first = false;
+                sb.append("\"").append(dep.getActualTypeName()).append("\"");
+            }
+        }
+        
+        sb.append("\n        );\n");
         sb.append("    }\n\n");
     }
     
