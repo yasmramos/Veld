@@ -1,9 +1,5 @@
 package io.github.yasmramos.veld.test;
 
-import io.github.yasmramos.veld.Veld;
-import io.github.yasmramos.veld.annotation.Component;
-import io.github.yasmramos.veld.annotation.Inject;
-import io.github.yasmramos.veld.annotation.Singleton;
 import io.github.yasmramos.veld.test.context.TestContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -92,51 +88,4 @@ class VeldTestIntegrationTest {
                 assertThat(service.getMessage("manual")).isEqualTo("Manually Mocked");
             }
         }
-    }
-    
-    // === Test Beans ===
-    
-    @Singleton
-    @Component
-    static class GreetingService {
-        public String greet(String name) {
-            return "Hello, " + name + "!";
-        }
-    }
-    
-    @Singleton
-    @Component
-    static class CalculatorService {
-        public int add(int a, int b) {
-            return a + b;
-        }
-        
-        public int multiply(int a, int b) {
-            return a * b;
-        }
-    }
-    
-    interface MessageRepository {
-        String getMessage(String key);
-        void saveMessage(String key, String value);
-    }
-    
-    @Singleton
-    @Component
-    static class MessageService {
-        private final MessageRepository repository;
-        
-        @Inject
-        public MessageService(MessageRepository repository) {
-            this.repository = repository;
-        }
-        
-        public String getMessage(String key) {
-            return repository.getMessage(key);
-        }
-        
-        public void saveMessage(String key, String value) {
-            repository.saveMessage(key, value);
-        }
-    }
 }
