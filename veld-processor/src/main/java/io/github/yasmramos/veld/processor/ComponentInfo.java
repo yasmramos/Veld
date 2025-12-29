@@ -12,8 +12,8 @@ import java.util.stream.Collectors;
  */
 public final class ComponentInfo {
     
-    private final String className;              // Fully qualified: com.example.MyService
-    private final String internalName;           // ASM internal: com/example/MyService
+    private String className;              // Fully qualified: com.example.MyService
+    private String internalName;           // ASM internal: com/example/MyService
     private final String componentName;          // @Component value or simple class name
     private final Scope scope;                   // SINGLETON or PROTOTYPE
     private final boolean lazy;                  // @Lazy - deferred initialization
