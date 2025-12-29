@@ -2,6 +2,7 @@ package io.github.yasmramos.veld.test;
 
 import io.github.yasmramos.veld.Veld;
 import io.github.yasmramos.veld.annotation.Component;
+import io.github.yasmramos.veld.annotation.Inject;
 import io.github.yasmramos.veld.annotation.Singleton;
 import io.github.yasmramos.veld.test.context.TestContext;
 import org.junit.jupiter.api.DisplayName;
@@ -125,6 +126,7 @@ class VeldTestIntegrationTest {
     static class MessageService {
         private final MessageRepository repository;
         
+        @Inject
         public MessageService(MessageRepository repository) {
             this.repository = repository;
         }
