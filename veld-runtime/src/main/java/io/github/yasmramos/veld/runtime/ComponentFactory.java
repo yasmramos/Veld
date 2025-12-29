@@ -198,4 +198,14 @@ public interface ComponentFactory<T> {
     default int getDestroyOrder() {
         return 0;
     }
+    
+    /**
+     * Returns the list of dependency types for this component.
+     * Used for building the dependency graph visualization.
+     *
+     * @return list of fully qualified dependency class names
+     */
+    default List<String> getDependencyTypes() {
+        return Collections.emptyList();
+    }
 }
