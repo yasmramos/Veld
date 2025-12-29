@@ -201,7 +201,7 @@ public final class RegistrySourceGenerator {
     
     private void generateGetScope(StringBuilder sb) {
         sb.append("    @Override\n");
-        sb.append("    public Scope getScope(int index) {\n");
+        sb.append("    public LegacyScope getScope(int index) {\n");
         sb.append("        return SCOPES[index];\n");
         sb.append("    }\n\n");
     }

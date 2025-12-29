@@ -63,9 +63,9 @@ public final class ComponentFactorySourceGenerator {
         
         // getScope()
         sb.append("    @Override\n");
-        sb.append("    public Scope getScope() {\n");
+        sb.append("    public LegacyScope getScope() {\n");
         String scopeName = component.getScope() == LegacyScope.SINGLETON ? "SINGLETON" : "PROTOTYPE";
-        sb.append("        return Scope.").append(scopeName).append(";\n");
+        sb.append("        return LegacyScope.").append(scopeName).append(";\n");
         sb.append("    }\n\n");
         
         // getScopeId() - supports custom scopes
