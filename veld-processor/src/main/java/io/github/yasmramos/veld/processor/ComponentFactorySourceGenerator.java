@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.Scope;
+import io.github.yasmramos.veld.runtime.LegacyScope;
 import java.util.List;
 
 /**
@@ -31,7 +31,7 @@ public final class ComponentFactorySourceGenerator {
         // Imports
         sb.append("import io.github.yasmramos.veld.Veld;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ComponentFactory;\n");
-        sb.append("import io.github.yasmramos.veld.runtime.Scope;\n");
+        sb.append("import io.github.yasmramos.veld.runtime.LegacyScope;\n");
         sb.append("import java.util.List;\n");
         sb.append("import java.util.Arrays;\n\n");
         
@@ -64,8 +64,14 @@ public final class ComponentFactorySourceGenerator {
         // getScope()
         sb.append("    @Override\n");
         sb.append("    public Scope getScope() {\n");
-        String scopeName = component.getScope() == Scope.SINGLETON ? "SINGLETON" : "PROTOTYPE";
+        String scopeName = component.getScope() == LegacyScope.SINGLETON ? "SINGLETON" : "PROTOTYPE";
         sb.append("        return Scope.").append(scopeName).append(";\n");
+        sb.append("    }\n\n");
+        
+        // getScopeId() - supports custom scopes
+        sb.append("    @Override\n");
+        sb.append("    public String getScopeId() {\n");
+        sb.append("        return \"").append(component.getScopeId()).append("\";\n");
         sb.append("    }\n\n");
         
         // isLazy()

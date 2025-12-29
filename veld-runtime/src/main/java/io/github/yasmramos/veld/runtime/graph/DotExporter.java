@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.runtime.graph;
 
-import io.github.yasmramos.veld.runtime.Scope;
+import io.github.yasmramos.veld.runtime.LegacyScope;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -98,7 +98,7 @@ public final class DotExporter implements GraphExporter {
     /**
      * Gets the DOT shape for a given scope.
      */
-    private String getShapeForScope(Scope scope) {
+    private String getShapeForScope(LegacyScope scope) {
         if (scope == null) {
             return "box";
         }

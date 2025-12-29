@@ -1,7 +1,6 @@
 package io.github.yasmramos.veld.runtime.graph;
 
 import io.github.yasmramos.veld.runtime.ComponentRegistry;
-import io.github.yasmramos.veld.runtime.Scope;
 
 import java.util.*;
 

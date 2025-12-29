@@ -34,7 +34,7 @@ public final class AsmUtils implements Opcodes {
     public static final String COMPONENT_REGISTRY = "io/github/yasmramos/veld/runtime/ComponentRegistry";
     public static final String COMPONENT_FACTORY = "io/github/yasmramos/veld/runtime/ComponentFactory";
     public static final String VELD_EXCEPTION = "io/github/yasmramos/veld/VeldException";
-    public static final String SCOPE = "io/github/yasmramos/veld/runtime/Scope";
+    public static final String SCOPE = "io.github.yasmramos.veld.runtime.LegacyScope";
     
     // Generated classes
     public static final String VELD_REGISTRY = "io/github/yasmramos/veld/generated/VeldRegistry";

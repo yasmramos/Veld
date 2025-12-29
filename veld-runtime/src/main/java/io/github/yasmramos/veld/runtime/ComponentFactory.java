@@ -41,7 +41,18 @@ public interface ComponentFactory<T> {
      *
      * @return the component scope
      */
-    Scope getScope();
+    LegacyScope getScope();
+    
+    /**
+     * Returns the scope ID for this component.
+     * For built-in scopes, returns "singleton" or "prototype".
+     * For custom scopes, returns the custom scope identifier.
+     *
+     * @return the scope identifier string
+     */
+    default String getScopeId() {
+        return getScope().name().toLowerCase();
+    }
     
     /**
      * Returns true if this component should be lazily initialized.

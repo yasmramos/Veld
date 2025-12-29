@@ -24,11 +24,27 @@ import java.lang.annotation.Target;
  * public class RequestContext {
  * }
  * </pre>
+ * 
+ * <h2>Lifecycle:</h2>
+ * <ul>
+ *   <li>New instance created for each request</li>
+ *   <li>Container does not track prototype instances</li>
+ *   <li>{@link io.github.yasmramos.veld.annotation.PostConstruct} is called after creation</li>
+ *   <li>{@link io.github.yasmramos.veld.annotation.PreDestroy} is NOT called (container doesn't track instances)</li>
+ * </ul>
+ * 
+ * <h2>When to Use Prototype:</h2>
+ * <ul>
+ *   <li>Stateful beans where each client needs its own instance</li>
+ *   <li>Beans with mutable state that should not be shared</li>
+ *   <li>Integration with external systems requiring isolation</li>
+ * </ul>
  */
 @Documented
 @Retention(RetentionPolicy.CLASS)
 @Target(ElementType.TYPE)
 @Component  // Meta-annotation: @Prototype implies @Component
+@VeldScope(value = "io.github.yasmramos.veld.runtime.scope.PrototypeScope", id = "prototype", displayName = "Prototype")
 public @interface Prototype {
     
     /**

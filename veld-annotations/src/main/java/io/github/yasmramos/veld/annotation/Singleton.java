@@ -24,11 +24,20 @@ import java.lang.annotation.Target;
  * public class MyService {
  * }
  * </pre>
+ * 
+ * <h2>Lifecycle:</h2>
+ * <ul>
+ *   <li>Instance is created on first access (lazy)</li>
+ *   <li>Shared across all injection points</li>
+ *   <li>{@link io.github.yasmramos.veld.annotation.PostConstruct} is called after creation</li>
+ *   <li>{@link io.github.yasmramos.veld.annotation.PreDestroy} is called on container shutdown</li>
+ * </ul>
  */
 @Documented
 @Retention(RetentionPolicy.CLASS)
 @Target(ElementType.TYPE)
 @Component  // Meta-annotation: @Singleton implies @Component
+@VeldScope(value = "io.github.yasmramos.veld.runtime.scope.SingletonScope", id = "singleton", displayName = "Singleton")
 public @interface Singleton {
     
     /**
