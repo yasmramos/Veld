@@ -1,0 +1,221 @@
+# Veld Framework Test Infrastructure
+# Orchestrates services required for comprehensive testing
+#
+# Usage:
+#   docker-compose up -d
+#   docker-compose down
+#
+# For specific test suites:
+#   docker-compose -f docker-compose.yml run integration-tests
+
+version: '3.8'
+
+services:
+  # PostgreSQL for JPA/Hibernate integration tests
+  postgres:
+    image: postgres:15-alpine
+    container_name: veld-postgres
+    environment:
+      POSTGRES_USER: veld_test
+      POSTGRES_PASSWORD: veld_test_password
+      POSTGRES_DB: veld_test
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U veld_test -d veld_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # MySQL for additional database integration tests
+  mysql:
+    image: mysql:8.0-alpine
+    container_name: veld-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: veld_test_root
+      MYSQL_DATABASE: veld_test
+      MYSQL_USER: veld_test
+      MYSQL_PASSWORD: veld_test_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching integration tests
+  redis:
+    image: redis:7-alpine
+    container_name: veld-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # MongoDB for NoSQL integration tests
+  mongodb:
+    image: mongo:7-alpine
+    container_name: veld-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: veld_test
+      MONGO_INITDB_ROOT_PASSWORD: veld_test_password
+      MONGO_INITDB_DATABASE: veld_test
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/veld_test --quiet
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ for messaging integration tests
+  rabbitmq:
+    image: rabbitmq:3.12-alpine
+    container_name: veld-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: veld_test
+      RABBITMQ_DEFAULT_PASS: veld_test_password
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Kafka for streaming integration tests
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: veld-kafka
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    volumes:
+      - kafka_data:/var/lib/kafka
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: veld-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper
+
+  # Development shell with Maven and all tools
+  dev-shell:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: veld-dev-shell
+    working_dir: /workspace/Veld
+    volumes:
+      - ../..:/workspace/Veld
+      - maven_cache:/root/.m2
+    environment:
+      - MAVEN_OPTS=-Xmx2g -XX:MaxMetaspaceSize=1g
+    command: tail -f /dev/null
+    depends_on:
+      - postgres
+      - mysql
+      - redis
+      - rabbitmq
+
+  # Integration tests runner
+  integration-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: veld-integration-tests
+    working_dir: /workspace/Veld
+    volumes:
+      - ../..:/workspace/Veld
+      - maven_cache:/root/.m2
+    environment:
+      - VELD_TEST_DB_URL=jdbc:postgresql://postgres:5432/veld_test
+      - VELD_TEST_DB_USER=veld_test
+      - VELD_TEST_DB_PASSWORD=veld_test_password
+      - VELD_TEST_REDIS_HOST=redis
+      - VELD_TEST_MONGODB_HOST=mongodb:27017
+      - VELD_TEST_RABBITMQ_HOST=rabbitmq:5672
+      - VELD_TEST_KAFKA_HOST=kafka:9092
+    command: >
+      bash -c "
+        ./mvnw clean test -pl veld-integration-tests -B &&
+        ./mvnw verify -pl veld-spring-boot-starter -B
+      "
+    depends_on:
+      - postgres
+      - mysql
+      - redis
+      - mongodb
+      - rabbitmq
+      - kafka
+
+volumes:
+  postgres_data:
+  mysql_data:
+  redis_data:
+  mongodb_data:
+  rabbitmq_data:
+  kafka_data:
+  zookeeper_data:
+  maven_cache:
+
+networks:
+  default:
+    name: veld-test-network
+
+---
+
+**Usage Examples**:
+
+# Start all test databases
+docker-compose up -d postgres mysql redis mongodb
+
+# Run integration tests
+docker-compose run integration-tests
+
+# Access development shell
+docker-compose run dev-shell
+
+# Start Kafka cluster
+docker-compose up -d kafka zookeeper
+
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes
+docker-compose down -v
+
+**Notes**:
+- Services marked with healthchecks are production-ready configurations
+- All services use test-specific credentials for isolation
+- The dev-shell service mounts the current directory for live development
+- Kafka requires both kafka and zookeeper services
+
+**Last Updated**: 2025-12-30
+**Version**: 1.0.3
