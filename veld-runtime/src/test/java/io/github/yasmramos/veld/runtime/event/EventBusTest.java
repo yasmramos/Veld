@@ -249,13 +249,13 @@ class EventBusTest {
         
         @Test
         @DisplayName("Should deliver child events to parent subscribers")
-        void shouldDeliverChildEventsToParentSubscribers() {
+        void shouldDeliverChildEventsToParentSubscribers() throws Exception {
             SimpleSubscriber subscriber = new SimpleSubscriber();
             eventBus.register(subscriber);
-            
+
             ChildEvent event = new ChildEvent(this, "child");
             eventBus.publish(event);
-            
+
             assertEquals(1, subscriber.receivedEvents.size());
         }
         
