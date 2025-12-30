@@ -29,26 +29,34 @@ env:
 
 jobs:
   validation:
-    name: Validation & Quality Gates
+    name: 🔍 Validation & Quality Gates
     runs-on: ubuntu-latest
     timeout-minutes: 15
     
     steps:
-    - name: Checkout Repository
+    - name: 🔍 Checkout Repository
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
         
-    - name: Setup JDK
+    - name: ☕ Setup JDK
       uses: actions/setup-java@v4
       with:
         java-version: ${{ env.JAVA_VERSION }}
         distribution: 'temurin'
         cache: maven
-        
-    - name: Security Scan
+
+    - name: 🧹 Clean Maven Cache (Optional Recovery Step)
+      if: always()
       run: |
-        echo "Running security scan..."
+        # Clean local Maven repository cache to avoid stale dependencies
+        echo "Cleaning Maven local repository..."
+        rm -rf ~/.m2/repository//io/github/yasmramos/
+        echo "✅ Cache cleaned"
+
+    - name: 🔒 Security Scan
+      run: |
+        echo "🔒 Running security scan..."
         
         # Simplified security scan for obvious hardcoded credentials
         echo "Scanning for hardcoded credentials..."
@@ -58,44 +66,44 @@ jobs:
         
         # Check for password patterns (excluding comments and placeholders)
         if grep -ri "password.*=.*['\"][^'\"]{10,}['\"]" . 2>/dev/null | grep -v -E "^[^:]*/\*|#.*password|//.*password|\.\.\..*password|\*\*\*.*password" > /dev/null; then
-          echo " Potential hardcoded password found!"
+          echo "❌ Potential hardcoded password found!"
           grep -ri "password.*=.*['\"][^'\"]{10,}['\"]" . 2>/dev/null | grep -v -E "^[^:]*/\*|#.*password|//.*password|\.\.\..*password|\*\*\*.*password" | head -3
           FOUND_ISSUES=1
         fi
         
         # Check for API key patterns (excluding comments)
         if grep -ri "api.*key.*=.*['\"][a-zA-Z0-9]{20,}['\"]" . 2>/dev/null | grep -v -E "^[^:]*/\*|#.*api.*key|//.*api.*key" > /dev/null; then
-          echo " Potential hardcoded API key found!"
+          echo "❌ Potential hardcoded API key found!"
           grep -ri "api.*key.*=.*['\"][a-zA-Z0-9]{20,}['\"]" . 2>/dev/null | grep -v -E "^[^:]*/\*|#.*api.*key|//.*api.*key" | head -3
           FOUND_ISSUES=1
         fi
         
         if [ $FOUND_ISSUES -eq 1 ]; then
-          echo " Security scan failed - potential credentials found!"
+          echo "❌ Security scan failed - potential credentials found!"
           exit 1
         else
-          echo " Security scan passed - no hardcoded credentials detected"
+          echo "✅ Security scan passed - no hardcoded credentials detected"
         fi
         
-    - name: Code Quality Check
+    - name: 🧹 Code Quality Check
       run: |
-        echo "Checking code quality..."
+        echo "🧹 Checking code quality..."
         
         # Verificar que el proyecto compila
         echo "Verifying compilation..."
-        if mvn clean compile -DskipGpg=true -q; then
-          echo " Compilation successful"
+        if mvn clean compile -DskipGpg=true -Dmaven.javadoc.skip=true -Djacoco.skip=true -Pci -U; then
+          echo "✅ Compilation successful"
         else
-          echo " Compilation failed"
+          echo "❌ Compilation failed"
           exit 1
         fi
         
-    - name: Quality Gate
+    - name: 🛡️ Quality Gate
       run: |
-        echo " Evaluating quality gate..."
-        echo " All quality gates passed"
+        echo "🛡️ Evaluating quality gate..."
+        echo "✅ All quality gates passed"
         
-    - name:  Upload Validation Reports
+    - name: 📊 Upload Validation Reports
       uses: actions/upload-artifact@v4
       if: always()
       with:
@@ -115,27 +123,37 @@ jobs:
         java-version: [17, 21, 25]
         
     steps:
-    - name:  Checkout Repository
+    - name: 🔍 Checkout Repository
       uses: actions/checkout@v4
       
-    - name:  Setup JDK ${{ matrix.java-version }}
+    - name: ☕ Setup JDK ${{ matrix.java-version }}
       uses: actions/setup-java@v4
       with:
         java-version: ${{ matrix.java-version }}
         distribution: 'temurin'
         cache: maven
-        
-    - name: Build Project
+
+    - name: 🧹 Clean Maven Cache (Optional Recovery Step)
+      if: always()
       run: |
-        echo " Building project with JDK ${{ matrix.java-version }}"
-        mvn clean install -DskipTests -DskipGpg=true -Dmaven.javadoc.skip=true -Pci -q
-        
-    - name:  Test Project
+        # Clean local Maven repository cache to avoid stale dependencies
+        echo "Cleaning Maven local repository..."
+        rm -rf ~/.m2/repository//io/github/yasmramos/
+        echo "✅ Cache cleaned"
+
+    - name: 🔨 Build Project
       run: |
-        echo " Testing project..."
-        mvn test -DskipGpg=true -q
+        echo "🔨 Building project with JDK ${{ matrix.java-version }}"
+        # -U forces update of snapshots and releases, -T 2C uses 2 threads per CPU core
+        mvn clean install -DskipTests -DskipGpg=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Djacoco.skip=true -Pci -U -T 2C
+
+    - name: 🧪 Test Project
+      run: |
+        echo "🧪 Testing project..."
+        # -U ensures fresh dependency resolution
+        mvn test -DskipGpg=true -Dmaven.javadoc.skip=true -Djacoco.skip=true -Pci -U
         
-    - name:  Upload Build Artifacts
+    - name: 📦 Upload Build Artifacts
       uses: actions/upload-artifact@v4
       if: always()
       with:
@@ -146,28 +164,35 @@ jobs:
         retention-days: 90
 
   integration-tests:
-    name:  Integration Tests
+    name: 🔗 Integration Tests
     runs-on: ubuntu-latest
     needs: build-test
     if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'integration')
     
     steps:
-    - name:  Checkout Repository
+    - name: 🔍 Checkout Repository
       uses: actions/checkout@v4
       
-    - name:  Setup JDK 17
+    - name: ☕ Setup JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
-        
-    - name:  Run Integration Tests
+
+    - name: 🧹 Clean Maven Cache (Optional Recovery Step)
+      if: always()
       run: |
-        echo " Running integration tests..."
-        mvn test -Dtest=*IT -DskipGpg=true -q || echo "Integration tests completed"
+        echo "Cleaning Maven local repository..."
+        rm -rf ~/.m2/repository//io/github/yasmramos/
+        echo "✅ Cache cleaned"
+
+    - name: 🔗 Run Integration Tests
+      run: |
+        echo "🔗 Running integration tests..."
+        mvn test -Dtest=*IT -DskipGpg=true -Dmaven.javadoc.skip=true -Djacoco.skip=true -Pci -U || echo "Integration tests completed"
         
-    - name:  Upload Integration Reports
+    - name: 📊 Upload Integration Reports
       uses: actions/upload-artifact@v4
       if: always()
       with:
@@ -177,38 +202,45 @@ jobs:
         retention-days: 90
 
   security-compliance:
-    name:  Security & Compliance
+    name: 🔒 Security & Compliance
     runs-on: ubuntu-latest
     needs: [validation, build-test]
 
     steps:
-    - name:  Checkout Repository
+    - name: 🔍 Checkout Repository
       uses: actions/checkout@v4
 
-    - name:  Setup JDK 17
+    - name: ☕ Setup JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
 
-    - name:  CodeQL Analysis (with autobuild)
+    - name: 🧹 Clean Maven Cache (Optional Recovery Step)
+      if: always()
+      run: |
+        echo "Cleaning Maven local repository..."
+        rm -rf ~/.m2/repository//io/github/yasmramos/
+        echo "✅ Cache cleaned"
+
+    - name: 🔍 CodeQL Analysis (with autobuild)
       uses: github/codeql-action/init@v4
       with:
         languages: java
         build-mode: autobuild
 
-    - name:  Perform CodeQL Analysis
+    - name: 🔍 Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
       with:
         category: "/language:java"
       
-    - name:  License Check
+    - name: 📄 License Check
       run: |
-        echo " Checking license compliance..."
+        echo "📄 Checking license compliance..."
         mvn license:check -DskipGpg=true -q || echo "License check completed"
         
-    - name:  Upload Security Reports
+    - name: 📊 Upload Security Reports
       uses: actions/upload-artifact@v4
       if: always()
       with:
@@ -218,35 +250,42 @@ jobs:
         retention-days: 30
 
   build-artifacts:
-    name:  Build Artifacts
+    name: 📦 Build Artifacts
     runs-on: ubuntu-latest
     needs: [build-test, integration-tests, security-compliance]
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/v')
     
     steps:
-    - name:  Checkout Repository
+    - name: 🔍 Checkout Repository
       uses: actions/checkout@v4
       
-    - name:  Setup JDK 17
+    - name: ☕ Setup JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
-        
-    - name:  Package Build
+
+    - name: 🧹 Clean Maven Cache (Optional Recovery Step)
+      if: always()
       run: |
-        echo "Building package artifacts..."
+        echo "Cleaning Maven local repository..."
+        rm -rf ~/.m2/repository//io/github/yasmramos/
+        echo "✅ Cache cleaned"
+
+    - name: 🔨 Package Build
+      run: |
+        echo "🔨 Building package artifacts..."
         mvn clean package -DskipTests -DskipGpg=true -Dmaven.javadoc.skip=true -Pci -pl '!veld-benchmark,!veld-example,!veld-spring-boot-example' -q
         
-    - name:  Create Distribution
+    - name: 📦 Create Distribution
       run: |
-        echo " Creating distribution packages..."
+        echo "📦 Creating distribution packages..."
         mvn assembly:single -DdescriptorId=jar-with-dependencies -DskipGpg=true -q || true
         mvn source:jar -DskipGpg=true -q || true
         mvn javadoc:jar -DskipGpg=true -q || true
         
-    - name:  Upload Release Artifacts
+    - name: 📊 Upload Release Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: release-artifacts
@@ -261,80 +300,80 @@ jobs:
         if-no-files-found: warn
         retention-days: 90
         
-    - name:  Build Summary
+    - name: 📝 Build Summary
       run: |
-        echo " Build artifacts ready for deployment" >> $GITHUB_STEP_SUMMARY
+        echo "📦 Build artifacts ready for deployment" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Note:** For Maven Central deployment, use the 'Release to Maven Central' workflow." >> $GITHUB_STEP_SUMMARY
 
   deploy-staging:
-    name:  Deploy to Staging
+    name: 🚀 Deploy to Staging
     runs-on: ubuntu-latest
     needs: [build-artifacts]
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     environment: staging
     
     steps:
-    - name:  Download Artifacts
+    - name: 🔍 Download Artifacts
       uses: actions/download-artifact@v4
       with:
         name: release-artifacts
         path: ./artifacts
         
-    - name:  Deploy to Staging
+    - name: 🚀 Deploy to Staging
       run: |
-        echo " Deploying to staging environment..."
+        echo "🚀 Deploying to staging environment..."
         echo "Environment: staging"
         echo "Artifacts: $(ls -la ./artifacts/)"
-        echo " Deployment to staging completed"
+        echo "✅ Deployment to staging completed"
         
-    - name:  Smoke Tests
+    - name: 🧪 Smoke Tests
       run: |
-        echo " Running smoke tests on staging..."
-        echo " Smoke tests passed"
+        echo "🧪 Running smoke tests on staging..."
+        echo "✅ Smoke tests passed"
 
   deploy-production:
-    name:  Deploy to Production
+    name: 🎯 Deploy to Production
     runs-on: ubuntu-latest
     needs: [deploy-staging, build-artifacts]
     if: startsWith(github.ref, 'refs/tags/v')
     environment: production
     
     steps:
-    - name:  Download Artifacts
+    - name: 🔍 Download Artifacts
       uses: actions/download-artifact@v4
       with:
         name: release-artifacts
         path: ./artifacts
         
-    - name:  Deploy to Production
+    - name: 🎯 Deploy to Production
       run: |
-        echo " Deploying to production environment..."
+        echo "🎯 Deploying to production environment..."
         echo "Tag: ${{ github.ref_name }}"
         echo "Artifacts: $(ls -la ./artifacts/)"
-        echo " Deployment to production completed"
+        echo "✅ Deployment to production completed"
 
   notification:
-    name:  Pipeline Summary
+    name: 📢 Pipeline Summary
     runs-on: ubuntu-latest
     needs: [validation, build-test, integration-tests, security-compliance, build-artifacts, deploy-staging, deploy-production]
     if: always()
     
     steps:
-    - name:  Generate Pipeline Summary
+    - name: 📊 Generate Pipeline Summary
       run: |
-        echo "##  CI/CD Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+        echo "## 🚀 CI/CD Pipeline Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "###  Pipeline Status" >> $GITHUB_STEP_SUMMARY
+        echo "### 📈 Pipeline Status" >> $GITHUB_STEP_SUMMARY
         echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
         echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-        echo "|  Validation | ${{ needs.validation.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "|  Build & Test | ${{ needs.build-test.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "|  Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "|  Security & Compliance | ${{ needs.security-compliance.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "|  Build Artifacts | ${{ needs.build-artifacts.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "|  Staging Deploy | ${{ needs.deploy-staging.result }} |" >> $GITHUB_STEP_SUMMARY
-        echo "|  Production Deploy | ${{ needs.deploy-production.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🔍 Validation | ${{ needs.validation.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🔨 Build & Test | ${{ needs.build-test.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🔗 Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🔒 Security & Compliance | ${{ needs.security-compliance.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 📦 Build Artifacts | ${{ needs.build-artifacts.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🚀 Staging Deploy | ${{ needs.deploy-staging.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🎯 Production Deploy | ${{ needs.deploy-production.result }} |" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
         # Determinar estado general
@@ -350,16 +389,16 @@ jobs:
         fi
         
         if [ -z "$FAILED_JOBS" ]; then
-          echo "###  Overall Status: **SUCCESS**" >> $GITHUB_STEP_SUMMARY
-          echo "Pipeline completed successfully! " >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Overall Status: **SUCCESS**" >> $GITHUB_STEP_SUMMARY
+          echo "Pipeline completed successfully! 🎉" >> $GITHUB_STEP_SUMMARY
         else
-          echo "###  Overall Status: **FAILURE**" >> $GITHUB_STEP_SUMMARY
+          echo "### ❌ Overall Status: **FAILURE**" >> $GITHUB_STEP_SUMMARY
           echo "Failed stages: ${FAILED_JOBS%?}" >> $GITHUB_STEP_SUMMARY
           echo "Please check the logs for details." >> $GITHUB_STEP_SUMMARY
         fi
         
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "###  Pipeline Metrics" >> $GITHUB_STEP_SUMMARY
+        echo "### 📊 Pipeline Metrics" >> $GITHUB_STEP_SUMMARY
         echo "- **Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

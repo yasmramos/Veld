@@ -71,7 +71,7 @@ public class EventBus {
     private static final EventBus INSTANCE = new EventBus();
 
     private final Map<Class<?>, List<EventSubscriber>> subscribersByType;
-    private final ExecutorService asyncExecutor;
+    private ExecutorService asyncExecutor;
     private final AtomicLong publishedCount;
     private final AtomicLong deliveredCount;
     private volatile boolean shuttingDown;
@@ -266,12 +266,14 @@ public class EventBus {
 
     /**
      * Finds all subscribers that can handle the given event.
+     * Supports polymorphic event delivery - subscribers for parent classes
+     * will receive events from child classes.
      */
     private List<EventSubscriber> findSubscribers(Event event) {
         List<EventSubscriber> result = new ArrayList<>();
         Class<?> eventClass = event.getClass();
 
-        // Check all registered event types
+        // Check all registered event types for polymorphic matching
         for (Map.Entry<Class<?>, List<EventSubscriber>> entry : subscribersByType.entrySet()) {
             Class<?> registeredType = entry.getKey();
             if (registeredType.isAssignableFrom(eventClass)) {
@@ -391,6 +393,28 @@ public class EventBus {
             Thread.currentThread().interrupt();
         }
         System.out.println("[EventBus] Shutdown complete");
+    }
+
+    /**
+     * Resets the EventBus state for testing purposes.
+     *
+     * <p>This method clears all subscribers, resets counters, clears the
+     * shutdown flag, and creates a new async executor. It should only be
+     * used in tests to ensure a clean state between test runs.
+     */
+    void resetForTesting() {
+        shuttingDown = false;
+        // Shutdown old executor if it exists
+        if (asyncExecutor != null && !asyncExecutor.isShutdown()) {
+            asyncExecutor.shutdownNow();
+        }
+        // Create new executor
+        asyncExecutor = Executors.newCachedThreadPool(r -> {
+            Thread t = new Thread(r, "EventBus-Async-Worker");
+            t.setDaemon(true);
+            return t;
+        });
+        clear();
     }
 
     /**

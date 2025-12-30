@@ -31,7 +31,7 @@ class EventBusTest {
     
     @AfterEach
     void tearDown() {
-        eventBus.clear();
+        eventBus.resetForTesting();
     }
     
     // Test Events
@@ -249,13 +249,13 @@ class EventBusTest {
         
         @Test
         @DisplayName("Should deliver child events to parent subscribers")
-        void shouldDeliverChildEventsToParentSubscribers() {
+        void shouldDeliverChildEventsToParentSubscribers() throws Exception {
             SimpleSubscriber subscriber = new SimpleSubscriber();
             eventBus.register(subscriber);
-            
+
             ChildEvent event = new ChildEvent(this, "child");
             eventBus.publish(event);
-            
+
             assertEquals(1, subscriber.receivedEvents.size());
         }
         
@@ -388,44 +388,161 @@ class EventBusTest {
     @Nested
     @DisplayName("Lifecycle Tests")
     class LifecycleTests {
-        
+
         @Test
         @DisplayName("Should clear all subscribers")
         void shouldClearAllSubscribers() {
             SimpleSubscriber subscriber = new SimpleSubscriber();
             eventBus.register(subscriber);
-            
+
             eventBus.clear();
-            
+
             assertEquals(0, eventBus.getSubscriberCount());
             assertEquals(0, eventBus.getPublishedCount());
             assertEquals(0, eventBus.getDeliveredCount());
         }
-        
+
         @Test
         @DisplayName("Should return statistics")
         void shouldReturnStatistics() {
             SimpleSubscriber subscriber = new SimpleSubscriber();
             eventBus.register(subscriber);
             eventBus.publish(new TestEvent(this, "test"));
-            
+
             String stats = eventBus.getStatistics();
-            
+
             assertNotNull(stats);
             assertTrue(stats.contains("EventBus Statistics"));
+        }
+
+        @Test
+        @DisplayName("Should register EventSubscriber directly")
+        void shouldRegisterEventSubscriberDirectly() throws NoSuchMethodException {
+            SimpleSubscriber target = new SimpleSubscriber();
+            EventSubscriber subscriber = new EventSubscriber(
+                target,
+                SimpleSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class,
+                false,
+                0,
+                null,
+                false
+            );
+
+            eventBus.register(subscriber);
+
+            assertEquals(1, eventBus.getSubscriberCount());
+            assertEquals(1, eventBus.publish(new TestEvent(this, "direct")));
+            assertEquals(1, target.receivedEvents.size());
+        }
+
+        @Test
+        @DisplayName("Should throw exception when registering null EventSubscriber")
+        void shouldThrowExceptionWhenRegisteringNullEventSubscriber() {
+            assertThrows(IllegalArgumentException.class,
+                () -> eventBus.register((EventSubscriber) null));
+        }
+    }
+
+    @Nested
+    @DisplayName("Shutdown Tests")
+    class ShutdownTests {
+
+        @Test
+        @DisplayName("Should shutdown gracefully")
+        void shouldShutdownGracefully() {
+            SimpleSubscriber subscriber = new SimpleSubscriber();
+            eventBus.register(subscriber);
+
+            eventBus.shutdown();
+
+            // After shutdown, publish should return 0
+            assertEquals(0, eventBus.publish(new TestEvent(this, "test")));
+        }
+
+        @Test
+        @DisplayName("Should not publish after shutdown")
+        void shouldNotPublishAfterShutdown() {
+            eventBus.shutdown();
+
+            assertEquals(0, eventBus.publish(new TestEvent(this, "after-shutdown")));
+            assertEquals(0, eventBus.publishAsync(new TestEvent(this, "async-after")).join());
+        }
+    }
+
+    @Nested
+    @DisplayName("Exception Handling Tests")
+    class ExtendedExceptionHandlingTests {
+
+        @Test
+        @DisplayName("Should handle publish without subscribers")
+        void shouldHandlePublishWithoutSubscribers() {
+            eventBus.clear(); // Ensure no subscribers
+
+            int count = eventBus.publish(new TestEvent(this, "orphan"));
+
+            assertEquals(0, count);
+            assertEquals(0, eventBus.getDeliveredCount());
         }
     }
     
     @Nested
+    @DisplayName("Edge Cases Tests")
+    class EdgeCasesTests {
+
+        @Test
+        @DisplayName("Should handle multiple subscribers for same event type")
+        void shouldHandleMultipleSubscribersForSameEventType() {
+            SimpleSubscriber subscriber1 = new SimpleSubscriber();
+            SimpleSubscriber subscriber2 = new SimpleSubscriber();
+
+            eventBus.register(subscriber1);
+            eventBus.register(subscriber2);
+
+            int count = eventBus.publish(new TestEvent(this, "multi"));
+
+            assertEquals(2, count);
+            assertEquals(1, subscriber1.receivedEvents.size());
+            assertEquals(1, subscriber2.receivedEvents.size());
+        }
+
+        @Test
+        @DisplayName("Should handle unregister during publish")
+        void shouldHandleUnregisterDuringPublish() {
+            SimpleSubscriber subscriber = new SimpleSubscriber();
+            eventBus.register(subscriber);
+
+            eventBus.unregister(subscriber);
+
+            assertEquals(0, eventBus.publish(new TestEvent(this, "after-unregister")));
+        }
+
+        @Test
+        @DisplayName("Should return correct delivered count with multiple subscribers")
+        void shouldReturnCorrectDeliveredCountWithMultipleSubscribers() {
+            SimpleSubscriber subscriber1 = new SimpleSubscriber();
+            SimpleSubscriber subscriber2 = new SimpleSubscriber();
+
+            eventBus.register(subscriber1);
+            eventBus.register(subscriber2);
+
+            long before = eventBus.getDeliveredCount();
+            eventBus.publish(new TestEvent(this, "test"));
+
+            assertEquals(before + 2, eventBus.getDeliveredCount());
+        }
+    }
+
+    @Nested
     @DisplayName("Singleton Tests")
     class SingletonTests {
-        
+
         @Test
         @DisplayName("Should return same instance")
         void shouldReturnSameInstance() {
             EventBus bus1 = EventBus.getInstance();
             EventBus bus2 = EventBus.getInstance();
-            
+
             assertSame(bus1, bus2);
         }
     }
