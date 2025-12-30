@@ -50,7 +50,7 @@ Veld is a **compile-time Dependency Injection framework** that generates pure co
 
 - **Zero Reflection** - All injection code generated at compile-time as code
 - **Constructor Injection** - Preferred pattern, supports private constructors
-- **Field Injection** - Works across packages via synthetic setters (code weaving)
+- **Field Injection** - Works across packages via synthetic setters (bytecode weaving)
 - **Method Injection** - Setter-based injection for optional dependencies
 - **Interface Binding** - Inject by interface, resolved to implementation
 
@@ -386,7 +386,7 @@ implementation 'io.github.yasmramos:veld-annotations:1.0.3'
 **The plugin handles everything automatically:**
 
 - Compiles your code with the Veld annotation processor
-- Weaves code to add synthetic setters for private field injection
+- Weaves bytecode to add synthetic setters for private field injection
 - Generates the optimized `Veld.class` registry
 
 **Advanced Configuration (Optional):**
@@ -415,7 +415,7 @@ implementation 'io.github.yasmramos:veld-annotations:1.0.3'
 **Benefits of using the unified plugin:**
 
 - **Simplified Configuration** - One plugin replaces multiple Maven configurations
-- **Automatic Processing** - Automatically runs annotation processing and code weaving during compile phase
+- **Automatic Processing** - Automatically runs annotation processing and bytecode weaving during compile phase
 - **IDE Compatibility** - Better integration with modern IDEs
 - **JPMS Support** - Enhanced support for Java Module System
 - **Build Optimization** - Optimized compilation pipeline
@@ -1032,12 +1032,12 @@ Veld uses a **three-phase build process**:
 │     - Analyzes injection points                             │
 │     - Writes component metadata                             │
 ├─────────────────────────────────────────────────────────────┤
-│  2. Code Generation                                         │
+│  2. Bytecode Weaving                                        │
 │     - Adds synthetic setters (__di_set_fieldName)           │
 │     - Enables private field injection across packages       │
 ├─────────────────────────────────────────────────────────────┤
 │  3. Registry Generation                                      │
-│     - Generates Veld.class with pure code                   │
+│     - Generates Veld.class with pure bytecode               │
 │     - Static fields for singletons                          │
 │     - Factory methods for prototypes                        │
 │     - Direct method calls - NO reflection                   │
@@ -1060,7 +1060,7 @@ Veld uses a **three-phase build process**:
 | `veld-annotations` | Core annotations (`@Component`, `@Inject`, `@Singleton`, etc.) |
 | `veld-runtime` | Runtime utilities, EventBus, lifecycle management, dependency graph visualization |
 | `veld-processor` | Annotation processor (compile-time) |
-| `veld-weaver` | Code weaver for synthetic setters |
+| `veld-weaver` | Bytecode weaver for synthetic setters |
 | `veld-maven-plugin` | **Unified plugin** - handles everything |
 | `veld-aop` | Aspect-Oriented Programming support |
 | `veld-resilience` | Circuit Breaker, Bulkhead, Timeout patterns |
