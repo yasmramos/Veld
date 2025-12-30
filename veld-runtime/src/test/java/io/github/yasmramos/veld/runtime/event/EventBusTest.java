@@ -31,7 +31,7 @@ class EventBusTest {
     
     @AfterEach
     void tearDown() {
-        eventBus.clear();
+        eventBus.resetForTesting();
     }
     
     // Test Events
