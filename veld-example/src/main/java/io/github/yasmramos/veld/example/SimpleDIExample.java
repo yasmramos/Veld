@@ -39,7 +39,7 @@ public class SimpleDIExample {
 
 @Singleton
 @Component
-class MessageService {
+public class MessageService {
     private final ConfigService config;
     
     @Inject
@@ -55,7 +55,7 @@ class MessageService {
 
 @Prototype
 @Component
-class ConsolePrinter {
+public class ConsolePrinter {
     
     public void print(String text) {
         System.out.println("[PRINT]: " + text);
