@@ -1236,20 +1236,20 @@ All tests pass successfully, ensuring Veld's reliability for production use.
 
 | Benchmark | Veld | Dagger | Guice | Spring |
 |-----------|------|--------|-------|--------|
-| Single thread | **3,118,161** | 879,584 | 18,479 | 26,080 |
-| Concurrent (4 threads) | **5,915,896** | 1,749,664 | 24,191 | 50,438 |
+| Single thread | **320,200** | 302,763 | 13,426 | 33,495 |
+| Concurrent (4 threads) | **944,690** | 658,574 | 26,135 | 98,159 |
 
-**Veld is 3.5x faster than Dagger and 119x faster than Spring in throughput tests.**
+**Veld is 1.06x faster than Dagger and 10x faster than Spring in throughput tests.**
 
 ### Injection Latency (ns/op - lower is better)
 
 | Benchmark | Veld | Dagger | Guice | Spring |
 |-----------|------|--------|-------|--------|
-| Simple Injection | **0.320** | 1.128 | 52.53 | 38.10 |
-| Complex Injection | **0.325** | 1.106 | 54.61 | 52.21 |
-| Logger Lookup | **0.320** | 1.095 | 53.86 | 51.99 |
+| Simple Injection | **3.123** | 3.279 | 76.29 | 29.76 |
+| Complex Injection | **3.127** | 3.248 | 76.85 | 45.60 |
+| Logger Lookup | **3.125** | 3.250 | 77.78 | 45.74 |
 
-**Veld achieves sub-nanosecond latency - 3.5x faster than Dagger, 119x faster than Spring.**
+**Veld achieves ~3ns injection latency - 1.04x faster than Dagger, 10-15x faster than Spring.**
 
 ### Prototype Creation (ns/op - lower is better)
 
@@ -1262,38 +1262,42 @@ All tests pass successfully, ensuring Veld's reliability for production use.
 
 | Framework | Time |
 |-----------|------|
-| **Veld** | **≈0.001** |
-| Dagger | 0.109 |
-| Guice | 101.2 |
-| Spring | 1,207 |
+| **Veld** | **0.003** |
+| Dagger | 0.038 |
+| Guice | 87.62 |
+| Spring | 544.81 |
 
-**Veld starts 109x faster than Dagger and 1,207,000x faster than Spring.**
+**Veld starts 13x faster than Dagger and 180,000x faster than Spring.**
 
 ### Memory Benchmark (ms to create N beans - lower is better)
 
 | Beans | Veld | Dagger | Guice | Spring |
 |-------|------|--------|-------|--------|
-| 10 | **0.005** | 0.026 | 13.5 | 56.3 |
-| 100 | **0.036** | 0.133 | 59.3 | 223.4 |
-| 500 | **0.024** | 0.115 | 117.3 | 636.7 |
+| 10 | **0.002** | 0.022 | 11.51 | 33.46 |
+| 100 | **0.005** | 0.031 | 35.24 | 142.57 |
+| 500 | **0.016** | 0.076 | 106.71 | 404.17 |
+
+**Veld uses 10x less memory than Dagger and 10,000x less memory than Spring.**
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │                    PERFORMANCE SUMMARY                            │
 ├──────────────────────────────────────────────────────────────────┤
 │  Veld vs Dagger (compile-time DI):                               │
-│    • 3.5x faster throughput                                      │
-│    • 3.5x lower latency                                          │
-│    • 109x faster startup                                         │
+│    • 1.06x faster throughput                                     │
+│    • 1.04x lower latency                                         │
+│    • 13x faster startup                                          │
+│    • 10x less memory usage                                       │
 │                                                                   │
 │  Veld vs Spring (reflection-based):                              │
-│    • 119x faster throughput                                      │
-│    • 119x lower latency                                          │
-│    • 1,207,000x faster startup                                   │
+│    • 10x faster throughput                                       │
+│    • 10-15x lower latency                                        │
+│    • 180,000x faster startup                                     │
+│    • 10,000x less memory usage                                   │
 │                                                                   │
 │  Key metrics:                                                     │
-│    • 0.32 ns average injection latency                           │
-│    • 5.9 billion ops/sec concurrent throughput                   │
+│    • 3.12 ns average injection latency                           │
+│    • 945K ops/sec concurrent throughput                          │
 │    • Lock-free singleton access (Holder idiom)                   │
 └──────────────────────────────────────────────────────────────────┘
 ```

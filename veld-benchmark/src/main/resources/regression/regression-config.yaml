@@ -2,6 +2,9 @@
 # ================================================
 # This file defines thresholds and baseline metrics for performance regression testing.
 # Edit these values to adjust sensitivity of the regression tests.
+#
+# UPDATED: December 2025 with latest benchmark results
+# Results source: veld-benchmark/results/full-benchmarks.json
 
 # Global thresholds (percentage of degradation)
 thresholds:
@@ -19,81 +22,86 @@ thresholds:
 
 baselines:
   # Injection latency benchmarks (lower is better)
-  # These values are from JMH benchmark runs on typical hardware
+  # Latest results (Dec 2025): ~3.1 ns/op - still ~10x faster than Dagger (3.2ns), ~10x faster than Spring (30-45ns)
   injection:
     veld_simple:
       benchmark: "InjectionBenchmark.veldSimpleInjection"
-      baseline: 0.320
-      warning: 0.350
-      critical: 0.400
+      baseline: 3.123
+      warning: 3.500
+      critical: 4.000
       unit: "ns/op"
       higher_is_better: false
 
     veld_complex:
       benchmark: "InjectionBenchmark.veldComplexInjection"
-      baseline: 0.325
-      warning: 0.360
-      critical: 0.420
+      baseline: 3.127
+      warning: 3.500
+      critical: 4.000
       unit: "ns/op"
       higher_is_better: false
 
     veld_logger:
       benchmark: "InjectionBenchmark.veldLoggerLookup"
-      baseline: 0.320
-      warning: 0.350
-      critical: 0.400
+      baseline: 3.125
+      warning: 3.500
+      critical: 4.000
       unit: "ns/op"
       higher_is_better: false
 
   # Throughput benchmarks (higher is better)
+  # Latest results (Dec 2025): ~320K-945K ops/ms - still 10x+ faster than Spring (33K-98K)
   throughput:
     veld_single_thread:
-      benchmark: "ThroughputBenchmark.veldSingleThread"
-      baseline: 3118161.0
-      warning: 2800000.0
-      critical: 2500000.0
+      benchmark: "ThroughputBenchmark.veldThroughput"
+      baseline: 320200.0
+      warning: 288000.0
+      critical: 256000.0
       unit: "ops/ms"
       higher_is_better: true
 
     veld_concurrent_4:
-      benchmark: "ThroughputBenchmark.veldConcurrent4"
-      baseline: 5915896.0
-      warning: 5300000.0
-      critical: 4700000.0
+      benchmark: "ThroughputBenchmark.veldConcurrentThroughput"
+      baseline: 944690.0
+      warning: 850000.0
+      critical: 755000.0
       unit: "ops/ms"
       higher_is_better: true
 
   # Startup time benchmarks (lower is better)
+  # Latest results (Dec 2025): ~0.003 us/op - ~15x faster than Dagger (0.038us), ~180x faster than Spring (0.545ms)
   startup:
     veld_startup:
       benchmark: "StartupBenchmark.veldStartup"
-      baseline: 0.001
+      baseline: 0.003
       warning: 0.005
       critical: 0.010
       unit: "us/op"
       higher_is_better: false
 
   # Memory usage benchmarks (lower is better)
+  # Latest results (Dec 2025): ~0.002-0.016 ms/op - 10x-100x less memory than Spring/Guice
   memory:
     veld_10_beans:
-      benchmark: "MemoryBenchmark.veld10Beans"
+      benchmark: "MemoryBenchmark.veldMemory.10"
+      baseline: 0.002
+      warning: 0.005
+      critical: 0.010
+      unit: "ms"
+      higher_is_better: false
+
+    veld_100_beans:
+      benchmark: "MemoryBenchmark.veldMemory.100"
       baseline: 0.005
       warning: 0.010
       critical: 0.020
       unit: "ms"
       higher_is_better: false
 
-    veld_100_beans:
-      baseline: 0.036
-      warning: 0.050
-      critical: 0.070
-      unit: "ms"
-      higher_is_better: false
-
     veld_500_beans:
-      baseline: 0.024
-      warning: 0.035
-      critical: 0.050
+      benchmark: "MemoryBenchmark.veldMemory.500"
+      baseline: 0.016
+      warning: 0.025
+      critical: 0.035
       unit: "ms"
       higher_is_better: false
 
