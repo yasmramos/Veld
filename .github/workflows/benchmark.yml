@@ -54,58 +54,18 @@ jobs:
         
     - name: Create results directory
       run: mkdir -p veld-benchmark/results
-      
-    # Phase 1: Test compilation first
-    - name: Test compilation with detailed output
+
+    # Phase 1: Build and Install ALL Veld Framework modules
+    # This ensures veld-maven-plugin and all dependencies are available locally
+    - name: Build and Install All Framework Modules
       run: |
-        echo "=== Testing Maven compilation ==="
-        mvn clean compile -X --batch-mode -Pbenchmark
+        echo "=== Building and installing ALL Veld modules ==="
+        mvn clean install -DskipTests -Pbenchmark -Dmaven.javadoc.skip=true
       env:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
-      timeout-minutes: 15
-      
-    # Phase 2: Build Veld Framework modules individually
-    - name: Build Veld Annotations
-      run: |
-        echo "=== Building veld-annotations ==="
-        mvn clean install -pl veld-annotations -DskipTests -Pbenchmark -Dmaven.javadoc.skip=true
-      env:
-        MAVEN_OPTS: "-Ddepgraph.skip=true"
-      timeout-minutes: 5
-      
-    - name: Build Veld Runtime  
-      run: |
-        echo "=== Building veld-runtime ==="
-        mvn clean install -pl veld-runtime -am -DskipTests -Pbenchmark -Dmaven.javadoc.skip=true
-      env:
-        MAVEN_OPTS: "-Ddepgraph.skip=true"
-      timeout-minutes: 5
-      
-    - name: Build Veld Processor
-      run: |
-        echo "=== Building veld-processor ==="
-        mvn clean install -pl veld-processor -am -DskipTests -Pbenchmark -Dmaven.javadoc.skip=true
-      env:
-        MAVEN_OPTS: "-Ddepgraph.skip=true"
-      timeout-minutes: 5
-      
-    - name: Build Veld AOP
-      run: |
-        echo "=== Building veld-aop ==="
-        mvn clean install -pl veld-aop -am -DskipTests -Pbenchmark -Dmaven.javadoc.skip=true
-      env:
-        MAVEN_OPTS: "-Ddepgraph.skip=true"
-      timeout-minutes: 3
-      
-    - name: Build Veld Maven Plugin
-      run: |
-        echo "=== Building veld-maven-plugin ==="
-        mvn clean install -pl veld-maven-plugin -am -DskipTests -Pbenchmark -Dmaven.javadoc.skip=true
-      env:
-        MAVEN_OPTS: "-Ddepgraph.skip=true"
-      timeout-minutes: 5
-      
-    # Phase 3: Build Benchmark module (if available)
+      timeout-minutes: 20
+
+    # Phase 2: Build Benchmark module (if available)
     - name: Build Benchmark Module
       run: |
         echo "=== Checking for veld-benchmark module ==="
@@ -122,7 +82,7 @@ jobs:
         MAVEN_OPTS: "-Ddepgraph.skip=true"
       timeout-minutes: 5
         
-    # Phase 4: Verify build success
+    # Phase 3: Verify build success
     - name: Verify benchmark JAR exists
       run: |
         echo "=== Verifying benchmark build ==="
@@ -147,7 +107,7 @@ jobs:
         fi
       timeout-minutes: 3
       
-    # Phase 5: Run Benchmarks
+    # Phase 4: Run Benchmarks
     - name: Run Development Benchmarks
       if: ${{ github.event.inputs.benchmark_mode == 'development' }}
       run: |
@@ -245,7 +205,7 @@ jobs:
         fi
       timeout-minutes: 12
           
-    # Phase 6: Debug build issues if benchmark fails
+    # Phase 5: Debug build issues if benchmark fails
     - name: Debug build issues
       if: failure()
       run: |
@@ -265,7 +225,7 @@ jobs:
           tail -20 "$log"
         done
         
-    # Phase 7: Analyze Results (if Python script exists)
+    # Phase 6: Analyze Results (if Python script exists)
     - name: Generate Analysis Report
       if: always()
       run: |
@@ -286,7 +246,7 @@ jobs:
           echo "❌ No results directory found"
         fi
         
-    # Phase 8: Generate Markdown Summary
+    # Phase 7: Generate Markdown Summary
     - name: Generate BENCHMARK_RESULT.md
       if: always()
       run: |
