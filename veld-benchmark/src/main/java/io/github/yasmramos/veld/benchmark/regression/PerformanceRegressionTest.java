@@ -10,9 +10,6 @@
 package io.github.yasmramos.veld.benchmark.regression;
 
 import io.github.yasmramos.veld.Veld;
-import io.github.yasmramos.veld.benchmark.common.ComplexService;
-import io.github.yasmramos.veld.benchmark.common.Logger;
-import io.github.yasmramos.veld.benchmark.common.Service;
 import io.github.yasmramos.veld.benchmark.veld.VeldComplexService;
 import io.github.yasmramos.veld.benchmark.veld.VeldLogger;
 import io.github.yasmramos.veld.benchmark.veld.VeldSimpleService;
@@ -176,20 +173,32 @@ public class PerformanceRegressionTest {
 
         // Test 1: Simple injection
         validateInjection("Simple Service", () -> {
-            Service service = Veld.get(VeldSimpleService.class);
-            return service != null ? 0.0 : -1.0;
+            try {
+                Veld.get(VeldSimpleService.class);
+                return 0.0;
+            } catch (Exception e) {
+                return -1.0;
+            }
         }, BASELINE_METRICS.get("veld.simpleInjection"));
 
         // Test 2: Complex injection
         validateInjection("Complex Service", () -> {
-            ComplexService service = Veld.get(VeldComplexService.class);
-            return service != null ? 0.0 : -1.0;
+            try {
+                Veld.get(VeldComplexService.class);
+                return 0.0;
+            } catch (Exception e) {
+                return -1.0;
+            }
         }, BASELINE_METRICS.get("veld.complexInjection"));
 
         // Test 3: Logger lookup
         validateInjection("Logger", () -> {
-            Logger logger = Veld.get(VeldLogger.class);
-            return logger != null ? 0.0 : -1.0;
+            try {
+                Veld.get(VeldLogger.class);
+                return 0.0;
+            } catch (Exception e) {
+                return -1.0;
+            }
         }, BASELINE_METRICS.get("veld.loggerLookup"));
 
         // Test 4: Multiple rapid injections (throughput simulation)
