@@ -266,12 +266,14 @@ public class EventBus {
 
     /**
      * Finds all subscribers that can handle the given event.
+     * Supports polymorphic event delivery - subscribers for parent classes
+     * will receive events from child classes.
      */
     private List<EventSubscriber> findSubscribers(Event event) {
         List<EventSubscriber> result = new ArrayList<>();
         Class<?> eventClass = event.getClass();
 
-        // Check all registered event types
+        // Check all registered event types for polymorphic matching
         for (Map.Entry<Class<?>, List<EventSubscriber>> entry : subscribersByType.entrySet()) {
             Class<?> registeredType = entry.getKey();
             if (registeredType.isAssignableFrom(eventClass)) {
