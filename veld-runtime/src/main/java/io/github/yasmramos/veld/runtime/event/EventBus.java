@@ -396,6 +396,18 @@ public class EventBus {
     }
 
     /**
+     * Resets the EventBus state for testing purposes.
+     *
+     * <p>This method clears all subscribers, resets counters, and clears the
+     * shutdown flag. It should only be used in tests to ensure a clean state
+     * between test runs.
+     */
+    void resetForTesting() {
+        shuttingDown = false;
+        clear();
+    }
+
+    /**
      * Returns statistics about the EventBus.
      *
      * @return a string with EventBus statistics
