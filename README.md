@@ -48,7 +48,7 @@ Veld is a **compile-time Dependency Injection framework** that generates pure co
 
 ### Core DI
 
-- **Zero Reflection** - All injection code generated at compile-time as bytecode
+- **Zero Reflection** - All injection code generated at compile-time as code
 - **Constructor Injection** - Preferred pattern, supports private constructors
 - **Field Injection** - Works across packages via synthetic setters (bytecode weaving)
 - **Method Injection** - Setter-based injection for optional dependencies
