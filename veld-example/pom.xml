@@ -138,7 +138,6 @@
                 <groupId>io.github.yasmramos</groupId>
                 <artifactId>veld-maven-plugin</artifactId>
                 <version>${project.version}</version>
-                <extensions>true</extensions>
             </plugin>
 
             <!-- Exec Maven Plugin for running the example -->
