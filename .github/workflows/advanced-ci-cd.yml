@@ -45,7 +45,15 @@ jobs:
         java-version: ${{ env.JAVA_VERSION }}
         distribution: 'temurin'
         cache: maven
-        
+
+    - name: 🧹 Clean Maven Cache (Optional Recovery Step)
+      if: always()
+      run: |
+        # Clean local Maven repository cache to avoid stale dependencies
+        echo "Cleaning Maven local repository..."
+        rm -rf ~/.m2/repository//io/github/yasmramos/
+        echo "✅ Cache cleaned"
+
     - name: 🔒 Security Scan
       run: |
         echo "🔒 Running security scan..."
@@ -83,7 +91,7 @@ jobs:
         
         # Verificar que el proyecto compila
         echo "Verifying compilation..."
-        if mvn clean compile -DskipGpg=true -q; then
+        if mvn clean compile -DskipGpg=true -Dmaven.javadoc.skip=true -Djacoco.skip=true -Pci -U; then
           echo "✅ Compilation successful"
         else
           echo "❌ Compilation failed"
@@ -124,16 +132,26 @@ jobs:
         java-version: ${{ matrix.java-version }}
         distribution: 'temurin'
         cache: maven
-        
+
+    - name: 🧹 Clean Maven Cache (Optional Recovery Step)
+      if: always()
+      run: |
+        # Clean local Maven repository cache to avoid stale dependencies
+        echo "Cleaning Maven local repository..."
+        rm -rf ~/.m2/repository//io/github/yasmramos/
+        echo "✅ Cache cleaned"
+
     - name: 🔨 Build Project
       run: |
         echo "🔨 Building project with JDK ${{ matrix.java-version }}"
-        mvn clean install -DskipTests -DskipGpg=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Djacoco.skip=true -Pci -q
-        
+        # -U forces update of snapshots and releases, -T 2C uses 2 threads per CPU core
+        mvn clean install -DskipTests -DskipGpg=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Djacoco.skip=true -Pci -U -T 2C
+
     - name: 🧪 Test Project
       run: |
         echo "🧪 Testing project..."
-        mvn test -DskipGpg=true -Dmaven.javadoc.skip=true -Djacoco.skip=true -Pci -q
+        # -U ensures fresh dependency resolution
+        mvn test -DskipGpg=true -Dmaven.javadoc.skip=true -Djacoco.skip=true -Pci -U
         
     - name: 📦 Upload Build Artifacts
       uses: actions/upload-artifact@v4
@@ -161,11 +179,18 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
-        
+
+    - name: 🧹 Clean Maven Cache (Optional Recovery Step)
+      if: always()
+      run: |
+        echo "Cleaning Maven local repository..."
+        rm -rf ~/.m2/repository//io/github/yasmramos/
+        echo "✅ Cache cleaned"
+
     - name: 🔗 Run Integration Tests
       run: |
         echo "🔗 Running integration tests..."
-        mvn test -Dtest=*IT -DskipGpg=true -Dmaven.javadoc.skip=true -Djacoco.skip=true -Pci -q || echo "Integration tests completed"
+        mvn test -Dtest=*IT -DskipGpg=true -Dmaven.javadoc.skip=true -Djacoco.skip=true -Pci -U || echo "Integration tests completed"
         
     - name: 📊 Upload Integration Reports
       uses: actions/upload-artifact@v4
@@ -191,6 +216,13 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
+
+    - name: 🧹 Clean Maven Cache (Optional Recovery Step)
+      if: always()
+      run: |
+        echo "Cleaning Maven local repository..."
+        rm -rf ~/.m2/repository//io/github/yasmramos/
+        echo "✅ Cache cleaned"
 
     - name: 🔍 CodeQL Analysis (with autobuild)
       uses: github/codeql-action/init@v4
@@ -233,7 +265,14 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
-        
+
+    - name: 🧹 Clean Maven Cache (Optional Recovery Step)
+      if: always()
+      run: |
+        echo "Cleaning Maven local repository..."
+        rm -rf ~/.m2/repository//io/github/yasmramos/
+        echo "✅ Cache cleaned"
+
     - name: 🔨 Package Build
       run: |
         echo "🔨 Building package artifacts..."
