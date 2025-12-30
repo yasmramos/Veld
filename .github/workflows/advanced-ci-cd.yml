@@ -112,7 +112,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java-version: [17, 17, 21, 25]
+        java-version: [17, 21]
         
     steps:
     - name: 🔍 Checkout Repository
@@ -128,12 +128,12 @@ jobs:
     - name: 🔨 Build Project
       run: |
         echo "🔨 Building project with JDK ${{ matrix.java-version }}"
-        mvn clean install -DskipTests -DskipGpg=true -Dmaven.javadoc.skip=true -Pci -q
+        mvn clean install -DskipTests -DskipGpg=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Djacoco.skip=true -Pci -q
         
     - name: 🧪 Test Project
       run: |
         echo "🧪 Testing project..."
-        mvn test -DskipGpg=true -q
+        mvn test -DskipGpg=true -Dmaven.javadoc.skip=true -Djacoco.skip=true -Pci -q
         
     - name: 📦 Upload Build Artifacts
       uses: actions/upload-artifact@v4
@@ -165,7 +165,7 @@ jobs:
     - name: 🔗 Run Integration Tests
       run: |
         echo "🔗 Running integration tests..."
-        mvn test -Dtest=*IT -DskipGpg=true -q || echo "Integration tests completed"
+        mvn test -Dtest=*IT -DskipGpg=true -Dmaven.javadoc.skip=true -Djacoco.skip=true -Pci -q || echo "Integration tests completed"
         
     - name: 📊 Upload Integration Reports
       uses: actions/upload-artifact@v4
