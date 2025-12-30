@@ -54,7 +54,7 @@ public class AppConfigService {
     String apiBaseUrl;
     
     @PostConstruct
-    void init() {  // package-private - works via reflection
+    public void init() {
         System.out.println("[AppConfigService] Configuration loaded:");
         System.out.println("  App Name: " + appName);
         System.out.println("  Version: " + appVersion);

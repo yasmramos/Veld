@@ -86,13 +86,6 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>io.github.yasmramos</groupId>
-                            <artifactId>veld-processor</artifactId>
-                            <version>${project.version}</version>
-                        </path>
-                    </annotationProcessorPaths>
                     <compilerArgs>
                         <arg>--add-opens</arg>
                         <arg>java.base/java.lang=ALL-UNNAMED</arg>
