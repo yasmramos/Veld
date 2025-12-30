@@ -71,7 +71,7 @@ public class EventBus {
     private static final EventBus INSTANCE = new EventBus();
 
     private final Map<Class<?>, List<EventSubscriber>> subscribersByType;
-    private final ExecutorService asyncExecutor;
+    private ExecutorService asyncExecutor;
     private final AtomicLong publishedCount;
     private final AtomicLong deliveredCount;
     private volatile boolean shuttingDown;
@@ -398,12 +398,22 @@ public class EventBus {
     /**
      * Resets the EventBus state for testing purposes.
      *
-     * <p>This method clears all subscribers, resets counters, and clears the
-     * shutdown flag. It should only be used in tests to ensure a clean state
-     * between test runs.
+     * <p>This method clears all subscribers, resets counters, clears the
+     * shutdown flag, and creates a new async executor. It should only be
+     * used in tests to ensure a clean state between test runs.
      */
     void resetForTesting() {
         shuttingDown = false;
+        // Shutdown old executor if it exists
+        if (asyncExecutor != null && !asyncExecutor.isShutdown()) {
+            asyncExecutor.shutdownNow();
+        }
+        // Create new executor
+        asyncExecutor = Executors.newCachedThreadPool(r -> {
+            Thread t = new Thread(r, "EventBus-Async-Worker");
+            t.setDaemon(true);
+            return t;
+        });
         clear();
     }
 
