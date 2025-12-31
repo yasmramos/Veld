@@ -22,12 +22,13 @@ on:
           - normal
           - lenient
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   performance-regression:
     runs-on: ubuntu-latest
-
-    permissions:
-      issues: write
 
     timeout-minutes: 30
 
