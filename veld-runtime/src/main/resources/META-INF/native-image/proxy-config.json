@@ -1,0 +1,37 @@
+{
+  "interfaces": [
+    {
+      "interface": "io.github.yasmramos.veld.runtime.event.EventChannel"
+    },
+    {
+      "interface": "io.github.yasmramos.veld.runtime.event.ObjectEventBus"
+    },
+    {
+      "interface": "io.github.yasmramos.veld.runtime.event.ObjectLessEventBus"
+    },
+    {
+      "interface": "io.github.yasmramos.veld.runtime.async.AsyncExecutor"
+    },
+    {
+      "interface": "io.github.yasmramos.veld.runtime.value.ValueResolver"
+    },
+    {
+      "interface": "io.github.yasmramos.veld.runtime.injection.DependencyInjector"
+    },
+    {
+      "interface": "java.util.function.Supplier"
+    },
+    {
+      "interface": "java.util.function.Function"
+    },
+    {
+      "interface": "java.util.function.Consumer"
+    },
+    {
+      "interface": "java.lang.Runnable"
+    },
+    {
+      "interface": "java.util.concurrent.Callable"
+    }
+  ]
+}

@@ -42,6 +42,31 @@
 
     <build>
         <plugins>
+            <!-- GraalVM Native Image Plugin -->
+            <plugin>
+                <groupId>org.graalvm.nativeimage</groupId>
+                <artifactId>native-image-maven-plugin</artifactId>
+                <version>${graalvm.version}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>native-image</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>io.github.yasmramos.veld.VeldApplication</mainClass>
+                            <imageName>veld-runtime</imageName>
+                            <buildArgs>
+                                --no-fallback
+                                --initialize-at-run-time=io.github.yasmramos.veld.runtime.event.EventBus
+                                -H:ConfigurationFileDirectories=src/main/resources/META-INF/native-image
+                                -Djava.awt.headless=true
+                            </buildArgs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- Generate Javadoc JAR -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

@@ -1,0 +1,64 @@
+[
+  {
+    "name": "java.lang.Object",
+    "methods": [
+      {
+        "name": "getClass",
+        "returnType": "java.lang.Class"
+      },
+      {
+        "name": "hashCode",
+        "returnType": "int"
+      },
+      {
+        "name": "equals",
+        "parameterTypes": ["java.lang.Object"]
+        "returnType": "boolean"
+      },
+      {
+        "name": "clone",
+        "returnType": "java.lang.Object"
+      },
+      {
+        "name": "toString",
+        "returnType": "java.lang.String"
+      },
+      {
+        "name": "notify",
+        "returnType": "void"
+      },
+      {
+        "name": "notifyAll",
+        "returnType": "void"
+      },
+      {
+        "name": "wait",
+        "returnType": "void"
+      },
+      {
+        "name": "wait",
+        "parameterTypes": ["long"]
+        "returnType": "void"
+      },
+      {
+        "name": "wait",
+        "parameterTypes": ["long", "int"]
+        "returnType": "void"
+      },
+      {
+        "name": "finalize",
+        "returnType": "void"
+      }
+    ]
+  },
+  {
+    "name": "java.lang.String",
+    "methods": [
+      {
+        "name": "getBytes",
+        "parameterTypes": ["java.lang.String"]
+        "returnType": "[B"
+      }
+    ]
+  }
+]
