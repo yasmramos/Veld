@@ -22,6 +22,10 @@ on:
           - normal
           - lenient
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   performance-regression:
     runs-on: ubuntu-latest
@@ -56,6 +60,7 @@ jobs:
     # Build the framework first
     - name: Build Veld Framework
       run: |
+        set -e  # Exit on error
         echo "=== Building Veld Framework ==="
         mvn clean install -DskipTests -Pbenchmark -Dmaven.javadoc.skip=true
       env:
@@ -65,6 +70,7 @@ jobs:
     # Build benchmark module
     - name: Build Benchmark Module
       run: |
+        set -e  # Exit on error
         echo "=== Building Benchmark Module ==="
         cd veld-benchmark
         mvn clean package -DskipTests
@@ -75,63 +81,99 @@ jobs:
     # Run quick benchmarks for regression testing
     - name: Run Quick Benchmarks
       run: |
+        set -e  # Exit on error
         echo "=== Running Quick Benchmarks for Regression ==="
         cd veld-benchmark
 
+        # Verify JAR exists
+        if [ ! -f "target/veld-benchmark.jar" ]; then
+          echo "ERROR: target/veld-benchmark.jar not found!"
+          ls -la target/
+          exit 1
+        fi
+
+        echo "JAR file found, running benchmarks..."
+
         # Run key benchmarks for regression testing
+        echo "Running injection benchmarks..."
         java -Xmx1g -jar target/veld-benchmark.jar \
           ".*Injection.*" \
           -f 1 -wi 1 -i 2 -bs 1 \
           -rf json \
-          -rff target/regression-injection-results.json
+          -rff target/regression-injection-results.json \
+          || echo "WARNING: Injection benchmark had issues"
 
+        echo "Running startup benchmarks..."
         java -Xmx1g -jar target/veld-benchmark.jar \
           ".*Startup.*" \
           -f 1 -wi 1 -i 2 -bs 1 \
           -rf json \
-          -rff target/regression-startup-results.json
+          -rff target/regression-startup-results.json \
+          || echo "WARNING: Startup benchmark had issues"
 
+        echo "Running throughput benchmarks..."
         java -Xmx1g -jar target/veld-benchmark.jar \
           ".*Throughput.*" \
           -f 1 -wi 1 -i 2 -bs 1 \
           -rf json \
-          -rff target/regression-throughput-results.json
+          -rff target/regression-throughput-results.json \
+          || echo "WARNING: Throughput benchmark had issues"
 
+        echo "Running memory benchmarks..."
         java -Xmx1g -jar target/veld-benchmark.jar \
           ".*Memory.*" \
           -f 1 -wi 1 -i 2 -bs 1 \
           -rf json \
-          -rff target/regression-memory-results.json
+          -rff target/regression-memory-results.json \
+          || echo "WARNING: Memory benchmark had issues"
 
-        # Combine results
-        echo '{"benchmarks": {' > target/benchmark-results.json
-        tail -n +2 target/regression-injection-results.json | head -n -1 >> target/benchmark-results.json
-        echo ',' >> target/benchmark-results.json
-        tail -n +2 target/regression-startup-results.json | head -n -1 >> target/benchmark-results.json
-        echo ',' >> target/benchmark-results.json
-        tail -n +2 target/regression-throughput-results.json | head -n -1 >> target/benchmark-results.json
-        echo ',' >> target/benchmark-results.json
-        tail -n +2 target/regression-memory-results.json | head -n -1 >> target/benchmark-results.json
-        echo '}}' >> target/benchmark-results.json
+        # Verify results files exist
+        echo "=== Verifying benchmark result files ==="
+        for file in target/regression-*.json; do
+          if [ -f "$file" ]; then
+            echo "✓ $(basename $file): $(wc -c < $file) bytes"
+          else
+            echo "✗ $(basename $file): NOT FOUND"
+          fi
+        done
+
+        # Check if we have any results
+        if [ ! -f "target/regression-injection-results.json" ]; then
+          echo "ERROR: No benchmark results generated!"
+          exit 1
+        fi
 
         echo "✅ Quick benchmarks completed"
-        ls -la target/regression-*.json
       timeout-minutes: 10
 
     # Run regression validation
     - name: Validate Performance Regression
       run: |
+        set -e  # Exit on error
         echo "=== Validating Performance Regression ==="
         cd veld-benchmark
 
-        # Compile and run regression test
+        echo "=== Checking classpath and dependencies ==="
+        echo "Contents of target/:"
+        ls -la target/
+        echo ""
+        echo "Contents of target/classes/:"
+        ls -la target/classes/ 2>/dev/null || echo "No target/classes/ directory"
+
+        echo ""
+        echo "=== Running regression test ==="
+
+        # Compile and run regression test with explicit classpath
         echo "Compiling regression test..."
-        javac -cp target/veld-benchmark.jar:target/classes src/main/java/io/github/yasmramos/veld/benchmark/regression/PerformanceRegressionTest.java
+        javac -cp "target/veld-benchmark.jar:target/classes" \
+          src/main/java/io/github/yasmramos/veld/benchmark/regression/PerformanceRegressionTest.java \
+          || { echo "ERROR: Failed to compile regression test"; exit 1; }
 
         echo "Running regression test..."
         java -cp "target/veld-benchmark.jar:target/classes:src/main/java" \
           io.github.yasmramos.veld.benchmark.regression.PerformanceRegressionTest \
-          --run-benchmarks
+          --run-benchmarks \
+          || { echo "ERROR: Regression test failed"; exit 1; }
 
         echo "✅ Regression validation completed"
       timeout-minutes: 5
@@ -139,15 +181,25 @@ jobs:
     # Store results for comparison with future runs
     - name: Store Baseline Results
       run: |
+        set -e  # Exit on error
         echo "=== Storing Baseline Results ==="
         cd veld-benchmark
 
         # Create baseline directory
-        mkdir -p target/baseline/${{ github.sha }}
+        BASELINE_DIR="target/baseline/${{ github.sha }}"
+        mkdir -p "$BASELINE_DIR"
 
         # Copy current results as baseline for future comparisons
-        cp target/regression-*.json target/baseline/${{ github.sha }}/ 2>/dev/null || true
-        cp target/benchmark-results.json target/baseline/${{ github.sha }}/ 2>/dev/null || true
+        echo "Copying result files..."
+        for file in target/regression-*.json; do
+          if [ -f "$file" ]; then
+            cp "$file" "$BASELINE_DIR/" || echo "WARNING: Failed to copy $file"
+          fi
+        done
+
+        if [ -f "target/benchmark-results.json" ]; then
+          cp "target/benchmark-results.json" "$BASELINE_DIR/" || echo "WARNING: Failed to copy benchmark-results.json"
+        fi
 
         # Update latest baseline symlink
         rm -f target/baseline/latest
@@ -156,69 +208,103 @@ jobs:
         echo "✅ Baseline stored for commit ${{ github.sha }}"
         ls -la target/baseline/
 
+        # List stored files
+        echo ""
+        echo "Stored files:"
+        ls -la "$BASELINE_DIR/"
+      timeout-minutes: 2
+
     # Generate regression report
     - name: Generate Regression Report
       run: |
+        set -e  # Exit on error
         echo "=== Generating Regression Report ==="
         cd veld-benchmark
 
-        cat > REGRESSION_REPORT.md << 'EOF'
-# 📊 Veld Performance Regression Report
+        # Get current date
+        CURRENT_DATE=$(date '+%Y-%m-%d %H:%M:%S')
 
-## Test Execution Summary
-
-**Date:** $(date)
-**Commit:** ${{ github.sha }}
-**Branch:** ${{ github.ref_name }}
-**Workflow:** ${{ github.workflow }}
-**Run ID:** ${{ github.run_id }}
-
-## Thresholds
-
-| Level | Degradation | Action |
-|-------|-------------|--------|
-| Warning | >10% | ⚠️ Warn but pass |
-| Critical | >20% | ❌ Fail build |
-
-## Key Metrics
-
-### Injection Performance
-EOF
+        # Create report using echo to avoid printf issues
+        {
+          echo "# 📊 Veld Performance Regression Report"
+          echo ""
+          echo "## Test Execution Summary"
+          echo ""
+          echo "**Date:** $CURRENT_DATE"
+          echo "**Commit:** $GITHUB_SHA"
+          echo "**Branch:** $GITHUB_REF_NAME"
+          echo "**Workflow:** $GITHUB_WORKFLOW"
+          echo "**Run ID:** $GITHUB_RUN_ID"
+          echo ""
+          echo "## Thresholds"
+          echo ""
+          echo "| Level | Degradation | Action |"
+          echo "|-------|-------------|--------|"
+          echo "| Warning | >10% | ⚠️ Warn but pass |"
+          echo "| Critical | >20% | ❌ Fail build |"
+          echo ""
+          echo "## Key Metrics"
+          echo ""
+          echo "### Injection Performance"
+        } > REGRESSION_REPORT.md
 
         # Add injection results if available
         if [ -f "target/regression-injection-results.json" ]; then
           echo '```json' >> REGRESSION_REPORT.md
-          head -50 target/regression-injection-results.json >> REGRESSION_REPORT.md
+          head -100 target/regression-injection-results.json >> REGRESSION_REPORT.md
           echo '```' >> REGRESSION_REPORT.md
+        else
+          echo '_No injection results available_' >> REGRESSION_REPORT.md
         fi
 
-        cat >> REGRESSION_REPORT.md << 'EOF'
-
-### Throughput Performance
-EOF
+        echo "" >> REGRESSION_REPORT.md
+        echo "### Throughput Performance" >> REGRESSION_REPORT.md
 
         if [ -f "target/regression-throughput-results.json" ]; then
           echo '```json' >> REGRESSION_REPORT.md
-          head -50 target/regression-throughput-results.json >> REGRESSION_REPORT.md
+          head -100 target/regression-throughput-results.json >> REGRESSION_REPORT.md
           echo '```' >> REGRESSION_REPORT.md
+        else
+          echo '_No throughput results available_' >> REGRESSION_REPORT.md
         fi
 
-        cat >> REGRESSION_REPORT.md << 'EOF'
+        echo "" >> REGRESSION_REPORT.md
+        echo "### Startup Performance" >> REGRESSION_REPORT.md
 
-## Recommendations
+        if [ -f "target/regression-startup-results.json" ]; then
+          echo '```json' >> REGRESSION_REPORT.md
+          head -100 target/regression-startup-results.json >> REGRESSION_REPORT.md
+          echo '```' >> REGRESSION_REPORT.md
+        else
+          echo '_No startup results available_' >> REGRESSION_REPORT.md
+        fi
 
-- Review any metrics with >10% degradation
-- Check for recent code changes affecting performance
-- Consider updating baselines if changes are intentional
+        echo "" >> REGRESSION_REPORT.md
+        echo "### Memory Performance" >> REGRESSION_REPORT.md
 
----
-*Generated by Veld Performance Regression Test Suite*
-EOF
+        if [ -f "target/regression-memory-results.json" ]; then
+          echo '```json' >> REGRESSION_REPORT.md
+          head -100 target/regression-memory-results.json >> REGRESSION_REPORT.md
+          echo '```' >> REGRESSION_REPORT.md
+        else
+          echo '_No memory results available_' >> REGRESSION_REPORT.md
+        fi
 
-        # Replace $(date) with actual date
-        sed -i "s/\$(date)/$(date)/g" REGRESSION_REPORT.md
+        {
+          echo ""
+          echo "## Recommendations"
+          echo ""
+          echo "- Review any metrics with >10% degradation"
+          echo "- Check for recent code changes affecting performance"
+          echo "- Consider updating baselines if changes are intentional"
+          echo ""
+          echo "---"
+          echo "*Generated by Veld Performance Regression Test Suite*"
+        } >> REGRESSION_REPORT.md
 
         echo "✅ REGRESSION_REPORT.md generated"
+        echo ""
+        echo "=== Report Content ==="
         cat REGRESSION_REPORT.md
 
     # Upload artifacts

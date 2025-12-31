@@ -1,0 +1,21 @@
+name: "CodeQL"
+
+queries:
+  - security-and-quality
+
+paths-ignore:
+  - '**/target/**'
+  - '**/test/**'
+  - '**/.*'
+  - '**/*.md'
+  - '**/*.txt'
+  - '**/*.xml'
+  - '**/*.json'
+  - 'docs/**'
+  - '.github/**'
+
+paths:
+  - '**.java'
+  - 'veld-*/**/*.java'
+
+build-mode: manual

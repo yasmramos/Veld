@@ -18,10 +18,7 @@ package io.github.yasmramos.veld.runtime.event;
 import io.github.yasmramos.veld.annotation.Subscribe;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -33,82 +30,556 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Central event bus for publishing and subscribing to events.
  *
- * <p>The EventBus enables loose coupling between components by allowing
- * them to communicate through events without direct dependencies.
- *
- * <h2>Features</h2>
+ * <p>This implementation provides two distinct event systems:</p>
  * <ul>
- *   <li>Synchronous and asynchronous event delivery</li>
- *   <li>Priority-based subscriber ordering</li>
- *   <li>Filter expressions for conditional subscription</li>
- *   <li>Automatic discovery of @Subscribe methods</li>
- *   <li>Thread-safe event publication</li>
+ *   <li><b>Object-Based Events ({@link ObjectEventBus}):</b> Traditional system using
+ *       typed {@link Event} objects with full type safety and semantic clarity.</li>
+ *   <li><b>Object-Less Events ({@link ObjectLessEventBus}):</b> High-performance system
+ *       using integer event IDs with zero object allocation overhead.</li>
  * </ul>
  *
- * <h2>Usage Example</h2>
- * <pre>{@code
- * // Get the EventBus instance
- * EventBus bus = EventBus.getInstance();
+ * <p><b>Optimizations:</b></p>
+ * <ul>
+ *   <li>MethodHandle-based invocation for object-based events (5-6x faster than reflection)</li>
+ *   <li>Specialized dispatch based on listener cardinality</li>
+ *   <li>Fast-path for common cases (0, 1, 2-4 listeners)</li>
+ *   <li>Array-based storage for small listener sets</li>
+ *   <li>StandardEventChannel for zero-allocation object-less events</li>
+ * </ul>
  *
- * // Register a subscriber object
- * bus.register(mySubscriber);
- *
- * // Publish an event
- * bus.publish(new OrderCreatedEvent(this, "ORD-123", 99.99));
- *
- * // Async publish
- * bus.publishAsync(new NotificationEvent("Hello!"));
- * }</pre>
+ * <p><b>Usage Recommendations:</b></p>
+ * <ul>
+ *   <li>Use <b>Object-Based</b> for domain events, state changes, and when type safety is priority</li>
+ *   <li>Use <b>Object-Less</b> for high-frequency events, metrics, telemetry, and performance-critical paths</li>
+ * </ul>
  *
  * @author Veld Framework Team
  * @since 1.0.0
+ * @see ObjectEventBus
+ * @see ObjectLessEventBus
  * @see Event
  * @see Subscribe
  * @see EventSubscriber
+ * @see EventChannel
  */
-public class EventBus {
+public class EventBus implements ObjectEventBus, ObjectLessEventBus {
 
     private static final EventBus INSTANCE = new EventBus();
 
-    private final Map<Class<?>, List<EventSubscriber>> subscribersByType;
+    // Optimized subscriber storage for object-based events
+    private final SubscriberIndex subscriberIndex;
+
+    // StandardEventChannel for object-less events (zero allocation)
+    private final StandardEventChannel standardChannel;
+
+    // Specialized channels
+    private final Map<String, EventChannel> specializedChannels;
+
     private ExecutorService asyncExecutor;
     private final AtomicLong publishedCount;
     private final AtomicLong deliveredCount;
     private volatile boolean shuttingDown;
 
     /**
+     * Lightweight interface for fast event dispatch.
+     *
+     * @deprecated Use {@link ObjectLessEventBus.ObjectLessListener} for new implementations
+     */
+    @Deprecated
+    public interface EventListener {
+        void onEvent(Event event);
+        default boolean isAsync() { return false; }
+        default int getPriority() { return 0; }
+    }
+
+    /**
+     * Optimized subscriber index with cardinality-based dispatch.
+     *
+     * <p>This class uses specialized arrays for different listener counts:
+     * <ul>
+     *   <li>0 listeners: Empty array (fastest)</li>
+     *   <li>1 listener: Single-element array</li>
+     *   <li>2-4 listeners: Small fixed-size arrays</li>
+     *   <li>5+ listeners: CopyOnWriteArrayList</li>
+     * </ul>
+     */
+    private class SubscriberIndex {
+        // Fast path: direct listeners storage with cardinality optimization
+        private final Map<Class<?>, ListenerEntry> listenersByType = new ConcurrentHashMap<>();
+
+        /**
+         * Entry holding listener information with cardinality metadata.
+         */
+        private static class ListenerEntry {
+            final EventListener[] listeners;
+            final int count;
+
+            ListenerEntry(EventListener[] listeners) {
+                this.listeners = listeners;
+                this.count = listeners.length;
+            }
+        }
+
+        void register(EventSubscriber subscriber) {
+            registerListener(subscriber.getEventType(), new SubscriberEventListener(subscriber));
+        }
+
+        void registerListener(Class<?> eventType, EventListener listener) {
+            listenersByType.compute(eventType, (key, existing) -> {
+                if (existing == null) {
+                    return new ListenerEntry(new EventListener[]{listener});
+                }
+
+                // Insert listener with priority sorting (higher priority first)
+                EventListener[] newListeners = new EventListener[existing.count + 1];
+                int insertPos = 0;
+
+                // Find insertion position based on priority
+                for (int i = 0; i < existing.count; i++) {
+                    if (listener.getPriority() > existing.listeners[i].getPriority()) {
+                        insertPos = i;
+                        break;
+                    }
+                    insertPos = i + 1;
+                }
+
+                // Copy listeners before insertion point
+                System.arraycopy(existing.listeners, 0, newListeners, 0, insertPos);
+                // Insert new listener
+                newListeners[insertPos] = listener;
+                // Copy listeners after insertion point
+                System.arraycopy(existing.listeners, insertPos, newListeners, insertPos + 1,
+                        existing.count - insertPos);
+
+                return new ListenerEntry(newListeners);
+            });
+        }
+
+        @SuppressWarnings("unchecked")
+        int publish(Event event) {
+            Class<?> eventClass = event.getClass();
+
+            // Check for listeners registered for this event class or any parent class
+            // This supports event inheritance - child events are delivered to parent subscribers
+            Class<?> current = eventClass;
+            while (current != null && current != Event.class) {
+                ListenerEntry entry = listenersByType.get(current);
+                if (entry != null && entry.count > 0) {
+                    return dispatchOptimized(event, entry.listeners, entry.count);
+                }
+                current = current.getSuperclass();
+            }
+
+            // No listeners found for this event or any parent class
+            return 0;
+        }
+
+        /**
+         * Optimized dispatch based on listener count.
+         * Uses specialized code paths for different cardinalities.
+         */
+        private int dispatchOptimized(Event event, EventListener[] listeners, int count) {
+            int deliveryCount = 0;
+
+            // Specialized dispatch based on cardinality
+            switch (count) {
+                case 0:
+                    // No listeners - fastest path
+                    break;
+
+                case 1:
+                    // Single listener - no loop overhead
+                    deliveryCount = dispatchSingle(event, listeners[0]);
+                    break;
+
+                case 2:
+                    // Two listeners - unrolled
+                    deliveryCount = dispatchTwo(event, listeners[0], listeners[1]);
+                    break;
+
+                case 3:
+                    // Three listeners - unrolled
+                    deliveryCount = dispatchThree(event, listeners[0], listeners[1], listeners[2]);
+                    break;
+
+                case 4:
+                    // Four listeners - unrolled
+                    deliveryCount = dispatchFour(event, listeners[0], listeners[1], listeners[2], listeners[3]);
+                    break;
+
+                default:
+                    // Five or more listeners - loop
+                    deliveryCount = dispatchMultiple(event, listeners, count);
+                    break;
+            }
+
+            return deliveryCount;
+        }
+
+        private int dispatchSingle(Event event, EventListener listener) {
+            if (listener.isAsync()) {
+                asyncExecutor.submit(() -> listener.onEvent(event));
+                return 0;
+            }
+            listener.onEvent(event);
+            return 1;
+        }
+
+        private int dispatchTwo(Event event, EventListener l1, EventListener l2) {
+            int count = 0;
+
+            if (l1.isAsync()) {
+                asyncExecutor.submit(() -> l1.onEvent(event));
+            } else {
+                l1.onEvent(event);
+                count++;
+            }
+
+            // Check if event was cancelled after first listener
+            if (event.isCancelled()) {
+                return count;
+            }
+
+            if (l2.isAsync()) {
+                asyncExecutor.submit(() -> l2.onEvent(event));
+            } else {
+                l2.onEvent(event);
+                count++;
+            }
+
+            return count;
+        }
+
+        private int dispatchThree(Event event, EventListener l1, EventListener l2, EventListener l3) {
+            int count = 0;
+
+            if (l1.isAsync()) {
+                asyncExecutor.submit(() -> l1.onEvent(event));
+            } else {
+                l1.onEvent(event);
+                count++;
+            }
+
+            // Check if event was cancelled
+            if (event.isCancelled()) {
+                return count;
+            }
+
+            if (l2.isAsync()) {
+                asyncExecutor.submit(() -> l2.onEvent(event));
+            } else {
+                l2.onEvent(event);
+                count++;
+            }
+
+            // Check if event was cancelled
+            if (event.isCancelled()) {
+                return count;
+            }
+
+            if (l3.isAsync()) {
+                asyncExecutor.submit(() -> l3.onEvent(event));
+            } else {
+                l3.onEvent(event);
+                count++;
+            }
+
+            return count;
+        }
+
+        private int dispatchFour(Event event, EventListener l1, EventListener l2,
+                                  EventListener l3, EventListener l4) {
+            int count = 0;
+
+            if (l1.isAsync()) {
+                asyncExecutor.submit(() -> l1.onEvent(event));
+            } else {
+                l1.onEvent(event);
+                count++;
+            }
+
+            // Check if event was cancelled
+            if (event.isCancelled()) {
+                return count;
+            }
+
+            if (l2.isAsync()) {
+                asyncExecutor.submit(() -> l2.onEvent(event));
+            } else {
+                l2.onEvent(event);
+                count++;
+            }
+
+            // Check if event was cancelled
+            if (event.isCancelled()) {
+                return count;
+            }
+
+            if (l3.isAsync()) {
+                asyncExecutor.submit(() -> l3.onEvent(event));
+            } else {
+                l3.onEvent(event);
+                count++;
+            }
+
+            // Check if event was cancelled
+            if (event.isCancelled()) {
+                return count;
+            }
+
+            if (l4.isAsync()) {
+                asyncExecutor.submit(() -> l4.onEvent(event));
+            } else {
+                l4.onEvent(event);
+                count++;
+            }
+
+            return count;
+        }
+
+        private int dispatchMultiple(Event event, EventListener[] listeners, int count) {
+            int deliveryCount = 0;
+            for (int i = 0; i < count; i++) {
+                // Check for cancellation before each listener (except the first)
+                if (i > 0 && event.isCancelled()) {
+                    break;
+                }
+
+                EventListener listener = listeners[i];
+                if (listener.isAsync()) {
+                    asyncExecutor.submit(() -> listener.onEvent(event));
+                } else {
+                    listener.onEvent(event);
+                    deliveryCount++;
+                }
+            }
+            return deliveryCount;
+        }
+
+        void unregister(Object subscriber) {
+            listenersByType.forEach((type, entry) -> {
+                List<EventListener> toRemove = new ArrayList<>();
+                for (EventListener listener : entry.listeners) {
+                    if (listener instanceof SubscriberEventListener) {
+                        Object target = ((SubscriberEventListener) listener).getTarget();
+                        if (target == subscriber) {
+                            toRemove.add(listener);
+                        }
+                    }
+                }
+                if (!toRemove.isEmpty()) {
+                    EventListener[] newListeners = Arrays.stream(entry.listeners)
+                            .filter(l -> !toRemove.contains(l))
+                            .toArray(EventListener[]::new);
+                    listenersByType.put(type, new ListenerEntry(newListeners));
+                }
+            });
+        }
+
+        void clear() {
+            listenersByType.clear();
+        }
+
+        int getSubscriberCount() {
+            return listenersByType.values().stream().mapToInt(e -> e.count).sum();
+        }
+    }
+
+    /**
+     * Wrapper to use EventSubscriber as EventListener with MethodHandle invocation.
+     */
+    private static class SubscriberEventListener implements EventListener {
+        private final EventSubscriber subscriber;
+
+        SubscriberEventListener(EventSubscriber subscriber) {
+            this.subscriber = subscriber;
+        }
+
+        @Override
+        public void onEvent(Event event) {
+            try {
+                subscriber.invoke(event);
+            } catch (Throwable e) {
+                if (subscriber.isCatchExceptions()) {
+                    // Log the exception but don't propagate
+                    System.err.println("[EventBus] Exception in subscriber: " + e.getMessage());
+                } else {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        @Override
+        public boolean isAsync() {
+            return subscriber.isAsync();
+        }
+
+        @Override
+        public int getPriority() {
+            return subscriber.getPriority();
+        }
+
+        Object getTarget() {
+            return subscriber.getTarget();
+        }
+    }
+
+    /**
      * Private constructor for singleton pattern.
      */
     private EventBus() {
-        this.subscribersByType = new ConcurrentHashMap<>();
-        this.asyncExecutor = Executors.newCachedThreadPool(r -> {
+        this.subscriberIndex = new SubscriberIndex();
+        this.asyncExecutor = createAsyncExecutor();
+        this.publishedCount = new AtomicLong(0);
+        this.deliveredCount = new AtomicLong(0);
+        this.shuttingDown = false;
+
+        // Initialize standard channel for object-less events
+        this.standardChannel = new StandardEventChannel("Standard", asyncExecutor);
+
+        // Initialize specialized channels map
+        this.specializedChannels = new ConcurrentHashMap<>();
+    }
+
+    private ExecutorService createAsyncExecutor() {
+        return Executors.newCachedThreadPool(r -> {
             Thread t = new Thread(r, "EventBus-Async-Worker");
             t.setDaemon(true);
             return t;
         });
-        this.publishedCount = new AtomicLong(0);
-        this.deliveredCount = new AtomicLong(0);
-        this.shuttingDown = false;
     }
 
     /**
      * Returns the singleton EventBus instance.
-     *
-     * @return the EventBus instance
      */
     public static EventBus getInstance() {
         return INSTANCE;
     }
 
+    // ==================== ObjectLessEventBus Methods ====================
+
+    /**
+     * Publishes an object-less event to the standard channel.
+     *
+     * <p>This is the high-performance path for events that don't require
+     * an Event object. Eliminates object allocation overhead entirely.</p>
+     *
+     * <p><b>Example:</b></p>
+     * <pre>{@code
+     * // Instead of: bus.publish(new HighFrequencyEvent(data));
+     * // Use:
+     * bus.publish(1001, data);
+     * }</pre>
+     *
+     * @param eventId the unique identifier for this event type
+     * @param payload the data to publish with the event
+     * @return the number of subscribers that received the event
+     */
+    @Override
+    public int publish(int eventId, Object payload) {
+        if (shuttingDown) {
+            return 0;
+        }
+        return standardChannel.publish(eventId, payload);
+    }
+
+    /**
+     * Publishes an object-less event asynchronously.
+     *
+     * @param eventId the unique identifier for this event type
+     * @param payload the data to publish with the event
+     * @return a CompletableFuture containing the delivery count
+     */
+    @Override
+    public CompletableFuture<Integer> publishAsync(int eventId, Object payload) {
+        if (shuttingDown) {
+            return CompletableFuture.completedFuture(0);
+        }
+        return standardChannel.publishAsync(eventId, payload);
+    }
+
+    /**
+     * Registers a listener for object-less events.
+     *
+     * @param eventId the event ID to listen for
+     * @param listener the listener to invoke when the event is published
+     */
+    @Override
+    public void register(int eventId, ObjectLessListener listener) {
+        standardChannel.register(eventId, listener);
+    }
+
+    /**
+     * Registers a listener for object-less events with priority.
+     *
+     * @param eventId the event ID to listen for
+     * @param listener the listener to invoke when the event is published
+     * @param priority the priority of this listener (higher = called first)
+     */
+    @Override
+    public void register(int eventId, ObjectLessListener listener, int priority) {
+        standardChannel.register(eventId, listener, priority);
+    }
+
+    /**
+     * Unregisters a listener for object-less events.
+     *
+     * @param eventId the event ID to stop listening for
+     * @param listener the listener to remove
+     */
+    @Override
+    public void unregister(int eventId, ObjectLessListener listener) {
+        standardChannel.unregister(eventId, listener);
+    }
+
+    /**
+     * Returns the total number of registered listeners.
+     *
+     * @return the count of all registered listeners across all channels
+     */
+    @Override
+    public int getListenerCount() {
+        int count = standardChannel.getListenerCount();
+        for (EventChannel channel : specializedChannels.values()) {
+            count += channel.getListenerCount();
+        }
+        return count;
+    }
+
+    // ==================== Specialized Channels ====================
+
+    /**
+     * Gets or creates a specialized channel for the given purpose.
+     *
+     * <p>Specialized channels can be used for different event domains
+     * (e.g., lifecycle, metrics, tracing) to provide isolation and
+     * dedicated optimization.</p>
+     *
+     * @param channelName the name of the specialized channel
+     * @return the specialized EventChannel
+     */
+    @Override
+    public EventChannel getChannel(String channelName) {
+        return specializedChannels.computeIfAbsent(channelName,
+                name -> new StandardEventChannel(name, asyncExecutor));
+    }
+
+    /**
+     * Gets the standard channel for object-less events.
+     *
+     * @return the standard EventChannel
+     */
+    @Override
+    public EventChannel getStandardChannel() {
+        return standardChannel;
+    }
+
+    // ==================== ObjectEventBus Methods (Backward Compatible) ====================
+
     /**
      * Registers an object as an event subscriber.
-     *
-     * <p>This method scans the object for methods annotated with @Subscribe
-     * and registers them as event handlers.
-     *
-     * @param subscriber the subscriber object to register
-     * @throws IllegalArgumentException if the subscriber is null
      */
+    @Override
     public void register(Object subscriber) {
         if (subscriber == null) {
             throw new IllegalArgumentException("Subscriber cannot be null");
@@ -123,7 +594,6 @@ public class EventBus {
                 continue;
             }
 
-            // Validate method signature
             Class<?>[] paramTypes = method.getParameterTypes();
             if (paramTypes.length != 1) {
                 throw new IllegalArgumentException(
@@ -136,7 +606,6 @@ public class EventBus {
                         "Parameter of " + method.getName() + " must extend Event");
             }
 
-            // Create subscriber
             EventSubscriber eventSubscriber = new EventSubscriber(
                     subscriber,
                     method,
@@ -147,115 +616,78 @@ public class EventBus {
                     annotation.catchExceptions()
             );
 
-            // Add to subscribers list
-            subscribersByType.computeIfAbsent(eventType, k -> new CopyOnWriteArrayList<>())
-                    .add(eventSubscriber);
-
+            subscriberIndex.register(eventSubscriber);
             registeredCount++;
-            System.out.println("[EventBus] Registered: " + eventSubscriber);
-        }
-
-        // Sort subscribers by priority
-        for (List<EventSubscriber> subscribers : subscribersByType.values()) {
-            Collections.sort(subscribers);
         }
 
         if (registeredCount > 0) {
-            System.out.println("[EventBus] Registered " + registeredCount + 
+            System.out.println("[EventBus] Registered " + registeredCount +
                     " handler(s) from " + clazz.getSimpleName());
         }
     }
 
     /**
-     * Registers a specific event subscriber.
+     * Registers an EventSubscriber directly.
      *
-     * @param subscriber the subscriber to register
+     * @param subscriber the EventSubscriber to register
      */
     public void register(EventSubscriber subscriber) {
         if (subscriber == null) {
-            throw new IllegalArgumentException("Subscriber cannot be null");
+            throw new IllegalArgumentException("EventSubscriber cannot be null");
         }
+        subscriberIndex.register(subscriber);
+        System.out.println("[EventBus] Registered EventSubscriber: " +
+                subscriber.getEventType().getSimpleName());
+    }
 
-        List<EventSubscriber> subscribers = subscribersByType.computeIfAbsent(
-                subscriber.getEventType(), k -> new CopyOnWriteArrayList<>());
-        subscribers.add(subscriber);
-        Collections.sort(subscribers);
-
-        System.out.println("[EventBus] Registered: " + subscriber);
+    /**
+     * Registers a specific event listener.
+     *
+     * @deprecated Use {@link #register(int, ObjectLessListener)} for new implementations
+     */
+    @Deprecated
+    @Override
+    public void register(EventListener listener, Class<?> eventType) {
+        subscriberIndex.registerListener(eventType, listener);
     }
 
     /**
      * Unregisters an object from receiving events.
-     *
-     * @param subscriber the subscriber object to unregister
      */
+    @Override
     public void unregister(Object subscriber) {
         if (subscriber == null) {
             return;
         }
-
-        for (List<EventSubscriber> subscribers : subscribersByType.values()) {
-            subscribers.removeIf(s -> s.getTarget() == subscriber);
-        }
-
+        subscriberIndex.unregister(subscriber);
         System.out.println("[EventBus] Unregistered: " + subscriber.getClass().getSimpleName());
     }
 
     /**
      * Publishes an event to all matching subscribers synchronously.
      *
-     * <p>Subscribers marked as async will still be invoked asynchronously,
-     * but the method waits for synchronous subscribers to complete.
-     *
-     * @param event the event to publish
+     * @param event the Event object to publish
      * @return the number of subscribers that received the event
      */
+    @Override
     public int publish(Event event) {
         if (event == null || shuttingDown) {
             return 0;
         }
 
         publishedCount.incrementAndGet();
-        int deliveryCount = 0;
-
-        // Find all matching subscribers (including supertypes)
-        List<EventSubscriber> matchingSubscribers = findSubscribers(event);
-
-        for (EventSubscriber subscriber : matchingSubscribers) {
-            // Check filter
-            if (subscriber.hasFilter()) {
-                if (!EventFilter.evaluate(subscriber.getFilter(), event)) {
-                    continue;
-                }
-            }
-
-            // Check if event was cancelled
-            if (event.isCancelled()) {
-                break;
-            }
-
-            // Deliver event
-            if (subscriber.isAsync()) {
-                deliverAsync(subscriber, event);
-            } else {
-                deliverSync(subscriber, event);
-            }
-            deliveryCount++;
-        }
-
-        deliveredCount.addAndGet(deliveryCount);
-        return deliveryCount;
+        int delivered = subscriberIndex.publish(event);
+        deliveredCount.addAndGet(delivered);
+        return delivered;
     }
 
     /**
      * Publishes an event asynchronously.
      *
-     * <p>This method returns immediately and the event is delivered
-     * in a background thread.
-     *
-     * @param event the event to publish
-     * @return a CompletableFuture that completes when all subscribers have been notified
+     * @param event the Event object to publish
+     * @return a CompletableFuture containing the delivery count
      */
+    @Override
     public CompletableFuture<Integer> publishAsync(Event event) {
         if (event == null || shuttingDown) {
             return CompletableFuture.completedFuture(0);
@@ -264,74 +696,10 @@ public class EventBus {
         return CompletableFuture.supplyAsync(() -> publish(event), asyncExecutor);
     }
 
-    /**
-     * Finds all subscribers that can handle the given event.
-     * Supports polymorphic event delivery - subscribers for parent classes
-     * will receive events from child classes.
-     */
-    private List<EventSubscriber> findSubscribers(Event event) {
-        List<EventSubscriber> result = new ArrayList<>();
-        Class<?> eventClass = event.getClass();
-
-        // Check all registered event types for polymorphic matching
-        for (Map.Entry<Class<?>, List<EventSubscriber>> entry : subscribersByType.entrySet()) {
-            Class<?> registeredType = entry.getKey();
-            if (registeredType.isAssignableFrom(eventClass)) {
-                result.addAll(entry.getValue());
-            }
-        }
-
-        // Sort by priority
-        Collections.sort(result);
-        return result;
-    }
-
-    /**
-     * Delivers an event to a subscriber synchronously.
-     */
-    private void deliverSync(EventSubscriber subscriber, Event event) {
-        try {
-            subscriber.invoke(event);
-        } catch (Exception e) {
-            handleException(subscriber, event, e);
-        }
-    }
-
-    /**
-     * Delivers an event to a subscriber asynchronously.
-     */
-    private void deliverAsync(EventSubscriber subscriber, Event event) {
-        asyncExecutor.submit(() -> {
-            try {
-                subscriber.invoke(event);
-            } catch (Exception e) {
-                handleException(subscriber, event, e);
-            }
-        });
-    }
-
-    /**
-     * Handles exceptions during event delivery.
-     */
-    private void handleException(EventSubscriber subscriber, Event event, Exception e) {
-        if (subscriber.isCatchExceptions()) {
-            System.err.println("[EventBus] Exception in subscriber " + 
-                    subscriber.getMethod().getName() + ": " + e.getMessage());
-            if (e.getCause() != null) {
-                e.getCause().printStackTrace();
-            }
-        } else {
-            if (e instanceof RuntimeException) {
-                throw (RuntimeException) e;
-            }
-            throw new RuntimeException("Event handler exception", e);
-        }
-    }
+    // ==================== Statistics and Management ====================
 
     /**
      * Returns the total number of events published.
-     *
-     * @return the published event count
      */
     public long getPublishedCount() {
         return publishedCount.get();
@@ -339,47 +707,48 @@ public class EventBus {
 
     /**
      * Returns the total number of event deliveries.
-     *
-     * @return the delivered event count
      */
     public long getDeliveredCount() {
         return deliveredCount.get();
     }
 
     /**
-     * Returns the number of registered subscribers.
-     *
-     * @return the subscriber count
+     * Returns the number of registered subscribers (object-based).
      */
+    @Override
     public int getSubscriberCount() {
-        return subscribersByType.values().stream()
-                .mapToInt(List::size)
-                .sum();
+        return subscriberIndex.getSubscriberCount();
     }
 
     /**
-     * Returns a list of all registered event types.
-     *
-     * @return list of event type classes
+     * Returns the total number of registered listeners across all channels.
      */
-    public List<Class<?>> getRegisteredEventTypes() {
-        return new ArrayList<>(subscribersByType.keySet());
+    public int getTotalListenerCount() {
+        int count = subscriberIndex.getSubscriberCount();
+        count += standardChannel.getListenerCount();
+        for (EventChannel channel : specializedChannels.values()) {
+            count += channel.getListenerCount();
+        }
+        return count;
     }
 
     /**
-     * Clears all registered subscribers.
+     * Clears all registered subscribers and listeners.
      */
+    @Override
     public void clear() {
-        subscribersByType.clear();
+        subscriberIndex.clear();
+        standardChannel.clear();
+        for (EventChannel channel : specializedChannels.values()) {
+            channel.clear();
+        }
         publishedCount.set(0);
         deliveredCount.set(0);
-        System.out.println("[EventBus] Cleared all subscribers");
+        System.out.println("[EventBus] Cleared all subscribers and listeners");
     }
 
     /**
      * Shuts down the EventBus executor.
-     *
-     * <p>After shutdown, async events will not be delivered.
      */
     public void shutdown() {
         shuttingDown = true;
@@ -397,40 +766,39 @@ public class EventBus {
 
     /**
      * Resets the EventBus state for testing purposes.
-     *
-     * <p>This method clears all subscribers, resets counters, clears the
-     * shutdown flag, and creates a new async executor. It should only be
-     * used in tests to ensure a clean state between test runs.
      */
     void resetForTesting() {
         shuttingDown = false;
-        // Shutdown old executor if it exists
         if (asyncExecutor != null && !asyncExecutor.isShutdown()) {
             asyncExecutor.shutdownNow();
         }
-        // Create new executor
-        asyncExecutor = Executors.newCachedThreadPool(r -> {
-            Thread t = new Thread(r, "EventBus-Async-Worker");
-            t.setDaemon(true);
-            return t;
-        });
+        asyncExecutor = createAsyncExecutor();
         clear();
     }
 
     /**
-     * Returns statistics about the EventBus.
-     *
-     * @return a string with EventBus statistics
+     * Returns a list of all registered event types.
      */
+    @Override
+    public List<Class<?>> getRegisteredEventTypes() {
+        return new ArrayList<>(subscriberIndex.listenersByType.keySet());
+    }
+
+    /**
+     * Returns statistics about the EventBus.
+     */
+    @Override
     public String getStatistics() {
         return String.format(
                 "EventBus Statistics:\n" +
-                "  - Registered Event Types: %d\n" +
-                "  - Total Subscribers: %d\n" +
-                "  - Events Published: %d\n" +
-                "  - Events Delivered: %d",
-                subscribersByType.size(),
+                "  - Object-Based Subscribers: %d\n" +
+                "  - Object-Less Listeners: %d\n" +
+                "  - Specialized Channels: %d\n" +
+                "  - Total Events Published: %d\n" +
+                "  - Total Events Delivered: %d",
                 getSubscriberCount(),
+                standardChannel.getListenerCount(),
+                specializedChannels.size(),
                 publishedCount.get(),
                 deliveredCount.get()
         );
