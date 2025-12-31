@@ -117,6 +117,9 @@
         <gpg.useAgent>false</gpg.useAgent>
         <maven.deploy.skip>false</maven.deploy.skip>
         <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
+
+        <!-- GraalVM versions -->
+        <graalvm.version>22.3.2</graalvm.version>
         <maven.javadoc.skip>false</maven.javadoc.skip>
         <build-helper.attach.phase>package</build-helper.attach.phase>
 
@@ -623,6 +626,87 @@
                                 <phase>none</phase>
                             </execution>
                         </executions>
+                    </plugin>
+
+                    <!-- Install plugin: don't fail if javadoc/sources jars don't exist -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-install-plugin</artifactId>
+                        <version>3.1.2</version>
+                        <configuration>
+                            <skipIfMissing>true</skipIfMissing>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- GraalVM Native Image profile -->
+        <profile>
+            <id>native</id>
+            <activation>
+                <property>
+                    <name>native</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <skipGpg>true</skipGpg>
+                <skipTests>true</skipTests>
+                <maven.deploy.skip>true</maven.deploy.skip>
+                <jacoco.skip>true</jacoco.skip>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+                <maven.source.skip>true</maven.source.skip>
+                <build-helper.attach.phase>none</build-helper.attach.phase>
+            </properties>
+            <build>
+                <plugins>
+                    <!-- Skip all release plugins for native builds -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Install plugin: don't fail if javadoc/sources jars don't exist -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-install-plugin</artifactId>
+                        <version>3.1.2</version>
+                        <configuration>
+                            <skipIfMissing>true</skipIfMissing>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>

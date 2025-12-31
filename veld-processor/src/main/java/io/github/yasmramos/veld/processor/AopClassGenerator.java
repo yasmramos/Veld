@@ -20,6 +20,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -162,6 +163,8 @@ public class AopClassGenerator {
             out.println("import io.github.yasmramos.veld.runtime.async.SchedulerService;");
             out.println("import java.lang.reflect.Method;");
             out.println("import java.util.concurrent.CompletableFuture;");
+            out.println("import java.util.concurrent.CompletionException;");
+            out.println("import java.util.concurrent.ExecutorService;");
             out.println("import java.util.concurrent.TimeUnit;");
             out.println();
 
@@ -195,7 +198,7 @@ public class AopClassGenerator {
     }
 
     /**
-     * Generates static fields for interceptors.
+     * Generates static fields for interceptors and async executors.
      */
     private void generateInterceptorFields(PrintWriter out, TypeElement typeElement) {
         Set<String> interceptorTypes = collectInterceptorTypes(typeElement);
@@ -206,6 +209,53 @@ public class AopClassGenerator {
         }
         
         if (!interceptorTypes.isEmpty()) {
+            out.println();
+        }
+        
+        // Generate async executor fields for constant folding
+        generateAsyncExecutorFields(out, typeElement);
+    }
+    
+    /**
+     * Generates static fields for async executor optimization.
+     * Uses constant folding for default executor and ThreadLocal cache for custom executors.
+     */
+    private void generateAsyncExecutorFields(PrintWriter out, TypeElement typeElement) {
+        // Collect all executor names used in @Async annotations
+        Set<String> defaultExecutors = new LinkedHashSet<>();
+        Map<String, String> customExecutors = new LinkedHashMap<>();
+        
+        for (Element enclosed : typeElement.getEnclosedElements()) {
+            if (enclosed.getKind() != ElementKind.METHOD) continue;
+            
+            ExecutableElement method = (ExecutableElement) enclosed;
+            if (!hasAnnotation(method, "io.github.yasmramos.veld.annotation.Async")) continue;
+            
+            String executorName = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.Async", "value", "");
+            
+            if (executorName.isEmpty()) {
+                defaultExecutors.add("default");
+            } else {
+                // Use short name for field to avoid conflicts
+                String fieldName = "EXECUTOR_" + executorName.toUpperCase().replace("-", "_").replace(" ", "_");
+                customExecutors.put(executorName, fieldName);
+            }
+        }
+        
+        // Generate default executor constant (constant folding)
+        if (!defaultExecutors.isEmpty()) {
+            out.println("    private static final ExecutorService DEFAULT_EXECUTOR = AsyncExecutor.getInstance().getDefaultExecutor();");
+        }
+        
+        // Generate ThreadLocal cache for custom executors
+        for (Map.Entry<String, String> entry : customExecutors.entrySet()) {
+            String executorName = entry.getKey();
+            String fieldName = entry.getValue();
+            out.println("    private static final ThreadLocal<ExecutorService> " + fieldName + " =");
+            out.println("            ThreadLocal.withInitial(() -> AsyncExecutor.getInstance().getExecutor(\"" + executorName + "\")); ");
+        }
+        
+        if (!defaultExecutors.isEmpty() || !customExecutors.isEmpty()) {
             out.println();
         }
     }
@@ -434,7 +484,7 @@ public class AopClassGenerator {
     }
 
     /**
-     * Generates an async method wrapper.
+     * Generates an async method wrapper with constant folding optimization.
      */
     private void generateAsyncMethod(PrintWriter out, ExecutableElement method, String simpleClassName) {
         String methodName = method.getSimpleName().toString();
@@ -445,6 +495,12 @@ public class AopClassGenerator {
 
         // Get executor name from annotation
         String executorName = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.Async", "value", "");
+        
+        // Determine which optimized path to use
+        boolean useDefaultExecutor = executorName.isEmpty();
+        String executorFieldName = useDefaultExecutor ? "DEFAULT_EXECUTOR" : 
+            "EXECUTOR_" + executorName.toUpperCase().replace("-", "_").replace(" ", "_");
+        String executorAccess = useDefaultExecutor ? executorFieldName : executorFieldName + ".get()";
 
         // Build parameter list
         StringBuilder params = new StringBuilder();
@@ -461,38 +517,38 @@ public class AopClassGenerator {
             args.append(param.getSimpleName());
         }
 
-        // Generate method override
+        // Generate method override with optimized executor access
         out.println("    @Override");
         out.println("    public " + returnTypeName + " " + methodName + "(" + params + ") {");
 
         if (isVoid) {
-            // Fire and forget
-            out.println("        AsyncExecutor.getInstance().submit(() -> {");
+            // Fire and forget with optimized executor
+            out.println("        CompletableFuture.runAsync(() -> {");
             out.println("            try {");
             out.println("                super." + methodName + "(" + args + ");");
             out.println("            } catch (Exception e) {");
             out.println("                System.err.println(\"[Veld] Async method failed: " + methodName + " - \" + e.getMessage());");
             out.println("            }");
-            out.println("        }" + (executorName.isEmpty() ? "" : ", \"" + executorName + "\"") + ");");
+            out.println("        }, " + executorAccess + "); ");
         } else if (isCompletableFuture) {
-            // Return CompletableFuture
-            out.println("        return AsyncExecutor.getInstance().submit(() -> {");
+            // Return CompletableFuture with optimized executor
+            out.println("        return CompletableFuture.supplyAsync(() -> {");
             out.println("            try {");
             out.println("                return super." + methodName + "(" + args + ").join();");
             out.println("            } catch (Exception e) {");
-            out.println("                throw new RuntimeException(e);");
+            out.println("                throw new CompletionException(e);");
             out.println("            }");
-            out.println("        }" + (executorName.isEmpty() ? "" : ", \"" + executorName + "\"") + ");");
+            out.println("        }, " + executorAccess + "); ");
         } else {
-            // Other return types - wrap in CompletableFuture and block (not recommended)
+            // Other return types - wrap in CompletableFuture and block
             out.println("        try {");
-            out.println("            return AsyncExecutor.getInstance().submit(() -> {");
+            out.println("            return CompletableFuture.supplyAsync(() -> {");
             out.println("                try {");
             out.println("                    return super." + methodName + "(" + args + ");");
             out.println("                } catch (Exception e) {");
-            out.println("                    throw new RuntimeException(e);");
+            out.println("                    throw new CompletionException(e);");
             out.println("                }");
-            out.println("            }" + (executorName.isEmpty() ? "" : ", \"" + executorName + "\"") + ").get();");
+            out.println("            }, " + executorAccess + ").get(); ");
             out.println("        } catch (Exception e) {");
             out.println("            throw new RuntimeException(e);");
             out.println("        }");
