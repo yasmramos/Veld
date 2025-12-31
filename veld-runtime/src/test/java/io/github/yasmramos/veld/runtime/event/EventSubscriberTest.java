@@ -219,7 +219,7 @@ class EventSubscriberTest {
 
         @Test
         @DisplayName("Should invoke handler method")
-        void shouldInvokeHandlerMethod() throws Exception {
+        void shouldInvokeHandlerMethod() throws Throwable {
             EventSubscriber subscriber = new EventSubscriber(
                     handler, handleEventMethod, TestEvent.class,
                     false, 0, "", false
