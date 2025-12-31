@@ -42,34 +42,38 @@ public class PerformanceRegressionTest {
 
     static {
         // Injection latency benchmarks (ns/op - lower is better)
-        // Latest benchmark results (December 2025): ~3.1 ns/op
+        // Latest benchmark results (December 2025): ~0.37 ns/op (8x faster than before!)
         BASELINE_METRICS.put("veld.simpleInjection",
-            new BaselineMetric("InjectionBenchmark.veldSimpleInjection", 3.123, 3.500, 4.000));
+            new BaselineMetric("InjectionBenchmark.veldSimpleInjection", 0.372, 0.420, 0.500));
         BASELINE_METRICS.put("veld.complexInjection",
-            new BaselineMetric("InjectionBenchmark.veldComplexInjection", 3.127, 3.500, 4.000));
+            new BaselineMetric("InjectionBenchmark.veldComplexInjection", 0.373, 0.420, 0.500));
         BASELINE_METRICS.put("veld.loggerLookup",
-            new BaselineMetric("InjectionBenchmark.veldLoggerLookup", 3.125, 3.500, 4.000));
+            new BaselineMetric("InjectionBenchmark.veldLoggerLookup", 0.372, 0.420, 0.500));
 
         // Throughput benchmarks (ops/ms - higher is better)
-        // Latest benchmark results (December 2025): ~320K-945K ops/ms
+        // Latest benchmark results (December 2025): ~2.6M-4.7M ops/ms (8x faster!)
         BASELINE_METRICS.put("veld.singleThread",
-            new BaselineMetric("ThroughputBenchmark.veldThroughput", 320200.0, 288000.0, 256000.0));
+            new BaselineMetric("ThroughputBenchmark.veldThroughput", 2682331.0, 2400000.0, 2100000.0));
         BASELINE_METRICS.put("veld.concurrent4",
-            new BaselineMetric("ThroughputBenchmark.veldConcurrentThroughput", 944690.0, 850000.0, 755000.0));
+            new BaselineMetric("ThroughputBenchmark.veldConcurrentThroughput", 4732780.0, 4250000.0, 3750000.0));
+        BASELINE_METRICS.put("veld.staticAccess",
+            new BaselineMetric("StaticAccessBenchmark.veldStaticAccess", 2688381.0, 2400000.0, 2100000.0));
+        BASELINE_METRICS.put("veld.getByClass",
+            new BaselineMetric("ThroughputBenchmark.veldGetByClass", 2684931.0, 2400000.0, 2100000.0));
 
         // Startup benchmarks (us/op - lower is better)
-        // Latest benchmark results (December 2025): ~0.003 us/op
+        // Latest benchmark results (December 2025): ~0.001 us/op
         BASELINE_METRICS.put("veld.startup",
-            new BaselineMetric("StartupBenchmark.veldStartup", 0.003, 0.005, 0.010));
+            new BaselineMetric("StartupBenchmark.veldStartup", 0.001, 0.002, 0.005));
 
         // Memory benchmarks (ms for N beans - lower is better)
-        // Latest benchmark results (December 2025): ~0.002-0.016 ms/op
+        // Latest benchmark results (December 2025): ~0.005-0.048 ms/op
         BASELINE_METRICS.put("veld.memory.10",
-            new BaselineMetric("MemoryBenchmark.veldMemory.10", 0.002, 0.005, 0.010));
+            new BaselineMetric("MemoryBenchmark.veldMemory.10", 0.005, 0.008, 0.012));
         BASELINE_METRICS.put("veld.memory.100",
-            new BaselineMetric("MemoryBenchmark.veldMemory.100", 0.005, 0.010, 0.020));
+            new BaselineMetric("MemoryBenchmark.veldMemory.100", 0.009, 0.015, 0.025));
         BASELINE_METRICS.put("veld.memory.500",
-            new BaselineMetric("MemoryBenchmark.veldMemory.500", 0.016, 0.025, 0.035));
+            new BaselineMetric("MemoryBenchmark.veldMemory.500", 0.048, 0.070, 0.100));
     }
 
     private static final double WARNING_THRESHOLD = 0.10; // 10% degradation
