@@ -1,37 +1,15 @@
-{
-  "interfaces": [
-    {
-      "interface": "io.github.yasmramos.veld.runtime.event.EventChannel"
-    },
-    {
-      "interface": "io.github.yasmramos.veld.runtime.event.ObjectEventBus"
-    },
-    {
-      "interface": "io.github.yasmramos.veld.runtime.event.ObjectLessEventBus"
-    },
-    {
-      "interface": "io.github.yasmramos.veld.runtime.async.AsyncExecutor"
-    },
-    {
-      "interface": "io.github.yasmramos.veld.runtime.value.ValueResolver"
-    },
-    {
-      "interface": "io.github.yasmramos.veld.runtime.injection.DependencyInjector"
-    },
-    {
-      "interface": "java.util.function.Supplier"
-    },
-    {
-      "interface": "java.util.function.Function"
-    },
-    {
-      "interface": "java.util.function.Consumer"
-    },
-    {
-      "interface": "java.lang.Runnable"
-    },
-    {
-      "interface": "java.util.concurrent.Callable"
-    }
+[
+  [
+    "io.github.yasmramos.veld.runtime.event.EventChannel",
+    "io.github.yasmramos.veld.runtime.event.ObjectEventBus",
+    "io.github.yasmramos.veld.runtime.event.ObjectLessEventBus",
+    "io.github.yasmramos.veld.runtime.async.AsyncExecutor",
+    "io.github.yasmramos.veld.runtime.value.ValueResolver",
+    "io.github.yasmramos.veld.runtime.injection.DependencyInjector",
+    "java.util.function.Supplier",
+    "java.util.function.Function",
+    "java.util.function.Consumer",
+    "java.lang.Runnable",
+    "java.util.concurrent.Callable"
   ]
-}
+]
