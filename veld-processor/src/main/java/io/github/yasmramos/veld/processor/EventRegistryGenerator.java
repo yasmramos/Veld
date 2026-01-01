@@ -88,7 +88,7 @@ public class EventRegistryGenerator {
         // Imports
         sb.append("import io.github.yasmramos.veld.runtime.event.EventBus;\n");
         sb.append("import io.github.yasmramos.veld.runtime.event.EventRegistrationSPI;\n");
-        sb.append("import java.util.function.Consumer;\n");
+        sb.append("import io.github.yasmramos.veld.runtime.event.EventBus.TypedEventHandler;\n");
         sb.append("import io.github.yasmramos.veld.runtime.event.Event;\n\n");
 
         // Class declaration
@@ -127,20 +127,21 @@ public class EventRegistryGenerator {
             sb.append("            ").append(componentClass).append(" typed = (").append(componentClass).append(") component;\n");
 
             for (SubscriptionInfo sub : componentSubs) {
-                // Generate lambda with explicit event type cast to handle contravariance
-                // Consumer<? super Event> needs explicit cast because Consumer<SubType> is not a subtype
-                String lambda = "            bus.registerEventHandler("
-                        + sub.eventId + ", ("
-                        + sub.eventTypeName + " event) -> typed." + sub.methodName + "(event)";
+                // Generate registration with typed event handler
+                // Using (EventType event) -> handler(event) pattern for type-safe registration
+                String registration = "            bus.registerEventHandler("
+                        + sub.eventId + ", "
+                        + sub.eventTypeName + ".class, "
+                        + "(" + sub.eventTypeName + " event) -> typed." + sub.methodName + "(event))";
                 if (sub.async || sub.priority != 0) {
                     if (sub.priority != 0) {
-                        lambda += ", " + sub.priority;
+                        registration += ", " + sub.priority;
                     }
-                    lambda += ");\n";
+                    registration += ";\n";
                 } else {
-                    lambda += ");\n";
+                    registration += ";\n";
                 }
-                sb.append(lambda);
+                sb.append(registration);
             }
             sb.append("        }\n\n");
         }
