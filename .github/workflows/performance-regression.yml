@@ -25,6 +25,7 @@ on:
 permissions:
   contents: read
   issues: write
+  pull-requests: write
 
 jobs:
   performance-regression:
@@ -325,8 +326,13 @@ jobs:
       uses: actions/github-script@v7
       with:
         script: |
+          const prNumber = context.payload.pull_request?.number;
+          if (!prNumber) {
+            console.log('No PR number found, skipping comment');
+            return;
+          }
           github.rest.issues.createComment({
-            issue_number: context.issue.number,
+            issue_number: prNumber,
             owner: context.repo.owner,
             repo: context.repo.repo,
             body: '## 📊 Performance Regression Test Results\n\n' +
