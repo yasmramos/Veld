@@ -315,6 +315,21 @@ class AdviceTest {
         }
 
         @Override
+        public boolean returnsVoid() {
+            return true;
+        }
+
+        @Override
+        public Class<?>[] getParameterTypes() {
+            return new Class<?>[0];
+        }
+
+        @Override
+        public Class<?> getReturnType() {
+            return void.class;
+        }
+
+        @Override
         public Object[] getArgs() {
             return new Object[0];
         }
@@ -322,6 +337,11 @@ class AdviceTest {
         @Override
         public Class<?> getDeclaringClass() {
             return MockInvocationContext.class;
+        }
+
+        @Override
+        public String getDeclaringClassName() {
+            return "io.github.yasmramos.veld.aop.AdviceTest";
         }
 
         @Override

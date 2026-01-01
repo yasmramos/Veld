@@ -17,14 +17,15 @@ package io.github.yasmramos.veld.runtime.event;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Method;
 import java.util.Objects;
 
 /**
  * Optimized event subscriber using MethodHandles for fast reflection-free invocation.
  *
  * <p>This class pre-computes a MethodHandle during construction, eliminating
- * the overhead of reflection-based method invocation at runtime.
+ * the overhead of reflection-based method invocation at runtime. The Method
+ * object is only used during construction and not stored, eliminating the
+ * reflection metadata from the heap.</p>
  *
  * <h2>Performance Comparison</h2>
  * <pre>
@@ -32,6 +33,16 @@ import java.util.Objects;
  * MethodHandle approach:   ~5-8 ns per invoke
  * Improvement:             ~5-6x faster
  * </pre>
+ *
+ * <h2>Zero Reflection Design</h2>
+ * <p>This class stores only:
+ * <ul>
+ *   <li>The target object (for equality checks)</li>
+ *   <li>The method name (for toString/debugging)</li>
+ *   <li>The pre-computed MethodHandle (for invocation)</li>
+ *   <li>Event metadata (type, async, priority, filter)</li>
+ * </ul>
+ * The java.lang.reflect.Method object is NOT stored after construction.</p>
  *
  * @author Veld Framework Team
  * @since 1.0.0
@@ -41,7 +52,7 @@ public class EventSubscriber implements Comparable<EventSubscriber> {
     private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
     private final Object target;
-    private final Method method;
+    private final String methodName;
     private final MethodHandle methodHandle;
     private final Class<?> eventType;
     private final boolean async;
@@ -53,20 +64,21 @@ public class EventSubscriber implements Comparable<EventSubscriber> {
      * Creates a new optimized event subscriber.
      *
      * <p>Pre-computes a MethodHandle for fast invocation at runtime.
+     * The Method object is used only for MethodHandle creation and is not stored.</p>
      *
      * @param target          the object containing the handler method
-     * @param method          the method to invoke on events
+     * @param method          the method to invoke on events (used only for MethodHandle creation)
      * @param eventType       the type of events this subscriber handles
      * @param async           whether to invoke asynchronously
      * @param priority        the subscriber priority
      * @param filter          the filter expression (empty for no filter)
      * @param catchExceptions whether to catch and log exceptions
      */
-    public EventSubscriber(Object target, Method method, Class<?> eventType,
+    public EventSubscriber(Object target, java.lang.reflect.Method method, Class<?> eventType,
                            boolean async, int priority, String filter,
                            boolean catchExceptions) {
         this.target = Objects.requireNonNull(target, "target cannot be null");
-        this.method = Objects.requireNonNull(method, "method cannot be null");
+        this.methodName = Objects.requireNonNull(method, "method cannot be null").getName();
         this.eventType = Objects.requireNonNull(eventType, "eventType cannot be null");
         this.async = async;
         this.priority = priority;
@@ -78,9 +90,37 @@ public class EventSubscriber implements Comparable<EventSubscriber> {
     }
 
     /**
+     * Creates a new optimized event subscriber from a functional interface.
+     *
+     * <p>This constructor is used when registering subscribers via generated code,
+     * where the method handle can be created directly without reflection.</p>
+     *
+     * @param target        the object containing the handler method
+     * @param methodName    the name of the handler method (for debugging)
+     * @param methodHandle  the pre-computed MethodHandle for invocation
+     * @param eventType     the type of events this subscriber handles
+     * @param async         whether to invoke asynchronously
+     * @param priority      the subscriber priority
+     * @param filter        the filter expression (empty for no filter)
+     * @param catchExceptions whether to catch and log exceptions
+     */
+    public EventSubscriber(Object target, String methodName, MethodHandle methodHandle, Class<?> eventType,
+                           boolean async, int priority, String filter,
+                           boolean catchExceptions) {
+        this.target = Objects.requireNonNull(target, "target cannot be null");
+        this.methodName = Objects.requireNonNull(methodName, "methodName cannot be null");
+        this.methodHandle = Objects.requireNonNull(methodHandle, "methodHandle cannot be null");
+        this.eventType = Objects.requireNonNull(eventType, "eventType cannot be null");
+        this.async = async;
+        this.priority = priority;
+        this.filter = filter != null ? filter : "";
+        this.catchExceptions = catchExceptions;
+    }
+
+    /**
      * Pre-computes a MethodHandle for the given method.
      */
-    private static MethodHandle precomputeMethodHandle(Object target, Method method) {
+    private static MethodHandle precomputeMethodHandle(Object target, java.lang.reflect.Method method) {
         try {
             MethodHandle handle = LOOKUP.unreflect(method);
             // Bind target to the handle for faster invocations
@@ -106,12 +146,12 @@ public class EventSubscriber implements Comparable<EventSubscriber> {
     }
 
     /**
-     * Returns the handler method.
+     * Returns the handler method name.
      *
-     * @return the method
+     * @return the method name
      */
-    public Method getMethod() {
-        return method;
+    public String getMethodName() {
+        return methodName;
     }
 
     /**
@@ -182,7 +222,7 @@ public class EventSubscriber implements Comparable<EventSubscriber> {
      * Invokes the handler method with the given event using MethodHandle.
      *
      * <p>This method uses a pre-computed MethodHandle for fast invocation,
-     * avoiding the overhead of reflection-based method.invoke().
+     * avoiding the overhead of reflection-based method.invoke().</p>
      *
      * @param event the event to deliver
      * @throws Throwable if the handler throws an exception
@@ -203,19 +243,19 @@ public class EventSubscriber implements Comparable<EventSubscriber> {
         if (o == null || getClass() != o.getClass()) return false;
         EventSubscriber that = (EventSubscriber) o;
         return Objects.equals(target, that.target) &&
-                Objects.equals(method, that.method);
+                Objects.equals(methodName, that.methodName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(target, method);
+        return Objects.hash(target, methodName);
     }
 
     @Override
     public String toString() {
         return String.format("EventSubscriber[%s.%s(%s), priority=%d, async=%s]",
                 target.getClass().getSimpleName(),
-                method.getName(),
+                methodName,
                 eventType.getSimpleName(),
                 priority,
                 async);

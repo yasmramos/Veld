@@ -15,11 +15,15 @@
  */
 package io.github.yasmramos.veld.aop;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Zero-reflection implementation of {@link InvocationContext}.
@@ -66,6 +70,10 @@ public class MethodInvocation implements InvocationContext {
     // Legacy support - only populated when using deprecated constructor
     private Method legacyMethod;
 
+    // Zero-reflection annotation storage
+    private final Set<String> annotationClassNames;
+    private final Map<String, Set<Integer>> parameterAnnotationIndices;
+
     /**
      * Creates a new zero-reflection method invocation context.
      *
@@ -82,6 +90,52 @@ public class MethodInvocation implements InvocationContext {
                             String[] parameterTypes, String returnType,
                             DirectInvoker invoker, Object[] parameters,
                             List<MethodInterceptor> interceptors) {
+        this(target, className, methodName, parameterTypes, returnType,
+             invoker, parameters, interceptors, new HashSet<>());
+    }
+
+    /**
+     * Creates a new zero-reflection method invocation context with annotations.
+     *
+     * @param target               the target object
+     * @param className            fully qualified class name
+     * @param methodName           method name
+     * @param parameterTypes       parameter type names
+     * @param returnType           return type name
+     * @param invoker              direct invoker (no reflection)
+     * @param parameters           method parameters
+     * @param interceptors         the interceptor chain
+     * @param annotationClassNames fully qualified annotation class names present on the method
+     */
+    public MethodInvocation(Object target, String className, String methodName,
+                            String[] parameterTypes, String returnType,
+                            DirectInvoker invoker, Object[] parameters,
+                            List<MethodInterceptor> interceptors,
+                            Set<String> annotationClassNames) {
+        this(target, className, methodName, parameterTypes, returnType,
+             invoker, parameters, interceptors, annotationClassNames, new HashMap<>());
+    }
+
+    /**
+     * Creates a new zero-reflection method invocation context with annotations.
+     *
+     * @param target               the target object
+     * @param className            fully qualified class name
+     * @param methodName           method name
+     * @param parameterTypes       parameter type names
+     * @param returnType           return type name
+     * @param invoker              direct invoker (no reflection)
+     * @param parameters           method parameters
+     * @param interceptors         the interceptor chain
+     * @param annotationClassNames fully qualified annotation class names present on the method
+     * @param parameterAnnotationIndices map of annotation class names to parameter indices that have them
+     */
+    public MethodInvocation(Object target, String className, String methodName,
+                            String[] parameterTypes, String returnType,
+                            DirectInvoker invoker, Object[] parameters,
+                            List<MethodInterceptor> interceptors,
+                            Set<String> annotationClassNames,
+                            Map<String, Set<Integer>> parameterAnnotationIndices) {
         this.target = target;
         this.className = className;
         this.methodName = methodName;
@@ -93,6 +147,8 @@ public class MethodInvocation implements InvocationContext {
             : parameters;
         this.interceptors = interceptors;
         this.interceptorIndex = 0;
+        this.annotationClassNames = annotationClassNames;
+        this.parameterAnnotationIndices = parameterAnnotationIndices;
     }
 
     /**
@@ -105,17 +161,35 @@ public class MethodInvocation implements InvocationContext {
         this.target = target;
         this.className = method.getDeclaringClass().getName();
         this.methodName = method.getName();
-        
+
         Class<?>[] paramTypes = method.getParameterTypes();
         this.parameterTypes = new String[paramTypes.length];
         for (int i = 0; i < paramTypes.length; i++) {
             this.parameterTypes[i] = paramTypes[i].getSimpleName();
         }
         this.returnType = method.getReturnType().getSimpleName();
-        
+
         // Store method for legacy compatibility
         this.legacyMethod = method;
-        
+
+        // Extract annotation class names from the method
+        Set<String> annotationNames = new HashSet<>();
+        for (Annotation annotation : method.getAnnotations()) {
+            annotationNames.add(annotation.annotationType().getName());
+        }
+        this.annotationClassNames = annotationNames;
+
+        // Extract parameter annotations
+        Map<String, Set<Integer>> paramAnnotIndices = new HashMap<>();
+        Parameter[] params = method.getParameters();
+        for (int i = 0; i < params.length; i++) {
+            for (Annotation annot : params[i].getAnnotations()) {
+                String annotName = annot.annotationType().getName();
+                paramAnnotIndices.computeIfAbsent(annotName, k -> new HashSet<>()).add(i);
+            }
+        }
+        this.parameterAnnotationIndices = paramAnnotIndices;
+
         // Create invoker that uses the method (reflection fallback)
         final Method m = method;
         this.invoker = (t, args) -> {
@@ -126,9 +200,9 @@ public class MethodInvocation implements InvocationContext {
                 throw e.getCause();
             }
         };
-        
-        this.parameters = (parameters == null || parameters.length == 0) 
-            ? new Object[0] 
+
+        this.parameters = (parameters == null || parameters.length == 0)
+            ? new Object[0]
             : parameters;
         this.interceptors = interceptors;
         this.interceptorIndex = 0;
@@ -160,6 +234,87 @@ public class MethodInvocation implements InvocationContext {
     @Override
     public String getMethodName() {
         return methodName;
+    }
+
+    @Override
+    public boolean returnsVoid() {
+        return "void".equals(returnType);
+    }
+
+    @Override
+    public Class<?>[] getParameterTypes() {
+        if (parameterTypes == null || parameterTypes.length == 0) {
+            return new Class<?>[0];
+        }
+        Class<?>[] types = new Class<?>[parameterTypes.length];
+        for (int i = 0; i < parameterTypes.length; i++) {
+            types[i] = loadClass(parameterTypes[i], true);
+        }
+        return types;
+    }
+
+    @Override
+    public Class<?> getReturnType() {
+        return loadClass(returnType, false);
+    }
+
+    /**
+     * Loads a class from its simple name, handling primitives and object types.
+     *
+     * @param simpleName the simple class name
+     * @param isParameter true if loading a parameter type (may need inner class handling)
+     * @return the loaded Class
+     */
+    private Class<?> loadClass(String simpleName, boolean isParameter) {
+        // Handle primitive types
+        switch (simpleName) {
+            case "void": return void.class;
+            case "boolean": return boolean.class;
+            case "byte": return byte.class;
+            case "char": return char.class;
+            case "short": return short.class;
+            case "int": return int.class;
+            case "long": return long.class;
+            case "float": return float.class;
+            case "double": return double.class;
+        }
+
+        // Handle boxed primitives
+        switch (simpleName) {
+            case "Void": return Void.class;
+            case "Boolean": return Boolean.class;
+            case "Byte": return Byte.class;
+            case "Character": return Character.class;
+            case "Short": return Short.class;
+            case "Integer": return Integer.class;
+            case "Long": return Long.class;
+            case "Float": return Float.class;
+            case "Double": return Double.class;
+        }
+
+        // For object types, try to load from the package
+        try {
+            // Handle inner classes (e.g., "Outer.Inner" or "Outer$Inner")
+            String className = simpleName;
+            if (isParameter && simpleName.contains("$")) {
+                // For inner classes, try to find the enclosing class first
+                String outerClass = simpleName.substring(0, simpleName.indexOf('$'));
+                try {
+                    Class<?> enclosing = Class.forName(className);
+                    return enclosing;
+                } catch (ClassNotFoundException e) {
+                    // Fall through to try with package
+                }
+            }
+            return Class.forName(className);
+        } catch (ClassNotFoundException e) {
+            // Last resort: assume it's a simple name in the same package
+            try {
+                return Class.forName(className + "." + simpleName);
+            } catch (ClassNotFoundException e2) {
+                throw new RuntimeException("Could not load class: " + simpleName, e2);
+            }
+        }
     }
 
     @Override
@@ -250,6 +405,74 @@ public class MethodInvocation implements InvocationContext {
     @Override
     public Object getInterceptor() {
         return currentInterceptor;
+    }
+
+    @Override
+    public boolean hasAnnotation(Class<?> annotationClass) {
+        if (annotationClassNames == null || annotationClassNames.isEmpty()) {
+            // Fall back to legacy method if no annotations were stored
+            if (legacyMethod != null) {
+                return legacyMethod.isAnnotationPresent(
+                    (Class<? extends Annotation>) annotationClass);
+            }
+            return false;
+        }
+        return annotationClassNames.contains(annotationClass.getName());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <A extends Annotation> A getAnnotation(Class<A> annotationClass) {
+        if (annotationClassNames == null || annotationClassNames.isEmpty()) {
+            // Fall back to legacy method if no annotations were stored
+            if (legacyMethod != null) {
+                return legacyMethod.getAnnotation(annotationClass);
+            }
+            return null;
+        }
+
+        String annotationName = annotationClass.getName();
+        if (!annotationClassNames.contains(annotationName)) {
+            return null;
+        }
+
+        // Load the annotation class and create an instance using the annotation
+        // This is safe because we verified the annotation is present
+        try {
+            Class<?> annotationType = Class.forName(annotationName);
+            // Since we can't create annotations directly without reflection,
+            // we need to use the legacy method for actual annotation retrieval
+            // This is a limitation - the zero-reflection path only knows IF
+            // an annotation is present, not its actual instance
+            if (legacyMethod != null) {
+                return legacyMethod.getAnnotation(annotationClass);
+            }
+            return null;
+        } catch (ClassNotFoundException e) {
+            return null;
+        }
+    }
+
+    @Override
+    public boolean hasParameterAnnotation(int paramIndex, Class<?> annotationClass) {
+        if (parameterAnnotationIndices == null || parameterAnnotationIndices.isEmpty()) {
+            // Fall back to legacy method if no parameter annotations were stored
+            if (legacyMethod != null) {
+                Parameter[] params = legacyMethod.getParameters();
+                if (paramIndex >= 0 && paramIndex < params.length) {
+                    return params[paramIndex].isAnnotationPresent(
+                        (Class<? extends Annotation>) annotationClass);
+                }
+            }
+            return false;
+        }
+        Set<Integer> indices = parameterAnnotationIndices.get(annotationClass.getName());
+        return indices != null && indices.contains(paramIndex);
+    }
+
+    @Override
+    public String getDeclaringClassName() {
+        return className;
     }
 
     @Override

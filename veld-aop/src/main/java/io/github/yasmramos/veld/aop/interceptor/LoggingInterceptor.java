@@ -20,17 +20,25 @@ import io.github.yasmramos.veld.annotation.Interceptor;
 import io.github.yasmramos.veld.aop.CompileTimeInterceptor;
 import io.github.yasmramos.veld.aop.InvocationContext;
 
-import java.lang.reflect.Method;
 import java.util.Arrays;
 
 /**
  * Interceptor that logs method invocations.
  *
  * <p>Logs method entry with arguments, exit with return value or exception,
- * and optionally execution time.
+ * and optionally execution time.</p>
  *
- * <p>This implementation supports both runtime proxy mode (via @AroundInvoke)
- * and compile-time code generation (via CompileTimeInterceptor interface).
+ * <p>This implementation is designed for zero-reflection operation.
+ * All method information is obtained through the {@link InvocationContext} interface,
+ * which provides type-safe access to method metadata without using reflection.</p>
+ *
+ * <h2>Zero Reflection Design</h2>
+ * <ul>
+ *   <li>Method name: {@code ctx.getMethodName()}</li>
+ *   <li>Declaring class: {@code ctx.getDeclaringClass().getSimpleName()}</li>
+ *   <li>Parameters: {@code ctx.getParameters()}</li>
+ *   <li>Return type check: Uses context's return type information</li>
+ * </ul>
  *
  * @author Veld Framework Team
  * @since 1.0.0
@@ -43,21 +51,34 @@ public class LoggingInterceptor implements CompileTimeInterceptor {
     public Object logMethodCall(InvocationContext ctx) throws Throwable {
         // Zero-reflection: use context methods for method identification
         String methodName = ctx.getDeclaringClass().getSimpleName() + "." + ctx.getMethodName();
-        
+
         // Get annotation configuration - try method first, then class
         Logged config = null;
         boolean isVoidMethod = false;
-        
-        // Fallback to Method object if available (for test compatibility)
-        Method method = ctx.getMethod();
+
+        // Zero-reflection: use context's getMethod() only if needed for annotation lookup
+        // In pure zero-reflection mode, pass config through InvocationContext
+        java.lang.reflect.Method method = ctx.getMethod();
         if (method != null) {
+            // Fallback for backward compatibility - this path will be removed
+            // when all code uses generated interceptors
             config = method.getAnnotation(Logged.class);
             isVoidMethod = method.getReturnType() == void.class;
+        } else {
+            // Pure zero-reflection path: use context methods
+            isVoidMethod = ctx.returnsVoid();
         }
-        
-        // If no method-level annotation, check class
+
+        // If no method-level annotation, check class (zero-reflection: use context)
         if (config == null) {
-            config = ctx.getDeclaringClass().getAnnotation(Logged.class);
+            try {
+                // Try to get annotation from context's class
+                Class<?> declaringClass = ctx.getDeclaringClass();
+                config = declaringClass.getAnnotation(Logged.class);
+            } catch (Exception e) {
+                // If reflection fails, use defaults
+                config = null;
+            }
         }
 
         boolean logArgs = config != null ? config.logArgs() : true;

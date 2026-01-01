@@ -103,6 +103,9 @@ public class VeldProcessor extends AbstractProcessor {
     
     // Track already processed classes to avoid duplicates
     private final Set<String> processedClasses = new HashSet<>();
+
+    // Event subscriptions for zero-reflection event registration
+    private final List<EventRegistryGenerator.SubscriptionInfo> eventSubscriptions = new ArrayList<>();
     
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -1895,10 +1898,32 @@ public class VeldProcessor extends AbstractProcessor {
             writeComponentMetadata();
             note("Wrote component metadata for weaver (" + discoveredComponents.size() + " components)");
 
+            // Generate EventRegistry for zero-reflection event registration
+            generateEventRegistry();
+
             // Export bean metadata for multi-module support
             exportBeanMetadata();
         } catch (IOException e) {
             error(null, "Failed to generate VeldRegistry: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Generates the EventRegistry implementation for zero-reflection event registration.
+     */
+    private void generateEventRegistry() {
+        if (eventSubscriptions.isEmpty()) {
+            note("No @Subscribe methods found - skipping EventRegistry generation");
+            return;
+        }
+
+        try {
+            EventRegistryGenerator generator = new EventRegistryGenerator(eventSubscriptions);
+            String sourceCode = generator.generate();
+            writeJavaSource(generator.getClassName(), sourceCode);
+            note("Generated EventRegistry with " + eventSubscriptions.size() + " event handlers");
+        } catch (IOException e) {
+            error(null, "Failed to generate EventRegistry: " + e.getMessage());
         }
     }
 
@@ -2077,19 +2102,55 @@ public class VeldProcessor extends AbstractProcessor {
         if (subscribeAnnotation == null) {
             return; // @Subscribe annotation not available
         }
-        
+
+        String componentClassName = typeElement.getQualifiedName().toString();
+        String componentSimpleName = typeElement.getSimpleName().toString();
+
         for (Element enclosed : typeElement.getEnclosedElements()) {
             if (enclosed.getKind() != ElementKind.METHOD) continue;
-            
+
             ExecutableElement method = (ExecutableElement) enclosed;
-            
+
             // Check for @Subscribe annotation
             for (AnnotationMirror annotation : method.getAnnotationMirrors()) {
                 String annotationName = annotation.getAnnotationType().asElement().toString();
                 if (annotationName.equals("io.github.yasmramos.veld.annotation.Subscribe")) {
                     info.setHasSubscribeMethods(true);
-                    note("  -> EventBus subscriber: " + method.getSimpleName());
-                    return; // Only need to find one
+
+                    // Validate method signature
+                    List<? extends VariableElement> params = method.getParameters();
+                    if (params.size() != 1) {
+                        error(method, "@Subscribe method must have exactly one parameter");
+                        continue;
+                    }
+
+                    // Get event type
+                    VariableElement param = params.get(0);
+                    String eventTypeName = getTypeName(param.asType());
+
+                    // Get annotation values
+                    io.github.yasmramos.veld.annotation.Subscribe subAnn =
+                        method.getAnnotation(io.github.yasmramos.veld.annotation.Subscribe.class);
+
+                    int eventId = EventRegistryGenerator.computeEventId(eventTypeName);
+                    boolean async = subAnn != null && subAnn.async();
+                    int priority = subAnn != null ? subAnn.priority() : 0;
+
+                    // Collect subscription info for code generation
+                    EventRegistryGenerator.SubscriptionInfo subscription =
+                        new EventRegistryGenerator.SubscriptionInfo(
+                            componentClassName,
+                            componentSimpleName,
+                            method.getSimpleName().toString(),
+                            eventTypeName,
+                            eventId,
+                            async,
+                            priority
+                        );
+                    eventSubscriptions.add(subscription);
+
+                    note("  -> EventBus subscriber: " + method.getSimpleName() +
+                         " (eventId=" + eventId + ", async=" + async + ")");
                 }
             }
         }

@@ -91,7 +91,9 @@ public interface ObjectEventBus {
      *
      * @param listener the event listener to register
      * @param eventType the type of event to listen for
+     * @deprecated Use {@link ObjectLessEventBus#register(int, ObjectLessEventBus.ObjectLessListener)} instead
      */
+    @Deprecated
     void register(EventBus.EventListener listener, Class<?> eventType);
 
     /**
