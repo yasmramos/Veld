@@ -595,7 +595,7 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
         if (handler == null) {
             throw new IllegalArgumentException("Handler cannot be null");
         }
-        standardChannel.register(eventId, (id, payload) -> {
+        standardChannel.register(eventId, (payload) -> {
             // Create Event wrapper if payload is not already an Event
             Event event = payload instanceof Event ? (Event) payload : new GenericEvent(payload);
             handler.accept(event);
@@ -613,7 +613,7 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
         if (handler == null) {
             throw new IllegalArgumentException("Handler cannot be null");
         }
-        standardChannel.register(eventId, (id, payload) -> {
+        standardChannel.register(eventId, (payload) -> {
             Event event = payload instanceof Event ? (Event) payload : new GenericEvent(payload);
             handler.accept(event);
         }, priority);
@@ -629,7 +629,6 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
             this.payload = payload;
         }
 
-        @Override
         public Object getPayload() {
             return payload;
         }
