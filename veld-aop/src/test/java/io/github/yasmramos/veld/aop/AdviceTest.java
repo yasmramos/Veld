@@ -315,6 +315,21 @@ class AdviceTest {
         }
 
         @Override
+        public boolean returnsVoid() {
+            return true;
+        }
+
+        @Override
+        public Class<?>[] getParameterTypes() {
+            return new Class<?>[0];
+        }
+
+        @Override
+        public Class<?> getReturnType() {
+            return void.class;
+        }
+
+        @Override
         public Object[] getArgs() {
             return new Object[0];
         }

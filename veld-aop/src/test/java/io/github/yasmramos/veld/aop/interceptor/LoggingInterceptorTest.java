@@ -196,6 +196,9 @@ class LoggingInterceptorTest {
             }
         }
         @Override public String getMethodName() { return methodName; }
+        @Override public boolean returnsVoid() { return returnValue == null; }
+        @Override public Class<?>[] getParameterTypes() { return new Class<?>[0]; }
+        @Override public Class<?> getReturnType() { return Object.class; }
         @Override public Object[] getArgs() { return params; }
         @Override public Object[] getParameters() { return params; }
         @Override public void setParameters(Object[] params) { this.params = params; }
