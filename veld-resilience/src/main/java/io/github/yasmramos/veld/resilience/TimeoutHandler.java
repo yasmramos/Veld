@@ -11,8 +11,8 @@ public class TimeoutHandler implements MethodInterceptor {
 
     @Override
     public Object invoke(InvocationContext ctx) throws Throwable {
-        Timeout timeout = ctx.getMethod().getAnnotation(Timeout.class);
-        if (timeout == null) return ctx.proceed();
+        if (!ctx.hasAnnotation(Timeout.class)) return ctx.proceed();
+        Timeout timeout = ctx.getAnnotation(Timeout.class);
         Future<Object> future = executor.submit(() -> {
             try { return ctx.proceed(); } 
             catch (Throwable t) { throw new RuntimeException(t); }

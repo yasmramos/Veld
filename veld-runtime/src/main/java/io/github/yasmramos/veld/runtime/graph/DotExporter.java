@@ -98,6 +98,7 @@ public final class DotExporter implements GraphExporter {
     /**
      * Gets the DOT shape for a given scope.
      */
+    @SuppressWarnings("deprecation")
     private String getShapeForScope(LegacyScope scope) {
         if (scope == null) {
             return "box";

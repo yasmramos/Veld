@@ -1,10 +1,6 @@
 name: Benchmark Performance Tests
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
   workflow_dispatch:
     inputs:
       benchmark_mode:
@@ -171,27 +167,27 @@ jobs:
           cd veld-benchmark
           echo "🎯 Running SELECTIVE benchmarks (fast mode)..."
           
-          # Startup performance - ultra fast
-          echo "Running startup benchmarks..."
-          java -Xmx1g -jar target/veld-benchmark.jar ".*Startup.*" \
+          # Lifecycle benchmarks
+          echo "Running lifecycle benchmarks..."
+          java -Xmx1g -jar target/veld-benchmark.jar ".*Lifecycle.*|.*Plain.*" \
             -f 1 -wi 1 -i 2 -bs 1 \
             -rf json -rff results/startup-results.json
           
-          # Injection performance - ultra fast  
+          # Injection benchmarks
           echo "Running injection benchmarks..."
           java -Xmx1g -jar target/veld-benchmark.jar ".*Injection.*" \
             -f 1 -wi 1 -i 2 -bs 1 \
             -rf json -rff results/injection-results.json
           
-          # Throughput performance - ultra fast
-          echo "Running throughput benchmarks..."
-          java -Xmx1g -jar target/veld-benchmark.jar ".*Throughput.*" \
+          # Feature/overhead benchmarks  
+          echo "Running feature overhead benchmarks..."
+          java -Xmx1g -jar target/veld-benchmark.jar ".*Feature.*|.*Overhead.*|.*Baseline.*" \
             -f 1 -wi 1 -i 2 -bs 1 \
             -rf json -rff results/throughput-results.json
           
-          # Memory performance - ultra fast
-          echo "Running memory benchmarks..."
-          java -Xmx1g -jar target/veld-benchmark.jar ".*Memory.*" \
+          # Validation benchmarks
+          echo "Running validation benchmarks..."
+          java -Xmx1g -jar target/veld-benchmark.jar ".*Validation.*" \
             -f 1 -wi 1 -i 2 -bs 1 \
             -rf json -rff results/memory-results.json
         else
@@ -284,8 +280,8 @@ jobs:
         fi
         
         if [ -f "results/startup-results.json" ]; then
-          echo "### ⏱️ Startup Performance" >> BENCHMARK_RESULT.md
-          echo "Container initialization and startup time benchmarks." >> BENCHMARK_RESULT.md
+          echo "### ⏱️ Lifecycle Performance" >> BENCHMARK_RESULT.md
+          echo "Container lifecycle and bean creation benchmarks." >> BENCHMARK_RESULT.md
           echo "**File:** \`results/startup-results.json\`" >> BENCHMARK_RESULT.md
           echo "" >> BENCHMARK_RESULT.md
         fi
@@ -298,15 +294,15 @@ jobs:
         fi
         
         if [ -f "results/throughput-results.json" ]; then
-          echo "### 📊 Throughput Performance" >> BENCHMARK_RESULT.md
-          echo "Operations per second under load." >> BENCHMARK_RESULT.md
+          echo "### 📊 Feature Overhead Performance" >> BENCHMARK_RESULT.md
+          echo "AOP and feature overhead benchmarks." >> BENCHMARK_RESULT.md
           echo "**File:** \`results/throughput-results.json\`" >> BENCHMARK_RESULT.md
           echo "" >> BENCHMARK_RESULT.md
         fi
         
         if [ -f "results/memory-results.json" ]; then
-          echo "### 🧠 Memory Usage Analysis" >> BENCHMARK_RESULT.md
-          echo "Heap memory consumption and GC performance." >> BENCHMARK_RESULT.md
+          echo "### 🧠 Validation Performance" >> BENCHMARK_RESULT.md
+          echo "Validation overhead and performance analysis." >> BENCHMARK_RESULT.md
           echo "**File:** \`results/memory-results.json\`" >> BENCHMARK_RESULT.md
           echo "" >> BENCHMARK_RESULT.md
         fi
@@ -428,7 +424,7 @@ jobs:
           echo "**Available Modes:**" >> $GITHUB_STEP_SUMMARY
           echo "- **development:** Ultra-fast (1 fork, 0 warmup, 1 iteration) - ~1-2 min" >> $GITHUB_STEP_SUMMARY
           echo "- **quick:** Fast (1 fork, 1 warmup, 1 iteration) - ~3-5 min" >> $GITHUB_STEP_SUMMARY
-          echo "- **selective:** Individual benchmarks (startup, injection, throughput, memory)" >> $GITHUB_STEP_SUMMARY
+          echo "- **selective:** Lifecycle, Injection, Feature, Validation benchmarks" >> $GITHUB_STEP_SUMMARY
           echo "- **full:** Complete benchmarks (5 forks, 5 warmup, 10 iterations) - ~12-15 min" >> $GITHUB_STEP_SUMMARY
         else
           echo "### ⚠️ No benchmark results generated" >> $GITHUB_STEP_SUMMARY

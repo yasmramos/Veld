@@ -82,7 +82,7 @@ class EventSubscriberTest {
 
             assertNotNull(subscriber);
             assertSame(handler, subscriber.getTarget());
-            assertSame(handleEventMethod, subscriber.getMethod());
+            assertEquals(handleEventMethod.getName(), subscriber.getMethodName());
             assertEquals(TestEvent.class, subscriber.getEventType());
             assertFalse(subscriber.isAsync());
             assertEquals(5, subscriber.getPriority());

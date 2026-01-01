@@ -196,6 +196,9 @@ class LoggingInterceptorTest {
             }
         }
         @Override public String getMethodName() { return methodName; }
+        @Override public boolean returnsVoid() { return returnValue == null; }
+        @Override public Class<?>[] getParameterTypes() { return new Class<?>[0]; }
+        @Override public Class<?> getReturnType() { return Object.class; }
         @Override public Object[] getArgs() { return params; }
         @Override public Object[] getParameters() { return params; }
         @Override public void setParameters(Object[] params) { this.params = params; }
@@ -203,6 +206,7 @@ class LoggingInterceptorTest {
         @Override public Object getTimer() { return null; }
         @Override public Object getInterceptor() { return null; }
         @Override public Class<?> getDeclaringClass() { return target.getClass(); }
+        @Override public String getDeclaringClassName() { return target.getClass().getName(); }
         @Override public String getSignature() { return methodName + "()"; }
         @Override public String toShortString() { return methodName; }
         @Override public String toLongString() { return target.getClass().getName() + "." + methodName; }
