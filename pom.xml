@@ -30,9 +30,8 @@
         <license>
             <name>Apache License, Version 2.0</name>
             <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <comments>A copy of the Apache 2.0 license is available in the LICENSE file</comments>
+            <comments>A copy of the Apache 2.0 license is available in the LICENSE file (SPDX: Apache-2.0)</comments>
             <distribution>repo</distribution>
-            <spdx/licenses>Apache-2.0</spdx/licenses>
         </license>
     </licenses>
 
