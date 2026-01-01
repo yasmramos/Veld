@@ -206,6 +206,7 @@ class LoggingInterceptorTest {
         @Override public Object getTimer() { return null; }
         @Override public Object getInterceptor() { return null; }
         @Override public Class<?> getDeclaringClass() { return target.getClass(); }
+        @Override public String getDeclaringClassName() { return target.getClass().getName(); }
         @Override public String getSignature() { return methodName + "()"; }
         @Override public String toShortString() { return methodName; }
         @Override public String toLongString() { return target.getClass().getName() + "." + methodName; }
