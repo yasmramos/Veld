@@ -77,7 +77,7 @@ public final class VeldLite {
      */
     @SuppressWarnings("unchecked")
     public static <T> T get(Class<T> type) {
-        return (T) REGISTRY.get(type);
+        return REGISTRY.get(type);
     }
     
     /**
@@ -89,7 +89,7 @@ public final class VeldLite {
      */
     @SuppressWarnings("unchecked")
     public static <T> T getOrNull(Class<T> type) {
-        return (T) REGISTRY.getOrNull(type);
+        return REGISTRY.getOrNull(type);
     }
     
     /**

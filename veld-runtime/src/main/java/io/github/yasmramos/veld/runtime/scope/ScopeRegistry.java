@@ -327,6 +327,8 @@ public final class ScopeRegistry {
      * Exception thrown when a requested scope is not found.
      */
     public static class NoSuchScopeException extends VeldException {
+        private static final long serialVersionUID = 1L;
+
         NoSuchScopeException(String message) {
             super(message);
         }
