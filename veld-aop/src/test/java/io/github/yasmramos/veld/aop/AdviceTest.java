@@ -340,6 +340,11 @@ class AdviceTest {
         }
 
         @Override
+        public String getDeclaringClassName() {
+            return "io.github.yasmramos.veld.aop.AdviceTest";
+        }
+
+        @Override
         public String getSignature() {
             return "void MockInvocationContext.mockMethod()";
         }
