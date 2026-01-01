@@ -19,13 +19,9 @@ import io.github.yasmramos.veld.annotation.Subscribe;
 
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 /**
  * Central event bus for publishing and subscribing to events.
@@ -572,6 +568,76 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
     @Override
     public EventChannel getStandardChannel() {
         return standardChannel;
+    }
+
+    // ==================== Zero-Reflection Registration Methods ====================
+
+    /**
+     * Registers an event handler using a lambda/Consumer for zero-reflection operation.
+     *
+     * <p>This method is intended for use by generated code that creates type-safe
+     * event subscriptions without using reflection. The generated code uses method
+     * references like {@code component::handleEvent} instead of Method.invoke().</p>
+     *
+     * <h2>Usage in Generated Code</h2>
+     * <pre>{@code
+     * // Generated code pattern:
+     * if (component instanceof MyService) {
+     *     MyService typed = (MyService) component;
+     *     bus.registerEventHandler(1001, typed::onUserCreated);
+     * }
+     * }</pre>
+     *
+     * @param eventId the event type ID (e.g., hash of Event class name)
+     * @param handler the event handler as a Consumer
+     */
+    public void registerEventHandler(int eventId, java.util.function.Consumer<Event> handler) {
+        if (handler == null) {
+            throw new IllegalArgumentException("Handler cannot be null");
+        }
+        standardChannel.register(eventId, (id, payload) -> {
+            // Create Event wrapper if payload is not already an Event
+            Event event = payload instanceof Event ? (Event) payload : new GenericEvent(payload);
+            handler.accept(event);
+        });
+    }
+
+    /**
+     * Registers an event handler with priority using a lambda/Consumer.
+     *
+     * @param eventId the event type ID
+     * @param handler the event handler as a Consumer
+     * @param priority the priority (higher = called first)
+     */
+    public void registerEventHandler(int eventId, java.util.function.Consumer<Event> handler, int priority) {
+        if (handler == null) {
+            throw new IllegalArgumentException("Handler cannot be null");
+        }
+        standardChannel.register(eventId, (id, payload) -> {
+            Event event = payload instanceof Event ? (Event) payload : new GenericEvent(payload);
+            handler.accept(event);
+        }, priority);
+    }
+
+    /**
+     * Simple generic event wrapper for payload events.
+     */
+    private static class GenericEvent extends Event {
+        private final Object payload;
+
+        GenericEvent(Object payload) {
+            this.payload = payload;
+        }
+
+        @Override
+        public Object getPayload() {
+            return payload;
+        }
+
+        @Override
+        public String toString() {
+            return "GenericEvent{payload=" + payload + "}";
+        }
     }
 
     // ==================== ObjectEventBus Methods (Backward Compatible) ====================
