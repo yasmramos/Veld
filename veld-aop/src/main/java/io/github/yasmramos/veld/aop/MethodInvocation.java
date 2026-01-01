@@ -471,6 +471,11 @@ public class MethodInvocation implements InvocationContext {
     }
 
     @Override
+    public String getDeclaringClassName() {
+        return className;
+    }
+
+    @Override
     public String toString() {
         return "MethodInvocation{" +
                 "method=" + toShortString() +
