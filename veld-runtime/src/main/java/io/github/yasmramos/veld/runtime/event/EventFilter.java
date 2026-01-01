@@ -54,6 +54,13 @@ public class EventFilter {
     private static final Map<String, Method> methodCache = new ConcurrentHashMap<>();
 
     /**
+     * Private constructor to prevent instantiation.
+     */
+    private EventFilter() {
+        throw new UnsupportedOperationException("EventFilter is a utility class");
+    }
+
+    /**
      * Evaluates a filter expression against an event.
      *
      * @param expression the filter expression

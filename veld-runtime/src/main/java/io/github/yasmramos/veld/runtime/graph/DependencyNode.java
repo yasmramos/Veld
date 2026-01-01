@@ -7,6 +7,7 @@ import java.util.*;
 /**
  * Represents a node in the dependency graph.
  */
+@SuppressWarnings("deprecation")
 public final class DependencyNode {
     private final String className;
     private final String simpleName;
