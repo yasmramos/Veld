@@ -132,14 +132,14 @@ public class EventRegistryGenerator {
                 String registration = "            bus.registerEventHandler("
                         + sub.eventId + ", "
                         + sub.eventTypeName + ".class, "
-                        + "(" + sub.eventTypeName + " event) -> typed." + sub.methodName + "(event))";
+                        + "(" + sub.eventTypeName + " event) -> typed." + sub.methodName + "(event)";
                 if (sub.async || sub.priority != 0) {
                     if (sub.priority != 0) {
                         registration += ", " + sub.priority;
                     }
-                    registration += ";\n";
+                    registration += ");\n";
                 } else {
-                    registration += ";\n";
+                    registration += ");\n";
                 }
                 sb.append(registration);
             }
