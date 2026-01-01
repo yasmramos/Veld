@@ -589,9 +589,9 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
      * }</pre>
      *
      * @param eventId the event type ID (e.g., hash of Event class name)
-     * @param handler the event handler as a Consumer
+     * @param handler the event handler as a Consumer (accepts Event or any subtype)
      */
-    public void registerEventHandler(int eventId, java.util.function.Consumer<Event> handler) {
+    public void registerEventHandler(int eventId, java.util.function.Consumer<? super Event> handler) {
         if (handler == null) {
             throw new IllegalArgumentException("Handler cannot be null");
         }
@@ -606,10 +606,10 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
      * Registers an event handler with priority using a lambda/Consumer.
      *
      * @param eventId the event type ID
-     * @param handler the event handler as a Consumer
+     * @param handler the event handler as a Consumer (accepts Event or any subtype)
      * @param priority the priority (higher = called first)
      */
-    public void registerEventHandler(int eventId, java.util.function.Consumer<Event> handler, int priority) {
+    public void registerEventHandler(int eventId, java.util.function.Consumer<? super Event> handler, int priority) {
         if (handler == null) {
             throw new IllegalArgumentException("Handler cannot be null");
         }
