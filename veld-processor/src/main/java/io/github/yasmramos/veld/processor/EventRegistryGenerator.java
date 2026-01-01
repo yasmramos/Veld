@@ -127,20 +127,20 @@ public class EventRegistryGenerator {
             sb.append("            ").append(componentClass).append(" typed = (").append(componentClass).append(") component;\n");
 
             for (SubscriptionInfo sub : componentSubs) {
-                String methodRef = "typed::" + sub.methodName;
+                // Generate lambda with explicit event type cast to handle contravariance
+                // Consumer<? super Event> needs explicit cast because Consumer<SubType> is not a subtype
+                String lambda = "            bus.registerEventHandler("
+                        + sub.eventId + ", ("
+                        + sub.eventTypeName + " event) -> typed." + sub.methodName + "(event)";
                 if (sub.async || sub.priority != 0) {
-                    sb.append("            bus.registerEventHandler(")
-                            .append(sub.eventId).append(", ")
-                            .append(methodRef);
                     if (sub.priority != 0) {
-                        sb.append(", ").append(sub.priority);
+                        lambda += ", " + sub.priority;
                     }
-                    sb.append(");\n");
+                    lambda += ");\n";
                 } else {
-                    sb.append("            bus.registerEventHandler(")
-                            .append(sub.eventId).append(", ")
-                            .append(methodRef).append(");\n");
+                    lambda += ");\n";
                 }
+                sb.append(lambda);
             }
             sb.append("        }\n\n");
         }
