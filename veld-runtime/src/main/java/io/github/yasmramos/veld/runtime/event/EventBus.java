@@ -573,30 +573,78 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
     // ==================== Zero-Reflection Registration Methods ====================
 
     /**
-     * Registers an event handler using a lambda/Consumer for zero-reflection operation.
+     * Functional interface for typed event handlers in zero-reflection mode.
+     *
+     * @param <T> the event type
+     */
+    @FunctionalInterface
+    public interface TypedEventHandler<T extends Event> {
+        void handle(T event);
+    }
+
+    /**
+     * Registers a typed event handler for zero-reflection operation.
      *
      * <p>This method is intended for use by generated code that creates type-safe
-     * event subscriptions without using reflection. The generated code uses method
-     * references like {@code component::handleEvent} instead of Method.invoke().</p>
+     * event subscriptions without using reflection.</p>
      *
-     * <h2>Usage in Generated Code</h2>
+     * <h2>Generated Code Pattern</h2>
      * <pre>{@code
-     * // Generated code pattern:
-     * if (component instanceof MyService) {
-     *     MyService typed = (MyService) component;
-     *     bus.registerEventHandler(1001, typed::onUserCreated);
-     * }
+     * bus.registerEventHandler(SimpleEvent.ID, SimpleEvent.class,
+     *     (SimpleEvent event) -> typed.onSimpleEvent(event));
      * }</pre>
      *
+     * @param <T> the event type
      * @param eventId the event type ID (e.g., hash of Event class name)
-     * @param handler the event handler as a Consumer (accepts Event or any subtype)
+     * @param eventClass the event class for type-safe casting
+     * @param handler the typed event handler
      */
+    public <T extends Event> void registerEventHandler(int eventId, Class<T> eventClass,
+                                                        TypedEventHandler<T> handler) {
+        if (handler == null) {
+            throw new IllegalArgumentException("Handler cannot be null");
+        }
+        standardChannel.register(eventId, (payload) -> {
+            if (eventClass.isInstance(payload)) {
+                handler.handle(eventClass.cast(payload));
+            }
+        });
+    }
+
+    /**
+     * Registers a typed event handler with priority.
+     *
+     * @param <T> the event type
+     * @param eventId the event type ID
+     * @param eventClass the event class for type-safe casting
+     * @param handler the typed event handler
+     * @param priority the priority (higher = called first)
+     */
+    public <T extends Event> void registerEventHandler(int eventId, Class<T> eventClass,
+                                                        TypedEventHandler<T> handler, int priority) {
+        if (handler == null) {
+            throw new IllegalArgumentException("Handler cannot be null");
+        }
+        standardChannel.register(eventId, (payload) -> {
+            if (eventClass.isInstance(payload)) {
+                handler.handle(eventClass.cast(payload));
+            }
+        }, priority);
+    }
+
+    /**
+     * Registers an event handler using a lambda/Consumer for zero-reflection operation.
+     *
+     * @deprecated Use {@link #registerEventHandler(int, Class, TypedEventHandler)} instead
+     * @param eventId the event type ID
+     * @param handler the event handler as a Consumer
+     */
+    @Deprecated
     public void registerEventHandler(int eventId, java.util.function.Consumer<? super Event> handler) {
         if (handler == null) {
             throw new IllegalArgumentException("Handler cannot be null");
         }
         standardChannel.register(eventId, (payload) -> {
-            // Create Event wrapper if payload is not already an Event
             Event event = payload instanceof Event ? (Event) payload : new GenericEvent(payload);
             handler.accept(event);
         });
@@ -605,10 +653,12 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
     /**
      * Registers an event handler with priority using a lambda/Consumer.
      *
+     * @deprecated Use {@link #registerEventHandler(int, Class, TypedEventHandler, int)} instead
      * @param eventId the event type ID
-     * @param handler the event handler as a Consumer (accepts Event or any subtype)
+     * @param handler the event handler as a Consumer
      * @param priority the priority (higher = called first)
      */
+    @Deprecated
     public void registerEventHandler(int eventId, java.util.function.Consumer<? super Event> handler, int priority) {
         if (handler == null) {
             throw new IllegalArgumentException("Handler cannot be null");
