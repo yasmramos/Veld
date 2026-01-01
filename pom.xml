@@ -32,7 +32,7 @@
             <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
             <comments>A copy of the Apache 2.0 license is available in the LICENSE file</comments>
             <distribution>repo</distribution>
-            <spdx>Apache-2.0</spdx>
+            <spdx/licenses>Apache-2.0</spdx/licenses>
         </license>
     </licenses>
 
