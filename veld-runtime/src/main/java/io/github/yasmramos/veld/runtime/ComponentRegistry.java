@@ -143,6 +143,7 @@ public interface ComponentRegistry {
      * @param index the component index
      * @return the component scope
      */
+    @SuppressWarnings("deprecation")
     default LegacyScope getScope(int index) {
         List<ComponentFactory<?>> factories = getAllFactories();
         if (index >= 0 && index < factories.size()) {
@@ -257,10 +258,11 @@ public interface ComponentRegistry {
      *
      * @return a new DependencyGraph representing the component relationships
      */
+    @SuppressWarnings("deprecation")
     default DependencyGraph buildDependencyGraph() {
         DependencyGraph graph = new DependencyGraph();
         List<ComponentFactory<?>> factories = getAllFactories();
-        
+
         // Create nodes for each component
         for (ComponentFactory<?> factory : factories) {
             DependencyNode node = new DependencyNode(

@@ -15,6 +15,8 @@ package io.github.yasmramos.veld;
  * @since 1.0.0
  */
 public class VeldException extends RuntimeException {
+
+    private static final long serialVersionUID = 1L;
     
     /**
      * Creates a new VeldException with the specified message.
@@ -50,5 +52,7 @@ public class VeldException extends RuntimeException {
         public ComponentNotFoundException(String message) {
             super(message);
         }
+
+        private static final long serialVersionUID = 1L;
     }
 }
