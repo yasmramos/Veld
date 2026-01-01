@@ -163,6 +163,87 @@ public class MethodInvocation implements InvocationContext {
     }
 
     @Override
+    public boolean returnsVoid() {
+        return "void".equals(returnType);
+    }
+
+    @Override
+    public Class<?>[] getParameterTypes() {
+        if (parameterTypes == null || parameterTypes.length == 0) {
+            return new Class<?>[0];
+        }
+        Class<?>[] types = new Class<?>[parameterTypes.length];
+        for (int i = 0; i < parameterTypes.length; i++) {
+            types[i] = loadClass(parameterTypes[i], true);
+        }
+        return types;
+    }
+
+    @Override
+    public Class<?> getReturnType() {
+        return loadClass(returnType, false);
+    }
+
+    /**
+     * Loads a class from its simple name, handling primitives and object types.
+     *
+     * @param simpleName the simple class name
+     * @param isParameter true if loading a parameter type (may need inner class handling)
+     * @return the loaded Class
+     */
+    private Class<?> loadClass(String simpleName, boolean isParameter) {
+        // Handle primitive types
+        switch (simpleName) {
+            case "void": return void.class;
+            case "boolean": return boolean.class;
+            case "byte": return byte.class;
+            case "char": return char.class;
+            case "short": return short.class;
+            case "int": return int.class;
+            case "long": return long.class;
+            case "float": return float.class;
+            case "double": return double.class;
+        }
+
+        // Handle boxed primitives
+        switch (simpleName) {
+            case "Void": return Void.class;
+            case "Boolean": return Boolean.class;
+            case "Byte": return Byte.class;
+            case "Character": return Character.class;
+            case "Short": return Short.class;
+            case "Integer": return Integer.class;
+            case "Long": return Long.class;
+            case "Float": return Float.class;
+            case "Double": return Double.class;
+        }
+
+        // For object types, try to load from the package
+        try {
+            // Handle inner classes (e.g., "Outer.Inner" or "Outer$Inner")
+            String className = simpleName;
+            if (isParameter && simpleName.contains("$")) {
+                // For inner classes, try to find the enclosing class first
+                String outerClass = simpleName.substring(0, simpleName.indexOf('$'));
+                try {
+                    Class<?> enclosing = Class.forName(className);
+                    return enclosing;
+                } catch (ClassNotFoundException e) {
+                    // Fall through to try with package
+                }
+            }
+            return Class.forName(className);
+        } catch (ClassNotFoundException e) {
+            // Last resort: assume it's a simple name in the same package
+            try {
+                return Class.forName(className + "." + simpleName);
+            } catch (ClassNotFoundException e2) {
+                throw new RuntimeException("Could not load class: " + simpleName, e2);
+            }
+        }
+    }
+
+    @Override
     public Object[] getArgs() {
         return parameters.length == 0 ? parameters : parameters.clone();
     }
