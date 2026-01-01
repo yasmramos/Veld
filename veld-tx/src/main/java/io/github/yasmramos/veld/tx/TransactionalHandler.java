@@ -11,8 +11,8 @@ public class TransactionalHandler implements MethodInterceptor {
     @Override
     public Object invoke(InvocationContext ctx) throws Throwable {
         if (transactionManager == null) return ctx.proceed();
-        Transactional tx = ctx.getMethod().getAnnotation(Transactional.class);
-        if (tx == null) return ctx.proceed();
+        if (!ctx.hasAnnotation(Transactional.class)) return ctx.proceed();
+        Transactional tx = ctx.getAnnotation(Transactional.class);
         boolean newTx = false;
         try {
             switch (tx.propagation()) {

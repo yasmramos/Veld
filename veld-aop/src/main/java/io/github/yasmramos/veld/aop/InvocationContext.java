@@ -163,4 +163,59 @@ public interface InvocationContext extends JoinPoint {
      * @return the return type class, or void.class if the method returns void
      */
     Class<?> getReturnType();
+
+    /**
+     * Returns the declaring class name.
+     *
+     * <p>This is the zero-reflection alternative to
+     * {@link #getMethod()}.getDeclaringClass().getName().
+     * Use this method for better native image compatibility.</p>
+     *
+     * @return the fully qualified declaring class name
+     */
+    String getDeclaringClassName();
+
+    /**
+     * Checks if the invoked method has the specified annotation.
+     *
+     * <p>This is the zero-reflection alternative to
+     * {@link #getMethod()}.isAnnotationPresent(annotationClass).
+     * Use this method for better native image compatibility.</p>
+     *
+     * @param annotationClass the annotation class to check
+     * @return true if the method has the annotation
+     */
+    default boolean hasAnnotation(Class<?> annotationClass) {
+        return false; // Default implementation for backward compatibility
+    }
+
+    /**
+     * Gets the annotation of the specified type from the invoked method.
+     *
+     * <p>This is the zero-reflection alternative to
+     * {@link #getMethod()}.getAnnotation(annotationClass).
+     * Use this method for better native image compatibility.</p>
+     *
+     * @param <A> the annotation type
+     * @param annotationClass the annotation class to retrieve
+     * @return the annotation instance, or null if not present
+     */
+    default <A extends java.lang.annotation.Annotation> A getAnnotation(Class<A> annotationClass) {
+        return null; // Default implementation for backward compatibility
+    }
+
+    /**
+     * Checks if a parameter at the specified index has the given annotation.
+     *
+     * <p>This is the zero-reflection alternative to
+     * {@link java.lang.reflect.Parameter}.isAnnotationPresent(annotationClass).
+     * Use this method for better native image compatibility.</p>
+     *
+     * @param paramIndex the parameter index (0-based)
+     * @param annotationClass the annotation class to check
+     * @return true if the parameter has the annotation
+     */
+    default boolean hasParameterAnnotation(int paramIndex, Class<?> annotationClass) {
+        return false; // Default implementation for backward compatibility
+    }
 }
