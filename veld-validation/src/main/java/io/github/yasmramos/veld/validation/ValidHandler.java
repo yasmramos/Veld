@@ -5,7 +5,6 @@ import io.github.yasmramos.veld.aop.InvocationContext;
 import io.github.yasmramos.veld.aop.MethodInterceptor;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -14,12 +13,11 @@ import java.util.regex.Pattern;
 public class ValidHandler implements MethodInterceptor {
     @Override
     public Object invoke(InvocationContext ctx) throws Throwable {
-        Parameter[] parameters = ctx.getMethod().getParameters();
         Object[] args = ctx.getParameters();
         List<String> violations = new ArrayList<>();
         
-        for (int i = 0; i < parameters.length; i++) {
-            if (parameters[i].isAnnotationPresent(Valid.class) && args[i] != null) {
+        for (int i = 0; i < args.length; i++) {
+            if (ctx.hasParameterAnnotation(i, Valid.class) && args[i] != null) {
                 validateObject(args[i], violations);
             }
         }

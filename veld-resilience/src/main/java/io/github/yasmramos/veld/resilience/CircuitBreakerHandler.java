@@ -4,6 +4,7 @@ import io.github.yasmramos.veld.annotation.CircuitBreaker;
 import io.github.yasmramos.veld.aop.InvocationContext;
 import io.github.yasmramos.veld.aop.MethodInterceptor;
 
+import java.lang.reflect.Method;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -17,10 +18,10 @@ public class CircuitBreakerHandler implements MethodInterceptor {
 
     @Override
     public Object invoke(InvocationContext ctx) throws Throwable {
-        CircuitBreaker cb = ctx.getMethod().getAnnotation(CircuitBreaker.class);
-        if (cb == null) return ctx.proceed();
+        if (!ctx.hasAnnotation(CircuitBreaker.class)) return ctx.proceed();
+        CircuitBreaker cb = ctx.getAnnotation(CircuitBreaker.class);
         
-        String key = cb.name().isEmpty() ? ctx.getMethod().toString() : cb.name();
+        String key = cb.name().isEmpty() ? ctx.getDeclaringClassName() + "." + ctx.getMethodName() : cb.name();
         CircuitState state = circuits.computeIfAbsent(key, k -> new CircuitState(cb));
         
         if (state.isOpen()) {
@@ -45,8 +46,9 @@ public class CircuitBreakerHandler implements MethodInterceptor {
     private Object invokeFallback(InvocationContext ctx, CircuitBreaker cb, Throwable cause) throws Throwable {
         if (!cb.fallbackMethod().isEmpty()) {
             try {
+                // Use ctx.getParameterTypes() for zero-reflection compatibility
                 return ctx.getTarget().getClass()
-                    .getMethod(cb.fallbackMethod(), ctx.getMethod().getParameterTypes())
+                    .getMethod(cb.fallbackMethod(), ctx.getParameterTypes())
                     .invoke(ctx.getTarget(), ctx.getParameters());
             } catch (Exception e) { throw cause; }
         }
