@@ -1,6 +1,7 @@
 package io.github.yasmramos.veld.runtime;
 
 import io.github.yasmramos.veld.VeldException;
+import io.github.yasmramos.veld.runtime.graph.DependencyGraph;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -159,6 +160,92 @@ class ComponentRegistryTest {
         registry.invokePreDestroy(-1, "test");
         registry.invokePreDestroy(100, "test");
         // Should not throw for invalid indices
+    }
+
+    // ===== NEW TESTS FOR PREVIOUSLY UNCOVERED METHODS =====
+
+    @Test
+    void testGetScopeId_ValidIndex() {
+        assertEquals("singleton", registry.getScopeId(0));
+        assertEquals("prototype", registry.getScopeId(1));
+    }
+
+    @Test
+    void testGetScopeId_InvalidIndex_ReturnsSingleton() {
+        assertEquals("singleton", registry.getScopeId(-1));
+        assertEquals("singleton", registry.getScopeId(100));
+    }
+
+    @Test
+    void testGetScopeId_CustomScope() {
+        ComponentFactory<String> customScopeFactory = new TestFactory<>(2, "customScope", String.class, LegacyScope.SINGLETON, false, () -> "custom", false) {
+            @Override
+            public String getScopeId() {
+                return "custom-scope-id";
+            }
+        };
+
+        List<ComponentFactory<?>> factories = new ArrayList<>();
+        factories.add(customScopeFactory);
+        TestRegistry customRegistry = new TestRegistry(factories);
+
+        assertEquals("custom-scope-id", customRegistry.getScopeId(0));
+    }
+
+    @Test
+    void testBuildDependencyGraph_WithComponents() {
+        DependencyGraph graph = registry.buildDependencyGraph();
+
+        assertNotNull(graph);
+        // Should have nodes for both components
+        assertEquals(2, graph.getNodes().size());
+    }
+
+    @Test
+    void testBuildDependencyGraph_EmptyRegistry() {
+        List<ComponentFactory<?>> emptyFactories = new ArrayList<>();
+        TestRegistry emptyRegistry = new TestRegistry(emptyFactories);
+
+        DependencyGraph graph = emptyRegistry.buildDependencyGraph();
+
+        assertNotNull(graph);
+        assertEquals(0, graph.getNodes().size());
+    }
+
+    @Test
+    void testBuildDependencyGraph_WithDependencies() {
+        // Create factories with dependency types
+        ComponentFactory<String> dependentFactory = new TestFactory<>(2, "dependent", String.class, LegacyScope.SINGLETON, false, () -> "dep", false) {
+            @Override
+            public List<String> getDependencyTypes() {
+                return java.util.Arrays.asList("java.lang.String");
+            }
+        };
+
+        List<ComponentFactory<?>> factories = new ArrayList<>();
+        factories.add(dependentFactory);
+        TestRegistry depRegistry = new TestRegistry(factories);
+
+        DependencyGraph graph = depRegistry.buildDependencyGraph();
+
+        assertNotNull(graph);
+        assertEquals(1, graph.getNodes().size());
+    }
+
+    @Test
+    void testBuildDependencyGraph_WithPrimaryFlag() {
+        ComponentFactory<String> primaryFactory = new TestFactory<>(2, "primary", String.class, LegacyScope.SINGLETON, false, () -> "primary", true);
+
+        List<ComponentFactory<?>> factories = new ArrayList<>();
+        factories.add(primaryFactory);
+        TestRegistry primaryRegistry = new TestRegistry(factories);
+
+        DependencyGraph graph = primaryRegistry.buildDependencyGraph();
+
+        assertNotNull(graph);
+        assertEquals(1, graph.getNodes().size());
+        // The node should be marked as primary
+        assertTrue(graph.getNodes().iterator().next().isPrimary());
     }
 
     static class TestRegistry implements ComponentRegistry {
