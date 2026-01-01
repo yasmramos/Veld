@@ -455,4 +455,73 @@ class ConditionalRegistryTest {
             assertFalse(registry.wasExcluded("registeredBean"));
         }
     }
+
+    // ===== NEW TESTS FOR isProfileActive =====
+
+    @Nested
+    @DisplayName("Is Profile Active Tests")
+    class IsProfileActiveTests {
+
+        @Test
+        @DisplayName("Should return false for null profile")
+        void shouldReturnFalseForNullProfile() {
+            ConditionalRegistry.setActiveProfiles("dev", "test");
+
+            assertFalse(ConditionalRegistry.isProfileActive(null));
+        }
+
+        @Test
+        @DisplayName("Should return true for active profile")
+        void shouldReturnTrueForActiveProfile() {
+            ConditionalRegistry.setActiveProfiles("dev", "test", "prod");
+
+            assertTrue(ConditionalRegistry.isProfileActive("dev"));
+            assertTrue(ConditionalRegistry.isProfileActive("test"));
+            assertTrue(ConditionalRegistry.isProfileActive("prod"));
+        }
+
+        @Test
+        @DisplayName("Should return false for inactive profile")
+        void shouldReturnFalseForInactiveProfile() {
+            ConditionalRegistry.setActiveProfiles("dev");
+
+            assertFalse(ConditionalRegistry.isProfileActive("prod"));
+            assertFalse(ConditionalRegistry.isProfileActive("test"));
+        }
+
+        @Test
+        @DisplayName("Should handle profile with whitespace")
+        void shouldHandleProfileWithWhitespace() {
+            ConditionalRegistry.setActiveProfiles(" dev ");
+
+            assertTrue(ConditionalRegistry.isProfileActive("dev"));
+        }
+
+        @Test
+        @DisplayName("Should return false when no profiles are set")
+        void shouldReturnFalseWhenNoProfilesSet() {
+            ConditionalRegistry.setActiveProfiles();
+
+            assertFalse(ConditionalRegistry.isProfileActive("dev"));
+        }
+
+        @Test
+        @DisplayName("Should be case-sensitive")
+        void shouldBeCaseSensitive() {
+            ConditionalRegistry.setActiveProfiles("DEV");
+
+            assertTrue(ConditionalRegistry.isProfileActive("DEV"));
+            assertFalse(ConditionalRegistry.isProfileActive("dev"));
+            assertFalse(ConditionalRegistry.isProfileActive("Dev"));
+        }
+
+        @Test
+        @DisplayName("Should return false for empty string profile")
+        void shouldReturnFalseForEmptyStringProfile() {
+            ConditionalRegistry.setActiveProfiles("dev");
+
+            // Empty string is not in the set
+            assertFalse(ConditionalRegistry.isProfileActive(""));
+        }
+    }
 }
