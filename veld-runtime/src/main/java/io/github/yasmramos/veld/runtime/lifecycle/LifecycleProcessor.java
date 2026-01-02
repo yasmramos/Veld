@@ -156,29 +156,53 @@ public class LifecycleProcessor {
     
     /**
      * Scans a bean for lifecycle callback methods.
+     *
+     * @deprecated This method uses reflection and is not compatible with zero-reflection mode.
+     *             Please use registerPostInitialize(), registerOnStart(), or registerOnStop() instead.
      */
+    @Deprecated
     private void scanLifecycleCallbacks(String beanName, Object bean) {
-        Class<?> clazz = bean.getClass();
-        
-        for (Method method : clazz.getDeclaredMethods()) {
-            // @PostInitialize
-            PostInitialize postInit = method.getAnnotation(PostInitialize.class);
-            if (postInit != null) {
-                postInitializeCallbacks.add(new LifecycleCallback(bean, beanName, method, postInit.order()));
-            }
-            
-            // @OnStart
-            OnStart onStart = method.getAnnotation(OnStart.class);
-            if (onStart != null) {
-                onStartCallbacks.add(new LifecycleCallback(bean, beanName, method, onStart.order()));
-            }
-            
-            // @OnStop
-            OnStop onStop = method.getAnnotation(OnStop.class);
-            if (onStop != null) {
-                onStopCallbacks.add(new LifecycleCallback(bean, beanName, method, onStop.order()));
-            }
-        }
+        // Reflection-based scanning disabled in zero-reflection mode
+        // Use manual registration methods instead:
+        // - registerPostInitialize(bean, beanName, method, order)
+        // - registerOnStart(bean, beanName, method, order)
+        // - registerOnStop(bean, beanName, method, order)
+    }
+
+    /**
+     * Registers a PostInitialize callback manually (zero-reflection).
+     *
+     * @param bean the bean instance
+     * @param beanName the bean name
+     * @param method the callback method
+     * @param order the execution order
+     */
+    public void registerPostInitialize(Object bean, String beanName, Method method, int order) {
+        postInitializeCallbacks.add(new LifecycleCallback(bean, beanName, method, order));
+    }
+
+    /**
+     * Registers an OnStart callback manually (zero-reflection).
+     *
+     * @param bean the bean instance
+     * @param beanName the bean name
+     * @param method the callback method
+     * @param order the execution order
+     */
+    public void registerOnStart(Object bean, String beanName, Method method, int order) {
+        onStartCallbacks.add(new LifecycleCallback(bean, beanName, method, order));
+    }
+
+    /**
+     * Registers an OnStop callback manually (zero-reflection).
+     *
+     * @param bean the bean instance
+     * @param beanName the bean name
+     * @param method the callback method
+     * @param order the execution order
+     */
+    public void registerOnStop(Object bean, String beanName, Method method, int order) {
+        onStopCallbacks.add(new LifecycleCallback(bean, beanName, method, order));
     }
     
     /**

@@ -36,121 +36,117 @@ class EventBusTest {
     
     // Test Events
     static class TestEvent extends Event {
+        // Event ID for zero-reflection API
+        static final int ID = 1001;
+
         private final String message;
-        
+
         TestEvent(Object source, String message) {
             super(source);
             this.message = message;
         }
-        
+
         String getMessage() {
             return message;
         }
     }
-    
+
     static class ChildEvent extends TestEvent {
+        static final int ID = 1002;
+
         ChildEvent(Object source, String message) {
             super(source, message);
         }
     }
-    
+
     static class OtherEvent extends Event {
+        static final int ID = 1003;
+
         OtherEvent(Object source) {
             super(source);
         }
     }
     
-    // Test Subscribers
+    // Test Subscribers - Zero-reflection style (using lambdas instead of @Subscribe)
     static class SimpleSubscriber {
         List<TestEvent> receivedEvents = new ArrayList<>();
-        
-        @Subscribe
-        public void onEvent(TestEvent event) {
+
+        void onEvent(TestEvent event) {
             receivedEvents.add(event);
         }
     }
-    
+
     static class PrioritySubscriber {
         List<String> order = new ArrayList<>();
-        
-        @Subscribe(priority = 10)
-        public void highPriority(TestEvent event) {
+
+        void highPriority(TestEvent event) {
             order.add("high");
         }
-        
-        @Subscribe(priority = 1)
-        public void lowPriority(TestEvent event) {
-            order.add("low");
-        }
-        
-        @Subscribe(priority = 5)
-        public void mediumPriority(TestEvent event) {
+
+        void mediumPriority(TestEvent event) {
             order.add("medium");
         }
+
+        void lowPriority(TestEvent event) {
+            order.add("low");
+        }
     }
-    
+
     static class AsyncSubscriber {
         CountDownLatch latch;
         volatile String receivedMessage;
         volatile String threadName;
-        
+
         AsyncSubscriber(CountDownLatch latch) {
             this.latch = latch;
         }
-        
-        @Subscribe(async = true)
-        public void onEvent(TestEvent event) {
+
+        void onEvent(TestEvent event) {
             threadName = Thread.currentThread().getName();
             receivedMessage = event.getMessage();
             latch.countDown();
         }
     }
-    
+
     static class FilteredSubscriber {
         List<String> receivedMessages = new ArrayList<>();
-        
-        @Subscribe(filter = "message == 'accept'")
-        public void onFilteredEvent(TestEvent event) {
+
+        void onFilteredEvent(TestEvent event) {
             receivedMessages.add(event.getMessage());
         }
     }
-    
+
     static class ExceptionSubscriber {
         AtomicInteger callCount = new AtomicInteger(0);
-        
-        @Subscribe(catchExceptions = true)
-        public void onEventWithException(TestEvent event) {
+
+        void onEventWithException(TestEvent event) {
             callCount.incrementAndGet();
             throw new RuntimeException("Test exception");
         }
     }
-    
+
     static class CancellingSubscriber {
-        @Subscribe(priority = 10)
-        public void onEvent(TestEvent event) {
+        void onEvent(TestEvent event) {
             event.cancel();
         }
     }
-    
+
     static class AfterCancelSubscriber {
         AtomicBoolean called = new AtomicBoolean(false);
-        
-        @Subscribe(priority = 1)
-        public void onEvent(TestEvent event) {
+
+        void onEvent(TestEvent event) {
             called.set(true);
         }
     }
-    
+
     static class InvalidSubscriber {
-        @Subscribe
-        public void tooManyParams(TestEvent event1, TestEvent event2) {
+        void tooManyParams(TestEvent event1, TestEvent event2) {
             // Invalid - should throw exception
         }
     }
-    
+
     static class InvalidTypeSubscriber {
-        @Subscribe
-        public void nonEventParam(String notAnEvent) {
+        void nonEventParam(String notAnEvent) {
             // Invalid - parameter doesn't extend Event
         }
     }
@@ -158,67 +154,94 @@ class EventBusTest {
     @Nested
     @DisplayName("Registration Tests")
     class RegistrationTests {
-        
+
         @Test
         @DisplayName("Should register subscriber with @Subscribe methods")
-        void shouldRegisterSubscriber() {
+        void shouldRegisterSubscriber() throws NoSuchMethodException {
             SimpleSubscriber subscriber = new SimpleSubscriber();
-            
-            eventBus.register(subscriber);
-            
+
+            // Create EventSubscriber using reflection (in production, this would be generated)
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                SimpleSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class,
+                false, 0, null, false
+            );
+            eventBus.register(eventSubscriber);
+
             assertEquals(1, eventBus.getSubscriberCount());
         }
-        
+
         @Test
         @DisplayName("Should throw exception for null subscriber")
         void shouldThrowExceptionForNullSubscriber() {
-            assertThrows(IllegalArgumentException.class, () -> 
-                eventBus.register((Object) null));
+            assertThrows(IllegalArgumentException.class, () ->
+                eventBus.register((EventSubscriber) null));
         }
-        
+
         @Test
         @DisplayName("Should throw exception for invalid method signature")
-        void shouldThrowExceptionForInvalidMethodSignature() {
+        void shouldThrowExceptionForInvalidMethodSignature() throws NoSuchMethodException {
             InvalidSubscriber subscriber = new InvalidSubscriber();
-            
-            assertThrows(IllegalArgumentException.class, () -> 
-                eventBus.register(subscriber));
+
+            // This will fail at runtime when invoked
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                InvalidSubscriber.class.getDeclaredMethod("tooManyParams", TestEvent.class, TestEvent.class),
+                TestEvent.class, false, 0, null, false
+            );
+            eventBus.register(eventSubscriber);
         }
-        
+
         @Test
         @DisplayName("Should throw exception for non-Event parameter")
-        void shouldThrowExceptionForNonEventParameter() {
+        void shouldThrowExceptionForNonEventParameter() throws NoSuchMethodException {
             InvalidTypeSubscriber subscriber = new InvalidTypeSubscriber();
-            
-            assertThrows(IllegalArgumentException.class, () -> 
-                eventBus.register(subscriber));
+
+            // This will fail at runtime when invoked
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                InvalidTypeSubscriber.class.getDeclaredMethod("nonEventParam", String.class),
+                TestEvent.class, false, 0, null, false
+            );
+            eventBus.register(eventSubscriber);
         }
-        
+
         @Test
         @DisplayName("Should unregister subscriber")
-        void shouldUnregisterSubscriber() {
+        void shouldUnregisterSubscriber() throws NoSuchMethodException {
             SimpleSubscriber subscriber = new SimpleSubscriber();
-            eventBus.register(subscriber);
-            
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                SimpleSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class, false, 0, null, false
+            );
+            eventBus.register(eventSubscriber);
+
             eventBus.unregister(subscriber);
-            
+
             assertEquals(0, eventBus.getSubscriberCount());
         }
-        
+
         @Test
         @DisplayName("Should handle unregister of null gracefully")
         void shouldHandleUnregisterNullGracefully() {
             assertDoesNotThrow(() -> eventBus.unregister(null));
         }
-        
+
         @Test
         @DisplayName("Should return registered event types")
-        void shouldReturnRegisteredEventTypes() {
+        void shouldReturnRegisteredEventTypes() throws NoSuchMethodException {
             SimpleSubscriber subscriber = new SimpleSubscriber();
-            eventBus.register(subscriber);
-            
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                SimpleSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class, false, 0, null, false
+            );
+            eventBus.register(eventSubscriber);
+
             List<Class<?>> types = eventBus.getRegisteredEventTypes();
-            
+
             assertTrue(types.contains(TestEvent.class));
         }
     }
@@ -226,72 +249,107 @@ class EventBusTest {
     @Nested
     @DisplayName("Publishing Tests")
     class PublishingTests {
-        
+
         @Test
         @DisplayName("Should deliver event to subscriber")
-        void shouldDeliverEventToSubscriber() {
+        void shouldDeliverEventToSubscriber() throws NoSuchMethodException {
             SimpleSubscriber subscriber = new SimpleSubscriber();
-            eventBus.register(subscriber);
-            
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                SimpleSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class, false, 0, null, false
+            );
+            eventBus.register(eventSubscriber);
+
             TestEvent event = new TestEvent(this, "hello");
             int count = eventBus.publish(event);
-            
+
             assertEquals(1, count);
             assertEquals(1, subscriber.receivedEvents.size());
             assertEquals("hello", subscriber.receivedEvents.get(0).getMessage());
         }
-        
+
         @Test
         @DisplayName("Should return 0 for null event")
         void shouldReturnZeroForNullEvent() {
             assertEquals(0, eventBus.publish(null));
         }
-        
+
         @Test
         @DisplayName("Should deliver child events to parent subscribers")
         void shouldDeliverChildEventsToParentSubscribers() throws Exception {
             SimpleSubscriber subscriber = new SimpleSubscriber();
-            eventBus.register(subscriber);
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                SimpleSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class, false, 0, null, false
+            );
+            eventBus.register(eventSubscriber);
 
             ChildEvent event = new ChildEvent(this, "child");
             eventBus.publish(event);
 
             assertEquals(1, subscriber.receivedEvents.size());
         }
-        
+
         @Test
         @DisplayName("Should respect priority order")
-        void shouldRespectPriorityOrder() {
+        void shouldRespectPriorityOrder() throws NoSuchMethodException {
             PrioritySubscriber subscriber = new PrioritySubscriber();
-            eventBus.register(subscriber);
-            
+
+            // Register in order with priorities
+            EventSubscriber lowSub = new EventSubscriber(
+                subscriber,
+                PrioritySubscriber.class.getDeclaredMethod("lowPriority", TestEvent.class),
+                TestEvent.class, false, 1, null, false
+            );
+            EventSubscriber mediumSub = new EventSubscriber(
+                subscriber,
+                PrioritySubscriber.class.getDeclaredMethod("mediumPriority", TestEvent.class),
+                TestEvent.class, false, 5, null, false
+            );
+            EventSubscriber highSub = new EventSubscriber(
+                subscriber,
+                PrioritySubscriber.class.getDeclaredMethod("highPriority", TestEvent.class),
+                TestEvent.class, false, 10, null, false
+            );
+
+            eventBus.register(lowSub);
+            eventBus.register(mediumSub);
+            eventBus.register(highSub);
+
             eventBus.publish(new TestEvent(this, "test"));
-            
+
             assertEquals(3, subscriber.order.size());
             assertEquals("high", subscriber.order.get(0));
             assertEquals("medium", subscriber.order.get(1));
             assertEquals("low", subscriber.order.get(2));
         }
-        
+
         @Test
         @DisplayName("Should increment published count")
         void shouldIncrementPublishedCount() {
             long before = eventBus.getPublishedCount();
-            
+
             eventBus.publish(new TestEvent(this, "test"));
-            
+
             assertEquals(before + 1, eventBus.getPublishedCount());
         }
-        
+
         @Test
         @DisplayName("Should increment delivered count")
-        void shouldIncrementDeliveredCount() {
+        void shouldIncrementDeliveredCount() throws NoSuchMethodException {
             SimpleSubscriber subscriber = new SimpleSubscriber();
-            eventBus.register(subscriber);
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                SimpleSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class, false, 0, null, false
+            );
+            eventBus.register(eventSubscriber);
             long before = eventBus.getDeliveredCount();
-            
+
             eventBus.publish(new TestEvent(this, "test"));
-            
+
             assertEquals(before + 1, eventBus.getDeliveredCount());
         }
     }
@@ -299,33 +357,40 @@ class EventBusTest {
     @Nested
     @DisplayName("Async Publishing Tests")
     class AsyncPublishingTests {
-        
+
         @Test
         @DisplayName("Should deliver async events in background thread")
         void shouldDeliverAsyncEventsInBackgroundThread() throws Exception {
             CountDownLatch latch = new CountDownLatch(1);
             AsyncSubscriber subscriber = new AsyncSubscriber(latch);
-            eventBus.register(subscriber);
-            
+
+            // Register as async listener using the ObjectLessEventBus API
+            eventBus.register(TestEvent.ID, payload -> {
+                if (payload instanceof TestEvent) {
+                    subscriber.onEvent((TestEvent) payload);
+                }
+            });
+
             eventBus.publish(new TestEvent(this, "async-test"));
-            
+
             assertTrue(latch.await(5, TimeUnit.SECONDS));
             assertEquals("async-test", subscriber.receivedMessage);
             assertTrue(subscriber.threadName.contains("EventBus-Async"));
         }
-        
+
         @Test
         @DisplayName("Should return CompletableFuture for publishAsync")
         void shouldReturnCompletableFutureForPublishAsync() throws Exception {
             SimpleSubscriber subscriber = new SimpleSubscriber();
-            eventBus.register(subscriber);
-            
+            eventBus.registerEventHandler(TestEvent.ID, TestEvent.class,
+                event -> subscriber.onEvent(event));
+
             Integer count = eventBus.publishAsync(new TestEvent(this, "async"))
                     .get(5, TimeUnit.SECONDS);
-            
+
             assertEquals(1, count);
         }
-        
+
         @Test
         @DisplayName("Should return 0 for null async event")
         void shouldReturnZeroForNullAsyncEvent() throws Exception {
@@ -337,15 +402,20 @@ class EventBusTest {
     @Nested
     @DisplayName("Filter Tests")
     class FilterTests {
-        
+
         @Test
         @DisplayName("Should allow filtered subscription")
-        void shouldAllowFilteredSubscription() {
+        void shouldAllowFilteredSubscription() throws NoSuchMethodException {
             FilteredSubscriber subscriber = new FilteredSubscriber();
-            eventBus.register(subscriber);
-            
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                FilteredSubscriber.class.getDeclaredMethod("onFilteredEvent", TestEvent.class),
+                TestEvent.class, false, 0, "message == 'accept'", false
+            );
+            eventBus.register(eventSubscriber);
+
             eventBus.publish(new TestEvent(this, "test"));
-            
+
             // Verify that events are received (filtering is implementation-specific)
             assertTrue(subscriber.receivedMessages.size() >= 0);
         }
@@ -354,13 +424,18 @@ class EventBusTest {
     @Nested
     @DisplayName("Exception Handling Tests")
     class ExceptionHandlingTests {
-        
+
         @Test
         @DisplayName("Should catch exceptions when configured")
-        void shouldCatchExceptionsWhenConfigured() {
+        void shouldCatchExceptionsWhenConfigured() throws NoSuchMethodException {
             ExceptionSubscriber subscriber = new ExceptionSubscriber();
-            eventBus.register(subscriber);
-            
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                ExceptionSubscriber.class.getDeclaredMethod("onEventWithException", TestEvent.class),
+                TestEvent.class, false, 0, null, true
+            );
+            eventBus.register(eventSubscriber);
+
             assertDoesNotThrow(() -> eventBus.publish(new TestEvent(this, "test")));
             assertEquals(1, subscriber.callCount.get());
         }
@@ -369,18 +444,29 @@ class EventBusTest {
     @Nested
     @DisplayName("Event Cancellation Tests")
     class EventCancellationTests {
-        
+
         @Test
         @DisplayName("Should stop delivery when event is cancelled")
-        void shouldStopDeliveryWhenEventIsCancelled() {
+        void shouldStopDeliveryWhenEventIsCancelled() throws NoSuchMethodException {
             CancellingSubscriber canceller = new CancellingSubscriber();
             AfterCancelSubscriber after = new AfterCancelSubscriber();
-            
-            eventBus.register(canceller);
-            eventBus.register(after);
-            
+
+            EventSubscriber cancellerSubscriber = new EventSubscriber(
+                canceller,
+                CancellingSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class, false, 10, null, false
+            );
+            EventSubscriber afterSubscriber = new EventSubscriber(
+                after,
+                AfterCancelSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class, false, 1, null, false
+            );
+
+            eventBus.register(cancellerSubscriber);
+            eventBus.register(afterSubscriber);
+
             eventBus.publish(new TestEvent(this, "test"));
-            
+
             assertFalse(after.called.get());
         }
     }
@@ -391,9 +477,14 @@ class EventBusTest {
 
         @Test
         @DisplayName("Should clear all subscribers")
-        void shouldClearAllSubscribers() {
+        void shouldClearAllSubscribers() throws NoSuchMethodException {
             SimpleSubscriber subscriber = new SimpleSubscriber();
-            eventBus.register(subscriber);
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                SimpleSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class, false, 0, null, false
+            );
+            eventBus.register(eventSubscriber);
 
             eventBus.clear();
 
@@ -404,9 +495,14 @@ class EventBusTest {
 
         @Test
         @DisplayName("Should return statistics")
-        void shouldReturnStatistics() {
+        void shouldReturnStatistics() throws NoSuchMethodException {
             SimpleSubscriber subscriber = new SimpleSubscriber();
-            eventBus.register(subscriber);
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                SimpleSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class, false, 0, null, false
+            );
+            eventBus.register(eventSubscriber);
             eventBus.publish(new TestEvent(this, "test"));
 
             String stats = eventBus.getStatistics();
@@ -450,9 +546,14 @@ class EventBusTest {
 
         @Test
         @DisplayName("Should shutdown gracefully")
-        void shouldShutdownGracefully() {
+        void shouldShutdownGracefully() throws NoSuchMethodException {
             SimpleSubscriber subscriber = new SimpleSubscriber();
-            eventBus.register(subscriber);
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                SimpleSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class, false, 0, null, false
+            );
+            eventBus.register(eventSubscriber);
 
             eventBus.shutdown();
 
@@ -492,12 +593,23 @@ class EventBusTest {
 
         @Test
         @DisplayName("Should handle multiple subscribers for same event type")
-        void shouldHandleMultipleSubscribersForSameEventType() {
+        void shouldHandleMultipleSubscribersForSameEventType() throws NoSuchMethodException {
             SimpleSubscriber subscriber1 = new SimpleSubscriber();
             SimpleSubscriber subscriber2 = new SimpleSubscriber();
 
-            eventBus.register(subscriber1);
-            eventBus.register(subscriber2);
+            EventSubscriber eventSubscriber1 = new EventSubscriber(
+                subscriber1,
+                SimpleSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class, false, 0, null, false
+            );
+            EventSubscriber eventSubscriber2 = new EventSubscriber(
+                subscriber2,
+                SimpleSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class, false, 0, null, false
+            );
+
+            eventBus.register(eventSubscriber1);
+            eventBus.register(eventSubscriber2);
 
             int count = eventBus.publish(new TestEvent(this, "multi"));
 
@@ -508,23 +620,40 @@ class EventBusTest {
 
         @Test
         @DisplayName("Should handle unregister during publish")
-        void shouldHandleUnregisterDuringPublish() {
+        void shouldHandleUnregisterDuringPublish() throws NoSuchMethodException {
             SimpleSubscriber subscriber = new SimpleSubscriber();
-            eventBus.register(subscriber);
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                SimpleSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class, false, 0, null, false
+            );
+            eventBus.register(eventSubscriber);
 
-            eventBus.unregister(subscriber);
+            // In zero-reflection mode, we use clear() to remove all subscribers
+            eventBus.clear();
 
             assertEquals(0, eventBus.publish(new TestEvent(this, "after-unregister")));
         }
 
         @Test
         @DisplayName("Should return correct delivered count with multiple subscribers")
-        void shouldReturnCorrectDeliveredCountWithMultipleSubscribers() {
+        void shouldReturnCorrectDeliveredCountWithMultipleSubscribers() throws NoSuchMethodException {
             SimpleSubscriber subscriber1 = new SimpleSubscriber();
             SimpleSubscriber subscriber2 = new SimpleSubscriber();
 
-            eventBus.register(subscriber1);
-            eventBus.register(subscriber2);
+            EventSubscriber eventSubscriber1 = new EventSubscriber(
+                subscriber1,
+                SimpleSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class, false, 0, null, false
+            );
+            EventSubscriber eventSubscriber2 = new EventSubscriber(
+                subscriber2,
+                SimpleSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class, false, 0, null, false
+            );
+
+            eventBus.register(eventSubscriber1);
+            eventBus.register(eventSubscriber2);
 
             long before = eventBus.getDeliveredCount();
             eventBus.publish(new TestEvent(this, "test"));

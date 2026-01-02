@@ -25,27 +25,91 @@ import java.util.regex.Pattern;
  * Evaluates filter expressions for event subscribers.
  *
  * <p>Supports a simple expression language for filtering events based
- * on their properties. The expression syntax includes:
- * <ul>
- *   <li>Property access: {@code event.propertyName}</li>
- *   <li>Comparison operators: {@code ==}, {@code !=}, {@code >}, {@code <}, {@code >=}, {@code <=}</li>
- *   <li>String literals: {@code 'value'} or {@code "value"}</li>
- *   <li>Numeric literals: {@code 100}, {@code 3.14}</li>
- *   <li>Boolean literals: {@code true}, {@code false}</li>
- * </ul>
+ * on their properties using zero-reflection API.
  *
- * <h2>Examples</h2>
- * <pre>{@code
- * event.amount > 100
- * event.type == 'PREMIUM'
- * event.priority >= 5
- * event.active == true
- * }</pre>
+ * <h2>Zero-Reflection Property Access</h2>
+ * <p>For property access to work without reflection, events should implement
+ * the {@link EventPropertyAccessor} interface or use the
+ * {@link #registerPropertyAccessor} method to register accessors.</p>
  *
  * @author Veld Framework Team
  * @since 1.0.0
  */
 public class EventFilter {
+
+    /**
+     * Interface for zero-reflection property access.
+     */
+    public interface EventPropertyAccessor {
+        Object getProperty(String propertyName);
+        Class<?> getEventClass();
+    }
+
+    private static final Map<Class<?>, EventPropertyAccessor> propertyAccessors = new ConcurrentHashMap<>();
+
+    /**
+     * Registers a property accessor for a specific event class.
+     *
+     * @param accessor the property accessor
+     */
+    public static void registerPropertyAccessor(EventPropertyAccessor accessor) {
+        propertyAccessors.put(accessor.getEventClass(), accessor);
+    }
+
+    /**
+     * Gets a property value from an event using zero-reflection accessor.
+     */
+    private static Object getPropertyValue(Event event, String propertyName) {
+        EventPropertyAccessor accessor = propertyAccessors.get(event.getClass());
+        if (accessor != null) {
+            return accessor.getProperty(propertyName);
+        }
+
+        // Fallback to reflection for backward compatibility (deprecated)
+        return getPropertyValueReflection(event, propertyName);
+    }
+
+    /**
+     * Gets a property value from an event using reflection.
+     *
+     * @deprecated Use {@link #registerPropertyAccessor} instead for zero-reflection mode
+     */
+    @Deprecated
+    private static Object getPropertyValueReflection(Event event, String propertyName) {
+        try {
+            String getterName = "get" + Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
+            String cacheKey = event.getClass().getName() + "." + getterName;
+
+            Method getter = methodCache.computeIfAbsent(cacheKey, k -> {
+                try {
+                    Method m = event.getClass().getMethod(getterName);
+                    m.setAccessible(true);
+                    return m;
+                } catch (NoSuchMethodException e) {
+                    // Try isXxx for boolean
+                    try {
+                        String isName = "is" + Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
+                        Method m = event.getClass().getMethod(isName);
+                        m.setAccessible(true);
+                        return m;
+                    } catch (NoSuchMethodException e2) {
+                        return null;
+                    }
+                }
+            });
+
+            if (getter == null) {
+                System.err.println("[EventFilter] Property not found: " + propertyName);
+                return null;
+            }
+
+            return getter.invoke(event);
+
+        } catch (Exception e) {
+            System.err.println("[EventFilter] Error getting property '" + propertyName + "': " + e.getMessage());
+            return null;
+        }
+    }
 
     private static final Pattern EXPRESSION_PATTERN = Pattern.compile(
             "event\\.([a-zA-Z][a-zA-Z0-9]*)\\s*(==|!=|>=|<=|>|<)\\s*(.+)"
@@ -98,45 +162,6 @@ public class EventFilter {
         } catch (Exception e) {
             System.err.println("[EventFilter] Error evaluating expression '" + expression + "': " + e.getMessage());
             return true; // On error, accept the event
-        }
-    }
-
-    /**
-     * Gets a property value from an event using reflection.
-     */
-    private static Object getPropertyValue(Event event, String propertyName) {
-        try {
-            String getterName = "get" + Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
-            String cacheKey = event.getClass().getName() + "." + getterName;
-
-            Method getter = methodCache.computeIfAbsent(cacheKey, k -> {
-                try {
-                    Method m = event.getClass().getMethod(getterName);
-                    m.setAccessible(true);
-                    return m;
-                } catch (NoSuchMethodException e) {
-                    // Try isXxx for boolean
-                    try {
-                        String isName = "is" + Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
-                        Method m = event.getClass().getMethod(isName);
-                        m.setAccessible(true);
-                        return m;
-                    } catch (NoSuchMethodException e2) {
-                        return null;
-                    }
-                }
-            });
-
-            if (getter == null) {
-                System.err.println("[EventFilter] Property not found: " + propertyName);
-                return null;
-            }
-
-            return getter.invoke(event);
-
-        } catch (Exception e) {
-            System.err.println("[EventFilter] Error getting property '" + propertyName + "': " + e.getMessage());
-            return null;
         }
     }
 
