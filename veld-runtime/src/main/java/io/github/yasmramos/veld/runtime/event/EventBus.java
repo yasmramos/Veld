@@ -827,6 +827,7 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
      */
     @Override
     public void clear() {
+        shuttingDown = false;
         subscriberIndex.clear();
         standardChannel.clear();
         for (EventChannel channel : specializedChannels.values()) {
@@ -863,6 +864,17 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
             asyncExecutor.shutdownNow();
         }
         asyncExecutor = createAsyncExecutor();
+
+        // Update executor reference in standard channel
+        standardChannel.updateExecutor(asyncExecutor);
+
+        // Update executor reference in specialized channels
+        for (EventChannel channel : specializedChannels.values()) {
+            if (channel instanceof StandardEventChannel) {
+                ((StandardEventChannel) channel).updateExecutor(asyncExecutor);
+            }
+        }
+
         clear();
     }
 
