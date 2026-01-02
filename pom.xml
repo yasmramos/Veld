@@ -30,6 +30,7 @@
         <license>
             <name>Apache License, Version 2.0</name>
             <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <comments>A copy of the Apache 2.0 license is available in the LICENSE file (SPDX: Apache-2.0)</comments>
             <distribution>repo</distribution>
         </license>
     </licenses>
@@ -288,6 +289,8 @@
                         <nohelp>false</nohelp>
                         <!-- Skip javadoc generation if JAVA_HOME is not available -->
                         <skip>${maven.javadoc.skip}</skip>
+                        <!-- Don't attach javadoc jar by default -->
+                        <attach>false</attach>
                     </configuration>
                     <executions>
                         <execution>
@@ -498,6 +501,16 @@
                     <skip>true</skip>
                 </configuration>
             </plugin>
+
+            <!-- Install plugin: don't fail if javadoc/sources jars don't exist -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <version>3.1.2</version>
+                <configuration>
+                    <skipIfMissing>true</skipIfMissing>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
@@ -542,7 +555,7 @@
                 <skipGpg>true</skipGpg>
                 <skipTests>false</skipTests>
                 <maven.deploy.skip>true</maven.deploy.skip>
-                <jacoco.skip>true</jacoco.skip>
+                <jacoco.skip>false</jacoco.skip>
                 <maven.javadoc.skip>true</maven.javadoc.skip>
                 <maven.source.skip>true</maven.source.skip>
                 <build-helper.attach.phase>none</build-helper.attach.phase>

@@ -1,10 +1,7 @@
 package io.github.yasmramos.veld.processor;
 
 import io.github.yasmramos.veld.runtime.LegacyScope;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Generates VeldRegistry.java source code instead of bytecode.
@@ -12,10 +9,16 @@ import java.util.Map;
 public final class RegistrySourceGenerator {
     
     private final List<ComponentInfo> components;
+    private final List<FactoryInfo> factories;
     private final Map<String, List<Integer>> supertypeIndices = new HashMap<>();
     
     public RegistrySourceGenerator(List<ComponentInfo> components) {
+        this(components, new ArrayList<>());
+    }
+    
+    public RegistrySourceGenerator(List<ComponentInfo> components, List<FactoryInfo> factories) {
         this.components = components;
+        this.factories = factories;
         buildSupertypeIndices();
     }
     
@@ -33,13 +36,27 @@ public final class RegistrySourceGenerator {
         supertypeIndices.computeIfAbsent(type, k -> new ArrayList<>()).add(index);
     }
     
+    public String getClassName() {
+        return "io.github.yasmramos.veld.generated.VeldRegistry";
+    }
+    
     public String generate() {
         StringBuilder sb = new StringBuilder();
         
         // Package declaration
         sb.append("package io.github.yasmramos.veld.generated;\n\n");
         
-        // Imports
+        // Imports for factory classes (they may be in different packages)
+        for (ComponentInfo comp : components) {
+            String factoryClassName = comp.getFactoryClassName();
+            String packageName = getPackageName(factoryClassName);
+            if (!packageName.isEmpty()) {
+                sb.append("import ").append(factoryClassName).append(";\n");
+            }
+        }
+        sb.append("\n");
+        
+        // Standard imports
         sb.append("import io.github.yasmramos.veld.runtime.ComponentFactory;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ComponentRegistry;\n");
         sb.append("import io.github.yasmramos.veld.runtime.LegacyScope;\n");
@@ -56,7 +73,7 @@ public final class RegistrySourceGenerator {
         // Static fields
         sb.append("    private static final IdentityHashMap<Class<?>, Integer> TYPE_INDICES = new IdentityHashMap<>();\n");
         sb.append("    private static final HashMap<String, Integer> NAME_INDICES = new HashMap<>();\n");
-        sb.append("    private static final Scope[] SCOPES;\n");
+        sb.append("    private static final String[] SCOPES;\n");
         sb.append("    private static final boolean[] LAZY_FLAGS;\n");
         sb.append("    private static final HashMap<Class<?>, int[]> SUPERTYPE_INDICES = new HashMap<>();\n\n");
         
@@ -114,11 +131,11 @@ public final class RegistrySourceGenerator {
         sb.append("\n");
         
         // SCOPES
-        sb.append("        SCOPES = new Scope[] {\n");
+        sb.append("        SCOPES = new String[] {\n");
         for (int i = 0; i < components.size(); i++) {
             ComponentInfo comp = components.get(i);
-            String scopeName = comp.getScope() == LegacyScope.SINGLETON ? "SINGLETON" : "PROTOTYPE";
-            sb.append("            Scope.").append(scopeName);
+            String scopeId = comp.getScopeId();
+            sb.append("            \"").append(scopeId).append("\"");
             if (i < components.size() - 1) sb.append(",");
             sb.append("\n");
         }
@@ -153,9 +170,13 @@ public final class RegistrySourceGenerator {
         
         for (int i = 0; i < components.size(); i++) {
             ComponentInfo comp = components.get(i);
-            String factoryClass = comp.getFactoryClassName();
             
-            sb.append("        factories[").append(i).append("] = new ").append(factoryClass).append("();\n");
+            // Instantiate the generated factory class for this component
+            String factoryClassName = comp.getFactoryClassName();
+            String simpleFactoryName = factoryClassName.substring(factoryClassName.lastIndexOf('.') + 1);
+            
+            sb.append("        factories[").append(i).append("] = new ").append(simpleFactoryName).append("();\n");
+            
             sb.append("        factoriesByType.put(").append(comp.getClassName()).append(".class, factories[").append(i).append("]);\n");
             sb.append("        factoriesByName.put(\"").append(comp.getComponentName()).append("\", factories[").append(i).append("]);\n");
             
@@ -202,7 +223,7 @@ public final class RegistrySourceGenerator {
     private void generateGetScope(StringBuilder sb) {
         sb.append("    @Override\n");
         sb.append("    public LegacyScope getScope(int index) {\n");
-        sb.append("        return SCOPES[index];\n");
+        sb.append("        return LegacyScope.fromId(SCOPES[index]);\n");
         sb.append("    }\n\n");
     }
     
@@ -277,5 +298,10 @@ public final class RegistrySourceGenerator {
         sb.append("        }\n");
         sb.append("        return (List) new ArrayList<>(list);\n");
         sb.append("    }\n\n");
+    }
+    
+    private String getPackageName(String className) {
+        int lastDot = className.lastIndexOf('.');
+        return lastDot >= 0 ? className.substring(0, lastDot) : "";
     }
 }

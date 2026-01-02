@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class StandardEventChannel implements EventChannel {
 
     private final String channelName;
-    private final ExecutorService asyncExecutor;
+    private ExecutorService asyncExecutor;
     private final AtomicLong publishedCount;
     private final AtomicLong deliveredCount;
 
@@ -200,8 +200,18 @@ public class StandardEventChannel implements EventChannel {
 
     @Override
     public void clear() {
+        shuttingDown = false;
         Arrays.fill(listenersById, null);
         maxRegisteredId = -1;
+    }
+
+    /**
+     * Updates the async executor reference. Used for testing to reset the EventBus.
+     *
+     * @param newExecutor the new executor to use
+     */
+    void updateExecutor(ExecutorService newExecutor) {
+        this.asyncExecutor = newExecutor;
     }
 
     @Override

@@ -1737,10 +1737,12 @@ public class VeldProcessor extends AbstractProcessor {
             // Use the current index based on position in discoveredComponents
             // The component was just added, so index = size - 1
             int componentIndex = discoveredComponents.size() - 1;
-            ComponentFactoryGenerator generator = new ComponentFactoryGenerator(info, componentIndex);
-            byte[] bytecode = generator.generate();
             
-            writeClassFile(info.getFactoryClassName(), bytecode);
+            // Generate source code for the factory class (instead of bytecode)
+            ComponentFactorySourceGenerator generator = new ComponentFactorySourceGenerator(info, componentIndex);
+            String sourceCode = generator.generate();
+            
+            writeJavaSource(generator.getFactoryClassName(), sourceCode);
             note("  -> Factory index: " + componentIndex);
         } catch (IOException e) {
             error(null, "Failed to generate factory for " + info.getClassName() + ": " + e.getMessage());
@@ -1875,11 +1877,11 @@ public class VeldProcessor extends AbstractProcessor {
                 note("Generated " + aopClassMap.size() + " AOP wrapper classes");
             }
 
-            // Generate VeldRegistry bytecode (including factory beans)
-            RegistryGenerator registryGen = new RegistryGenerator(discoveredComponents, discoveredFactories);
-            byte[] registryBytecode = registryGen.generate();
-            writeClassFile(registryGen.getRegistryClassName(), registryBytecode);
-            note("Generated VeldRegistry with " + discoveredComponents.size() + " components and " +
+            // Generate VeldRegistry.java source (only source generation, no bytecode)
+            RegistrySourceGenerator registrySourceGen = new RegistrySourceGenerator(discoveredComponents, discoveredFactories);
+            String registrySource = registrySourceGen.generate();
+            writeJavaSource(registrySourceGen.getClassName(), registrySource);
+            note("Generated VeldRegistry.java source with " + discoveredComponents.size() + " components and " +
                  discoveredFactories.size() + " factories");
 
             // Generate factory metadata for weaver

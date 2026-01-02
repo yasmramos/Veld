@@ -20,6 +20,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Required for coverage comparison
     
     - name: Set up JDK 17
       uses: actions/setup-java@v4
@@ -67,13 +69,34 @@ jobs:
           find . -name "*.log" -o -name "*.err" 2>/dev/null | head -5
         fi
 
-    - name: Run unit tests
+    - name: Run unit tests with coverage
       run: |
-        echo "=== Starting Maven test phase ==="
+        echo "=== Starting Maven test phase with coverage ==="
         mvn test -Pci -pl '!veld-benchmark,!veld-spring-boot-starter,!veld-spring-boot-example' --batch-mode
       env:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
       timeout-minutes: 10
+
+    - name: Generate JaCoCo coverage report
+      run: |
+        echo "=== Generating JaCoCo coverage report ==="
+        mvn jacoco:report -Pci -pl '!veld-benchmark,!veld-spring-boot-starter,!veld-spring-boot-example' --batch-mode
+      env:
+        MAVEN_OPTS: "-Xmx1g"
+      timeout-minutes: 5
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      if: always()
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: veld-annotations/target/site/jacoco/jacoco.xml,veld-runtime/target/site/jacoco/jacoco.xml,veld-aop/target/site/jacoco/jacoco.xml,veld-processor/target/site/jacoco/jacoco.xml,veld-weaver/target/site/jacoco/jacoco.xml
+        directory: ./target/site/jacoco-aggregate
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+        verbose: true
+      continue-on-error: true
 
     - name: Display test results
       run: |
