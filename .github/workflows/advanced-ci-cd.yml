@@ -46,13 +46,29 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    - name: 🧹 Clean Maven Cache (Optional Recovery Step)
+    - name: 🧹 Clean Build Cache
       if: always()
       run: |
-        # Clean local Maven repository cache to avoid stale dependencies
+        echo "🧹 Cleaning build cache and dependencies..."
+        
+        # Clean Maven local repository cache completely
         echo "Cleaning Maven local repository..."
-        rm -rf ~/.m2/repository//io/github/yasmramos/
-        echo "✅ Cache cleaned"
+        rm -rf ~/.m2/repository/io/github/yasmramos/
+        
+        # Clean all target directories to force recompilation
+        echo "Cleaning project target directories..."
+        find . -type d -name "target" -exec rm -rf {} + 2>/dev/null || true
+        
+        # Clean any cached build artifacts
+        echo "Cleaning cached build artifacts..."
+        rm -rf ~/.m2/wrapper/
+        rm -rf .mvn/.caches/
+        
+        # Clean GitHub Actions cache for Maven
+        echo "Cleaning GitHub Actions Maven cache..."
+        gh cache delete -R owner/repo -s '*maven*' 2>/dev/null || true
+        
+        echo "✅ Cache cleaning completed"
 
     - name: 🔒 Security Scan
       run: |
@@ -133,13 +149,29 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    - name: 🧹 Clean Maven Cache (Optional Recovery Step)
+    - name: 🧹 Clean Build Cache
       if: always()
       run: |
-        # Clean local Maven repository cache to avoid stale dependencies
+        echo "🧹 Cleaning build cache and dependencies..."
+        
+        # Clean Maven local repository cache completely
         echo "Cleaning Maven local repository..."
-        rm -rf ~/.m2/repository//io/github/yasmramos/
-        echo "✅ Cache cleaned"
+        rm -rf ~/.m2/repository/io/github/yasmramos/
+        
+        # Clean all target directories to force recompilation
+        echo "Cleaning project target directories..."
+        find . -type d -name "target" -exec rm -rf {} + 2>/dev/null || true
+        
+        # Clean any cached build artifacts
+        echo "Cleaning cached build artifacts..."
+        rm -rf ~/.m2/wrapper/
+        rm -rf .mvn/.caches/
+        
+        # Clean GitHub Actions cache for Maven
+        echo "Cleaning GitHub Actions Maven cache..."
+        gh cache delete -R owner/repo -s '*maven*' 2>/dev/null || true
+        
+        echo "✅ Cache cleaning completed"
 
     - name: 🔨 Build Project
       run: |
@@ -180,12 +212,29 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    - name: 🧹 Clean Maven Cache (Optional Recovery Step)
+    - name: 🧹 Clean Build Cache
       if: always()
       run: |
+        echo "🧹 Cleaning build cache and dependencies..."
+        
+        # Clean Maven local repository cache completely
         echo "Cleaning Maven local repository..."
-        rm -rf ~/.m2/repository//io/github/yasmramos/
-        echo "✅ Cache cleaned"
+        rm -rf ~/.m2/repository/io/github/yasmramos/
+        
+        # Clean all target directories to force recompilation
+        echo "Cleaning project target directories..."
+        find . -type d -name "target" -exec rm -rf {} + 2>/dev/null || true
+        
+        # Clean any cached build artifacts
+        echo "Cleaning cached build artifacts..."
+        rm -rf ~/.m2/wrapper/
+        rm -rf .mvn/.caches/
+        
+        # Clean GitHub Actions cache for Maven
+        echo "Cleaning GitHub Actions Maven cache..."
+        gh cache delete -R owner/repo -s '*maven*' 2>/dev/null || true
+        
+        echo "✅ Cache cleaning completed"
 
     - name: 🔗 Run Integration Tests
       run: |
@@ -217,12 +266,29 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    - name: 🧹 Clean Maven Cache (Optional Recovery Step)
+    - name: 🧹 Clean Build Cache
       if: always()
       run: |
+        echo "🧹 Cleaning build cache and dependencies..."
+        
+        # Clean Maven local repository cache completely
         echo "Cleaning Maven local repository..."
-        rm -rf ~/.m2/repository//io/github/yasmramos/
-        echo "✅ Cache cleaned"
+        rm -rf ~/.m2/repository/io/github/yasmramos/
+        
+        # Clean all target directories to force recompilation
+        echo "Cleaning project target directories..."
+        find . -type d -name "target" -exec rm -rf {} + 2>/dev/null || true
+        
+        # Clean any cached build artifacts
+        echo "Cleaning cached build artifacts..."
+        rm -rf ~/.m2/wrapper/
+        rm -rf .mvn/.caches/
+        
+        # Clean GitHub Actions cache for Maven
+        echo "Cleaning GitHub Actions Maven cache..."
+        gh cache delete -R owner/repo -s '*maven*' 2>/dev/null || true
+        
+        echo "✅ Cache cleaning completed"
 
     - name: 🔍 CodeQL Analysis (with autobuild)
       uses: github/codeql-action/init@v4
@@ -266,12 +332,29 @@ jobs:
         distribution: 'temurin'
         cache: maven
 
-    - name: 🧹 Clean Maven Cache (Optional Recovery Step)
+    - name: 🧹 Clean Build Cache
       if: always()
       run: |
+        echo "🧹 Cleaning build cache and dependencies..."
+        
+        # Clean Maven local repository cache completely
         echo "Cleaning Maven local repository..."
-        rm -rf ~/.m2/repository//io/github/yasmramos/
-        echo "✅ Cache cleaned"
+        rm -rf ~/.m2/repository/io/github/yasmramos/
+        
+        # Clean all target directories to force recompilation
+        echo "Cleaning project target directories..."
+        find . -type d -name "target" -exec rm -rf {} + 2>/dev/null || true
+        
+        # Clean any cached build artifacts
+        echo "Cleaning cached build artifacts..."
+        rm -rf ~/.m2/wrapper/
+        rm -rf .mvn/.caches/
+        
+        # Clean GitHub Actions cache for Maven
+        echo "Cleaning GitHub Actions Maven cache..."
+        gh cache delete -R owner/repo -s '*maven*' 2>/dev/null || true
+        
+        echo "✅ Cache cleaning completed"
 
     - name: 🔨 Package Build
       run: |
