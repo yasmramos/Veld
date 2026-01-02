@@ -364,12 +364,13 @@ class EventBusTest {
             CountDownLatch latch = new CountDownLatch(1);
             AsyncSubscriber subscriber = new AsyncSubscriber(latch);
 
-            // Register as async listener using the ObjectLessEventBus API
-            eventBus.register(TestEvent.ID, payload -> {
-                if (payload instanceof TestEvent) {
-                    subscriber.onEvent((TestEvent) payload);
-                }
-            });
+            // Register as async listener using EventSubscriber with async=true
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                AsyncSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class, true, 0, null, false  // async=true
+            );
+            eventBus.register(eventSubscriber);
 
             eventBus.publish(new TestEvent(this, "async-test"));
 
@@ -382,8 +383,14 @@ class EventBusTest {
         @DisplayName("Should return CompletableFuture for publishAsync")
         void shouldReturnCompletableFutureForPublishAsync() throws Exception {
             SimpleSubscriber subscriber = new SimpleSubscriber();
-            eventBus.registerEventHandler(TestEvent.ID, TestEvent.class,
-                event -> subscriber.onEvent(event));
+
+            // Register as async listener using EventSubscriber with async=true
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                SimpleSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class, true, 0, null, false  // async=true
+            );
+            eventBus.register(eventSubscriber);
 
             Integer count = eventBus.publishAsync(new TestEvent(this, "async"))
                     .get(5, TimeUnit.SECONDS);
