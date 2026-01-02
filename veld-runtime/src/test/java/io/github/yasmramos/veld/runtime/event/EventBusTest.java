@@ -384,7 +384,8 @@ class EventBusTest {
         void shouldReturnCompletableFutureForPublishAsync() throws Exception {
             SimpleSubscriber subscriber = new SimpleSubscriber();
 
-            // Register as async listener using EventSubscriber with async=true
+            // Register as sync listener (async=false) for publishAsync test
+            // publishAsync uses CompletableFuture.supplyAsync which already provides async behavior
             EventSubscriber eventSubscriber = new EventSubscriber(
                 subscriber,
                 SimpleSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
