@@ -9,9 +9,15 @@ import java.util.List;
 public final class ComponentFactorySourceGenerator {
     
     private final ComponentInfo component;
+    private final int componentIndex;
     
     public ComponentFactorySourceGenerator(ComponentInfo component) {
+        this(component, -1);
+    }
+    
+    public ComponentFactorySourceGenerator(ComponentInfo component, int componentIndex) {
         this.component = component;
+        this.componentIndex = componentIndex;
     }
     
     public String getFactoryClassName() {
@@ -94,6 +100,12 @@ public final class ComponentFactorySourceGenerator {
         if (component.hasPreDestroy()) {
             sb.append("        instance.").append(component.getPreDestroyMethod()).append("();\n");
         }
+        sb.append("    }\n\n");
+        
+        // getIndex() method - for ultra-fast array-based lookups
+        sb.append("    @Override\n");
+        sb.append("    public int getIndex() {\n");
+        sb.append("        return ").append(componentIndex).append(";\n");
         sb.append("    }\n\n");
         
         // getDependencyTypes() - for dependency graph visualization
