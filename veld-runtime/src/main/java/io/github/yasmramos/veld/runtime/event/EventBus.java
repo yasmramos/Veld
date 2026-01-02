@@ -215,7 +215,7 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
         private int dispatchSingle(Event event, EventListener listener) {
             if (listener.isAsync()) {
                 asyncExecutor.submit(() -> listener.onEvent(event));
-                return 0;
+                return 1;
             }
             listener.onEvent(event);
             return 1;
@@ -226,6 +226,7 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
 
             if (l1.isAsync()) {
                 asyncExecutor.submit(() -> l1.onEvent(event));
+                count++;
             } else {
                 l1.onEvent(event);
                 count++;
@@ -238,6 +239,7 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
 
             if (l2.isAsync()) {
                 asyncExecutor.submit(() -> l2.onEvent(event));
+                count++;
             } else {
                 l2.onEvent(event);
                 count++;
@@ -251,6 +253,7 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
 
             if (l1.isAsync()) {
                 asyncExecutor.submit(() -> l1.onEvent(event));
+                count++;
             } else {
                 l1.onEvent(event);
                 count++;
@@ -263,6 +266,7 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
 
             if (l2.isAsync()) {
                 asyncExecutor.submit(() -> l2.onEvent(event));
+                count++;
             } else {
                 l2.onEvent(event);
                 count++;
@@ -275,6 +279,7 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
 
             if (l3.isAsync()) {
                 asyncExecutor.submit(() -> l3.onEvent(event));
+                count++;
             } else {
                 l3.onEvent(event);
                 count++;
@@ -289,6 +294,7 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
 
             if (l1.isAsync()) {
                 asyncExecutor.submit(() -> l1.onEvent(event));
+                count++;
             } else {
                 l1.onEvent(event);
                 count++;
@@ -301,6 +307,7 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
 
             if (l2.isAsync()) {
                 asyncExecutor.submit(() -> l2.onEvent(event));
+                count++;
             } else {
                 l2.onEvent(event);
                 count++;
@@ -313,6 +320,7 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
 
             if (l3.isAsync()) {
                 asyncExecutor.submit(() -> l3.onEvent(event));
+                count++;
             } else {
                 l3.onEvent(event);
                 count++;
@@ -325,6 +333,7 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
 
             if (l4.isAsync()) {
                 asyncExecutor.submit(() -> l4.onEvent(event));
+                count++;
             } else {
                 l4.onEvent(event);
                 count++;
@@ -344,6 +353,7 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
                 EventListener listener = listeners[i];
                 if (listener.isAsync()) {
                     asyncExecutor.submit(() -> listener.onEvent(event));
+                    deliveryCount++;
                 } else {
                     listener.onEvent(event);
                     deliveryCount++;
