@@ -689,56 +689,21 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
         }
     }
 
-    // ==================== ObjectEventBus Methods (Backward Compatible) ====================
+    // ==================== ObjectEventBus Methods (Zero-Reflection) ====================
 
     /**
-     * Registers an object as an event subscriber.
+     * Registers an object as an event subscriber using zero-reflection API.
+     *
+     * @deprecated Use {@link #registerEventHandler(int, Class, TypedEventHandler)} instead.
+     *             This method requires reflection and is not compatible with GraalVM native-image.
+     *             Please migrate to the zero-reflection API using registerEventHandler().
      */
+    @Deprecated
     @Override
     public void register(Object subscriber) {
-        if (subscriber == null) {
-            throw new IllegalArgumentException("Subscriber cannot be null");
-        }
-
-        Class<?> clazz = subscriber.getClass();
-        int registeredCount = 0;
-
-        for (Method method : clazz.getDeclaredMethods()) {
-            Subscribe annotation = method.getAnnotation(Subscribe.class);
-            if (annotation == null) {
-                continue;
-            }
-
-            Class<?>[] paramTypes = method.getParameterTypes();
-            if (paramTypes.length != 1) {
-                throw new IllegalArgumentException(
-                        "Method " + method.getName() + " must have exactly one parameter");
-            }
-
-            Class<?> eventType = paramTypes[0];
-            if (!Event.class.isAssignableFrom(eventType)) {
-                throw new IllegalArgumentException(
-                        "Parameter of " + method.getName() + " must extend Event");
-            }
-
-            EventSubscriber eventSubscriber = new EventSubscriber(
-                    subscriber,
-                    method,
-                    eventType,
-                    annotation.async(),
-                    annotation.priority(),
-                    annotation.filter(),
-                    annotation.catchExceptions()
-            );
-
-            subscriberIndex.register(eventSubscriber);
-            registeredCount++;
-        }
-
-        if (registeredCount > 0) {
-            System.out.println("[EventBus] Registered " + registeredCount +
-                    " handler(s) from " + clazz.getSimpleName());
-        }
+        throw new UnsupportedOperationException(
+                "Object registration with @Subscribe is not supported in zero-reflection mode. " +
+                "Please use registerEventHandler(int eventId, Class<T> eventClass, TypedEventHandler<T> handler) instead.");
     }
 
     /**
