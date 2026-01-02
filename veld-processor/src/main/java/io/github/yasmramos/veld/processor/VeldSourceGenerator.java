@@ -187,56 +187,11 @@ public final class VeldSourceGenerator {
         String simpleName = getSimpleName(comp);
         String returnType = comp.getClassName();
         
-        // Use AOP wrapper class if available
-        String instantiationType = aopClassMap.getOrDefault(comp.getClassName(), comp.getClassName());
-        
         sb.append("    private static ").append(returnType).append(" createInstance_").append(simpleName).append("() {\n");
         
-        // Create instance with constructor dependencies (using AOP class if present)
-        sb.append("        ").append(returnType).append(" instance = new ").append(instantiationType).append("(");
+        // Use the factory from registry to create the instance
+        sb.append("        return (").append(returnType).append(") _registry.getFactory(").append(returnType).append(".class).create();\n");
         
-        InjectionPoint ctor = comp.getConstructorInjection();
-        if (ctor != null && !ctor.getDependencies().isEmpty()) {
-            boolean first = true;
-            for (InjectionPoint.Dependency dep : ctor.getDependencies()) {
-                if (!first) sb.append(", ");
-                first = false;
-                sb.append(getGetterCallForType(dep.getActualTypeName(), comp));
-            }
-        }
-        sb.append(");\n");
-        
-        // Field injections
-        for (InjectionPoint field : comp.getFieldInjections()) {
-            if (!field.getDependencies().isEmpty()) {
-                InjectionPoint.Dependency dep = field.getDependencies().get(0);
-                if (dep.isValueInjection()) {
-                    continue;
-                }
-                String setterName = "set" + capitalize(field.getName());
-                sb.append("        instance.").append(setterName).append("(")
-                  .append(getGetterCallForType(dep.getActualTypeName(), comp)).append(");\n");
-            }
-        }
-        
-        // Method injections
-        for (InjectionPoint method : comp.getMethodInjections()) {
-            sb.append("        instance.").append(method.getName()).append("(");
-            boolean first = true;
-            for (InjectionPoint.Dependency dep : method.getDependencies()) {
-                if (!first) sb.append(", ");
-                first = false;
-                sb.append(getGetterCallForType(dep.getActualTypeName(), comp));
-            }
-            sb.append(");\n");
-        }
-        
-        // PostConstruct
-        if (comp.hasPostConstruct()) {
-            sb.append("        instance.").append(comp.getPostConstructMethod()).append("();\n");
-        }
-        
-        sb.append("        return instance;\n");
         sb.append("    }\n\n");
     }
     
@@ -245,10 +200,10 @@ public final class VeldSourceGenerator {
         sb.append("    @SuppressWarnings(\"unchecked\")\n");
         sb.append("    public static <T> T get(Class<T> type) {\n");
         
-        // Generate if-else chain for each component type
+        // Generate if-else chain for each component type using registry directly
         for (ComponentInfo comp : components) {
             sb.append("        if (type == ").append(comp.getClassName()).append(".class) {\n");
-            sb.append("            return (T) ").append(getGetterMethodName(comp)).append("();\n");
+            sb.append("            return (T) _registry.getFactory(type).create();\n");
             sb.append("        }\n");
         }
         
@@ -256,7 +211,7 @@ public final class VeldSourceGenerator {
         for (ComponentInfo comp : components) {
             for (String iface : comp.getImplementedInterfaces()) {
                 sb.append("        if (type == ").append(iface).append(".class) {\n");
-                sb.append("            return (T) ").append(getGetterMethodName(comp)).append("();\n");
+                sb.append("            return (T) _registry.getFactory(type).create();\n");
                 sb.append("        }\n");
             }
         }
