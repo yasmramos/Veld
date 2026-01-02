@@ -42,7 +42,7 @@
     </scm>
 
     <distributionManagement>
-        <!-- Maven Central Repository -->
+        <!-- Maven Central Repository (OSSRH) -->
         <repository>
             <id>central</id>
             <name>Central Publishing</name>
@@ -54,6 +54,13 @@
             <name>Central Publishing Snapshots</name>
             <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
         </snapshotRepository>
+        
+        <!-- GitHub Packages -->
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/yasmramos/Veld</url>
+        </repository>
     </distributionManagement>
 
     <modules>
