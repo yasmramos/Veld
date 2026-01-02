@@ -289,6 +289,8 @@
                         <nohelp>false</nohelp>
                         <!-- Skip javadoc generation if JAVA_HOME is not available -->
                         <skip>${maven.javadoc.skip}</skip>
+                        <!-- Don't attach javadoc jar by default -->
+                        <attach>false</attach>
                     </configuration>
                     <executions>
                         <execution>
@@ -497,6 +499,16 @@
                 <version>4.0.1</version>
                 <configuration>
                     <skip>true</skip>
+                </configuration>
+            </plugin>
+
+            <!-- Install plugin: don't fail if javadoc/sources jars don't exist -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <version>3.1.2</version>
+                <configuration>
+                    <skipIfMissing>true</skipIfMissing>
                 </configuration>
             </plugin>
         </plugins>
