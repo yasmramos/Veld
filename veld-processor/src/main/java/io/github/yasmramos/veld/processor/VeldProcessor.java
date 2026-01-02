@@ -1879,8 +1879,14 @@ public class VeldProcessor extends AbstractProcessor {
             RegistryGenerator registryGen = new RegistryGenerator(discoveredComponents, discoveredFactories);
             byte[] registryBytecode = registryGen.generate();
             writeClassFile(registryGen.getRegistryClassName(), registryBytecode);
-            note("Generated VeldRegistry with " + discoveredComponents.size() + " components and " +
+            note("Generated VeldRegistry bytecode with " + discoveredComponents.size() + " components and " +
                  discoveredFactories.size() + " factories");
+
+            // Also generate VeldRegistry.java source for compilation by Maven
+            RegistrySourceGenerator registrySourceGen = new RegistrySourceGenerator(discoveredComponents, discoveredFactories);
+            String registrySource = registrySourceGen.generate();
+            writeJavaSource(registrySourceGen.getClassName(), registrySource);
+            note("Generated VeldRegistry.java source");
 
             // Generate factory metadata for weaver
             if (!discoveredFactories.isEmpty()) {
