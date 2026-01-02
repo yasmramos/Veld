@@ -46,7 +46,17 @@ public final class RegistrySourceGenerator {
         // Package declaration
         sb.append("package io.github.yasmramos.veld.generated;\n\n");
         
-        // Imports
+        // Imports for factory classes (they may be in different packages)
+        for (ComponentInfo comp : components) {
+            String factoryClassName = comp.getFactoryClassName();
+            String packageName = getPackageName(factoryClassName);
+            if (!packageName.isEmpty()) {
+                sb.append("import ").append(factoryClassName).append(";\n");
+            }
+        }
+        sb.append("\n");
+        
+        // Standard imports
         sb.append("import io.github.yasmramos.veld.runtime.ComponentFactory;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ComponentRegistry;\n");
         sb.append("import io.github.yasmramos.veld.runtime.LegacyScope;\n");
@@ -161,44 +171,11 @@ public final class RegistrySourceGenerator {
         for (int i = 0; i < components.size(); i++) {
             ComponentInfo comp = components.get(i);
             
-            // For components, use the class directly as a simple factory
-            // This avoids needing to generate factory class files
-            sb.append("        final Class<?> _compClass_").append(i).append(" = ").append(comp.getClassName()).append(".class;\n");
-            sb.append("        factories[").append(i).append("] = new ComponentFactory<").append(comp.getClassName()).append(">() {\n");
-            sb.append("            @SuppressWarnings(\"unchecked\")\n");
-            sb.append("            @Override\n");
-            sb.append("            public ").append(comp.getClassName()).append(" create() {\n");
-            sb.append("                try {\n");
-            sb.append("                    return (").append(comp.getClassName()).append(") _compClass_").append(i).append(".getDeclaredConstructor().newInstance();\n");
-            sb.append("                } catch (Exception e) {\n");
-            sb.append("                    throw new RuntimeException(\"Failed to create component: ").append(comp.getClassName()).append("\", e);\n");
-            sb.append("                }\n");
-            sb.append("            }\n");
-            sb.append("            @Override\n");
-            sb.append("            public void invokePostConstruct(").append(comp.getClassName()).append(" instance) {\n");
-            if (comp.hasPostConstruct()) {
-                sb.append("                instance.").append(comp.getPostConstructMethod()).append("();\n");
-            }
-            sb.append("            }\n");
-            sb.append("            @Override\n");
-            sb.append("            public void invokePreDestroy(").append(comp.getClassName()).append(" instance) {\n");
-            if (comp.hasPreDestroy()) {
-                sb.append("                instance.").append(comp.getPreDestroyMethod()).append("();\n");
-            }
-            sb.append("            }\n");
-            sb.append("            @Override\n");
-            sb.append("            public LegacyScope getScope() {\n");
-            sb.append("                return LegacyScope.fromId(SCOPES[").append(i).append("]);\n");
-            sb.append("            }\n");
-            sb.append("            @Override\n");
-            sb.append("            public Class<").append(comp.getClassName()).append("> getComponentType() {\n");
-            sb.append("                return ").append(comp.getClassName()).append(".class;\n");
-            sb.append("            }\n");
-            sb.append("            @Override\n");
-            sb.append("            public String getComponentName() {\n");
-            sb.append("                return \"").append(comp.getComponentName()).append("\";\n");
-            sb.append("            }\n");
-            sb.append("        };\n");
+            // Instantiate the generated factory class for this component
+            String factoryClassName = comp.getFactoryClassName();
+            String simpleFactoryName = factoryClassName.substring(factoryClassName.lastIndexOf('.') + 1);
+            
+            sb.append("        factories[").append(i).append("] = new ").append(simpleFactoryName).append("();\n");
             
             sb.append("        factoriesByType.put(").append(comp.getClassName()).append(".class, factories[").append(i).append("]);\n");
             sb.append("        factoriesByName.put(\"").append(comp.getComponentName()).append("\", factories[").append(i).append("]);\n");
@@ -321,5 +298,10 @@ public final class RegistrySourceGenerator {
         sb.append("        }\n");
         sb.append("        return (List) new ArrayList<>(list);\n");
         sb.append("    }\n\n");
+    }
+    
+    private String getPackageName(String className) {
+        int lastDot = className.lastIndexOf('.');
+        return lastDot >= 0 ? className.substring(0, lastDot) : "";
     }
 }
