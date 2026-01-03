@@ -54,13 +54,6 @@
             <name>Central Publishing Snapshots</name>
             <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
         </snapshotRepository>
-        
-        <!-- GitHub Packages -->
-        <repository>
-            <id>github</id>
-            <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/yasmramos/Veld</url>
-        </repository>
     </distributionManagement>
 
     <modules>
@@ -730,6 +723,27 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+
+        <!-- GitHub Packages Profile -->
+        <profile>
+            <id>github</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <distributionManagement>
+                <repository>
+                    <id>github</id>
+                    <name>GitHub Packages</name>
+                    <url>https://maven.pkg.github.com/yasmramos/Veld</url>
+                </repository>
+            </distributionManagement>
+            <properties>
+                <!-- Enable javadoc/sources for GitHub Packages -->
+                <maven.javadoc.skip>false</maven.javadoc.skip>
+                <maven.source.skip>false</maven.source.skip>
+                <build-helper.attach.phase>package</build-helper.attach.phase>
+            </properties>
         </profile>
     </profiles>
 </project>

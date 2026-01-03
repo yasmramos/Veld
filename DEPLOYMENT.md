@@ -48,8 +48,8 @@ mvn clean verify deploy
 export JAVA_HOME=/path/to/jdk-17
 export MAVEN_HOME=/path/to/maven
 
-# Deploy to GitHub Packages (uses 'github' distributionManagement)
-mvn clean deploy -Dgithub
+# Deploy to GitHub Packages using the 'github' profile
+mvn clean deploy -Pgithub
 ```
 
 ### Deploy to Both
@@ -61,7 +61,7 @@ You can deploy to both repositories by having both server configurations in `set
 mvn clean deploy
 
 # GitHub Packages
-mvn clean deploy -Dgithub
+mvn clean deploy -Pgithub
 ```
 
 ## Tagging a Release
