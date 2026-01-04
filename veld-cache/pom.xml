@@ -51,9 +51,16 @@
 
     <build>
         <plugins>
+            <!-- Skip javadoc and source generation for this module (no sources) -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <phase>none</phase>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -62,19 +69,7 @@
                 <executions>
                     <execution>
                         <id>attach-javadoc-jar</id>
-                        <phase>${build-helper.attach.phase}</phase>
-                        <goals>
-                            <goal>attach-artifact</goal>
-                        </goals>
-                        <configuration>
-                            <artifacts>
-                                <artifact>
-                                    <file>${project.build.directory}/${project.artifactId}-${project.version}-javadoc.jar</file>
-                                    <classifier>javadoc</classifier>
-                                    <type>jar</type>
-                                </artifact>
-                            </artifacts>
-                        </configuration>
+                        <phase>none</phase>
                     </execution>
                 </executions>
             </plugin>

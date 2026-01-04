@@ -163,24 +163,13 @@ jobs:
         distribution: 'temurin'
         cache: maven
         
-    - name: Import GPG Key
-      id: import_gpg
-      uses: crazy-max/ghaction-import-gpg@v6
-      with:
-        gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-        passphrase: ${{ secrets.GPG_PASSPHRASE }}
-        
-    - name: Verify GPG Key
-      run: |
-        echo "GPG Key ID: ${{ steps.import_gpg.outputs.keyid }}"
-        gpg --list-secret-keys --keyid-format LONG
     - name: Install GPG
       run: |
         sudo apt-get update -qq
-        sudo apt-get install -y gnupg gpg-agent
+        sudo apt-get install -y gnupg gnupg2
         
-    - name: Setup GPG
-      id: setup-gpg
+    - name: Configure GPG
+      id: configure-gpg
       env:
         GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
@@ -190,94 +179,81 @@ jobs:
         chmod 700 ~/.gnupg
         
         # Configure gpg for non-interactive use
-        echo "use-agent" >> ~/.gnupg/gpg.conf
-        echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
-        echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
-        chmod 600 ~/.gnupg/*
+        cat > ~/.gnupg/gpg.conf << EOF
+use-agent
+pinentry-mode loopback
+EOF
+        
+        # Configure gpg-agent for loopback pinentry
+        cat > ~/.gnupg/gpg-agent.conf << EOF
+allow-loopback-pinentry
+EOF
+        chmod 600 ~/.gnupg/gpg.conf
+        chmod 600 ~/.gnupg/gpg-agent.conf
         
         # Import private key
         echo "$GPG_PRIVATE_KEY" | base64 -d > private.key
         gpg --batch --import private.key
         rm -f private.key
         
-        # Configure gpg-agent
-        echo $GPG_PASSPHRASE | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback -a --export-secret-keys > /dev/null 2>&1
-        
-        # List keys to verify import
-        echo "=== Imported GPG Keys ==="
-        gpg --list-secret-keys --keyid-format LONG
-        
         # Get key ID
-        KEY_ID=$(gpg --list-secret-keys --keyid-format LONG | grep sec | awk '{print $2}' | cut -d'/' -f2)
+        KEY_ID=$(gpg --list-secret-keys --keyid-format LONG 2>/dev/null | grep sec | awk '{print $2}' | cut -d'/' -f2 | head -1)
         echo "key_id=$KEY_ID" >> $GITHUB_OUTPUT
         echo "Using GPG Key ID: $KEY_ID"
         
-    - name: Configure Maven for GPG
+        # Verify keys
+        gpg --list-secret-keys --keyid-format LONG
+        
+    - name: Configure Maven Settings
       run: |
-        # Create maven settings with GPG configuration
         mkdir -p ~/.m2
         
         cat > ~/.m2/settings.xml << EOF
-        <?xml version="1.0" encoding="UTF-8"?>
-        <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
-                  http://maven.apache.org/xsd/settings-1.0.0.xsd">
-          <servers>
-            <server>
-              <id>ossrh</id>
-              <username>\${env.SONATYPE_USERNAME}</username>
-              <password>\${env.SONATYPE_TOKEN}</password>
-            </server>
-            <server>
-              <id>central</id>
-              <username>\${env.SONATYPE_USERNAME}</username>
-              <password>\${env.SONATYPE_TOKEN}</password>
-            </server>
-          </servers>
-          <profiles>
-            <profile>
-              <id>release</id>
-              <properties>
-                <gpg.executable>gpg</gpg.executable>
-                <gpg.passphrase>\${env.GPG_PASSPHRASE}</gpg.passphrase>
-                <gpg.useagent>true</gpg.useagent>
-                <gpg.keyname>\${env.GPG_KEYNAME}</gpg.keyname>
-              </properties>
-            </profile>
-          </profiles>
-          <activeProfiles>
-            <activeProfile>release</activeProfile>
-          </activeProfiles>
-        </settings>
-        EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0
+          https://maven.apache.org/xsd/settings-1.2.0.xsd">
+  <servers>
+    <server>
+      <id>ossrh</id>
+      <username>${{ secrets.SONATYPE_USERNAME }}</username>
+      <password>${{ secrets.SONATYPE_TOKEN }}</password>
+    </server>
+    <server>
+      <id>central</id>
+      <username>${{ secrets.SONATYPE_USERNAME }}</username>
+      <password>${{ secrets.SONATYPE_TOKEN }}</password>
+    </server>
+  </servers>
+  <profiles>
+    <profile>
+      <id>release</id>
+      <properties>
+        <gpg.executable>gpg</gpg.executable>
+        <gpg.passphrase>${{ secrets.GPG_PASSPHRASE }}</gpg.passphrase>
+        <gpg.useagent>false</gpg.useagent>
+      </properties>
+    </profile>
+  </profiles>
+  <activeProfiles>
+    <activeProfile>release</activeProfile>
+  </activeProfiles>
+</settings>
+EOF
         
         echo "=== Maven settings configured ==="
-        cat ~/.m2/settings.xml | grep -v password
         
     - name: Deploy to Sonatype Nexus (Staging)
       env:
-        MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN"
+        MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
         SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
         SONATYPE_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
         GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-        GPG_KEYNAME: ${{ steps.import_gpg.outputs.keyid }}
-      run: |
-        # Ensure GPG uses non-interactive mode
-        export GPG_TTY=/dev/null
-        export GNUPGHOME=$HOME/.gnupg
-        
-        GPG_KEYNAME: ${{ steps.setup-gpg.outputs.key_id }}
+        GPG_KEYNAME: ${{ steps.configure-gpg.outputs.key_id }}
       run: |
         echo "=== Deploying Veld ${{ needs.prepare-release.outputs.version }} to Staging ==="
         echo "Using GPG key ID: $GPG_KEYNAME"
-        
-        # Verify GPG is working
-        gpg --list-secret-keys --keyid-format LONG 2>&1 || true
-        
-        # Configure GPG agent
-        export GPG_TTY=$(tty)
-        echo $GPG_PASSPHRASE | gpg --batch --yes --passphrase-fd 0 --pinentry-mode loopback --sign --armor /dev/null
         
         # Deploy with Maven
         mvn clean deploy -B \
@@ -286,11 +262,7 @@ jobs:
           -Dgpg.passphrase="$GPG_PASSPHRASE" \
           -Dgpg.keyname="$GPG_KEYNAME" \
           -Dgpg.executable=gpg \
-          -Dgpg.useAgent=false \
-          -Dgpg.keyname="$GPG_KEYNAME" \
-          -Dgpg.passphrase="$GPG_PASSPHRASE" \
-          -Dgpg.verbose=true
-          -DaltDeploymentRepository=ossrh::default::https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/
+          -Dgpg.useAgent=false
         
     - name: Create Staging Repository Summary
       run: |
