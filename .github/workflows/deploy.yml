@@ -23,13 +23,32 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        
+
+    - name: ☕ Create Maven Settings
+      run: |
+        mkdir -p ~/.m2
+        cat > ~/.m2/settings.xml << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+          <servers>
+            <server>
+              <id>central</id>
+              <username>${{ secrets.SONATYPE_USERNAME }}</username>
+              <password>${{ secrets.SONATYPE_TOKEN }}</password>
+            </server>
+          </servers>
+        </settings>
+        EOF
+
     - name: ☕ Setup JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
+        settings-path: ~/.m2/settings.xml
         
     - name: 🛡️ Verify GPG Secrets
       id: verify_gpg
@@ -80,33 +99,7 @@ jobs:
           echo "❌ Key ${{ secrets.GPG_KEYNAME }} not found!"
           exit 1
         fi
-        
-    - name: ⚙️ Create Maven Settings
-      env:
-        SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-        SONATYPE_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
-      run: |
-        echo "=== Creating Maven Settings ==="
-        
-        mkdir -p ~/.m2
-        
-        cat > ~/.m2/settings.xml << EOF
-        <?xml version="1.0" encoding="UTF-8"?>
-        <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
-          <servers>
-            <server>
-              <id>central</id>
-              <username>${{ secrets.SONATYPE_USERNAME }}</username>
-              <password>${{ secrets.SONATYPE_TOKEN }}</password>
-            </server>
-          </servers>
-        </settings>
-        EOF
-        
-        echo "✅ Maven settings created"
-        
+
     - name: 🚀 Deploy to Maven Central
       env:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
