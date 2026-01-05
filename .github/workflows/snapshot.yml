@@ -75,6 +75,7 @@ jobs:
           -Pci \
           -DskipTests \
           -Dmaven.javadoc.skip=true \
+          -Dmaven.source.skip=true \
           --file pom.xml
         echo ""
         echo "Deployment completed!"
