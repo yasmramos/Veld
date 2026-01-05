@@ -48,19 +48,20 @@ jobs:
         
         # Create settings.xml using environment variables
         mkdir -p ~/.m2
-        cat > ~/.m2/settings.xml <<EOF
-<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
-  <servers>
-    <server>
-      <id>central</id>
-      <username>$SONATYPE_USERNAME</username>
-      <password>$SONATYPE_PASSWORD</password>
-    </server>
-  </servers>
-</settings>
-EOF
+        
+        # Write settings.xml line by line to avoid YAML parsing issues
+        echo '<?xml version="1.0" encoding="UTF-8"?>' > ~/.m2/settings.xml
+        echo '<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"' >> ~/.m2/settings.xml
+        echo '          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"' >> ~/.m2/settings.xml
+        echo '          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">' >> ~/.m2/settings.xml
+        echo '  <servers>' >> ~/.m2/settings.xml
+        echo '    <server>' >> ~/.m2/settings.xml
+        echo '      <id>central</id>' >> ~/.m2/settings.xml
+        echo "      <username>$SONATYPE_USERNAME</username>" >> ~/.m2/settings.xml
+        echo "      <password>$SONATYPE_PASSWORD</password>" >> ~/.m2/settings.xml
+        echo '    </server>' >> ~/.m2/settings.xml
+        echo '  </servers>' >> ~/.m2/settings.xml
+        echo '</settings>' >> ~/.m2/settings.xml
         
         echo "Maven settings.xml created successfully"
         
