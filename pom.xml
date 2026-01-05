@@ -742,6 +742,14 @@
                 <maven.source.skip>true</maven.source.skip>
                 <build-helper.attach.phase>none</build-helper.attach.phase>
             </properties>
+            <distributionManagement>
+                <!-- Override repository to use snapshots URL for SNAPSHOT versions -->
+                <repository>
+                    <id>ossrh-snapshots</id>
+                    <name>OSSRH Snapshots</name>
+                    <url>https://central.sonatype.org/content/repositories/snapshots/</url>
+                </repository>
+            </distributionManagement>
             <build>
                 <plugins>
                     <!-- Skip GPG signing for snapshots -->
