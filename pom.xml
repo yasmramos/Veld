@@ -385,23 +385,6 @@
                 </executions>
             </plugin>
 
-            <!-- Central Publishing Plugin for Maven Central -->
-            <plugin>
-                <groupId>org.sonatype.central</groupId>
-                <artifactId>central-publishing-maven-plugin</artifactId>
-                <version>${central.publishing.plugin.version}</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <publishingServerId>central</publishingServerId>
-                    <autoPublish>true</autoPublish>
-                    <excludeArtifacts>
-                        <excludeArtifact>io.github.yasmramos:veld-benchmark</excludeArtifact>
-                        <excludeArtifact>io.github.yasmramos:veld-example</excludeArtifact>
-                        <excludeArtifact>io.github.yasmramos:veld-spring-boot-example</excludeArtifact>
-                    </excludeArtifacts>
-                </configuration>
-            </plugin>
-
             <!-- Maven Release Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -810,6 +793,52 @@
                 <maven.source.skip>false</maven.source.skip>
                 <build-helper.attach.phase>package</build-helper.attach.phase>
             </properties>
+        </profile>
+
+        <!-- Release Profile - For Maven Central staging deployments -->
+        <profile>
+            <id>release</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <skipGpg>false</skipGpg>
+                <skipTests>false</skipTests>
+                <maven.deploy.skip>false</maven.deploy.skip>
+                <jacoco.skip>false</jacoco.skip>
+                <maven.javadoc.skip>false</maven.javadoc.skip>
+                <maven.source.skip>false</maven.source.skip>
+                <build-helper.attach.phase>package</build-helper.attach.phase>
+            </properties>
+            <build>
+                <plugins>
+                    <!-- Central Publishing Plugin for Maven Central -->
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central.publishing.plugin.version}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
+                            <excludeArtifacts>
+                                <excludeArtifact>io.github.yasmramos:veld-benchmark</excludeArtifact>
+                                <excludeArtifact>io.github.yasmramos:veld-example</excludeArtifact>
+                                <excludeArtifact>io.github.yasmramos:veld-spring-boot-example</excludeArtifact>
+                            </excludeArtifacts>
+                        </configuration>
+                    </plugin>
+
+                    <!-- GPG Signing Plugin -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <configuration>
+                            <skip>false</skip>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
     </profiles>
 </project>
