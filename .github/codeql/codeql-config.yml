@@ -1,4 +1,7 @@
-name: "CodeQL"
+name: "CodeQL Configuration"
+
+# Explicitly set build mode to manual for Maven projects
+build-mode: manual
 
 queries:
   - security-and-quality
@@ -13,9 +16,3 @@ paths-ignore:
   - '**/*.json'
   - 'docs/**'
   - '.github/**'
-
-paths:
-  - '**.java'
-  - 'veld-*/**/*.java'
-
-build-mode: manual
