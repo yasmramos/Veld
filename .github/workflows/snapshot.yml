@@ -72,8 +72,9 @@ jobs:
         echo ""
         echo "Deploying snapshot version: $SNAPSHOT_VERSION"
         mvn -B deploy \
+          -Pci \
           -DskipTests \
-          -Djavadoc.skip=true \
+          -Dmaven.javadoc.skip=true \
           --file pom.xml
         echo ""
         echo "Deployment completed!"
