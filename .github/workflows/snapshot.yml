@@ -55,8 +55,8 @@ jobs:
   <servers>
     <server>
       <id>central</id>
-      <username>\${env.SONATYPE_USERNAME}</username>
-      <password>\${env.SONATYPE_PASSWORD}</password>
+      <username>$SONATYPE_USERNAME</username>
+      <password>$SONATYPE_PASSWORD</password>
     </server>
   </servers>
 </settings>
