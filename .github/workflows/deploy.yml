@@ -56,7 +56,9 @@ jobs:
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           GPG_KEYNAME: ${{ secrets.GPG_KEYNAME }}
         run: |
-          mvn clean deploy -DskipTests=false \
+          mvn clean deploy -B \
+            -DskipTests=false \
+            -Prelease \
             -Dgpg.keyname=$GPG_KEYNAME \
             -Dgpg.passphrase="${GPG_PASSPHRASE:-}" \
             -Dgpg.useAgent=false
