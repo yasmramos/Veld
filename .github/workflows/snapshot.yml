@@ -23,6 +23,26 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: 'maven'
+        server-id: central
+        server-username: SONATYPE_USERNAME
+        server-password: SONATYPE_PASSWORD
+
+    - name: Configure Maven Settings
+      run: |
+        mkdir -p ~/.m2
+        cat > ~/.m2/settings.xml << 'EOF'
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <servers>
+    <server>
+      <id>central</id>
+      <username>${{ secrets.SONATYPE_USERNAME }}</username>
+      <password>${{ secrets.SONATYPE_PASSWORD }}</password>
+    </server>
+  </servers>
+</settings>
+EOF
 
     - name: Build and Deploy Snapshot to Maven Central
       run: |
@@ -30,6 +50,3 @@ jobs:
           -Pci \
           -DskipTests \
           --file pom.xml
-      env:
-        MAVEN_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-        MAVEN_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
