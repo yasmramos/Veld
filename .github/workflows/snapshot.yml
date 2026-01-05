@@ -26,33 +26,41 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: 'maven'
-        server-id: central
-        server-username: ${{ secrets.SONATYPE_USERNAME }}
-        server-password: ${{ secrets.SONATYPE_PASSWORD }}
 
     - name: Build and Deploy Snapshot to Maven Central
+      env:
+        SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+        SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
       run: |
         echo "Checking if SONATYPE_USERNAME is set..."
-        if [ -z "${{ secrets.SONATYPE_USERNAME }}" ]; then
+        if [ -z "$SONATYPE_USERNAME" ]; then
           echo "ERROR: SONATYPE_USERNAME secret is not set!"
           exit 1
         fi
         echo "SONATYPE_USERNAME is set"
         
         echo "Checking if SONATYPE_PASSWORD is set..."
-        if [ -z "${{ secrets.SONATYPE_PASSWORD }}" ]; then
+        if [ -z "$SONATYPE_PASSWORD" ]; then
           echo "ERROR: SONATYPE_PASSWORD secret is not set!"
           exit 1
         fi
         echo "SONATYPE_PASSWORD is set"
         
-        # Create settings.xml with credentials
+        # Create settings.xml using environment variables
         mkdir -p ~/.m2
-        echo 'PHNldHRpbmdzIHhtbG5zPSJodHRwOi8vbWF2ZW4uYXBhY2hlLm9yZy9TRVRUSU5HUy8xLjAuMCIgeG1sbnM6eHNpPSJodHRwOi8vd3d3LnczLm9yZy8yMDAxL1hNTFNjaGVtYS1pbnN0YW5jZSIgeHNpOnNjaGVtYUxvY2F0aW9uPSJodHRwOi8vbWF2ZW4uYXBhY2hlLm9yZy9TRVRUSU5HUy8xLjAuMCBodHRwczovL21hdmVuLmFwYWNoZS5vcmcveHNkL3NldHRpbmdzLTEuMC4wLnhzZCI+PHNlcnZlcnM+PHNlcnZlcj48aWQ+Y2VudHJhbDwvaWQ+PFVTRVJOQU1FX1BMQUNFSE9MREVSLz48UEFTU1dPUkRfUExBQ0VIT0xERVIvPjwvc2VydmVyPjwvc2VydmVycz48L3NldHRpbmdzPgo=' | base64 -d > ~/.m2/settings.xml
-        
-        # Replace placeholders with actual secrets
-        sed -i "s|<USERNAME_PLACEHOLDER/>|<username>${{ secrets.SONATYPE_USERNAME }}</username>|g" ~/.m2/settings.xml
-        sed -i "s|<PASSWORD_PLACEHOLDER/>|<password>${{ secrets.SONATYPE_PASSWORD }}</password>|g" ~/.m2/settings.xml
+        cat > ~/.m2/settings.xml <<EOF
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <servers>
+    <server>
+      <id>central</id>
+      <username>\${env.SONATYPE_USERNAME}</username>
+      <password>\${env.SONATYPE_PASSWORD}</password>
+    </server>
+  </servers>
+</settings>
+EOF
         
         echo "Maven settings.xml created successfully"
         
