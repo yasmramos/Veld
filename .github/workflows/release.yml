@@ -6,6 +6,12 @@ on:
       - 'v*'
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -32,7 +38,9 @@ jobs:
     - name: Extract version from tag
       id: extract_version
       run: |
-        if [[ "${{ github.event_name }}" == "release" ]]; then
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          VERSION="${{ github.event.inputs.version }}"
+        elif [[ "${{ github.event_name }}" == "release" ]]; then
           VERSION="${{ github.event.release.tag_name }}"
         else
           VERSION="${{ github.ref_name }}"
@@ -50,6 +58,9 @@ jobs:
           else
             echo "is_prerelease=false" >> $GITHUB_OUTPUT
           fi
+        elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          # Manual releases are not prereleases by default
+          echo "is_prerelease=false" >> $GITHUB_OUTPUT
         else
           echo "is_prerelease=false" >> $GITHUB_OUTPUT
         fi
@@ -62,7 +73,10 @@ jobs:
         echo "Tag version: $EXTRACTED_VERSION"
         echo "POM version: $POM_VERSION"
 
-        if [[ "$EXTRACTED_VERSION" != "$POM_VERSION" ]]; then
+        # Skip version check for manual deployments
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          echo "Manual deployment - skipping version consistency check"
+        elif [[ "$EXTRACTED_VERSION" != "$POM_VERSION" ]]; then
           echo "Version mismatch - continuing anyway"
         else
           echo "Version consistency verified: $EXTRACTED_VERSION"
