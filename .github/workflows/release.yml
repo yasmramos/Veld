@@ -178,15 +178,11 @@ jobs:
         chmod 700 ~/.gnupg
         
         # Configure gpg for non-interactive use
-        cat > ~/.gnupg/gpg.conf << EOF
-use-agent
-pinentry-mode loopback
-EOF
+        echo "use-agent" > ~/.gnupg/gpg.conf
+        echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
         
         # Configure gpg-agent for loopback pinentry
-        cat > ~/.gnupg/gpg-agent.conf << EOF
-allow-loopback-pinentry
-EOF
+        echo "allow-loopback-pinentry" > ~/.gnupg/gpg-agent.conf
         chmod 600 ~/.gnupg/gpg.conf
         chmod 600 ~/.gnupg/gpg-agent.conf
         
