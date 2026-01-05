@@ -726,12 +726,12 @@
                 <build-helper.attach.phase>none</build-helper.attach.phase>
             </properties>
             <distributionManagement>
-                <!-- Override repository to use new Central Portal snapshots URL -->
-                <repository>
+                <!-- Use new Central Portal snapshots repository -->
+                <snapshotRepository>
                     <id>central-portal-snapshots</id>
                     <name>Central Portal Snapshots</name>
                     <url>https://central.sonatype.com/repository/maven-snapshots/</url>
-                </repository>
+                </snapshotRepository>
             </distributionManagement>
             <build>
                 <plugins>
