@@ -28,12 +28,12 @@ jobs:
         cache: maven
         server-id: central
         server-username: SONATYPE_USERNAME
-        server-password: SONATYPE_PASSWORD
+        server-password: SONATYPE_TOKEN
 
     - name: Build and Deploy Snapshot to Maven Central
       env:
         SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-        SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+        SONATYPE_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
       run: |
         echo "Checking if SONATYPE_USERNAME is set..."
         if [ -z "$SONATYPE_USERNAME" ]; then
