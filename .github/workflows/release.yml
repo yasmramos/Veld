@@ -68,6 +68,18 @@ jobs:
           echo "Version consistency verified: $EXTRACTED_VERSION"
         fi
 
+    - name: Set project version for release
+      id: set-version
+      run: |
+        VERSION="${{ steps.extract_version.outputs.version }}"
+        echo "Setting project version to: $VERSION"
+        mvn versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false -q
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Show updated pom.xml version
+      run: |
+        grep '<version>' pom.xml | head -1 | sed 's/.*<version>//' | sed 's/<\/version>.*//' | xargs -I {} echo "Project version set to: {}"
+
   test-and-build:
     name: Test and Build
     runs-on: ubuntu-latest
@@ -163,6 +175,12 @@ jobs:
         server-id: central
         server-username: SONATYPE_USERNAME
         server-password: SONATYPE_TOKEN
+
+    - name: Set project version for release
+      run: |
+        VERSION="${{ needs.prepare-release.outputs.version }}"
+        echo "Setting project version to: $VERSION"
+        mvn versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false -q
 
     - name: Install GPG
       run: |
