@@ -15,7 +15,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -38,18 +38,16 @@ jobs:
           exit 1
         fi
         echo "SONATYPE_USERNAME is set"
-        
+
         echo "Checking if SONATYPE_PASSWORD is set..."
         if [ -z "$SONATYPE_PASSWORD" ]; then
           echo "ERROR: SONATYPE_PASSWORD secret is not set!"
           exit 1
         fi
         echo "SONATYPE_PASSWORD is set"
-        
-        # Create settings.xml using environment variables
+
         mkdir -p ~/.m2
-        
-        # Write settings.xml line by line to avoid YAML parsing issues
+
         echo '<?xml version="1.0" encoding="UTF-8"?>' > ~/.m2/settings.xml
         echo '<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"' >> ~/.m2/settings.xml
         echo '          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"' >> ~/.m2/settings.xml
@@ -62,9 +60,9 @@ jobs:
         echo '    </server>' >> ~/.m2/settings.xml
         echo '  </servers>' >> ~/.m2/settings.xml
         echo '</settings>' >> ~/.m2/settings.xml
-        
+
         echo "Maven settings.xml created successfully"
-        
+
         echo ""
         echo "Running Maven version..."
         mvn --version
