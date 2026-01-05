@@ -42,12 +42,12 @@ jobs:
         fi
         echo "SONATYPE_USERNAME is set"
 
-        echo "Checking if SONATYPE_PASSWORD is set..."
-        if [ -z "$SONATYPE_PASSWORD" ]; then
-          echo "ERROR: SONATYPE_PASSWORD secret is not set!"
+        echo "Checking if SONATYPE_TOKEN is set..."
+        if [ -z "$SONATYPE_TOKEN" ]; then
+          echo "ERROR: SONATYPE_TOKEN secret is not set!"
           exit 1
         fi
-        echo "SONATYPE_PASSWORD is set"
+        echo "SONATYPE_TOKEN is set"
 
         echo ""
         echo "Running Maven version..."
