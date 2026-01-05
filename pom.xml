@@ -570,15 +570,6 @@
                             <skip>true</skip>
                         </configuration>
                     </plugin>
-
-                    <!-- Skip deployment in CI -->
-                    <plugin>
-                        <groupId>org.sonatype.central</groupId>
-                        <artifactId>central-publishing-maven-plugin</artifactId>
-                        <configuration>
-                            <skip>true</skip>
-                        </configuration>
-                    </plugin>
                 </plugins>
             </build>
         </profile>
