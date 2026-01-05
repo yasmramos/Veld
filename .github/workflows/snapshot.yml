@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   build-and-deploy:
@@ -24,20 +23,13 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: 'maven'
-        server-id: github
-        server-username: MAVEN_USERNAME
-        server-password: MAVEN_PASSWORD
 
-    - name: Build with Maven
-      run: mvn -B verify --file pom.xml
-
-    - name: Deploy Snapshot to GitHub Packages
+    - name: Build and Deploy Snapshot to Maven Central
       run: |
         mvn -B deploy \
-          -Pgithub \
+          -Pci \
           -DskipTests \
-          -Dgpg.skip \
           --file pom.xml
       env:
-        MAVEN_USERNAME: ${{ github.actor }}
-        MAVEN_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+        MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
