@@ -14,6 +14,7 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     
     steps:
     - name: Checkout repository
@@ -63,7 +64,13 @@ EOF
 
     - name: Build and Deploy Snapshot to Maven Central
       run: |
+        echo "Running Maven version..."
+        mvn --version
+        echo ""
+        echo "Starting snapshot deployment..."
         mvn -B deploy \
           -Pci \
           -DskipTests \
           --file pom.xml
+        echo ""
+        echo "Deployment completed!"
