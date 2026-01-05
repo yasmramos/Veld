@@ -99,8 +99,8 @@ jobs:
           <servers>
             <server>
               <id>ossrh</id>
-              <username>\${env.SONATYPE_USERNAME}</username>
-              <password>\${env.SONATYPE_TOKEN}</password>
+              <username>$SONATYPE_USERNAME</username>
+              <password>$SONATYPE_TOKEN</password>
             </server>
           </servers>
         </settings>
