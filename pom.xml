@@ -730,7 +730,7 @@
                 <repository>
                     <id>ossrh-snapshots</id>
                     <name>OSSRH Snapshots</name>
-                    <url>https://central.sonatype.org/content/repositories/snapshots/</url>
+                    <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
                 </repository>
             </distributionManagement>
             <build>
