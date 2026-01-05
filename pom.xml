@@ -50,11 +50,26 @@
         </repository>
         <!-- Snapshot Repository -->
         <snapshotRepository>
-            <id>central</id>
-            <name>Central Publishing Snapshots</name>
-            <url>https://central.sonatype.org/content/repositories/snapshots/</url>
+            <id>central-portal-snapshots</id>
+            <name>Central Portal Snapshots</name>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
+
+    <!-- Repositories for consuming Central Portal Snapshots -->
+    <repositories>
+        <repository>
+            <name>Central Portal Snapshots</name>
+            <id>central-portal-snapshots</id>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <modules>
         <module>veld-annotations</module>
@@ -101,7 +116,7 @@
         <maven.source.plugin.version>3.3.1</maven.source.plugin.version>
         <maven.javadoc.plugin.version>3.6.3</maven.javadoc.plugin.version>
         <maven.gpg.plugin.version>3.1.0</maven.gpg.plugin.version>
-        <central.publishing.plugin.version>0.6.0</central.publishing.plugin.version>
+        <central.publishing.plugin.version>0.7.0</central.publishing.plugin.version>
         <maven.release.plugin.version>3.0.1</maven.release.plugin.version>
         <maven.assembly.plugin.version>3.7.0</maven.assembly.plugin.version>
         <jacoco.maven.plugin.version>0.8.14</jacoco.maven.plugin.version>
@@ -385,23 +400,6 @@
                 </executions>
             </plugin>
 
-            <!-- Central Publishing Plugin for Maven Central -->
-            <plugin>
-                <groupId>org.sonatype.central</groupId>
-                <artifactId>central-publishing-maven-plugin</artifactId>
-                <version>${central.publishing.plugin.version}</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <publishingServerId>central</publishingServerId>
-                    <autoPublish>true</autoPublish>
-                    <excludeArtifacts>
-                        <excludeArtifact>io.github.yasmramos:veld-benchmark</excludeArtifact>
-                        <excludeArtifact>io.github.yasmramos:veld-example</excludeArtifact>
-                        <excludeArtifact>io.github.yasmramos:veld-spring-boot-example</excludeArtifact>
-                    </excludeArtifacts>
-                </configuration>
-            </plugin>
-
             <!-- Maven Release Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -569,6 +567,27 @@
                             <skip>true</skip>
                         </configuration>
                     </plugin>
+
+                    <!-- Disable Javadoc plugin completely in CI -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Disable Central Publishing for snapshot/CI deployments -->
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
                 </plugins>
             </build>
         </profile>
@@ -709,6 +728,67 @@
             </build>
         </profile>
 
+        <!-- Snapshot Deployment Profile - For GitHub Actions snapshot workflow -->
+        <profile>
+            <id>snapshot</id>
+            <properties>
+                <skipGpg>true</skipGpg>
+                <skipTests>false</skipTests>
+                <maven.deploy.skip>false</maven.deploy.skip>
+                <jacoco.skip>true</jacoco.skip>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+                <maven.source.skip>true</maven.source.skip>
+                <build-helper.attach.phase>none</build-helper.attach.phase>
+            </properties>
+            <distributionManagement>
+                <!-- Use new Central Portal snapshots repository -->
+                <snapshotRepository>
+                    <id>central-portal-snapshots</id>
+                    <name>Central Portal Snapshots</name>
+                    <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+                </snapshotRepository>
+            </distributionManagement>
+            <build>
+                <plugins>
+                    <!-- Skip GPG signing for snapshots -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Disable Javadoc plugin for snapshots -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Disable Source plugin for snapshots -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Disable Central Publishing for snapshot deployments -->
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
         <!-- GitHub Packages Profile -->
         <profile>
             <id>github</id>
@@ -728,6 +808,52 @@
                 <maven.source.skip>false</maven.source.skip>
                 <build-helper.attach.phase>package</build-helper.attach.phase>
             </properties>
+        </profile>
+
+        <!-- Release Profile - For Maven Central staging deployments -->
+        <profile>
+            <id>release</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <skipGpg>false</skipGpg>
+                <skipTests>false</skipTests>
+                <maven.deploy.skip>false</maven.deploy.skip>
+                <jacoco.skip>false</jacoco.skip>
+                <maven.javadoc.skip>false</maven.javadoc.skip>
+                <maven.source.skip>false</maven.source.skip>
+                <build-helper.attach.phase>package</build-helper.attach.phase>
+            </properties>
+            <build>
+                <plugins>
+                    <!-- Central Publishing Plugin for Maven Central -->
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central.publishing.plugin.version}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
+                            <excludeArtifacts>
+                                <excludeArtifact>io.github.yasmramos:veld-benchmark</excludeArtifact>
+                                <excludeArtifact>io.github.yasmramos:veld-example</excludeArtifact>
+                                <excludeArtifact>io.github.yasmramos:veld-spring-boot-example</excludeArtifact>
+                            </excludeArtifacts>
+                        </configuration>
+                    </plugin>
+
+                    <!-- GPG Signing Plugin -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <configuration>
+                            <skip>false</skip>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
     </profiles>
 </project>
