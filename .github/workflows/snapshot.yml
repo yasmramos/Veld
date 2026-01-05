@@ -96,7 +96,6 @@ jobs:
         mvn -B deploy \
           -Psnapshot \
           -DskipTests \
-          -DaltDeploymentRepository=ossrh-snapshots::default::https://central.sonatype.org/content/repositories/snapshots/ \
           --file pom.xml
         echo ""
         echo "Deployment completed!"
