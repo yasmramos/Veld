@@ -29,7 +29,6 @@ import java.lang.annotation.Target;
  * </pre>
  *
  * @see Qualifier
- * @see io.veld.core.registry.BeanRegistry
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
