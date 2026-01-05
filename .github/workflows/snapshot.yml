@@ -44,7 +44,7 @@ jobs:
         echo "            <password>${SONATYPE_TOKEN}</password>" >> ~/.m2/settings.xml
         echo '        </server>' >> ~/.m2/settings.xml
         echo '        <server>' >> ~/.m2/settings.xml
-        echo '            <id>ossrh-snapshots</id>' >> ~/.m2/settings.xml
+        echo '            <id>central-portal-snapshots</id>' >> ~/.m2/settings.xml
         echo "            <username>${SONATYPE_USERNAME}</username>" >> ~/.m2/settings.xml
         echo "            <password>${SONATYPE_TOKEN}</password>" >> ~/.m2/settings.xml
         echo '        </server>' >> ~/.m2/settings.xml
