@@ -33,7 +33,7 @@ import java.util.List;
  *
  * // Match service methods that are NOT getters
  * CompositePointcut pointcut = CompositePointcut.parse(
- *     "execution(* com.example.service.*.*(..)) && !execution(* *.get*(..))");
+ *     "execution(* com.example.service.*.*(..)) &amp;&amp; !execution(* *.get*(..))");
  * }</pre>
  *
  * @author Veld Framework Team
