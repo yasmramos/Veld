@@ -12,7 +12,7 @@ import java.util.Set;
  *   <li>Simple profile matching: "dev" matches when "dev" is active</li>
  *   <li>Negation: "!prod" matches when "prod" is NOT active</li>
  *   <li>Multiple profiles: ["dev", "test"] matches when either is active (OR logic)</li>
- *   <li>Expression: SpEL-style expressions like "dev && database.type == 'h2'"</li>
+ *   <li>Expression: SpEL-style expressions like "dev &amp;&amp; database.type == 'h2'"</li>
  * </ul>
  * 
  * @author Veld Framework

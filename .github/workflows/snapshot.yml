@@ -8,11 +8,14 @@ on:
 
 permissions:
   contents: read
+  id-token: write
+  packages: write
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 60
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -22,14 +25,64 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: 'maven'
+        cache: maven
+        server-id: central
+        server-username: SONATYPE_USERNAME
+        server-password: SONATYPE_TOKEN
+
+    - name: Configure Snapshot Version
+      id: snapshot-version
+      run: |
+        CURRENT_VERSION=$(grep -o '<version>[^<]*</version>' pom.xml | head -1 | sed 's/<version>//g' | sed 's/<\/version>//g')
+        echo "Current version: $CURRENT_VERSION"
+        
+        if [[ "$CURRENT_VERSION" == *"-SNAPSHOT" ]]; then
+          SNAPSHOT_VERSION="$CURRENT_VERSION"
+        else
+          SNAPSHOT_VERSION="${CURRENT_VERSION}-SNAPSHOT"
+        fi
+        echo "Snapshot version: $SNAPSHOT_VERSION"
+        echo "snapshot_version=$SNAPSHOT_VERSION" >> $GITHUB_OUTPUT
+        
+        # Update version in all pom.xml files
+        find . -name "pom.xml" -path "*/src/*" -prune -o -name "pom.xml" -print | xargs sed -i "s/<version>$CURRENT_VERSION<\/version>/<version>$SNAPSHOT_VERSION<\/version>/g"
 
     - name: Build and Deploy Snapshot to Maven Central
-      run: |
-        mvn -B deploy \
-          -Pci \
-          -DskipTests \
-          --file pom.xml
       env:
-        MAVEN_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-        MAVEN_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+        SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+        SONATYPE_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
+      run: |
+        echo "Checking if SONATYPE_USERNAME is set..."
+        if [ -z "$SONATYPE_USERNAME" ]; then
+          echo "ERROR: SONATYPE_USERNAME secret is not set!"
+          exit 1
+        fi
+        echo "SONATYPE_USERNAME is set"
+
+        echo "Checking if SONATYPE_TOKEN is set..."
+        if [ -z "$SONATYPE_TOKEN" ]; then
+          echo "ERROR: SONATYPE_TOKEN secret is not set!"
+          exit 1
+        fi
+        echo "SONATYPE_TOKEN is set"
+
+        echo ""
+        echo "Running Maven version..."
+        mvn --version
+        echo ""
+        echo "Deploying snapshot version: $SNAPSHOT_VERSION"
+        mvn -B deploy \
+          -DskipTests \
+          -Djavadoc.skip=true \
+          --file pom.xml
+        echo ""
+        echo "Deployment completed!"
+
+    - name: Revert Version Change
+      if: always()
+      run: |
+        # Revert to original version
+        CURRENT_VERSION=$(grep -o '<version>[^<]*</version>' pom.xml | head -1 | sed 's/<version>//g' | sed 's/<\/version>//g')
+        ORIGINAL_VERSION="${CURRENT_VERSION%-SNAPSHOT}"
+        find . -name "pom.xml" -path "*/src/*" -prune -o -name "pom.xml" -print | xargs sed -i "s/<version>$CURRENT_VERSION<\/version>/<version>$ORIGINAL_VERSION<\/version>/g"
+        echo "Reverted to original version: $ORIGINAL_VERSION"
