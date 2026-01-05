@@ -104,29 +104,29 @@ jobs:
           -rff target/regression-injection-results.json \
           || echo "WARNING: Injection benchmark had issues"
 
-        echo "Running startup benchmarks..."
+        echo "Running lifecycle benchmarks..."
         java -Xmx1g -jar target/veld-benchmark.jar \
-          ".*Startup.*" \
+          ".*Lifecycle.*" \
           -f 1 -wi 1 -i 2 -bs 1 \
           -rf json \
           -rff target/regression-startup-results.json \
-          || echo "WARNING: Startup benchmark had issues"
+          || echo "WARNING: Lifecycle benchmark had issues"
 
-        echo "Running throughput benchmarks..."
+        echo "Running feature overhead benchmarks..."
         java -Xmx1g -jar target/veld-benchmark.jar \
-          ".*Throughput.*" \
+          ".*Feature.*|.*Overhead.*|.*Baseline.*" \
           -f 1 -wi 1 -i 2 -bs 1 \
           -rf json \
           -rff target/regression-throughput-results.json \
-          || echo "WARNING: Throughput benchmark had issues"
+          || echo "WARNING: Feature benchmark had issues"
 
-        echo "Running memory benchmarks..."
+        echo "Running validation benchmarks..."
         java -Xmx1g -jar target/veld-benchmark.jar \
-          ".*Memory.*" \
+          ".*Validation.*" \
           -f 1 -wi 1 -i 2 -bs 1 \
           -rf json \
           -rff target/regression-memory-results.json \
-          || echo "WARNING: Memory benchmark had issues"
+          || echo "WARNING: Validation benchmark had issues"
 
         # Verify results files exist
         echo "=== Verifying benchmark result files ==="

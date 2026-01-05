@@ -42,7 +42,7 @@ import java.lang.annotation.Target;
  * 
  * // Expression - registered when "dev" AND "local" are both active
  * @Singleton
- * @Profile(expression = "dev && local")
+ * @Profile(expression = "dev &amp;&amp; local")
  * public class LocalDevConfig { }
  * 
  * // Combined value and expression
@@ -113,8 +113,8 @@ public @interface Profile {
      * 
      * <p>Example:
      * <pre>{@code
-     * @Profile(expression = "dev && database.type == 'h2'")
-     * @Profile(expression = "!prod && (debug.enabled || local)")
+     * @Profile(expression = "dev &amp;&amp; database.type == 'h2'")
+     * @Profile(expression = "!prod &amp;&amp; (debug.enabled || local)")
      * }</pre>
      * 
      * @return the expression string

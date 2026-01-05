@@ -49,7 +49,6 @@ import java.lang.annotation.Target;
  *
  * @see Primary
  * @see Named
- * @see io.veld.core.scanner.BeanScanner
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
