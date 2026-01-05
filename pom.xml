@@ -730,6 +730,59 @@
             </build>
         </profile>
 
+        <!-- Snapshot Deployment Profile - For GitHub Actions snapshot workflow -->
+        <profile>
+            <id>snapshot</id>
+            <properties>
+                <skipGpg>true</skipGpg>
+                <skipTests>false</skipTests>
+                <maven.deploy.skip>false</maven.deploy.skip>
+                <jacoco.skip>true</jacoco.skip>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+                <maven.source.skip>true</maven.source.skip>
+                <build-helper.attach.phase>none</build-helper.attach.phase>
+            </properties>
+            <build>
+                <plugins>
+                    <!-- Skip GPG signing for snapshots -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Disable Javadoc plugin for snapshots -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Disable Source plugin for snapshots -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Disable Central Publishing for snapshot deployments -->
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
         <!-- GitHub Packages Profile -->
         <profile>
             <id>github</id>
