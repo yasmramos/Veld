@@ -42,17 +42,17 @@
     </scm>
 
     <distributionManagement>
-        <!-- Maven Central Repository (OSSRH) -->
+        <!-- Maven Central Repository (Central Portal) -->
         <repository>
             <id>central</id>
             <name>Central Publishing</name>
-            <url>https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <url>https://central.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
         <!-- Snapshot Repository -->
         <snapshotRepository>
             <id>central</id>
             <name>Central Publishing Snapshots</name>
-            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+            <url>https://central.sonatype.org/content/repositories/snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 
