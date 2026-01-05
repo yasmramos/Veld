@@ -50,7 +50,7 @@
         </repository>
         <!-- Snapshot Repository -->
         <snapshotRepository>
-            <id>central</id>
+            <id>ossrh-snapshots</id>
             <name>Central Publishing Snapshots</name>
             <url>https://central.sonatype.org/content/repositories/snapshots/</url>
         </snapshotRepository>
