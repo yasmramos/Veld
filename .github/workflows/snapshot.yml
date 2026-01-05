@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: read
+  id-token: write
+  packages: write
 
 jobs:
   build-and-deploy:
@@ -29,6 +31,20 @@ jobs:
 
     - name: Configure Maven Settings
       run: |
+        echo "Checking if SONATYPE_USERNAME is set..."
+        if [ -z "${{ secrets.SONATYPE_USERNAME }}" ]; then
+          echo "ERROR: SONATYPE_USERNAME secret is not set!"
+          exit 1
+        fi
+        echo "SONATYPE_USERNAME is set"
+        
+        echo "Checking if SONATYPE_PASSWORD is set..."
+        if [ -z "${{ secrets.SONATYPE_PASSWORD }}" ]; then
+          echo "ERROR: SONATYPE_PASSWORD secret is not set!"
+          exit 1
+        fi
+        echo "SONATYPE_PASSWORD is set"
+        
         mkdir -p ~/.m2
         cat > ~/.m2/settings.xml << 'EOF'
 <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
@@ -43,6 +59,7 @@ jobs:
   </servers>
 </settings>
 EOF
+        echo "Maven settings configured successfully"
 
     - name: Build and Deploy Snapshot to Maven Central
       run: |
