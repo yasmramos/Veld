@@ -146,7 +146,6 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <classifier>javadoc</classifier>
                     <additionalOptions>
                         <additionalOption>-Xdoclint:none</additionalOption>
                     </additionalOptions>
