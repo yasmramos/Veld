@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventBus - Veld DI Framework</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="index.html" class="logo">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
+                        <path d="M12 2L2 7v10c0 5.55 3.84 9.74 9 11 5.16-1.26 9-5.45 9-11V7l-10-5z"/>
+                    </svg>
+                    Veld
+                </a>
+                
+                <nav>
+                    <ul class="nav-menu">
+                        <li><a href="getting-started.html">Getting Started</a></li>
+                        <li><a href="annotations.html">Annotations</a></li>
+                        <li><a href="core-features.html">Core Features</a></li>
+                        <li><a href="aop.html">AOP</a></li>
+                        <li><a href="eventbus.html" class="active">EventBus</a></li>
+                        <li><a href="spring-boot.html">Spring Boot</a></li>
+                        <li><a href="api.html">API Reference</a></li>
+                        <li><a href="examples.html">Examples</a></li>
+                    </ul>
+                </nav>
+                
+                <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-layout">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <h3>Documentation</h3>
+            <ul class="sidebar-nav">
+                <li><a href="index.html">Overview</a></li>
+                <li><a href="getting-started.html">Getting Started</a></li>
+                <li><a href="installation.html">Installation</a></li>
+                <li><a href="annotations.html">Annotations Reference</a></li>
+                <li><a href="core-features.html">Core Features</a></li>
+                <li><a href="aop.html">Aspect-Oriented Programming</a></li>
+                <li><a href="eventbus.html" class="active">EventBus</a>
+                    <ul class="sub-nav">
+                        <li><a href="#publish-subscribe">Publish/Subscribe</a></li>
+                        <li><a href="#async-events">Async Events</a></li>
+                        <li><a href="#priority">Priority Ordering</a></li>
+                    </ul>
+                </li>
+                <li><a href="spring-boot.html">Spring Boot Integration</a></li>
+                <li><a href="optimizations.html">Phase 1 Optimizations</a></li>
+                <li><a href="api.html">API Reference</a></li>
+                <li><a href="examples.html">Examples</a></li>
+            </ul>
+        </nav>
+
+        <!-- Content -->
+        <div class="content">
+            <h1>📡 EventBus</h1>
+            
+            <div class="alert alert-info">
+                <strong>🚀 Overview:</strong> Veld's EventBus provides a lightweight, high-performance publish/subscribe event system for loose coupling between components.
+            </div>
+
+            <!-- What is EventBus -->
+            <section>
+                <h2>🤔 What is EventBus?</h2>
+                
+                <div class="card">
+                    <p>EventBus is a publish/subscribe pattern implementation that allows components to communicate without direct dependencies. It's an excellent way to achieve loose coupling in your application.</p>
+                    
+                    <h3>Key Benefits</h3>
+                    <ul>
+                        <li><strong>Loose Coupling:</strong> Publishers and subscribers don't know about each other</li>
+                        <li><strong>Scalability:</strong> Easy to add new subscribers without modifying publishers</li>
+                        <li><strong>Flexibility:</strong> Change event handling logic without affecting core business code</li>
+                        <li><strong>Testability:</strong> Easy to test event flows and behavior</li>
+                        <li><strong>Performance:</strong> Optimized for high-throughput event processing</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>Common Use Cases</h3>
+                    <ul>
+                        <li><strong>User Actions:</strong> User registration, login, profile updates</li>
+                        <li><strong>Business Events:</strong> Order placed, payment processed, shipment created</li>
+                        <li><strong>System Events:</strong> Application startup, configuration changes, errors</li>
+                        <li><strong>Integration:</strong> Communicating with external systems</li>
+                        <li><strong>Logging & Monitoring:</strong> Collecting metrics and audit trails</li>
+                        <li><strong>UI Updates:</strong> Notifying UI components of data changes</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Basic Usage -->
+            <section>
+                <h2>📝 Basic Usage</h2>
+                
+                <div class="card">
+                    <h3>Creating Event Classes</h3>
+                    <p>Events are simple Java classes that carry data:</p>
+                    
+<pre><code>// Simple event with data
+public record UserRegisteredEvent(String userId, String email, Instant timestamp) {}
+
+// Complex event with business logic
+public class OrderCreatedEvent {
+    private final String orderId;
+    private final String userId;
+    private final List&lt;OrderItem&gt; items;
+    private final BigDecimal total;
+    private final Instant createdAt;
+    
+    public OrderCreatedEvent(String orderId, String userId, List&lt;OrderItem&gt; items) {
+        this.orderId = orderId;
+        this.userId = userId;
+        this.items = List.copyOf(items);
+        this.total = items.stream()
+            .map(OrderItem::getTotal)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        this.createdAt = Instant.now();
+    }
+    
+    // Getters
+    public String getOrderId() { return orderId; }
+    public String getUserId() { return userId; }
+    public List&lt;OrderItem&gt; getItems() { return items; }
+    public BigDecimal getTotal() { return total; }
+    public Instant getCreatedAt() { return createdAt; }
+}
+
+// System event with metadata
+public class ApplicationEvent {
+    private final String type;
+    private final String message;
+    private final Map&lt;String, Object&gt; metadata;
+    private final Instant timestamp;
+    
+    public ApplicationEvent(String type, String message, Map&lt;String, Object&gt; metadata) {
+        this.type = type;
+        this.message = message;
+        this.metadata = Map.copyOf(metadata);
+        this.timestamp = Instant.now();
+    }
+    
+    // Factory methods for common events
+    public static ApplicationEvent startup(String version) {
+        return new ApplicationEvent("STARTUP", 
+            "Application started", 
+            Map.of("version", version));
+    }
+    
+    public static ApplicationEvent shutdown(String reason) {
+        return new ApplicationEvent("SHUTDOWN", 
+            "Application shutting down", 
+            Map.of("reason", reason));
+    }
+}</code></pre>
+                </div>
+
+                <div class="card">
+                    <h3>Publishing Events</h3>
+                    <p>Inject EventBus and publish events:</p>
+                    
+<pre><code>@Component
+@Singleton
+public class UserService {
+    
+    @Inject
+    private EventBus eventBus;
+    
+    @Inject
+    private UserRepository userRepository;
+    
+    public User registerUser(String email, String password) {
+        // Create user
+        User user = new User(email, password);
+        User savedUser = userRepository.save(user);
+        
+        // Publish event
+        eventBus.publish(new UserRegisteredEvent(
+            savedUser.getId(), 
+            savedUser.getEmail(), 
+            Instant.now()
+        ));
+        
+        return savedUser;
+    }
+    
+    public void updateUserProfile(String userId, String name) {
+        User user = userRepository.findById(userId);
+        if (user == null) {
+            throw new UserNotFoundException("User not found: " + userId);
+        }
+        
+        user.setName(name);
+        userRepository.save(user);
+        
+        // Publish event with updated data
+        eventBus.publish(new UserProfileUpdatedEvent(userId, name));
+    }
+}</code></pre>
+
+                    <h4>Publishing Multiple Events</h4>
+                    
+<pre><code>@Component
+@Singleton
+public class OrderService {
+    
+    @Inject
+    private EventBus eventBus;
+    
+    public Order createOrder(String userId, List&lt;OrderItem&gt; items) {
+        // Create order
+        Order order = new Order(userId, items);
+        Order savedOrder = orderRepository.save(order);
+        
+        // Publish multiple related events
+        eventBus.publish(new OrderCreatedEvent(savedOrder));
+        eventBus.publish(new InventoryReservedEvent(savedOrder.getId()));
+        eventBus.publish(new PaymentRequiredEvent(savedOrder.getId(), savedOrder.getTotal()));
+        
+        return savedOrder;
+    }
+}</code></pre>
+                </div>
+
+                <div class="card">
+                    <h3>Subscribing to Events</h3>
+                    <p>Create event handlers using @Subscribe annotation:</p>
+                    
+<pre><code>@Component
+public class EmailNotificationHandler {
+    
+    @Subscribe
+    public void handleUserRegistration(UserRegisteredEvent event) {
+        String userId = event.userId();
+        String email = event.email();
+        
+        // Send welcome email
+        emailService.sendWelcomeEmail(email);
+        
+        // Log registration
+        auditLogger.log("User registered", Map.of(
+            "userId", userId,
+            "email", email,
+            "timestamp", event.timestamp()
+        ));
+    }
+    
+    @Subscribe
+    public void handleOrderCreation(OrderCreatedEvent event) {
+        // Send order confirmation
+        emailService.sendOrderConfirmation(
+            event.getUserId(), 
+            event.getOrderId()
+        );
+        
+        // Update analytics
+        analyticsService.trackEvent("order_created", Map.of(
+            "orderId", event.getOrderId(),
+            "total", event.getTotal()
+        ));
+    }
+}</code></pre>
+
+                    <h4>Multiple Event Types</h4>
+                    
+<pre><code>@Component
+public class AuditEventHandler {
+    
+    @Subscribe
+    public void handleUserEvents(UserRegisteredEvent event) {
+        auditLogger.log("USER_REGISTERED", Map.of(
+            "userId", event.userId(),
+            "email", event.email()
+        ));
+    }
+    
+    @Subscribe
+    public void handleUserEvents(UserProfileUpdatedEvent event) {
+        auditLogger.log("USER_PROFILE_UPDATED", Map.of(
+            "userId", event.getUserId(),
+            "name", event.getNewName()
+        ));
+    }
+    
+    @Subscribe
+    public void handleOrderEvents(OrderCreatedEvent event) {
+        auditLogger.log("ORDER_CREATED", Map.of(
+            "orderId", event.getOrderId(),
+            "userId", event.getUserId(),
+            "total", event.getTotal()
+        ));
+    }
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- Advanced Features -->
+            <section id="async-events">
+                <h2>⚡ Asynchronous Events</h2>
+                
+                <div class="card">
+                    <h3>Async Event Handling</h3>
+                    <p>Handle events asynchronously for better performance:</p>
+                    
+<pre><code>@Component
+public class AsyncEventHandlers {
+    
+    @Subscribe(async = true)
+    public void handleHeavyEvent(HeavyProcessingEvent event) {
+        // This runs in a separate thread
+        performHeavyProcessing(event);
+    }
+    
+    @Subscribe(async = true)
+    public void handleEmailEvents(EmailEvent event) {
+        // Send emails asynchronously
+        emailService.sendEmailAsync(event.getTo(), event.getSubject(), event.getBody());
+    }
+    
+    @Subscribe(async = true)
+    public void handleAnalyticsEvents(AnalyticsEvent event) {
+        // Process analytics data asynchronously
+        analyticsService.recordEventAsync(event);
+    }
+}</code></pre>
+
+                    <h4>Async Configuration</h4>
+                    
+<pre><code># Configure async event processing
+veld.eventbus.async.enabled=true
+veld.eventbus.async.thread-pool-size=10
+veld.eventbus.async.queue-size=1000
+
+# Configure timeout for async operations
+veld.eventbus.async.timeout=30s</code></pre>
+                </div>
+
+                <div class="card">
+                    <h3>Event Filtering and Transformation</h3>
+                    
+<pre><code>@Component
+public class EventFilter {
+    
+    @Subscribe
+    @Filter("event.userId == currentUserId")
+    public void handleUserSpecificEvents(UserEvent event) {
+        // Only handle events for current user
+        processEventForCurrentUser(event);
+    }
+    
+    @Subscribe
+    @Filter("event.total > 1000")
+    public void handleHighValueOrders(OrderCreatedEvent event) {
+        // Only handle high-value orders
+        notifyManager(event);
+    }
+    
+    @Subscribe
+    @Filter("event.type == 'ERROR'")
+    public void handleErrors(SystemEvent event) {
+        // Only handle error events
+        errorHandler.processError(event);
+    }
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- Priority Ordering -->
+            <section id="priority">
+                <h2>🎯 Priority Ordering</h2>
+                
+                <div class="card">
+                    <h3>Event Handler Priorities</h3>
+                    <p>Control the order in which event handlers are executed:</p>
+                    
+<pre><code>@Component
+public class PriorityHandlers {
+    
+    @Subscribe(priority = 1)
+    public void handleWithHighPriority(UserRegisteredEvent event) {
+        // Executes first
+        validateUser(event);
+    }
+    
+    @Subscribe(priority = 5)
+    public void handleWithMediumPriority(UserRegisteredEvent event) {
+        // Executes second
+        createUserProfile(event);
+    }
+    
+    @Subscribe(priority = 10)
+    public void handleWithLowPriority(UserRegisteredEvent event) {
+        // Executes last
+        sendWelcomeEmail(event);
+    }
+}</code></pre>
+
+                    <h4>System Events Priority</h4>
+                    
+<pre><code>@Component
+public class SystemEventHandlers {
+    
+    @Subscribe(priority = 1)  // Highest priority
+    public void handleCriticalErrors(SystemErrorEvent event) {
+        // Handle critical errors first
+        alertManager.alertCriticalError(event);
+    }
+    
+    @Subscribe(priority = 5)
+    public void handleGeneralErrors(SystemErrorEvent event) {
+        // Log general errors
+        errorLogger.logError(event);
+    }
+    
+    @Subscribe(priority = 10)  // Lowest priority
+    public void handleNonCriticalErrors(SystemErrorEvent event) {
+        // Send notifications
+        notificationService.sendErrorNotification(event);
+    }
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- Event Hierarchy -->
+            <section>
+                <h2>🏗️ Event Type Hierarchy</h2>
+                
+                <div class="card">
+                    <h3>Inheritance Support</h3>
+                    <p>Event handlers can receive events of declared type and subtypes:</p>
+                    
+<pre><code>// Base event class
+public abstract class UserEvent {
+    protected final String userId;
+    protected final Instant timestamp;
+    
+    public UserEvent(String userId) {
+        this.userId = userId;
+        this.timestamp = Instant.now();
+    }
+    
+    public String getUserId() { return userId; }
+    public Instant getTimestamp() { return timestamp; }
+}
+
+// Specialized events
+public class UserRegisteredEvent extends UserEvent {
+    private final String email;
+    
+    public UserRegisteredEvent(String userId, String email) {
+        super(userId);
+        this.email = email;
+    }
+    
+    public String getEmail() { return email; }
+}
+
+public class UserProfileUpdatedEvent extends UserEvent {
+    private final String field;
+    private final Object oldValue;
+    private final Object newValue;
+    
+    public UserProfileUpdatedEvent(String userId, String field, Object oldValue, Object newValue) {
+        super(userId);
+        this.field = field;
+        this.oldValue = oldValue;
+        this.newValue = newValue;
+    }
+    
+    // Getters
+    public String getField() { return field; }
+    public Object getOldValue() { return oldValue; }
+    public Object getNewValue() { return newValue; }
+}</code></pre>
+
+                    <h4>Handler for Base Type</h4>
+                    
+<pre><code>@Component
+public class UserEventHandler {
+    
+    @Subscribe
+    public void handleAllUserEvents(UserEvent event) {
+        // Receives UserRegisteredEvent, UserProfileUpdatedEvent, and any other UserEvent subclass
+        System.out.println("Processing user event: " + event.getClass().getSimpleName() + 
+                          " for user: " + event.getUserId());
+        
+        // Update user activity timestamp
+        userActivityTracker.updateLastActivity(event.getUserId(), event.getTimestamp());
+    }
+    
+    @Subscribe
+    public void handleRegistrationOnly(UserRegisteredEvent event) {
+        // Only receives UserRegisteredEvent
+        sendWelcomeEmail(event.getEmail());
+    }
+    
+    @Subscribe
+    public void handleProfileUpdates(UserProfileUpdatedEvent event) {
+        // Only receives UserProfileUpdatedEvent
+        auditLogger.logProfileChange(event);
+    }
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- Advanced Event Patterns -->
+            <section>
+                <h2>🚀 Advanced Event Patterns</h2>
+                
+                <div class="card">
+                    <h3>Event Chaining</h3>
+                    <p>Chain events together for complex workflows:</p>
+                    
+<pre><code>@Component
+public class OrderWorkflowHandler {
+    
+    @Inject
+    private EventBus eventBus;
+    
+    @Subscribe
+    public void handleOrderCreated(OrderCreatedEvent event) {
+        // Reserve inventory
+        InventoryReservation reservation = inventoryService.reserveItems(event.getItems());
+        
+        // Publish next event in chain
+        eventBus.publish(new InventoryReservedEvent(event.getOrderId(), reservation));
+    }
+    
+    @Subscribe
+    public void handleInventoryReserved(InventoryReservedEvent event) {
+        // Process payment
+        PaymentResult payment = paymentService.processPayment(
+            event.getOrderId(), 
+            event.getTotal()
+        );
+        
+        // Publish next event
+        if (payment.isSuccessful()) {
+            eventBus.publish(new PaymentCompletedEvent(event.getOrderId(), payment));
+        } else {
+            eventBus.publish(new PaymentFailedEvent(event.getOrderId(), payment.getError()));
+        }
+    }
+    
+    @Subscribe
+    public void handlePaymentCompleted(PaymentCompletedEvent event) {
+        // Ship order
+        ShippingInfo shippingInfo = shippingService.createShipment(event.getOrderId());
+        
+        // Final event in chain
+        eventBus.publish(new OrderCompletedEvent(event.getOrderId(), shippingInfo));
+    }
+}</code></pre>
+                </div>
+
+                <div class="card">
+                    <h3>Event Aggregation</h3>
+                    <p>Aggregate multiple events before processing:</p>
+                    
+<pre><code>@Component
+public class EventAggregator {
+    
+    private final Map&lt;String, List&lt;UserActionEvent&gt;&gt; userActionBuffer = new ConcurrentHashMap&lt;&gt;();
+    
+    @Subscribe
+    public void aggregateUserActions(UserActionEvent event) {
+        String userId = event.getUserId();
+        userActionBuffer.computeIfAbsent(userId, k -&gt; new ArrayList&lt;&gt;()).add(event);
+        
+        // Process buffer every 10 events or after 1 minute
+        List&lt;UserActionEvent&gt; events = userActionBuffer.get(userId);
+        if (events.size() &gt;= 10) {
+            processUserActions(userId, events);
+            userActionBuffer.remove(userId);
+        }
+    }
+    
+    @Scheduled(fixedRate = 60000)  // Process every minute
+    public void processBufferedEvents() {
+        userActionBuffer.forEach(this::processUserActions);
+        userActionBuffer.clear();
+    }
+    
+    private void processUserActions(String userId, List&lt;UserActionEvent&gt; events) {
+        // Analyze user behavior
+        UserBehaviorAnalysis analysis = analyzeUserBehavior(events);
+        
+        // Publish analysis result
+        eventBus.publish(new UserBehaviorAnalyzedEvent(userId, analysis));
+    }
+}</code></pre>
+                </div>
+
+                <div class="card">
+                    <h3>Event Sourcing</h3>
+                    <p>Use events as the source of truth:</p>
+                    
+<pre><code>@Component
+public class EventSourcedOrderService {
+    
+    @Inject
+    private EventStore eventStore;
+    
+    public void createOrder(String orderId, List&lt;OrderItem&gt; items) {
+        // Create event
+        OrderCreatedEvent event = new OrderCreatedEvent(orderId, items);
+        
+        // Store event
+        eventStore.store(event);
+        
+        // Apply event to update state
+        applyOrderCreated(event);
+    }
+    
+    public void addItemToOrder(String orderId, OrderItem item) {
+        // Load existing events
+        List&lt;DomainEvent&gt; events = eventStore.loadEvents(orderId);
+        
+        // Reconstruct current state
+        Order order = reconstructOrder(events);
+        
+        // Create new event
+        OrderItemAddedEvent event = new OrderItemAddedEvent(orderId, item);
+        
+        // Store and apply event
+        eventStore.store(event);
+        applyOrderItemAdded(event);
+    }
+    
+    private Order reconstructOrder(List&lt;DomainEvent&gt; events) {
+        Order order = new Order();
+        for (DomainEvent event : events) {
+            applyEvent(order, event);
+        }
+        return order;
+    }
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- Error Handling -->
+            <section>
+                <h2>🛡️ Error Handling</h2>
+                
+                <div class="card">
+                    <h3>Event Handler Error Handling</h3>
+                    
+<pre><code>@Component
+public class ResilientEventHandler {
+    
+    @Subscribe
+    public void handleWithRetry(UserRegisteredEvent event) {
+        try {
+            processUserRegistration(event);
+        } catch (Exception e) {
+            // Log error
+            errorLogger.logError("Failed to process user registration", e, Map.of(
+                "userId", event.userId(),
+                "email", event.email()
+            ));
+            
+            // Retry logic
+            retryService.scheduleRetry(() -&gt; processUserRegistration(event), 3);
+        }
+    }
+    
+    @Subscribe
+    public void handleWithFallback(UserRegisteredEvent event) {
+        try {
+            primaryHandler.handle(event);
+        } catch (Exception e) {
+            // Fallback to secondary handler
+            try {
+                fallbackHandler.handle(event);
+            } catch (Exception fallbackError) {
+                // Final fallback
+                deadLetterQueue.add(event);
+            }
+        }
+    }
+}</code></pre>
+
+                    <h4>Global Event Error Handler</h4>
+                    
+<pre><code>@Component
+public class GlobalEventErrorHandler {
+    
+    @EventListener
+    public void handleEventError(EventErrorEvent event) {
+        String errorType = event.getErrorType();
+        String handlerName = event.getHandlerName();
+        Exception error = event.getError();
+        
+        // Log error
+        errorLogger.logEventError(errorType, handlerName, error);
+        
+        // Alert if critical
+        if (isCriticalError(errorType)) {
+            alertingService.alert("Critical event processing error", Map.of(
+                "errorType", errorType,
+                "handler", handlerName,
+                "error", error.getMessage()
+            ));
+        }
+        
+        // Retry if applicable
+        if (isRetryableError(error)) {
+            eventBus.publish(new RetryEventEvent(event));
+        }
+    }
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- Performance -->
+            <section>
+                <h2>⚡ Performance Considerations</h2>
+                
+                <div class="card">
+                    <h3>Optimization Tips</h3>
+                    
+                    <ul>
+                        <li><strong>Use Async for Heavy Operations:</strong> Handle computationally expensive events asynchronously</li>
+                        <li><strong>Implement Event Filtering:</strong> Filter events early to avoid unnecessary processing</li>
+                        <li><strong>Use Event Aggregation:</strong> Batch multiple events for efficient processing</li>
+                        <li><strong>Monitor Event Processing:</strong> Track processing times and queue sizes</li>
+                        <li><strong>Implement Backpressure:</strong> Handle high event volumes gracefully</li>
+                    </ul>
+                    
+                    <h4>Configuration for High Throughput</h4>
+                    
+<pre><code># EventBus performance configuration
+veld.eventbus.thread-pool.size=20
+veld.eventbus.async.queue-capacity=10000
+veld.eventbus.batch.size=100
+veld.eventbus.batch.timeout=100ms
+
+# Memory management
+veld.eventbus.max-memory-mb=512
+veld.eventbus.cleanup-interval=60s</code></pre>
+                </div>
+
+                <div class="card">
+                    <h3>Monitoring and Metrics</h3>
+                    
+<pre><code>@Component
+public class EventBusMetrics {
+    
+    private final Counter eventPublished = Counter.builder()
+        .name("eventbus_events_published_total")
+        .description("Total number of events published")
+        .register(Metrics.globalRegistry);
+    
+    private final Timer eventProcessingTime = Timer.builder()
+        .name("eventbus_event_processing_duration")
+        .description("Time taken to process events")
+        .register(Metrics.globalRegistry);
+    
+    @Subscribe
+    public void recordMetrics(UserRegisteredEvent event) {
+        eventPublished.increment();
+        
+        Timer.Sample sample = Timer.start(Metrics.globalRegistry);
+        try {
+            // Process event
+            processEvent(event);
+        } finally {
+            sample.stop(eventProcessingTime);
+        }
+    }
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- Best Practices -->
+            <section>
+                <h2>💡 Best Practices</h2>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🎯</div>
+                        <h3>Keep Events Immutable</h3>
+                        <p>Events should be immutable data carriers. Use records or final classes with final fields.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">📝</div>
+                        <h3>Use Descriptive Event Names</h3>
+                        <p>Event class names should clearly indicate what happened: UserRegisteredEvent, OrderShippedEvent.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3>Handle Async Properly</h3>
+                        <p>Be careful with async events - they execute in different threads and exceptions are harder to trace.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">🛡️</div>
+                        <h3>Implement Error Handling</h3>
+                        <p>Always implement proper error handling for event handlers to prevent event loss.</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Common Patterns</h3>
+                    
+                    <h4>Domain Event Pattern</h4>
+                    
+<pre><code>// Domain events represent business facts
+public abstract class DomainEvent {
+    protected final String aggregateId;
+    protected final Instant occurredAt;
+    protected final long version;
+    
+    public DomainEvent(String aggregateId, long version) {
+        this.aggregateId = aggregateId;
+        this.occurredAt = Instant.now();
+        this.version = version;
+    }
+    
+    // Getters and common methods
+    public String getAggregateId() { return aggregateId; }
+    public Instant getOccurredAt() { return occurredAt; }
+    public long getVersion() { return version; }
+}</code></pre>
+
+                    <h4>Integration Event Pattern</h4>
+                    
+<pre><code>// Integration events for communication between bounded contexts
+public abstract class IntegrationEvent {
+    protected final String eventId;
+    protected final Instant occurredAt;
+    protected final String correlationId;
+    
+    public IntegrationEvent(String correlationId) {
+        this.eventId = UUID.randomUUID().toString();
+        this.occurredAt = Instant.now();
+        this.correlationId = correlationId;
+    }
+    
+    // Getters and common methods
+    public String getEventId() { return eventId; }
+    public Instant getOccurredAt() { return occurredAt; }
+    public String getCorrelationId() { return correlationId; }
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- Next Steps -->
+            <section>
+                <h2>🎯 Next Steps</h2>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🎯</div>
+                        <h3>AOP Integration</h3>
+                        <p>Learn how to use AOP with EventBus for advanced event processing</p>
+                        <a href="aop.html" class="btn btn-primary" style="margin-top: 1rem;">Learn AOP</a>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3>Performance</h3>
+                        <p>Explore Veld's performance optimizations for high-throughput event processing</p>
+                        <a href="optimizations.html" class="btn btn-primary" style="margin-top: 1rem;">View Performance</a>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">🎯</div>
+                        <h3>Examples</h3>
+                        <p>See practical EventBus examples in real-world scenarios</p>
+                        <a href="examples.html" class="btn btn-primary" style="margin-top: 1rem;">View Examples</a>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Scroll to Top Button -->
+    <button id="scroll-to-top" class="scroll-to-top" onclick="scrollToTop()">↑</button>
+
+    <!-- Scripts -->
+    <script src="js/main.js"></script>
+</body>
+</html>
