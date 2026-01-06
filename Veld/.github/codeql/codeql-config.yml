@@ -1,0 +1,18 @@
+name: "CodeQL Configuration"
+
+# Explicitly set build mode to manual for Maven projects
+build-mode: manual
+
+queries:
+  - security-and-quality
+
+paths-ignore:
+  - '**/target/**'
+  - '**/test/**'
+  - '**/.*'
+  - '**/*.md'
+  - '**/*.txt'
+  - '**/*.xml'
+  - '**/*.json'
+  - 'docs/**'
+  - '.github/**'
