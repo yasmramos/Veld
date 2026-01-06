@@ -30,7 +30,10 @@ import java.util.concurrent.Future;
  * @since 1.1.0
  */
 public class AsyncInterceptor implements CompileTimeInterceptor {
-    
+
+    /** Private constructor to prevent instantiation. */
+    private AsyncInterceptor() {}
+
     @Override
     public void beforeMethod(String methodName, Object[] args) {
         // No-op: async execution is handled by wrapAsync
