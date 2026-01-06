@@ -69,7 +69,7 @@
                 <executions>
                     <execution>
                         <id>attach-javadoc-jar</id>
-                        <phase>none</phase>
+                        <phase>${build-helper.attach.phase}</phase>
                     </execution>
                 </executions>
             </plugin>
