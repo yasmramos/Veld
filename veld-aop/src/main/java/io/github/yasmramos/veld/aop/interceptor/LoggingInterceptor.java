@@ -47,8 +47,8 @@ import java.util.Arrays;
 @Logged
 public class LoggingInterceptor implements CompileTimeInterceptor {
 
-    /** Private constructor to prevent instantiation. */
-    private LoggingInterceptor() {}
+    /** Package-private constructor for testing purposes. */
+    LoggingInterceptor() {}
 
     @AroundInvoke
     public Object logMethodCall(InvocationContext ctx) throws Throwable {
