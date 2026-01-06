@@ -819,7 +819,7 @@
             <properties>
                 <skipGpg>false</skipGpg>
                 <skipTests>false</skipTests>
-                <maven.deploy.skip>false</maven.deploy.skip>
+                <maven.deploy.skip>true</maven.deploy.skip>
                 <jacoco.skip>false</jacoco.skip>
                 <maven.javadoc.skip>false</maven.javadoc.skip>
                 <maven.source.skip>false</maven.source.skip>
@@ -827,20 +827,13 @@
             </properties>
             <build>
                 <plugins>
-                    <!-- Central Publishing Plugin for Maven Central -->
+                    <!-- Disable maven-deploy-plugin - Central Portal will inject and use its own -->
                     <plugin>
-                        <groupId>org.sonatype.central</groupId>
-                        <artifactId>central-publishing-maven-plugin</artifactId>
-                        <version>${central.publishing.plugin.version}</version>
-                        <extensions>true</extensions>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-deploy-plugin</artifactId>
+                        <version>3.1.2</version>
                         <configuration>
-                            <publishingServerId>central</publishingServerId>
-                            <autoPublish>true</autoPublish>
-                            <excludeArtifacts>
-                                <excludeArtifact>io.github.yasmramos:veld-benchmark</excludeArtifact>
-                                <excludeArtifact>io.github.yasmramos:veld-example</excludeArtifact>
-                                <excludeArtifact>io.github.yasmramos:veld-spring-boot-example</excludeArtifact>
-                            </excludeArtifacts>
+                            <skip>true</skip>
                         </configuration>
                     </plugin>
 
