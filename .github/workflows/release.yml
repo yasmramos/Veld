@@ -115,15 +115,15 @@ jobs:
     - name: Build and Test
       run: |
         echo "=== Building Veld Framework ${{ needs.prepare-release.outputs.version }} ==="
-        # Exclude example and benchmark modules - they are not published to Maven Central
-        mvn clean install -Dci.skip=true -B -pl '!veld-example,!veld-spring-boot-example,!veld-benchmark'
+        # Exclude example, benchmark, and maven plugin modules - not published to Maven Central
+        mvn clean install -Dci.skip=true -B -pl '!veld-example,!veld-spring-boot-example,!veld-benchmark,!veld-maven-plugin'
       env:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
 
     - name: Generate Javadoc
       run: |
         echo "=== Generating Javadoc ==="
-        mvn javadoc:javadoc -q -pl '!veld-example,!veld-spring-boot-example,!veld-benchmark'
+        mvn javadoc:javadoc -q -pl '!veld-example,!veld-spring-boot-example,!veld-benchmark,!veld-maven-plugin'
 
     - name: Generate Test Report
       if: always()
@@ -262,7 +262,7 @@ jobs:
           -s ~/.m2/settings.xml \
           -DskipTests=true \
           -Prelease \
-          -pl '!veld-example,!veld-spring-boot-example,!veld-benchmark' \
+          -pl '!veld-example,!veld-spring-boot-example,!veld-benchmark,!veld-maven-plugin' \
           -Dgpg.passphrase="$GPG_PASSPHRASE" \
           -Dgpg.keyname="$GPG_KEYNAME" \
           -Dgpg.executable=gpg \
