@@ -32,7 +32,7 @@
 
     <build>
         <plugins>
-            <!-- Generate Javadoc JAR -->
+            <!-- Generate Javadoc JAR with classifier -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -44,14 +44,14 @@
                         <goals>
                             <goal>jar</goal>
                         </goals>
-                        <configuration>
-                            <failOnError>false</failOnError>
-                            <additionalOptions>
-                                <additionalOption>-Xdoclint:none</additionalOption>
-                            </additionalOptions>
-                        </configuration>
                     </execution>
                 </executions>
+                <configuration>
+                    <classifier>javadoc</classifier>
+                    <additionalOptions>
+                        <additionalOption>-Xdoclint:none</additionalOption>
+                    </additionalOptions>
+                </configuration>
             </plugin>
         </plugins>
     </build>
