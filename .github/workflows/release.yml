@@ -115,14 +115,15 @@ jobs:
     - name: Build and Test
       run: |
         echo "=== Building Veld Framework ${{ needs.prepare-release.outputs.version }} ==="
-        mvn clean install -Dci.skip=true -B
+        # Exclude example and benchmark modules - they are not published to Maven Central
+        mvn clean install -Dci.skip=true -B -pl '!veld-example,!veld-spring-boot-example,!veld-benchmark'
       env:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
 
     - name: Generate Javadoc
       run: |
         echo "=== Generating Javadoc ==="
-        mvn javadoc:javadoc -q
+        mvn javadoc:javadoc -q -pl '!veld-example,!veld-spring-boot-example,!veld-benchmark'
 
     - name: Generate Test Report
       if: always()
@@ -261,6 +262,7 @@ jobs:
           -s ~/.m2/settings.xml \
           -DskipTests=true \
           -Prelease \
+          -pl '!veld-example,!veld-spring-boot-example,!veld-benchmark' \
           -Dgpg.passphrase="$GPG_PASSPHRASE" \
           -Dgpg.keyname="$GPG_KEYNAME" \
           -Dgpg.executable=gpg \
@@ -286,10 +288,12 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
 
         if [ -f "pom.xml" ]; then
-          echo "### Detected Modules from Parent POM" >> $GITHUB_STEP_SUMMARY
-          grep '<module>' pom.xml | sed 's/.*<module>//' | sed 's/<\/module>.*//' | while read module; do
+          echo "### Published Modules" >> $GITHUB_STEP_SUMMARY
+          grep '<module>' pom.xml | sed 's/.*<module>//' | sed 's/<\/module>.*//' | grep -v 'example\|benchmark' | while read module; do
             echo "- **$module**: \`io.github.yasmramos:$module:${{ needs.prepare-release.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
           done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** Example and benchmark modules are not published to Maven Central" >> $GITHUB_STEP_SUMMARY
         fi
 
     - name: Upload Deployment Artifacts
