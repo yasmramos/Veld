@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Reference - Veld DI Framework</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="index.html" class="logo">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;">
+                        <path d="M12 2L2 7v10c0 5.55 3.84 9.74 9 11 5.16-1.26 9-5.45 9-11V7l-10-5z"/>
+                    </svg>
+                    Veld
+                </a>
+                
+                <nav>
+                    <ul class="nav-menu">
+                        <li><a href="getting-started.html">Getting Started</a></li>
+                        <li><a href="annotations.html">Annotations</a></li>
+                        <li><a href="core-features.html">Core Features</a></li>
+                        <li><a href="aop.html">AOP</a></li>
+                        <li><a href="eventbus.html">EventBus</a></li>
+                <li><a href="spring-boot.html">Spring Boot Integration</a></li>
+                        <li><a href="spring-boot.html">Spring Boot</a></li>
+                        <li><a href="spring-boot.html">Spring Boot</a></li>
+                        <li><a href="api.html" class="active">API Reference</a></li>
+                        <li><a href="examples.html">Examples</a></li>
+                    </ul>
+                </nav>
+                
+                <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-layout">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <h3>Documentation</h3>
+            <ul class="sidebar-nav">
+                <li><a href="index.html">Overview</a></li>
+                <li><a href="getting-started.html">Getting Started</a></li>
+                <li><a href="installation.html">Installation</a></li>
+                <li><a href="annotations.html">Annotations Reference</a></li>
+                <li><a href="core-features.html">Core Features</a></li>
+                <li><a href="aop.html">Aspect-Oriented Programming</a></li>
+                <li><a href="eventbus.html">EventBus</a></li>
+                <li><a href="spring-boot.html">Spring Boot Integration</a></li>
+                        <li><a href="spring-boot.html">Spring Boot</a></li>
+                <li><a href="spring-boot.html">Spring Boot Integration</a></li>
+                <li><a href="optimizations.html">Phase 1 Optimizations</a></li>
+                <li><a href="api.html" class="active">API Reference</a></li>
+                <li><a href="examples.html">Examples</a></li>
+            </ul>
+        </nav>
+
+        <!-- Content -->
+        <div class="content">
+            <h1>📚 API Reference</h1>
+            
+            <div class="alert alert-info">
+                <strong>🔍 Complete Reference:</strong> This page provides comprehensive API documentation for all Veld components, classes, and methods.
+            </div>
+
+            <!-- Core API -->
+            <section>
+                <h2>🏗️ Core API</h2>
+                
+                <div class="card">
+                    <h3>Veld</h3>
+                    <p>Main container class for managing Veld components and dependency injection.</p>
+                    
+                    <h4>Constructor</h4>
+<pre><code>public Veld()
+public Veld(VeldConfiguration configuration)</code></pre>
+
+                    <h4>Methods</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Return Type</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>start()</code></td>
+                                <td><code>void</code></td>
+                                <td>Start the container and initialize all components</td>
+                            </tr>
+                            <tr>
+                                <td><code>shutdown()</code></td>
+                                <td><code>void</code></td>
+                                <td>Shutdown the container and cleanup resources</td>
+                            </tr>
+                            <tr>
+                                <td><code>&lt;T&gt; T getBean(Class&lt;T&gt; type)</code></td>
+                                <td><code>T</code></td>
+                                <td>Get a bean instance by type</td>
+                            </tr>
+                            <tr>
+                                <td><code>&lt;T&gt; T getBean(String name, Class&lt;T&gt; type)</code></td>
+                                <td><code>T</code></td>
+                                <td>Get a bean instance by name and type</td>
+                            </tr>
+                            <tr>
+                                <td><code>&lt;T&gt; List&lt;T&gt; getBeansOfType(Class&lt;T&gt; type)</code></td>
+                                <td><code>List&lt;T&gt;</code></td>
+                                <td>Get all beans of a specific type</td>
+                            </tr>
+                            <tr>
+                                <td><code>boolean containsBean(String name)</code></td>
+                                <td><code>boolean</code></td>
+                                <td>Check if a bean with the given name exists</td>
+                            </tr>
+                            <tr>
+                                <td><code>String[] getBeanNames()</code></td>
+                                <td><code>String[]</code></td>
+                                <td>Get names of all registered beans</td>
+                            </tr>
+                            <tr>
+                                <td><code>void registerBean(Object bean)</code></td>
+                                <td><code>void</code></td>
+                                <td>Register a bean instance manually</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4>Usage Example</h4>
+<pre><code>// Use the generated Veld class;
+container.start();
+
+// Get beans
+UserService userService = container.getBean(UserService.class);
+List&lt;UserRepository&gt; repositories = container.getBeansOfType(UserRepository.class);
+
+// Manual registration
+container.registerBean(new CustomService());
+
+container.shutdown();</code></pre>
+                </div>
+
+                <div class="card">
+                    <h3>VeldConfiguration</h3>
+                    <p>Configuration class for customizing Veld container behavior.</p>
+                    
+                    <h4>Builder Methods</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Return Type</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>optimizationEnabled(boolean enabled)</code></td>
+                                <td><code>VeldConfiguration</code></td>
+                                <td>Enable/disable Phase 1 optimizations</td>
+                            </tr>
+                            <tr>
+                                <td><code>cacheEnabled(boolean enabled)</code></td>
+                                <td><code>VeldConfiguration</code></td>
+                                <td>Enable/disable annotation cache</td>
+                            </tr>
+                            <tr>
+                                <td><code>parallelEnabled(boolean enabled)</code></td>
+                                <td><code>VeldConfiguration</code></td>
+                                <td>Enable/disable parallel processing</td>
+                            </tr>
+                            <tr>
+                                <td><code>threadPoolSize(int size)</code></td>
+                                <td><code>VeldConfiguration</code></td>
+                                <td>Set thread pool size for parallel processing</td>
+                            </tr>
+                            <tr>
+                                <td><code>cacheSize(int size)</code></td>
+                                <td><code>VeldConfiguration</code></td>
+                                <td>Set annotation cache size</td>
+                            </tr>
+                            <tr>
+                                <td><code>profile(String profile)</code></td>
+                                <td><code>VeldConfiguration</code></td>
+                                <td>Set active profile for conditional beans</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4>Usage Example</h4>
+<pre><code>VeldConfiguration config = VeldConfiguration.builder()
+    .optimizationEnabled(true)
+    .cacheEnabled(true)
+    .parallelEnabled(true)
+    .threadPoolSize(8)
+    .cacheSize(10000)
+    .profile("production")
+    .build();
+
+Veld container = new Veld(config);
+container.start();</code></pre>
+                </div>
+            </section>
+
+            <!-- EventBus API -->
+            <section>
+                <h2>📡 EventBus API</h2>
+                
+                <div class="card">
+                    <h3>EventBus</h3>
+                    <p>Main class for publish/subscribe event management.</p>
+                    
+                    <h4>Methods</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Return Type</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>void publish(Object event)</code></td>
+                                <td><code>void</code></td>
+                                <td>Publish an event synchronously</td>
+                            </tr>
+                            <tr>
+                                <td><code>void publishAsync(Object event)</code></td>
+                                <td><code>void</code></td>
+                                <td>Publish an event asynchronously</td>
+                            </tr>
+                            <tr>
+                                <td><code>void subscribe(Object subscriber)</code></td>
+                                <td><code>void</code></td>
+                                <td>Subscribe an object to receive events</td>
+                            </tr>
+                            <tr>
+                                <td><code>void unsubscribe(Object subscriber)</code></td>
+                                <td><code>void</code></td>
+                                <td>Unsubscribe an object from events</td>
+                            </tr>
+                            <tr>
+                                <td><code>void clear()</code></td>
+                                <td><code>void</code></td>
+                                <td>Clear all subscriptions</td>
+                            </tr>
+                            <tr>
+                                <td><code>int getSubscriberCount()</code></td>
+                                <td><code>int</code></td>
+                                <td>Get number of active subscribers</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4>Usage Example</h4>
+<pre><code>@Inject
+private EventBus eventBus;
+
+// Publish events
+eventBus.publish(new UserRegisteredEvent("user123", "john@example.com"));
+eventBus.publishAsync(new HeavyProcessingEvent());
+
+// Subscribe/unsubscribe
+eventBus.subscribe(myEventHandler);
+eventBus.unsubscribe(myEventHandler);</code></pre>
+                </div>
+            </section>
+
+            <!-- Cache API -->
+            <section>
+                <h2>💾 Cache API</h2>
+                
+                <div class="card">
+                    <h3>Cache Interface</h3>
+                    <p>Interface for caching functionality in Veld.</p>
+                    
+                    <h4>Methods</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Return Type</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>V put(K key, V value)</code></td>
+                                <td><code>V</code></td>
+                                <td>Put a value in the cache</td>
+                            </tr>
+                            <tr>
+                                <td><code>V get(K key)</code></td>
+                                <td><code>V</code></td>
+                                <td>Get a value from the cache</td>
+                            </tr>
+                            <tr>
+                                <td><code>V remove(K key)</code></td>
+                                <td><code>V</code></td>
+                                <td>Remove a value from the cache</td>
+                            </tr>
+                            <tr>
+                                <td><code>void clear()</code></td>
+                                <td><code>void</code></td>
+                                <td>Clear all cache entries</td>
+                            </tr>
+                            <tr>
+                                <td><code>int size()</code></td>
+                                <td><code>int</code></td>
+                                <td>Get cache size</td>
+                            </tr>
+                            <tr>
+                                <td><code>boolean containsKey(K key)</code></td>
+                                <td><code>boolean</code></td>
+                                <td>Check if cache contains key</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Processor API -->
+            <section>
+                <h2>⚙️ Processor API</h2>
+                
+                <div class="card">
+                    <h3>VeldProcessor</h3>
+                    <p>Main annotation processor for Veld framework.</p>
+                    
+                    <h4>Supported Options</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Option</th>
+                                <th>Type</th>
+                                <th>Default</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>veld.optimization.enabled</code></td>
+                                <td><code>boolean</code></td>
+                                <td><code>true</code></td>
+                                <td>Enable Phase 1 optimizations</td>
+                            </tr>
+                            <tr>
+                                <td><code>veld.cache.enabled</code></td>
+                                <td><code>boolean</code></td>
+                                <td><code>true</code></td>
+                                <td>Enable annotation caching</td>
+                            </tr>
+                            <tr>
+                                <td><code>veld.parallel.enabled</code></td>
+                                <td><code>boolean</code></td>
+                                <td><code>true</code></td>
+                                <td>Enable parallel processing</td>
+                            </tr>
+                            <tr>
+                                <td><code>veld.thread.pool.size</code></td>
+                                <td><code>int</code></td>
+                                <td><code>CPU_CORES</code></td>
+                                <td>Thread pool size</td>
+                            </tr>
+                            <tr>
+                                <td><code>veld.cache.size</code></td>
+                                <td><code>int</code></td>
+                                <td><code>1000</code></td>
+                                <td>Cache size limit</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4>Processor Configuration</h4>
+                    
+<pre><code>&lt;!-- Maven --&gt;
+&lt;compilerArgs&gt;
+    &lt;arg&gt;-Aveld.optimization.enabled=true&lt;/arg&gt;
+    &lt;arg&gt;-Aveld.cache.enabled=true&lt;/arg&gt;
+    &lt;arg&gt;-Aveld.parallel.enabled=true&lt;/arg&gt;
+    &lt;arg&gt;-Aveld.thread.pool.size=8&lt;/arg&gt;
+    &lt;arg&gt;-Aveld.cache.size=10000&lt;/arg&gt;
+&lt;/compilerArgs&gt;</code></pre>
+                </div>
+            </section>
+
+            <!-- Utility Classes -->
+            <section>
+                <h2>🔧 Utility Classes</h2>
+                
+                <div class="card">
+                    <h3>ComponentInfo</h3>
+                    <p>Information about a Veld component.</p>
+                    
+                    <h4>Methods</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Return Type</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>String getName()</code></td>
+                                <td><code>String</code></td>
+                                <td>Get component name</td>
+                            </tr>
+                            <tr>
+                                <td><code>Class&lt;?&gt; getType()</code></td>
+                                <td><code>Class&lt;?&gt;</code></td>
+                                <td>Get component class</td>
+                            </tr>
+                            <tr>
+                                <td><code>Scope getScope()</code></td>
+                                <td><code>Scope</code></td>
+                                <td>Get component scope</td>
+                            </tr>
+                            <tr>
+                                <td><code>List&lt;FieldInfo&gt; getFields()</code></td>
+                                <td><code>List&lt;FieldInfo&gt;</code></td>
+                                <td>Get injected fields</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <h3>Scope</h3>
+                    <p>Enumeration of available scopes.</p>
+                    
+                    <h4>Values</h4>
+                    <ul>
+                        <li><code>SINGLETON</code> - Single instance per container</li>
+                        <li><code>PROTOTYPE</code> - New instance for each injection</li>
+                        <li><code>LAZY</code> - Deferred creation until first access</li>
+                        <li><code>REQUEST</code> - One instance per request (web applications)</li>
+                        <li><code>SESSION</code> - One instance per session (web applications)</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>FieldInfo</h3>
+                    <p>Information about an injected field.</p>
+                    
+                    <h4>Methods</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Return Type</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>String getName()</code></td>
+                                <td><code>String</code></td>
+                                <td>Get field name</td>
+                            </tr>
+                            <tr>
+                                <td><code>Class&lt;?&gt; getType()</code></td>
+                                <td><code>Class&lt;?&gt;</code></td>
+                                <td>Get field type</td>
+                            </tr>
+                            <tr>
+                                <td><code>boolean isOptional()</code></td>
+                                <td><code>boolean</code></td>
+                                <td>Check if field is optional</td>
+                            </tr>
+                            <tr>
+                                <td><code>boolean isRequired()</code></td>
+                                <td><code>boolean</code></td>
+                                <td>Check if field is required</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Exceptions -->
+            <section>
+                <h2>⚠️ Exceptions</h2>
+                
+                <div class="card">
+                    <h3>VeldException</h3>
+                    <p>Base exception for all Veld-related errors.</p>
+                    
+<pre><code>public class VeldException extends RuntimeException {
+    public VeldException(String message);
+    public VeldException(String message, Throwable cause);
+    public VeldException(Throwable cause);
+}</code></pre>
+                </div>
+
+                <div class="card">
+                    <h3>CircularDependencyException</h3>
+                    <p>Thrown when a circular dependency is detected.</p>
+                    
+<pre><code>public class CircularDependencyException extends VeldException {
+    public CircularDependencyException(String message);
+    public CircularDependencyException(String message, List&lt;String&gt; dependencyPath);
+}</code></pre>
+                </div>
+
+                <div class="card">
+                    <h3>ComponentNotFoundException</h3>
+                    <p>Thrown when a required component cannot be found.</p>
+                    
+<pre><code>public class ComponentNotFoundException extends VeldException {
+    public ComponentNotFoundException(String componentName);
+    public ComponentNotFoundException(Class&lt;?&gt; componentType);
+}</code></pre>
+                </div>
+
+                <div class="card">
+                    <h3>DuplicateComponentException</h3>
+                    <p>Thrown when multiple components of the same type are found without qualifiers.</p>
+                    
+<pre><code>public class DuplicateComponentException extends VeldException {
+    public DuplicateComponentException(String message);
+    public DuplicateComponentException(Class&lt;?&gt; componentType, List&lt;String&gt; beanNames);
+}</code></pre>
+                </div>
+            </section>
+
+            <!-- Annotations API -->
+            <section>
+                <h2>📝 Annotations API</h2>
+                
+                <div class="card">
+                    <h3>Core Annotations</h3>
+                    <p>All Veld annotations are located in the <code>io.github.yasmramos.veld.annotation</code> package.</p>
+                    
+                    <h4>Component Annotations</h4>
+                    <ul>
+                        <li><code>@Component</code> - Define a managed component</li>
+                        <li><code>@Module</code> - Define a configuration module</li>
+                        <li><code>@Primary</code> - Mark component as primary</li>
+                        <li><code>@Order</code> - Define component ordering</li>
+                    </ul>
+
+                    <h4>Injection Annotations</h4>
+                    <ul>
+                        <li><code>@Inject</code> - Mark field/method/constructor for injection</li>
+                        <li><code>@Optional</code> - Mark injection as optional</li>
+                        <li><code>@Provider</code> - Inject a provider for lazy creation</li>
+                        <li><code>@Value</code> - Inject configuration values</li>
+                    </ul>
+
+                    <h4>Scope Annotations</h4>
+                    <ul>
+                        <li><code>@Singleton</code> - Single instance scope</li>
+                        <li><code>@Prototype</code> - Multiple instance scope</li>
+                        <li><code>@Lazy</code> - Lazy initialization</li>
+                    </ul>
+
+                    <h4>Lifecycle Annotations</h4>
+                    <ul>
+                        <li><code>@PostConstruct</code> - Post-initialization callback</li>
+                        <li><code>@PreDestroy</code> - Pre-destruction callback</li>
+                    </ul>
+
+                    <h4>AOP Annotations</h4>
+                    <ul>
+                        <li><code>@Aspect</code> - Define an aspect</li>
+                        <li><code>@Pointcut</code> - Define a pointcut</li>
+                        <li><code>@Before</code> - Before advice</li>
+                        <li><code>@After</code> - After advice</li>
+                        <li><code>@Around</code> - Around advice</li>
+                    </ul>
+
+                    <h4>Event Annotations</h4>
+                    <ul>
+                        <li><code>@Subscribe</code> - Mark method as event handler</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Configuration -->
+            <section>
+                <h2>⚙️ Configuration API</h2>
+                
+                <div class="card">
+                    <h3>Configuration Properties</h3>
+                    <p>Veld can be configured using system properties, environment variables, or configuration files.</p>
+                    
+                    <h4>Core Properties</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Property</th>
+                                <th>Type</th>
+                                <th>Default</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>veld.optimization.enabled</code></td>
+                                <td><code>boolean</code></td>
+                                <td><code>true</code></td>
+                                <td>Enable optimizations</td>
+                            </tr>
+                            <tr>
+                                <td><code>veld.cache.enabled</code></td>
+                                <td><code>boolean</code></td>
+                                <td><code>true</code></td>
+                                <td>Enable caching</td>
+                            </tr>
+                            <tr>
+                                <td><code>veld.parallel.enabled</code></td>
+                                <td><code>boolean</code></td>
+                                <td><code>true</code></td>
+                                <td>Enable parallel processing</td>
+                            </tr>
+                            <tr>
+                                <td><code>veld.thread.pool.size</code></td>
+                                <td><code>int</code></td>
+                                <td><code>CPU_CORES</code></td>
+                                <td>Thread pool size</td>
+                            </tr>
+                            <tr>
+                                <td><code>veld.cache.size</code></td>
+                                <td><code>int</code></td>
+                                <td><code>1000</code></td>
+                                <td>Cache size limit</td>
+                            </tr>
+                            <tr>
+                                <td><code>veld.profile</code></td>
+                                <td><code>String</code></td>
+                                <td><code>default</code></td>
+                                <td>Active profile</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4>Usage</h4>
+                    
+<pre><code># System properties
+java -Dveld.optimization.enabled=true -Dveld.cache.size=10000 MyApp
+
+# Environment variables
+export VELD_OPTIMIZATION_ENABLED=true
+export VELD_CACHE_SIZE=10000
+
+# Configuration file (application.properties)
+veld.optimization.enabled=true
+veld.cache.size=10000
+veld.profile=production</code></pre>
+                </div>
+            </section>
+
+            <!-- Best Practices -->
+            <section>
+                <h2>💡 Best Practices</h2>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🔒</div>
+                        <h3>Type Safety</h3>
+                        <p>Always use generic types when possible to ensure type safety at compile time.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3>Performance</h3>
+                        <p>Enable optimizations for production and disable detailed logging.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">🧪</div>
+                        <h3>Testing</h3>
+                        <p>Use mock configurations for testing to ensure deterministic behavior.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <h3>Monitoring</h3>
+                        <p>Monitor container startup time and memory usage in production.</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Scroll to Top Button -->
+    <button id="scroll-to-top" class="scroll-to-top" onclick="scrollToTop()">↑</button>
+
+    <!-- Scripts -->
+    <script src="js/main.js"></script>
+</body>
+</html>
