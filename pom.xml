@@ -141,7 +141,7 @@
 
         <!-- GraalVM versions -->
         <graalvm.version>22.3.2</graalvm.version>
-        <maven.javadoc.skip>false</maven.javadoc.skip>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
         <build-helper.attach.phase>package</build-helper.attach.phase>
 
         <!-- CI/Benchmark properties -->
@@ -809,7 +809,7 @@
             </distributionManagement>
             <properties>
                 <!-- Enable javadoc/sources for GitHub Packages -->
-                <maven.javadoc.skip>false</maven.javadoc.skip>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
                 <maven.source.skip>false</maven.source.skip>
                 <build-helper.attach.phase>package</build-helper.attach.phase>
             </properties>
@@ -826,7 +826,7 @@
                 <skipTests>false</skipTests>
                 <maven.deploy.skip>true</maven.deploy.skip>
                 <jacoco.skip>true</jacoco.skip>
-                <maven.javadoc.skip>false</maven.javadoc.skip>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
                 <maven.source.skip>false</maven.source.skip>
                 <build-helper.attach.phase>package</build-helper.attach.phase>
             </properties>
