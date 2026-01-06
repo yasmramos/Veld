@@ -1,3 +1,0 @@
-# Auto-configuration for Veld Framework Spring Boot Integration
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-io.github.yasmramos.veld.boot.starter.autoconfigure.VeldAutoConfiguration
