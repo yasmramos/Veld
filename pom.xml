@@ -109,7 +109,7 @@
         <asm.version>9.9.1</asm.version>
         <javax.inject.version>1</javax.inject.version>
         <jakarta.inject.version>2.0.1</jakarta.inject.version>
-        <jacoco.version>0.8.15</jacoco.version>
+        <jacoco.version>0.8.14</jacoco.version>
 
         <!-- Spring Boot versions -->
         <spring-boot.version>4.0.1</spring-boot.version>
