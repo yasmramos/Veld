@@ -633,6 +633,7 @@
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central.publishing.plugin.version}</version>
                         <configuration>
                             <skip>true</skip>
                         </configuration>
@@ -701,6 +702,7 @@
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central.publishing.plugin.version}</version>
                         <configuration>
                             <skip>true</skip>
                         </configuration>
@@ -790,6 +792,7 @@
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central.publishing.plugin.version}</version>
                         <configuration>
                             <skip>true</skip>
                         </configuration>
