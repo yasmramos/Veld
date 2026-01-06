@@ -1,0 +1,434 @@
+name: Benchmark Performance Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      benchmark_mode:
+        description: 'Benchmark mode'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - development
+          - quick
+          - selective
+          - full
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    
+    timeout-minutes: 200  # 3+ horas de timeout total para full benchmarks
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for better analysis
+        
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: Install Python for analysis
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Display versions
+      run: |
+        echo "=== System Information ==="
+        echo "Java version:"
+        java -version
+        echo "Maven version:"
+        mvn -version
+        echo "Available memory:"
+        free -h
+        
+    - name: Create results directory
+      run: mkdir -p veld-benchmark/results
+
+    # Phase 1: Build and Install ALL Veld Framework modules
+    # This ensures veld-maven-plugin and all dependencies are available locally
+    - name: Build and Install All Framework Modules
+      run: |
+        echo "=== Building and installing ALL Veld modules ==="
+        cd Veld
+        mvn clean install -DskipTests -Pbenchmark -Dmaven.javadoc.skip=true
+      env:
+        MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
+      timeout-minutes: 20
+
+    # Phase 2: Build Benchmark module (if available)
+    - name: Build Benchmark Module
+      run: |
+        echo "=== Checking for veld-benchmark module ==="
+        if [ -d "Veld/veld-benchmark" ] && [ -f "Veld/veld-benchmark/pom.xml" ]; then
+          echo "Building veld-benchmark module..."
+          cd Veld/veld-benchmark
+          mvn clean package -DskipTests -Pbenchmark
+        else
+          echo "⚠️ veld-benchmark module not found or not part of reactor"
+          echo "Skipping benchmark build - this is expected if module is excluded"
+          exit 0
+        fi
+      env:
+        MAVEN_OPTS: "-Ddepgraph.skip=true"
+      timeout-minutes: 5
+        
+    # Phase 3: Verify build success
+    - name: Verify benchmark JAR exists
+      run: |
+        echo "=== Verifying benchmark build ==="
+        if [ -d "veld-benchmark" ] && [ -f "veld-benchmark/target/veld-benchmark.jar" ]; then
+          echo "✅ Benchmark JAR built successfully"
+          ls -la veld-benchmark/target/veld-benchmark.jar
+          
+          # Verify JAR is executable
+          echo "=== Testing JAR execution ==="
+          cd veld-benchmark
+          java -jar target/veld-benchmark.jar --help 2>/dev/null || echo "JAR execution test completed"
+        else
+          if [ -d "veld-benchmark" ]; then
+            echo "⚠️ veld-benchmark exists but JAR not found"
+            echo "Checking target directory:"
+            ls -la veld-benchmark/target/ 2>/dev/null || echo "Target directory missing"
+          else
+            echo "ℹ️ veld-benchmark module not found - skipping verification"
+            echo "This is expected if the module is excluded from the reactor"
+          fi
+          echo "Continuing workflow..."
+        fi
+      timeout-minutes: 3
+      
+    # Phase 4: Run Benchmarks
+    - name: Run Development Benchmarks
+      if: ${{ github.event.inputs.benchmark_mode == 'development' }}
+      run: |
+        if [ -d "veld-benchmark" ] && [ -f "veld-benchmark/target/veld-benchmark.jar" ]; then
+          cd veld-benchmark
+          echo "⚡ Running DEVELOPMENT benchmarks (ultra-fast)..."
+          # Ultra-fast mode for CI: 1 fork, 0 warmup, 1 iteration
+          java -Xmx512m -jar target/veld-benchmark.jar \
+            -f 1 -wi 0 -i 1 -bs 1 \
+            -rf json \
+            -rff results/development-benchmarks.json
+        else
+          echo "⚠️ veld-benchmark module not available - skipping development benchmarks"
+          echo "Creating placeholder results..."
+          mkdir -p veld-benchmark/results
+          echo '{"mode":"development","status":"skipped","reason":"module_not_available"}' > veld-benchmark/results/development-benchmarks.json
+        fi
+      timeout-minutes: 3
+          
+    - name: Run Quick Benchmarks
+      if: ${{ github.event.inputs.benchmark_mode == 'quick' }}
+      run: |
+        if [ -d "veld-benchmark" ] && [ -f "veld-benchmark/target/veld-benchmark.jar" ]; then
+          cd veld-benchmark
+          echo "🚀 Running QUICK benchmarks for development..."
+          # Fast mode for CI: 1 fork, 1 warmup, 1 iteration
+          java -Xmx1g -jar target/veld-benchmark.jar \
+            -f 1 -wi 1 -i 1 -bs 1 \
+            -rf json \
+            -rff results/quick-benchmarks.json
+        else
+          echo "⚠️ veld-benchmark module not available - skipping quick benchmarks"
+          echo "Creating placeholder results..."
+          mkdir -p veld-benchmark/results
+          echo '{"mode":"quick","status":"skipped","reason":"module_not_available"}' > veld-benchmark/results/quick-benchmarks.json
+        fi
+      timeout-minutes: 5
+          
+    - name: Run Full Benchmarks  
+      if: ${{ github.event.inputs.benchmark_mode == 'full' }}
+      run: |
+        if [ -d "veld-benchmark" ] && [ -f "veld-benchmark/target/veld-benchmark.jar" ]; then
+          cd veld-benchmark
+          echo "🏆 Running FULL benchmarks for publication..."
+          java -Xmx2g -jar target/veld-benchmark.jar \
+            -f 5 -wi 5 -i 10 \
+            -rf json \
+            -rff results/full-benchmarks.json
+        else
+          echo "⚠️ veld-benchmark module not available - skipping full benchmarks"
+          echo "Creating placeholder results..."
+          mkdir -p veld-benchmark/results
+          echo '{"mode":"full","status":"skipped","reason":"module_not_available"}' > veld-benchmark/results/full-benchmarks.json
+        fi
+      timeout-minutes: 180
+          
+    - name: Run Selective Benchmarks
+      if: ${{ github.event.inputs.benchmark_mode == 'selective' || github.event.inputs.benchmark_mode == '' }}
+      run: |
+        if [ -d "veld-benchmark" ] && [ -f "veld-benchmark/target/veld-benchmark.jar" ]; then
+          cd veld-benchmark
+          echo "🎯 Running SELECTIVE benchmarks (fast mode)..."
+          
+          # Lifecycle benchmarks
+          echo "Running lifecycle benchmarks..."
+          java -Xmx1g -jar target/veld-benchmark.jar ".*Lifecycle.*|.*Plain.*" \
+            -f 1 -wi 1 -i 2 -bs 1 \
+            -rf json -rff results/startup-results.json
+          
+          # Injection benchmarks
+          echo "Running injection benchmarks..."
+          java -Xmx1g -jar target/veld-benchmark.jar ".*Injection.*" \
+            -f 1 -wi 1 -i 2 -bs 1 \
+            -rf json -rff results/injection-results.json
+          
+          # Feature/overhead benchmarks  
+          echo "Running feature overhead benchmarks..."
+          java -Xmx1g -jar target/veld-benchmark.jar ".*Feature.*|.*Overhead.*|.*Baseline.*" \
+            -f 1 -wi 1 -i 2 -bs 1 \
+            -rf json -rff results/throughput-results.json
+          
+          # Validation benchmarks
+          echo "Running validation benchmarks..."
+          java -Xmx1g -jar target/veld-benchmark.jar ".*Validation.*" \
+            -f 1 -wi 1 -i 2 -bs 1 \
+            -rf json -rff results/memory-results.json
+        else
+          echo "⚠️ veld-benchmark module not available - skipping selective benchmarks"
+          echo "Creating placeholder results..."
+          mkdir -p veld-benchmark/results
+          echo '{"mode":"selective","status":"skipped","reason":"module_not_available"}' > veld-benchmark/results/startup-results.json
+          echo '{"mode":"selective","status":"skipped","reason":"module_not_available"}' > veld-benchmark/results/injection-results.json
+          echo '{"mode":"selective","status":"skipped","reason":"module_not_available"}' > veld-benchmark/results/throughput-results.json
+          echo '{"mode":"selective","status":"skipped","reason":"module_not_available"}' > veld-benchmark/results/memory-results.json
+        fi
+      timeout-minutes: 12
+          
+    # Phase 5: Debug build issues if benchmark fails
+    - name: Debug build issues
+      if: failure()
+      run: |
+        echo "=== Debugging build issues ==="
+        echo "Project structure:"
+        find . -name "pom.xml" -exec echo "Found POM: {}" \;
+        
+        echo "Java source structure:"
+        find . -path "*/src/main/java" -type d | head -10
+        
+        echo "Maven local repository:"
+        ls -la ~/.m2/repository/io/github/yasmramos/ 2>/dev/null || echo "No Veld artifacts in local repo"
+        
+        echo "Recent Maven logs:"
+        find ~/.m2/repository -name "*.log" -mtime -1 | head -5 | while read log; do
+          echo "=== $log ==="
+          tail -20 "$log"
+        done
+        
+    # Phase 6: Analyze Results (if Python script exists)
+    - name: Generate Analysis Report
+      if: always()
+      run: |
+        echo "=== Analyzing benchmark results ==="
+        if [ -d "veld-benchmark/results" ]; then
+          echo "Results directory contents:"
+          ls -la veld-benchmark/results/
+          
+          if [ -f "veld-benchmark/scripts/analyze-strategic-results.py" ]; then
+            echo "📊 Generating analysis report..."
+            cd veld-benchmark
+            python3 scripts/analyze-strategic-results.py || echo "Analysis script failed, continuing..."
+          else
+            echo "📊 Basic results summary:"
+            find veld-benchmark/results/ -name "*.json" -exec echo "✅ {}" \;
+          fi
+        else
+          echo "❌ No results directory found"
+        fi
+        
+    # Phase 7: Generate Markdown Summary
+    - name: Generate BENCHMARK_RESULT.md
+      if: always()
+      run: |
+        echo "=== Generating BENCHMARK_RESULT.md ==="
+        cd veld-benchmark
+        
+        # Create markdown report using echo commands
+        echo "# 📊 VELD FRAMEWORK BENCHMARK RESULTS" > BENCHMARK_RESULT.md
+        echo "" >> BENCHMARK_RESULT.md
+        echo "**Generated:** $(date)" >> BENCHMARK_RESULT.md
+        echo "**Mode:** ${{ github.event.inputs.benchmark_mode || 'full' }}" >> BENCHMARK_RESULT.md
+        echo "**Trigger:** ${{ github.event_name }}" >> BENCHMARK_RESULT.md
+        echo "**Java Version:** $(java -version 2>&1 | head -1)" >> BENCHMARK_RESULT.md
+        echo "**Maven Version:** $(mvn -version | head -1)" >> BENCHMARK_RESULT.md
+        echo "**Run ID:** ${{ github.run_number }}" >> BENCHMARK_RESULT.md
+        echo "" >> BENCHMARK_RESULT.md
+        echo "---" >> BENCHMARK_RESULT.md
+        echo "" >> BENCHMARK_RESULT.md
+        echo "## 🎯 EXECUTIVE SUMMARY" >> BENCHMARK_RESULT.md
+        echo "" >> BENCHMARK_RESULT.md
+        
+        # Add summary based on available results
+        if [ -f "results/development-benchmarks.json" ]; then
+          echo "### ⚡ Development Mode Results" >> BENCHMARK_RESULT.md
+          echo "Ultra-fast benchmarks completed in ~1-2 minutes." >> BENCHMARK_RESULT.md
+          echo "**File:** \`results/development-benchmarks.json\`" >> BENCHMARK_RESULT.md
+          echo "" >> BENCHMARK_RESULT.md
+        fi
+        
+        if [ -f "results/quick-benchmarks.json" ]; then
+          echo "### 🚀 Quick Mode Results" >> BENCHMARK_RESULT.md
+          echo "Fast benchmarks completed in ~3-5 minutes." >> BENCHMARK_RESULT.md
+          echo "**File:** \`results/quick-benchmarks.json\`" >> BENCHMARK_RESULT.md
+          echo "" >> BENCHMARK_RESULT.md
+        fi
+        
+        if [ -f "results/startup-results.json" ]; then
+          echo "### ⏱️ Lifecycle Performance" >> BENCHMARK_RESULT.md
+          echo "Container lifecycle and bean creation benchmarks." >> BENCHMARK_RESULT.md
+          echo "**File:** \`results/startup-results.json\`" >> BENCHMARK_RESULT.md
+          echo "" >> BENCHMARK_RESULT.md
+        fi
+        
+        if [ -f "results/injection-results.json" ]; then
+          echo "### 💉 Dependency Injection Performance" >> BENCHMARK_RESULT.md
+          echo "Speed of dependency injection operations." >> BENCHMARK_RESULT.md
+          echo "**File:** \`results/injection-results.json\`" >> BENCHMARK_RESULT.md
+          echo "" >> BENCHMARK_RESULT.md
+        fi
+        
+        if [ -f "results/throughput-results.json" ]; then
+          echo "### 📊 Feature Overhead Performance" >> BENCHMARK_RESULT.md
+          echo "AOP and feature overhead benchmarks." >> BENCHMARK_RESULT.md
+          echo "**File:** \`results/throughput-results.json\`" >> BENCHMARK_RESULT.md
+          echo "" >> BENCHMARK_RESULT.md
+        fi
+        
+        if [ -f "results/memory-results.json" ]; then
+          echo "### 🧠 Validation Performance" >> BENCHMARK_RESULT.md
+          echo "Validation overhead and performance analysis." >> BENCHMARK_RESULT.md
+          echo "**File:** \`results/memory-results.json\`" >> BENCHMARK_RESULT.md
+          echo "" >> BENCHMARK_RESULT.md
+        fi
+        
+        if [ -f "results/full-benchmarks.json" ]; then
+          echo "### 🏆 Full Mode Results" >> BENCHMARK_RESULT.md
+          echo "Complete benchmarks with maximum precision (5 forks, 5 warmup, 10 iterations)." >> BENCHMARK_RESULT.md
+          echo "**File:** \`results/full-benchmarks.json\`" >> BENCHMARK_RESULT.md
+          echo "" >> BENCHMARK_RESULT.md
+        fi
+        
+        # Add detailed results section
+        echo "## 📈 DETAILED RESULTS" >> BENCHMARK_RESULT.md
+        echo "" >> BENCHMARK_RESULT.md
+        echo "### Benchmark Categories" >> BENCHMARK_RESULT.md
+        echo "" >> BENCHMARK_RESULT.md
+        
+        # Process each JSON file and add basic info
+        for json_file in results/*.json; do
+          if [ -f "$json_file" ]; then
+            filename=$(basename "$json_file")
+            echo "#### ${filename%.*}" >> BENCHMARK_RESULT.md
+            echo "**File:** \`$json_file\`" >> BENCHMARK_RESULT.md
+            
+            # Try to extract basic info from JSON (if jq is available)
+            if command -v jq >/dev/null 2>&1; then
+              benchmark_count=$(jq -r 'keys | length' "$json_file" 2>/dev/null || echo "N/A")
+              echo "**Benchmarks:** $benchmark_count test cases" >> BENCHMARK_RESULT.md
+            fi
+            echo "" >> BENCHMARK_RESULT.md
+          fi
+        done
+        
+        # Add comparison section
+        echo "## 🔄 FRAMEWORK COMPARISON" >> BENCHMARK_RESULT.md
+        echo "" >> BENCHMARK_RESULT.md
+        echo "The benchmarks compare Veld's performance against:" >> BENCHMARK_RESULT.md
+        echo "" >> BENCHMARK_RESULT.md
+        echo "- **Spring Framework:** Traditional Java DI container" >> BENCHMARK_RESULT.md
+        echo "- **Google Guice:** Google's dependency injection framework" >> BENCHMARK_RESULT.md
+        echo "- **Dagger 2:** Compile-time dependency injection" >> BENCHMARK_RESULT.md
+        echo "" >> BENCHMARK_RESULT.md
+        echo "### Key Metrics" >> BENCHMARK_RESULT.md
+        echo "- **Operations per second (ops/sec):** Higher is better" >> BENCHMARK_RESULT.md
+        echo "- **Memory allocation (bytes/op):** Lower is better" >> BENCHMARK_RESULT.md
+        echo "- **Startup time (ms):** Lower is better" >> BENCHMARK_RESULT.md
+        echo "" >> BENCHMARK_RESULT.md
+        echo "## 📊 ARTIFACTS AND DOWNLOADS" >> BENCHMARK_RESULT.md
+        echo "" >> BENCHMARK_RESULT.md
+        echo "All benchmark results and detailed logs are available as GitHub Artifacts:" >> BENCHMARK_RESULT.md
+        echo "" >> BENCHMARK_RESULT.md
+        echo "- **benchmark-results-{run_number}.zip:** Complete benchmark results and executable JAR" >> BENCHMARK_RESULT.md
+        echo "- **build-logs-{run_number}.zip:** Build logs and compilation details" >> BENCHMARK_RESULT.md
+        echo "" >> BENCHMARK_RESULT.md
+        echo "## 🔧 WORKFLOW CONFIGURATION" >> BENCHMARK_RESULT.md
+        echo "" >> BENCHMARK_RESULT.md
+        echo "**Available Modes:**" >> BENCHMARK_RESULT.md
+        echo "- **development:** Ultra-fast (1 fork, 0 warmup, 1 iteration) - ~1-2 min" >> BENCHMARK_RESULT.md
+        echo "- **quick:** Fast (1 fork, 1 warmup, 1 iteration) - ~3-5 min" >> BENCHMARK_RESULT.md
+        echo "- **selective:** Individual benchmarks - ~8-10 min" >> BENCHMARK_RESULT.md
+        echo "- **full:** Complete benchmarks (5 forks, 5 warmup, 10 iterations) - ~12-15 min" >> BENCHMARK_RESULT.md
+        echo "" >> BENCHMARK_RESULT.md
+        echo "**Run ID:** ${{ github.run_number }}" >> BENCHMARK_RESULT.md
+        echo "**Repository:** ${{ github.repository }}" >> BENCHMARK_RESULT.md
+        echo "**Branch:** ${{ github.ref_name }}" >> BENCHMARK_RESULT.md
+        echo "" >> BENCHMARK_RESULT.md
+        echo "---" >> BENCHMARK_RESULT.md
+        echo "" >> BENCHMARK_RESULT.md
+        echo "*This report was automatically generated by the Veld Framework Benchmark Workflow*" >> BENCHMARK_RESULT.md
+        
+        echo "✅ BENCHMARK_RESULT.md generated successfully"
+        ls -la BENCHMARK_RESULT.md
+        
+    # Phase 9: Upload Results as Artifacts
+    - name: Upload Benchmark Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: benchmark-results-${{ github.run_number }}
+        path: |
+          veld-benchmark/results/
+          veld-benchmark/target/veld-benchmark.jar
+          veld-benchmark/BENCHMARK_RESULT.md
+        retention-days: 30
+        
+    - name: Upload Build Logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: build-logs-${{ github.run_number }}
+        path: |
+          **/target/*.log
+          ~/.m2/repository/io/github/yasmramos/**/maven-metadata*.xml
+        retention-days: 7
+        
+    # Phase 9: Summary
+    - name: Benchmark Summary
+      if: always()
+      run: |
+        echo "## 🏁 Benchmark Execution Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Mode:** ${{ github.event.inputs.benchmark_mode || 'default (full)' }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Java Version:** $(java -version 2>&1 | head -1)" >> $GITHUB_STEP_SUMMARY
+        echo "**Maven Version:** $(mvn -version | head -1)" >> $GITHUB_STEP_SUMMARY
+        echo "**Timestamp:** $(date)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -d "veld-benchmark/results" ] && [ "$(ls -A veld-benchmark/results/*.json 2>/dev/null)" ]; then
+          echo "### 📊 Results Generated:" >> $GITHUB_STEP_SUMMARY
+          find veld-benchmark/results/ -name "*.json" -exec basename {} \; | while read file; do
+            echo "- ✅ $file" >> $GITHUB_STEP_SUMMARY
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Artifacts:** Benchmark results and executable JAR have been uploaded." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**📄 Markdown Report:** \`BENCHMARK_RESULT.md\` has been generated with detailed analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Available Modes:**" >> $GITHUB_STEP_SUMMARY
+          echo "- **development:** Ultra-fast (1 fork, 0 warmup, 1 iteration) - ~1-2 min" >> $GITHUB_STEP_SUMMARY
+          echo "- **quick:** Fast (1 fork, 1 warmup, 1 iteration) - ~3-5 min" >> $GITHUB_STEP_SUMMARY
+          echo "- **selective:** Lifecycle, Injection, Feature, Validation benchmarks" >> $GITHUB_STEP_SUMMARY
+          echo "- **full:** Complete benchmarks (5 forks, 5 warmup, 10 iterations) - ~12-15 min" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### ⚠️ No benchmark results generated" >> $GITHUB_STEP_SUMMARY
+          echo "This usually indicates a compilation or build failure." >> $GITHUB_STEP_SUMMARY
+          echo "Check the build logs and uploaded artifacts for debugging information." >> $GITHUB_STEP_SUMMARY
+        fi

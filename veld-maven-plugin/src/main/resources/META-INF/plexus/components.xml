@@ -12,7 +12,7 @@
             <id>default</id>
             <phases>
               <process-resources>org.apache.maven.plugins:maven-resources-plugin:3.3.1:resources</process-resources>
-              <compile>com.veld:veld-maven-plugin:compile</compile>
+              <compile>io.github.yasmramos:veld-maven-plugin:compile</compile>
               <process-test-resources>org.apache.maven.plugins:maven-resources-plugin:3.3.1:testResources</process-test-resources>
               <test-compile>org.apache.maven.plugins:maven-compiler-plugin:3.11.0:testCompile</test-compile>
               <test>org.apache.maven.plugins:maven-surefire-plugin:3.2.2:test</test>
