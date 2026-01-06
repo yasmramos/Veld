@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.github.yasmramos</groupId>
         <artifactId>veld-parent</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.3</version>
     </parent>
 
     <artifactId>veld-benchmark</artifactId>
@@ -272,6 +272,7 @@
             <plugin>
                 <groupId>org.sonatype.central</groupId>
                 <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.8.0</version>
                 <configuration>
                     <skipPublishing>true</skipPublishing>
                 </configuration>
@@ -280,6 +281,15 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
                 <configuration>
                     <skip>true</skip>
                 </configuration>

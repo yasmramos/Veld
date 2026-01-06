@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.github.yasmramos</groupId>
         <artifactId>veld-parent</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.3</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -135,6 +135,15 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
                 <version>3.6.3</version>
                 <configuration>
                     <additionalOptions>
