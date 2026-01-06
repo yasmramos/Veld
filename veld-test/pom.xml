@@ -88,6 +88,7 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>${mockito.version}</version>
+            <scope>compile</scope>
         </dependency>
 
         <!-- Mockito JUnit 5 Extension -->
@@ -95,6 +96,7 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
             <version>${mockito.version}</version>
+            <scope>compile</scope>
         </dependency>
 
         <!-- AssertJ for fluent assertions -->
