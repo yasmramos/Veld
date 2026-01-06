@@ -142,7 +142,6 @@
                 <version>${project.version}</version>
             </plugin>
 
-            <!-- Exec Maven Plugin for running the example -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
