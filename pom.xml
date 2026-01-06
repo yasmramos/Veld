@@ -845,6 +845,24 @@
                         </configuration>
                     </plugin>
 
+                    <!-- Central Publishing Plugin for automatic deployment to Maven Central -->
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central.publishing.plugin.version}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
+                            <waitUntil>published</waitUntil>
+                            <excludeArtifacts>
+                                <excludeArtifact>io.github.yasmramos:veld-benchmark</excludeArtifact>
+                                <excludeArtifact>io.github.yasmramos:veld-example</excludeArtifact>
+                                <excludeArtifact>io.github.yasmramos:veld-spring-boot-example</excludeArtifact>
+                            </excludeArtifacts>
+                        </configuration>
+                    </plugin>
+
                     <!-- GPG Signing Plugin -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
