@@ -558,7 +558,7 @@
                 <skipTests>false</skipTests>
                 <maven.deploy.skip>true</maven.deploy.skip>
                 <jacoco.skip>false</jacoco.skip>
-                <maven.javadoc.skip>true</maven.javadoc.skip>
+                <maven.javadoc.skip>false</maven.javadoc.skip>
                 <maven.source.skip>true</maven.source.skip>
                 <build-helper.attach.phase>none</build-helper.attach.phase>
             </properties>
@@ -610,7 +610,7 @@
                 <skipGpg>true</skipGpg>
                 <skipTests>false</skipTests>
                 <maven.deploy.skip>true</maven.deploy.skip>
-                <maven.javadoc.skip>true</maven.javadoc.skip>
+                <maven.javadoc.skip>false</maven.javadoc.skip>
                 <maven.source.skip>true</maven.source.skip>
                 <build-helper.attach.phase>none</build-helper.attach.phase>
                 <jacoco.skip>true</jacoco.skip>
@@ -679,7 +679,7 @@
                 <skipTests>true</skipTests>
                 <maven.deploy.skip>true</maven.deploy.skip>
                 <jacoco.skip>true</jacoco.skip>
-                <maven.javadoc.skip>true</maven.javadoc.skip>
+                <maven.javadoc.skip>false</maven.javadoc.skip>
                 <maven.source.skip>true</maven.source.skip>
                 <build-helper.attach.phase>none</build-helper.attach.phase>
             </properties>
@@ -741,7 +741,7 @@
                 <skipTests>false</skipTests>
                 <maven.deploy.skip>false</maven.deploy.skip>
                 <jacoco.skip>true</jacoco.skip>
-                <maven.javadoc.skip>true</maven.javadoc.skip>
+                <maven.javadoc.skip>false</maven.javadoc.skip>
                 <maven.source.skip>true</maven.source.skip>
                 <build-helper.attach.phase>none</build-helper.attach.phase>
             </properties>
