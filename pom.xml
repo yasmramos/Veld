@@ -879,22 +879,6 @@
                         </executions>
                     </plugin>
 
-                    <!-- Generate Sources JAR for all modules -->
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-source-plugin</artifactId>
-                        <version>${maven.source.plugin.version}</version>
-                        <executions>
-                            <execution>
-                                <id>attach-sources</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>jar-no-fork</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-
                     <!-- Central Publishing Plugin for automatic deployment to Maven Central -->
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
