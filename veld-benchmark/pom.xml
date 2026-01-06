@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.github.yasmramos</groupId>
         <artifactId>veld-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.3</version>
     </parent>
 
     <artifactId>veld-benchmark</artifactId>
@@ -27,6 +27,9 @@
         <benchmark.forks>2</benchmark.forks>
         <benchmark.warmup.iterations>3</benchmark.warmup.iterations>
         <benchmark.measurement.iterations>5</benchmark.measurement.iterations>
+        
+        <!-- Skip deployment for benchmark module -->
+        <maven.deploy.skip>true</maven.deploy.skip>
     </properties>
 
     <dependencies>
@@ -41,11 +44,8 @@
         </dependency>
         <dependency>
             <groupId>io.github.yasmramos</groupId>
-            <artifactId>veld-processor</artifactId>
-            <version>${project.version}</version>
-            <scope>provided</scope>
+            <artifactId>veld-aop</artifactId>
         </dependency>
-
         <!-- JMH -->
         <dependency>
             <groupId>org.openjdk.jmh</groupId>
@@ -162,7 +162,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.1</version>
+                <version>3.6.0</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -179,6 +179,12 @@
                             </transformers>
                             <filters>
                                 <filter>
+                                    <artifact>io.github.yasmramos:veld-runtime</artifact>
+                                    <excludes>
+                                        <exclude>io/github/yasmramos/veld/Veld.class</exclude>
+                                    </excludes>
+                                </filter>
+                                <filter>
                                     <artifact>*:*</artifact>
                                     <excludes>
                                         <exclude>META-INF/*.SF</exclude>
@@ -188,6 +194,21 @@
                                 </filter>
                             </filters>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Veld Maven Plugin (weave only by default) -->
+            <plugin>
+                <groupId>io.github.yasmramos</groupId>
+                <artifactId>veld-maven-plugin</artifactId>
+                <version>${project.version}</version>
+                <executions>
+                    <execution>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
@@ -223,6 +244,62 @@
                 <version>${jacoco.version}</version>
                 <configuration>
                     <skip>true</skip>
+                </configuration>
+            </plugin>
+
+            <!-- Add Automatic-Module-Name for JPMS compatibility -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Automatic-Module-Name>veld.benchmark</Automatic-Module-Name>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+            <!-- Skip GPG signing for benchmark module -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+            <!-- Skip Central publishing for benchmark module -->
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.8.0</version>
+                <configuration>
+                    <skipPublishing>true</skipPublishing>
+                </configuration>
+            </plugin>
+            <!-- Skip Javadoc for benchmark module -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+            <!-- Skip source for benchmark module -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <configuration>
+                    <skipSource>true</skipSource>
                 </configuration>
             </plugin>
         </plugins>

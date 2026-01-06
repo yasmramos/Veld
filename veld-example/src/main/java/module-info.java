@@ -1,29 +1,20 @@
 /**
  * Veld Example Module.
- * Demonstrates usage of the Veld DI Framework.
+ * Provides examples and demonstrations for Veld DI Framework.
  */
-module io.github.yasmramos.example {
-    // Required JDK modules
-    requires java.logging;
+module io.github.yasmramos.veld.example {
+    requires io.github.yasmramos.veld.annotation;
+    requires io.github.yasmramos.veld.runtime;
+    requires io.github.yasmramos.veld.aop;
+    requires io.github.yasmramos.veld.processor;
     
-    // Required Veld modules
-    requires io.github.yasmramos.annotation;
-    requires io.github.yasmramos.runtime;
-    requires io.github.yasmramos.aop;
-    
-    // JSR-330 and Jakarta inject support
+    // Jakarta and JavaX Inject for examples
     requires javax.inject;
-    requires jakarta.inject;
     
     // Export example packages
-    exports io.github.yasmramos.example;
-    exports io.github.yasmramos.example.aop;
-    exports io.github.yasmramos.example.events;
-    exports io.github.yasmramos.example.lifecycle;
-    
-    // Open packages for dependency injection and lifecycle callbacks
-    opens io.github.yasmramos.example to io.github.yasmramos.runtime;
-    opens io.github.yasmramos.example.aop to io.github.yasmramos.runtime;
-    opens io.github.yasmramos.example.events to io.github.yasmramos.runtime;
-    opens io.github.yasmramos.example.lifecycle to io.github.yasmramos.runtime;
+    exports io.github.yasmramos.veld.example;
+    exports io.github.yasmramos.veld.example.aop;
+    exports io.github.yasmramos.veld.example.events;
+    exports io.github.yasmramos.veld.example.lifecycle;
+    exports io.github.yasmramos.veld.example.dependsOn;
 }

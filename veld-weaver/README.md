@@ -80,7 +80,7 @@ Add the plugin to your `pom.xml`:
             <configuration>
                 <annotationProcessorPaths>
                     <path>
-                        <groupId>io.github.yasmramos</groupId>
+                        <groupId>io.github.yasmramos.veld</groupId>
                         <artifactId>veld-processor</artifactId>
                         <version>${veld.version}</version>
                     </path>
@@ -90,7 +90,7 @@ Add the plugin to your `pom.xml`:
         
         <!-- Bytecode weaving for private field injection -->
         <plugin>
-            <groupId>io.github.yasmramos</groupId>
+            <groupId>io.github.yasmramos.veld</groupId>
             <artifactId>veld-weaver</artifactId>
             <version>${veld.version}</version>
             <executions>
@@ -116,10 +116,10 @@ Add the plugin to your `pom.xml`:
 
 The weaver processes fields with these annotations:
 
-- `@io.github.yasmramos.annotation.Inject`
+- `@io.github.yasmramos.veld.annotation.Inject`
 - `@javax.inject.Inject`
 - `@jakarta.inject.Inject`
-- `@io.github.yasmramos.annotation.Value`
+- `@io.github.yasmramos.veld.annotation.Value`
 
 ## Field Visibility Rules
 
