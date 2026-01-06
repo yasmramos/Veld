@@ -597,6 +597,16 @@
                             <skip>true</skip>
                         </configuration>
                     </plugin>
+
+                    <!-- Install plugin: don't fail if javadoc/sources jars don't exist -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-install-plugin</artifactId>
+                        <version>3.1.2</version>
+                        <configuration>
+                            <skipIfMissing>true</skipIfMissing>
+                        </configuration>
+                    </plugin>
                 </plugins>
             </build>
         </profile>
@@ -665,6 +675,9 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-install-plugin</artifactId>
                         <version>3.1.2</version>
+                        <configuration>
+                            <skipIfMissing>true</skipIfMissing>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>
@@ -734,6 +747,9 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-install-plugin</artifactId>
                         <version>3.1.2</version>
+                        <configuration>
+                            <skipIfMissing>true</skipIfMissing>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>
