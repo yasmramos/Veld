@@ -1,0 +1,941 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.github.yasmramos</groupId>
+    <artifactId>veld-parent</artifactId>
+    <version>1.0.3</version>
+    <packaging>pom</packaging>
+
+    <name>Veld Framework</name>
+    <description>Ultra-fast Dependency Injection Framework using pure ASM bytecode generation - Zero Reflection</description>
+    <url>https://github.com/yasmramos/Veld</url>
+
+    <!-- Project Information -->
+    <organization>
+        <name>Veld Team</name>
+        <url>https://github.com/yasmramos</url>
+    </organization>
+    <developers>
+        <developer>
+            <id>yasmramos</id>
+            <name>Yasmany Ramos García</name>
+            <email>yasmramos@github.com</email>
+            <url>https://github.com/yasmramos</url>
+        </developer>
+    </developers>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <comments>A copy of the Apache 2.0 license is available in the LICENSE file (SPDX: Apache-2.0)</comments>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/yasmramos/Veld</url>
+        <connection>scm:git:git://github.com/yasmramos/Veld.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/yasmramos/Veld.git</developerConnection>
+    </scm>
+
+    <distributionManagement>
+        <!-- Maven Central Repository (Central Portal) -->
+        <repository>
+            <id>central</id>
+            <name>Central Publishing</name>
+            <url>https://central.sonatype.com/repository/maven-releases/</url>
+        </repository>
+        <!-- Snapshot Repository -->
+        <snapshotRepository>
+            <id>central-portal-snapshots</id>
+            <name>Central Portal Snapshots</name>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+    <!-- Repositories for consuming dependencies -->
+    <repositories>
+        <repository>
+            <id>central</id>
+            <name>Maven Central</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+        <repository>
+            <name>Central Portal Snapshots</name>
+            <id>central-portal-snapshots</id>
+            <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+    <modules>
+        <module>veld-annotations</module>
+        <module>veld-runtime</module>
+        <module>veld-aop</module>
+        <module>veld-processor</module>
+        <module>veld-weaver</module>
+        <module>veld-maven-plugin</module>
+        <module>veld-spring-boot-starter</module>
+        <module>veld-example</module>
+        <module>veld-spring-boot-example</module>
+        <module>veld-benchmark</module>
+        <module>veld-resilience</module>
+        <module>veld-cache</module>
+        <module>veld-validation</module>
+        <module>veld-security</module>
+        <module>veld-metrics</module>
+        <module>veld-tx</module>
+        <module>veld-test</module>
+    </modules>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- Dependencies versions -->
+        <junit.version>6.0.1</junit.version>
+        <mockito.version>5.21.0</mockito.version>
+        <bytebuddy.version>1.17.5</bytebuddy.version>
+        <asm.version>9.9.1</asm.version>
+        <javax.inject.version>1</javax.inject.version>
+        <jakarta.inject.version>2.0.1</jakarta.inject.version>
+        <jacoco.version>0.8.14</jacoco.version>
+
+        <!-- Spring Boot versions -->
+        <spring-boot.version>4.0.1</spring-boot.version>
+        <spring.version>7.0.1</spring.version>
+
+        <!-- Maven plugins versions -->
+        <maven.compiler.plugin.version>3.14.1</maven.compiler.plugin.version>
+        <maven.surefire.plugin.version>3.5.4</maven.surefire.plugin.version>
+        <maven.source.plugin.version>3.4.0</maven.source.plugin.version>
+        <maven.javadoc.plugin.version>3.12.0</maven.javadoc.plugin.version>
+        <maven.gpg.plugin.version>3.2.8</maven.gpg.plugin.version>
+        <central.publishing.plugin.version>0.8.0</central.publishing.plugin.version>
+        <maven.release.plugin.version>3.3.1</maven.release.plugin.version>
+        <maven.assembly.plugin.version>3.7.1</maven.assembly.plugin.version>
+        <jacoco.maven.plugin.version>0.8.14</jacoco.maven.plugin.version>
+
+        <!-- Maven Plugin API versions -->
+        <maven-plugin-api.version>3.9.6</maven-plugin-api.version>
+        <maven-plugin-annotations.version>3.6.0</maven-plugin-annotations.version>
+        <maven-core.version>3.9.6</maven-core.version>
+
+        <!-- Release properties -->
+        <maven.compiler.release>17</maven.compiler.release>
+        <skipTests>false</skipTests>
+        <skipGpg>true</skipGpg>
+        <gpg.useAgent>false</gpg.useAgent>
+        <maven.deploy.skip>false</maven.deploy.skip>
+        <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
+
+        <!-- GraalVM versions -->
+        <graalvm.version>22.3.2</graalvm.version>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <build-helper.attach.phase>package</build-helper.attach.phase>
+
+        <!-- CI/Benchmark properties -->
+        <ci.skip>false</ci.skip>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- ASM -->
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm</artifactId>
+                <version>${asm.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm-commons</artifactId>
+                <version>${asm.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm-util</artifactId>
+                <version>${asm.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm-tree</artifactId>
+                <version>${asm.version}</version>
+            </dependency>
+
+            <!-- ByteBuddy (explicit for Java 25 support) -->
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy</artifactId>
+                <version>${bytebuddy.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy-agent</artifactId>
+                <version>${bytebuddy.version}</version>
+            </dependency>
+
+            <!-- Veld modules -->
+            <dependency>
+                <groupId>io.github.yasmramos</groupId>
+                <artifactId>veld-annotations</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.yasmramos</groupId>
+                <artifactId>veld-runtime</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.yasmramos</groupId>
+                <artifactId>veld-aop</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- JSR-330 -->
+            <dependency>
+                <groupId>javax.inject</groupId>
+                <artifactId>javax.inject</artifactId>
+                <version>${javax.inject.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>jakarta.inject</groupId>
+                <artifactId>jakarta.inject-api</artifactId>
+                <version>${jakarta.inject.version}</version>
+            </dependency>
+
+            <!-- Depgraph Maven Plugin -->
+            <dependency>
+                <groupId>com.github.ferstl</groupId>
+                <artifactId>depgraph-maven-plugin</artifactId>
+                <version>4.0.1</version>
+            </dependency>
+
+            <!-- Spring Boot -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Veld Processor -->
+            <dependency>
+                <groupId>io.github.yasmramos</groupId>
+                <artifactId>veld-processor</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Veld Weaver -->
+            <dependency>
+                <groupId>io.github.yasmramos</groupId>
+                <artifactId>veld-weaver</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Veld Example -->
+            <dependency>
+                <groupId>io.github.yasmramos</groupId>
+                <artifactId>veld-example</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Veld Benchmark -->
+            <dependency>
+                <groupId>io.github.yasmramos</groupId>
+                <artifactId>veld-benchmark</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Testing -->
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <!-- Maven Javadoc Plugin for multi-module projects -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>${maven.javadoc.plugin.version}</version>
+                    <configuration>
+                        <source>${maven.compiler.source}</source>
+                        <detectJavaApiLink>false</detectJavaApiLink>
+                        <author>true</author>
+                        <version>true</version>
+                        <use>true</use>
+                        <windowtitle>Veld Framework API</windowtitle>
+                        <doctitle>Veld Framework - Ultra-fast Dependency Injection</doctitle>
+                        <bottom>
+                            <![CDATA[
+                            <i>Copyright &copy; 2025 Veld Team. All rights reserved.</i>
+                            ]]>
+                        </bottom>
+                        <failOnError>false</failOnError>
+                        <additionalOptions>
+                            <additionalOption>-Xdoclint:none</additionalOption>
+                        </additionalOptions>
+                        <!-- Don't attach javadoc jar by default -->
+                        <attach>false</attach>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>attach-javadocs</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+        <plugins>
+            <!-- Maven Compiler Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven.compiler.plugin.version}</version>
+                <configuration>
+                    <release>${maven.compiler.release}</release>
+
+                    <compilerArgs>
+                        <arg>-Xlint:all</arg>
+                        <arg>-Xlint:-processing</arg>
+                        <arg>-Xlint:-unchecked</arg>
+                    </compilerArgs>
+                    <showWarnings>true</showWarnings>
+                    <showDeprecation>true</showDeprecation>
+                </configuration>
+            </plugin>
+
+            <!-- Maven Surefire Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven.surefire.plugin.version}</version>
+                <configuration>
+                    <argLine>@{argLine} -Dnet.bytebuddy.experimental=true</argLine>
+                    <skipTests>${skipTests}</skipTests>
+                    <testFailureIgnore>false</testFailureIgnore>
+                    <failIfNoTests>false</failIfNoTests>
+                    <includes>
+                        <include>**/*Test.java</include>
+                        <include>**/*Tests.java</include>
+                    </includes>
+                    <excludes>
+                        <exclude>**/Abstract*.java</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <!-- Generate Source JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>${maven.source.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Javadoc Plugin Configuration moved to pluginManagement for multi-module support -->
+
+            <!-- GPG Signing Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>${maven.gpg.plugin.version}</version>
+                <configuration>
+                    <skip>${skipGpg}</skip>
+                    <useAgent>${gpg.useAgent}</useAgent>
+                    <keyname>${gpg.keyname}</keyname>
+                    <passphrase>${gpg.passphrase}</passphrase>
+                    <gpgArguments>
+                        <arg>--batch</arg>
+                        <arg>--no-tty</arg>
+                        <arg>--pinentry-mode</arg>
+                        <arg>loopback</arg>
+                        <arg>--status-fd</arg>
+                        <arg>1</arg>
+                    </gpgArguments>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Maven Release Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>${maven.release.plugin.version}</version>
+                <configuration>
+                    <tagNameFormat>@{project.version}</tagNameFormat>
+                    <pushChanges>false</pushChanges>
+                    <localCheckout>true</localCheckout>
+                    <scmCommentPrefix>[maven-release-plugin]</scmCommentPrefix>
+                    <scmReleaseCommitComment>Release @{project.version}</scmReleaseCommitComment>
+                    <scmTagCommitComment>Tag @{project.version}</scmTagCommitComment>
+                    <resume>false</resume>
+                    <arguments>-DskipTests</arguments>
+                </configuration>
+            </plugin>
+
+            <!-- JaCoCo Coverage Plugin -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.maven.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.10</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.10</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>report-aggregate</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report-aggregate</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.basedir}/target/site/jacoco-aggregate</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Project Reports Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+                <version>3.8.0</version>
+                <configuration>
+                    <dependencyDetailsEnabled>true</dependencyDetailsEnabled>
+                    <dependencyLocationsEnabled>true</dependencyLocationsEnabled>
+                </configuration>
+            </plugin>
+
+            <!-- Depgraph Maven Plugin - Safe Configuration -->
+            <plugin>
+                <groupId>com.github.ferstl</groupId>
+                <artifactId>depgraph-maven-plugin</artifactId>
+                <version>4.0.1</version>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+
+            <!-- Install plugin: don't fail if javadoc/sources jars don't exist -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <version>3.1.2</version>
+                <configuration>
+                    <!-- Skip installation of missing javadoc/sources artifacts -->
+                    <skipIfMissing>true</skipIfMissing>
+                </configuration>
+            </plugin>
+
+            <!-- Versions Maven Plugin for automatic version updates in CI/CD -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <version>2.18.1</version>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- Reporting section for Maven Central -->
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven.javadoc.plugin.version}</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <detectJavaApiLink>false</detectJavaApiLink>
+                    <author>true</author>
+                    <version>true</version>
+                    <use>true</use>
+                    <windowtitle>Veld Framework API</windowtitle>
+                    <doctitle>Veld Framework - Ultra-fast Dependency Injection</doctitle>
+                    <bottom>
+                        <![CDATA[
+                        <i>Copyright &copy; 2025 Veld Team. All rights reserved.</i>
+                        ]]>
+                    </bottom>
+                    <failOnError>false</failOnError>
+                    <additionalOptions>
+                        <additionalOption>-Xdoclint:none</additionalOption>
+                    </additionalOptions>
+                    <!-- Generate Javadocs for each module individually -->
+                    <aggregate>false</aggregate>
+                    <nohelp>false</nohelp>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
+
+    <!-- Profiles for different environments -->
+    <profiles>
+        <!-- CI/Benchmark profile - Skip GPG signing and other release-only plugins -->
+        <profile>
+            <id>ci</id>
+            <properties>
+                <skipGpg>true</skipGpg>
+                <skipTests>false</skipTests>
+                <maven.deploy.skip>true</maven.deploy.skip>
+                <jacoco.skip>false</jacoco.skip>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+                <maven.source.skip>true</maven.source.skip>
+                <build-helper.attach.phase>none</build-helper.attach.phase>
+            </properties>
+            <build>
+                <plugins>
+                    <!-- Skip GPG signing in CI -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Disable Javadoc plugin completely in CI -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Disable Central Publishing for snapshot/CI deployments -->
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Install plugin: don't fail if javadoc/sources jars don't exist -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-install-plugin</artifactId>
+                        <version>3.1.2</version>
+                        <configuration>
+                            <skipIfMissing>true</skipIfMissing>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Benchmark profile - Optimized for performance testing -->
+        <profile>
+            <id>benchmark</id>
+            <activation>
+                <property>
+                    <name>benchmark.mode</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <skipGpg>true</skipGpg>
+                <skipTests>false</skipTests>
+                <maven.deploy.skip>true</maven.deploy.skip>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+                <maven.source.skip>true</maven.source.skip>
+                <build-helper.attach.phase>none</build-helper.attach.phase>
+                <jacoco.skip>true</jacoco.skip>
+            </properties>
+            <build>
+                <plugins>
+                    <!-- Skip all release plugins for benchmarks -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central.publishing.plugin.version}</version>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Install plugin: don't fail if javadoc/sources jars don't exist -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-install-plugin</artifactId>
+                        <version>3.1.2</version>
+                        <configuration>
+                            <skipIfMissing>true</skipIfMissing>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- GraalVM Native Image profile -->
+        <profile>
+            <id>native</id>
+            <activation>
+                <property>
+                    <name>native</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <skipGpg>true</skipGpg>
+                <skipTests>true</skipTests>
+                <maven.deploy.skip>true</maven.deploy.skip>
+                <jacoco.skip>true</jacoco.skip>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+                <maven.source.skip>true</maven.source.skip>
+                <build-helper.attach.phase>none</build-helper.attach.phase>
+            </properties>
+            <build>
+                <plugins>
+                    <!-- Skip all release plugins for native builds -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central.publishing.plugin.version}</version>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Install plugin: don't fail if javadoc/sources jars don't exist -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-install-plugin</artifactId>
+                        <version>3.1.2</version>
+                        <configuration>
+                            <skipIfMissing>true</skipIfMissing>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Snapshot Deployment Profile - For GitHub Actions snapshot workflow -->
+        <profile>
+            <id>snapshot</id>
+            <properties>
+                <skipGpg>true</skipGpg>
+                <skipTests>false</skipTests>
+                <maven.deploy.skip>false</maven.deploy.skip>
+                <jacoco.skip>true</jacoco.skip>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+                <maven.source.skip>true</maven.source.skip>
+                <build-helper.attach.phase>none</build-helper.attach.phase>
+            </properties>
+            <distributionManagement>
+                <!-- Use new Central Portal snapshots repository -->
+                <snapshotRepository>
+                    <id>central-portal-snapshots</id>
+                    <name>Central Portal Snapshots</name>
+                    <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+                </snapshotRepository>
+            </distributionManagement>
+            <build>
+                <plugins>
+                    <!-- Skip GPG signing for snapshots -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Disable Javadoc plugin for snapshots -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Disable Source plugin for snapshots -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Disable Central Publishing for snapshot deployments -->
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central.publishing.plugin.version}</version>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- GitHub Packages Profile -->
+        <profile>
+            <id>github</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <distributionManagement>
+                <repository>
+                    <id>github</id>
+                    <name>GitHub Packages</name>
+                    <url>https://maven.pkg.github.com/yasmramos/Veld</url>
+                </repository>
+            </distributionManagement>
+            <properties>
+                <!-- Enable javadoc/sources for GitHub Packages -->
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+                <maven.source.skip>false</maven.source.skip>
+                <build-helper.attach.phase>package</build-helper.attach.phase>
+            </properties>
+        </profile>
+
+        <!-- Release Profile - For Maven Central staging deployments -->
+        <profile>
+            <id>release</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <skipGpg>false</skipGpg>
+                <skipTests>false</skipTests>
+                <maven.deploy.skip>true</maven.deploy.skip>
+                <jacoco.skip>true</jacoco.skip>
+                <maven.javadoc.skip>false</maven.javadoc.skip>
+                <maven.source.skip>false</maven.source.skip>
+                <build-helper.attach.phase>package</build-helper.attach.phase>
+            </properties>
+            <distributionManagement>
+                <!-- Maven Central Repository (Central Portal) -->
+                <repository>
+                    <id>central</id>
+                    <name>Central Publishing</name>
+                    <url>https://central.sonatype.com/repository/maven-releases/</url>
+                </repository>
+            </distributionManagement>
+            <build>
+                <plugins>
+                    <!-- Disable maven-deploy-plugin - Central Portal will inject and use its own -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-deploy-plugin</artifactId>
+                        <version>3.2.0</version>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Generate Javadoc JAR for all modules -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>${maven.javadoc.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                                <configuration>
+                                    <source>${maven.compiler.source}</source>
+                                    <detectJavaApiLink>false</detectJavaApiLink>
+                                    <author>true</author>
+                                    <version>true</version>
+                                    <use>true</use>
+                                    <windowtitle>Veld Framework API</windowtitle>
+                                    <doctitle>Veld Framework - Ultra-fast Dependency Injection</doctitle>
+                                    <bottom>
+                                        <![CDATA[
+                                        <i>Copyright &copy; 2025 Veld Team. All rights reserved.</i>
+                                        ]]>
+                                    </bottom>
+                                    <failOnError>false</failOnError>
+                                    <additionalOptions>
+                                        <additionalOption>-Xdoclint:none</additionalOption>
+                                    </additionalOptions>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Central Publishing Plugin for automatic deployment to Maven Central -->
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central.publishing.plugin.version}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerID>central</publishingServerID>
+                            <autoPublish>true</autoPublish>
+                            <waitUntil>published</waitUntil>
+                            <excludeArtifacts>
+                                <excludeArtifact>io.github.yasmramos:veld-benchmark</excludeArtifact>
+                                <excludeArtifact>io.github.yasmramos:veld-example</excludeArtifact>
+                                <excludeArtifact>io.github.yasmramos:veld-spring-boot-example</excludeArtifact>
+                            </excludeArtifacts>
+                        </configuration>
+                    </plugin>
+
+                    <!-- GPG Signing Plugin -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <configuration>
+                            <skip>false</skip>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>
+
