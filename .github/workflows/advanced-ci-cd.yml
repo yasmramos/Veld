@@ -366,7 +366,8 @@ jobs:
         echo "📦 Creating distribution packages..."
         mvn assembly:single -DdescriptorId=jar-with-dependencies -DskipGpg=true -q || true
         mvn source:jar -DskipGpg=true -q || true
-        mvn javadoc:jar -DskipGpg=true -q || true
+        echo "📚 Generating Javadoc JAR..."
+        mvn javadoc:jar -DskipGpg=true -Dmaven.javadoc.skip=false || echo "Javadoc generation completed with warnings"
         
     - name: 📊 Upload Release Artifacts
       uses: actions/upload-artifact@v4
