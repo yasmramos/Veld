@@ -845,6 +845,56 @@
                         </configuration>
                     </plugin>
 
+                    <!-- Generate Javadoc JAR for all modules -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>${maven.javadoc.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                                <configuration>
+                                    <source>${maven.compiler.source}</source>
+                                    <detectJavaApiLink>false</detectJavaApiLink>
+                                    <author>true</author>
+                                    <version>true</version>
+                                    <use>true</use>
+                                    <windowtitle>Veld Framework API</windowtitle>
+                                    <doctitle>Veld Framework - Ultra-fast Dependency Injection</doctitle>
+                                    <bottom>
+                                        <![CDATA[
+                                        <i>Copyright &copy; 2025 Veld Team. All rights reserved.</i>
+                                        ]]>
+                                    </bottom>
+                                    <failOnError>false</failOnError>
+                                    <additionalOptions>
+                                        <additionalOption>-Xdoclint:none</additionalOption>
+                                    </additionalOptions>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Generate Sources JAR for all modules -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>${maven.source.plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
                     <!-- Central Publishing Plugin for automatic deployment to Maven Central -->
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
@@ -852,7 +902,7 @@
                         <version>${central.publishing.plugin.version}</version>
                         <extensions>true</extensions>
                         <configuration>
-                            <publishingServerId>central</publishingServerId>
+                            <publishingServerID>central</publishingServerID>
                             <autoPublish>true</autoPublish>
                             <waitUntil>published</waitUntil>
                             <excludeArtifacts>
