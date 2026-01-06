@@ -46,7 +46,7 @@
         <repository>
             <id>central</id>
             <name>Central Publishing</name>
-            <url>https://central.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <url>https://central.sonatype.com/repository/maven-releases/</url>
         </repository>
         <!-- Snapshot Repository -->
         <snapshotRepository>
@@ -825,6 +825,14 @@
                 <maven.source.skip>false</maven.source.skip>
                 <build-helper.attach.phase>package</build-helper.attach.phase>
             </properties>
+            <distributionManagement>
+                <!-- Maven Central Repository (Central Portal) -->
+                <repository>
+                    <id>central</id>
+                    <name>Central Publishing</name>
+                    <url>https://central.sonatype.com/repository/maven-releases/</url>
+                </repository>
+            </distributionManagement>
             <build>
                 <plugins>
                     <!-- Central Publishing Plugin for Maven Central -->

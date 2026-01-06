@@ -254,9 +254,9 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
 
         echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
-        echo "1. **Manual Verification Required** - Login to Sonatype Nexus:" >> $GITHUB_STEP_SUMMARY
-        echo "   - URL: https://s01.oss.sonatype.org/" >> $GITHUB_STEP_SUMMARY
-        echo "   - Go to 'Staging Repositories'" >> $GITHUB_STEP_SUMMARY
+        echo "1. **Manual Verification Required** - Login to Central Publisher Portal:" >> $GITHUB_STEP_SUMMARY
+        echo "   - URL: https://central.sonatype.com/" >> $GITHUB_STEP_SUMMARY
+        echo "   - Go to 'Deployment' section" >> $GITHUB_STEP_SUMMARY
         echo "   - Find and close the staging repository" >> $GITHUB_STEP_SUMMARY
         echo "2. **Release to Maven Central** - Once verified:" >> $GITHUB_STEP_SUMMARY
         echo "   - Click 'Release' to publish to Maven Central" >> $GITHUB_STEP_SUMMARY
@@ -296,8 +296,8 @@ jobs:
         echo "Veld Framework ${{ needs.prepare-release.outputs.version }} has been deployed to Sonatype Nexus staging repository" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Manual Verification Required" >> $GITHUB_STEP_SUMMARY
-        echo "1. **Login to Sonatype Nexus:** https://s01.oss.sonatype.org/" >> $GITHUB_STEP_SUMMARY
-        echo "2. **Navigate to 'Staging Repositories'" >> $GITHUB_STEP_SUMMARY
+        echo "1. **Login to Central Publisher Portal:** https://central.sonatype.com/" >> $GITHUB_STEP_SUMMARY
+        echo "2. **Navigate to 'Deployment' section" >> $GITHUB_STEP_SUMMARY
         echo "3. **Find the staging repository for Veld" >> $GITHUB_STEP_SUMMARY
         echo "4. **Click 'Close'** to validate the artifacts" >> $GITHUB_STEP_SUMMARY
         echo "5. **Click 'Release'** to publish to Maven Central" >> $GITHUB_STEP_SUMMARY
