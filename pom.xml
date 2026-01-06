@@ -132,7 +132,7 @@
         <maven-core.version>3.9.6</maven-core.version>
 
         <!-- Release properties -->
-        <maven.compiler.release>17</maven.compiler.release>
+        <maven.compiler.release>11</maven.compiler.release>
         <skipTests>false</skipTests>
         <skipGpg>true</skipGpg>
         <gpg.useAgent>false</gpg.useAgent>

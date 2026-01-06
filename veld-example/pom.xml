@@ -141,6 +141,7 @@
                 <artifactId>veld-maven-plugin</artifactId>
                 <version>${project.version}</version>
             </plugin>
+            -->
 
             <!-- Exec Maven Plugin for running the example -->
             <plugin>
