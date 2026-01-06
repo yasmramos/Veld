@@ -56,6 +56,7 @@ jobs:
     - name: Build and Install All Framework Modules
       run: |
         echo "=== Building and installing ALL Veld modules ==="
+        cd Veld
         mvn clean install -DskipTests -Pbenchmark -Dmaven.javadoc.skip=true
       env:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
@@ -65,9 +66,9 @@ jobs:
     - name: Build Benchmark Module
       run: |
         echo "=== Checking for veld-benchmark module ==="
-        if [ -d "veld-benchmark" ] && [ -f "veld-benchmark/pom.xml" ]; then
+        if [ -d "Veld/veld-benchmark" ] && [ -f "Veld/veld-benchmark/pom.xml" ]; then
           echo "Building veld-benchmark module..."
-          cd veld-benchmark
+          cd Veld/veld-benchmark
           mvn clean package -DskipTests -Pbenchmark
         else
           echo "⚠️ veld-benchmark module not found or not part of reactor"
