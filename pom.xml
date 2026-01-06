@@ -893,7 +893,6 @@
                                 <excludeArtifact>io.github.yasmramos:veld-benchmark</excludeArtifact>
                                 <excludeArtifact>io.github.yasmramos:veld-example</excludeArtifact>
                                 <excludeArtifact>io.github.yasmramos:veld-spring-boot-example</excludeArtifact>
-                                <excludeArtifact>io.github.yasmramos:veld-maven-plugin</excludeArtifact>
                             </excludeArtifacts>
                         </configuration>
                     </plugin>
