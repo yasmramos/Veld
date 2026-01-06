@@ -820,7 +820,7 @@
                 <skipGpg>false</skipGpg>
                 <skipTests>false</skipTests>
                 <maven.deploy.skip>true</maven.deploy.skip>
-                <jacoco.skip>false</jacoco.skip>
+                <jacoco.skip>true</jacoco.skip>
                 <maven.javadoc.skip>false</maven.javadoc.skip>
                 <maven.source.skip>false</maven.source.skip>
                 <build-helper.attach.phase>package</build-helper.attach.phase>
