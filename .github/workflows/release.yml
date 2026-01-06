@@ -236,11 +236,30 @@ jobs:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
         GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         GPG_KEYNAME: ${{ steps.configure-gpg.outputs.key_id }}
+        SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+        SONATYPE_TOKEN: ${{ secrets.SONATYPE_TOKEN }}
       run: |
         echo "=== Deploying Veld ${{ needs.prepare-release.outputs.version }} to Staging ==="
         echo "Using GPG key ID: $GPG_KEYNAME"
 
+        # Create settings.xml with environment variable references for Central Publishing
+        cat > ~/.m2/settings.xml << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 https://maven.apache.org/xsd/settings-1.2.0.xsd">
+    <servers>
+        <server>
+            <id>central</id>
+            <username>${env.SONATYPE_USERNAME}</username>
+            <password>${env.SONATYPE_TOKEN}</password>
+        </server>
+    </servers>
+</settings>
+EOF
+
         mvn clean deploy -B \
+          -s ~/.m2/settings.xml \
           -DskipTests=true \
           -Prelease \
           -Dgpg.passphrase="$GPG_PASSPHRASE" \
