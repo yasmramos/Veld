@@ -138,7 +138,7 @@
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
-                        <phase>package</phase>
+                        <phase>${build-helper.attach.phase}</phase>
                         <goals>
                             <goal>jar</goal>
                         </goals>
