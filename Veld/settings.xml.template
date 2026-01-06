@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Maven Settings Template for Veld Framework Deployment
+    
+    Copy this file to ~/.m2/settings.xml and fill in the credentials.
+    
+    For Maven Central (OSSRH):
+    - Get credentials from: https://oss.sonatype.org/
+    
+    For GitHub Packages:
+    - Create a Personal Access Token (PAT) at: https://github.com/settings/tokens
+    - Required scopes: read:packages, write:packages
+-->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 
+                              https://maven.apache.org/xsd/settings-1.2.0.xsd">
+    
+    <servers>
+        <!-- Maven Central (OSSRH) -->
+        <server>
+            <id>central</id>
+            <username>YOUR_SONATYPE_USERNAME</username>
+            <password>YOUR_SONATYPE_PASSWORD</password>
+        </server>
+        
+        <!-- GitHub Packages -->
+        <server>
+            <id>github</id>
+            <username>YOUR_GITHUB_USERNAME</username>
+            <!-- Use a Personal Access Token (PAT) as password -->
+            <password>YOUR_GITHUB_PERSONAL_ACCESS_TOKEN</password>
+        </server>
+    </servers>
+    
+    <profiles>
+        <profile>
+            <id>central</id>
+            <properties>
+                <!-- GPG signing configuration for Maven Central -->
+                <gpg.executable>gpg</gpg.executable>
+                <gpg.passphrase>YOUR_GPG_PASSPHRASE</gpg.passphrase>
+            </properties>
+        </profile>
+    </profiles>
+    
+</settings>
