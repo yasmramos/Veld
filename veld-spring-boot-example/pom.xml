@@ -123,6 +123,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>VeldSpringBootExampleApplication</mainClass>
                 </configuration>
@@ -153,6 +154,7 @@
             <plugin>
                 <groupId>org.sonatype.central</groupId>
                 <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.8.0</version>
                 <configuration>
                     <skipPublishing>true</skipPublishing>
                 </configuration>
