@@ -143,14 +143,14 @@
                         <goals>
                             <goal>jar</goal>
                         </goals>
-                        <configuration>
-                            <failOnError>false</failOnError>
-                            <additionalOptions>
-                                <additionalOption>-Xdoclint:none</additionalOption>
-                            </additionalOptions>
-                        </configuration>
                     </execution>
                 </executions>
+                <configuration>
+                    <classifier>javadoc</classifier>
+                    <additionalOptions>
+                        <additionalOption>-Xdoclint:none</additionalOption>
+                    </additionalOptions>
+                </configuration>
             </plugin>
         </plugins>
     </build>
