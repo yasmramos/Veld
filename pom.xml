@@ -56,8 +56,13 @@
         </snapshotRepository>
     </distributionManagement>
 
-    <!-- Repositories for consuming Central Portal Snapshots -->
+    <!-- Repositories for consuming dependencies -->
     <repositories>
+        <repository>
+            <id>central</id>
+            <name>Maven Central</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
         <repository>
             <name>Central Portal Snapshots</name>
             <id>central-portal-snapshots</id>
