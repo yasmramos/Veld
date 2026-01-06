@@ -20,6 +20,16 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Clean Maven cache and build directories
+      run: |
+        echo "=== Cleaning Maven cache and build directories ==="
+        # Remove Maven local repository cache to avoid corrupted artifacts
+        rm -rf ~/.m2/repository
+        echo "✅ Maven cache cleaned"
+        # Remove all target directories to ensure clean build
+        find . -type d -name "target" -exec rm -rf {} + 2>/dev/null || true
+        echo "✅ All target directories cleaned"
+
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
