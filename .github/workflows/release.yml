@@ -126,8 +126,8 @@ jobs:
       run: |
         echo "=== Building Veld Framework ${{ needs.prepare-release.outputs.version }} ==="
         # Exclude example and benchmark modules - they are not published to Maven Central
-        # Use compile test instead of install to avoid javadoc generation in test phase
-        mvn clean compile test -B -pl '!veld-example,!veld-spring-boot-example,!veld-benchmark'
+        # Run tests but skip javadoc and build-helper plugins
+        mvn clean install -Dmaven.javadoc.skip=true -Dbuild-helper.attach.phase=none -B -pl '!veld-example,!veld-spring-boot-example,!veld-benchmark'
       env:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
 
@@ -143,6 +143,17 @@ jobs:
         name: Test Results
         path: '*/target/surefire-reports/TEST-*.xml'
         reporter: java-junit
+
+    - name: Extract test count
+      id: test-count
+      if: always()
+      run: |
+        TOTAL_TESTS=$(find . -name "TEST-*.xml" -path "*/surefire-reports/*" -exec grep -h 'tests=' {} \; 2>/dev/null | grep -oP 'tests="\K[0-9]+' | awk '{sum+=$1} END {print sum+0}')
+        FAILED_TESTS=$(find . -name "TEST-*.xml" -path "*/surefire-reports/*" -exec grep -h 'failures=' {} \; 2>/dev/null | grep -oP 'failures="\K[0-9]+' | awk '{sum+=$1} END {print sum+0}')
+        echo "Total tests: $TOTAL_TESTS"
+        echo "Failed tests: $FAILED_TESTS"
+        echo "test_count=$TOTAL_TESTS" >> $GITHUB_OUTPUT
+        echo "failed_count=$FAILED_TESTS" >> $GITHUB_OUTPUT
 
     - name: Upload Test Results
       if: always()

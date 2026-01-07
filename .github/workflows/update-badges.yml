@@ -1,0 +1,73 @@
+name: Update Badges
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday at midnight
+  push:
+    paths:
+      - '.github/workflows/update-badges.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update-badges:
+    name: Update README Badges
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GH_TOKEN }}
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Get test count
+      id: test-count
+      run: |
+        mvn test -q -DskipTests=false -Dmaven.javadoc.skip=true -Dbuild-helper.attach.phase=none -B -pl '!veld-example,!veld-spring-boot-example,!veld-benchmark' 2>/dev/null || true
+        
+        TOTAL_TESTS=$(find . -name "TEST-*.xml" -path "*/surefire-reports/*" -exec grep -h 'tests=' {} \; 2>/dev/null | grep -oP 'tests="\K[0-9]+' | awk '{sum+=$1} END {print sum+0}')
+        FAILED_TESTS=$(find . -name "TEST-*.xml" -path "*/surefire-reports/*" -exec grep -h 'failures=' {} \; 2>/dev/null | grep -oP 'failures="\K[0-9]+' | awk '{sum+=$1} END {print sum+0}')
+        
+        echo "Total tests: $TOTAL_TESTS"
+        echo "Failed tests: $FAILED_TESTS"
+        echo "test_count=$TOTAL_TESTS" >> $GITHUB_OUTPUT
+        echo "failed_count=$FAILED_TESTS" >> $GITHUB_OUTPUT
+
+    - name: Get coverage percentage
+      id: coverage
+      run: |
+        COVERAGE=$(find . -name "jacoco.xml" -path "*/site/jacoco/*" -exec grep -h 'line-coverage value=' {} \; 2>/dev/null | head -1 | grep -oP 'value="\K[0-9.]+' || echo "0")
+        echo "Coverage: $COVERAGE%"
+        echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+
+    - name: Update README badges
+      run: |
+        TEST_COUNT="${{ steps.test-count.outputs.test_count }}"
+        COVERAGE="${{ steps.coverage.outputs.coverage }}"
+        
+        # Update test badge
+        sed -i "s/\[!\[Tests\](https:\/\/img.shields.io\/badge\/Tests-[0-9]*%20passed-green)\](https:\/\/github.com\/yasmramos\/Veld\/actions)/[![Tests](https:\/\/img.shields.io\/badge\/Tests-$TEST_COUNT%20passed-green)](https:\/\/github.com\/yasmramos\/Veld\/actions)/g" README.md
+        
+        # Update coverage badge
+        sed -i "s/\[!\[Coverage\](https:\/\/codecov.io\/gh\/yasmramos\/Veld\/branch\/develop\/graph\/badge.svg)\](https:\/\/codecov.io\/gh\/yasmramos\/Veld)/[![Coverage](https:\/\/img.shields.io\/badge\/Coverage-$COVERAGE%25-green)](https:\/\/codecov.io\/gh\/yasmramos\/Veld)/g" README.md
+        
+        # Update Latest Updates section with version
+        CURRENT_VERSION=$(grep -o '<version>[^<]*</version>' pom.xml | head -1 | sed 's/<version>//g' | sed 's/<\/version>//g')
+        sed -i "s/## Latest Updates (v[0-9.]*)/## Latest Updates (v$CURRENT_VERSION)/g" README.md
+        sed -i "s/- \*\*543 tests now passing\*\*/- \*\*$TEST_COUNT tests now passing\*\*/g" README.md
+        
+        cat README.md | head -30
+
+    - name: Commit and push changes
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: "docs: Update badges and version in README"
+        file_pattern: README.md
