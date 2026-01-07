@@ -85,6 +85,7 @@ public class EventSubscriber implements Comparable<EventSubscriber> {
         this.priority = priority;
         this.filter = filter != null ? filter : "";
         this.catchExceptions = catchExceptions;
+        this.signatureWarning = buildSignatureWarning(method, eventType);
 
         // Pre-compute MethodHandle for fast invocation
         this.methodHandle = precomputeMethodHandle(target, method);
@@ -140,6 +141,44 @@ public class EventSubscriber implements Comparable<EventSubscriber> {
                 throw new RuntimeException("Failed to create MethodHandle for method: " + method, ex);
             }
         }
+    }
+
+    private static String buildSignatureWarning(java.lang.reflect.Method method, Class<?> eventType) {
+        int paramCount = method.getParameterCount();
+        Class<?>[] paramTypes = method.getParameterTypes();
+        StringBuilder issues = new StringBuilder();
+
+        if (paramCount != 1) {
+            issues.append("expected exactly one parameter but found ").append(paramCount);
+        } else {
+            Class<?> paramType = paramTypes[0];
+            if (!Event.class.isAssignableFrom(paramType)) {
+                issues.append("parameter type ").append(paramType.getName())
+                        .append(" does not extend ").append(Event.class.getName());
+            } else if (!paramType.isAssignableFrom(eventType)) {
+                issues.append("event type ").append(eventType.getName())
+                        .append(" is not compatible with parameter type ").append(paramType.getName());
+            }
+        }
+
+        if (issues.length() == 0) {
+            return null;
+        }
+
+        StringBuilder signature = new StringBuilder();
+        signature.append(method.getDeclaringClass().getName())
+                .append("#")
+                .append(method.getName())
+                .append("(");
+        for (int i = 0; i < paramTypes.length; i++) {
+            if (i > 0) {
+                signature.append(", ");
+            }
+            signature.append(paramTypes[i].getName());
+        }
+        signature.append(")");
+
+        return "Invalid subscriber signature for " + signature + ": " + issues;
     }
 
     /**
