@@ -406,11 +406,13 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
             try {
                 subscriber.invoke(event);
             } catch (Throwable e) {
+                String message = "[EventBus] Exception in subscriber " + subscriber +
+                    " while handling " + event.getClass().getName() + ": " + e.getMessage();
                 if (subscriber.isCatchExceptions()) {
                     // Log the exception but don't propagate
-                    System.err.println("[EventBus] Exception in subscriber: " + e.getMessage());
+                    System.err.println(message);
                 } else {
-                    throw new RuntimeException(e);
+                    throw new RuntimeException(message, e);
                 }
             }
         }
@@ -724,6 +726,10 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
     public void register(EventSubscriber subscriber) {
         if (subscriber == null) {
             throw new IllegalArgumentException("EventSubscriber cannot be null");
+        }
+        String signatureWarning = subscriber.getSignatureWarning();
+        if (signatureWarning != null) {
+            System.err.println("[EventBus] Warning: " + signatureWarning);
         }
         subscriberIndex.register(subscriber);
         System.out.println("[EventBus] Registered EventSubscriber: " +
