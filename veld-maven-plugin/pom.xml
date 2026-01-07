@@ -26,21 +26,18 @@
         <dependency>
             <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-processor</artifactId>
-            <version>${project.version}</version>
         </dependency>
 
         <!-- Veld Weaver (contains weaving logic) -->
         <dependency>
             <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-weaver</artifactId>
-            <version>${project.version}</version>
         </dependency>
 
         <!-- Veld Annotations -->
         <dependency>
             <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-annotations</artifactId>
-            <version>${project.version}</version>
         </dependency>
 
         <!-- ASM for bytecode manipulation -->
