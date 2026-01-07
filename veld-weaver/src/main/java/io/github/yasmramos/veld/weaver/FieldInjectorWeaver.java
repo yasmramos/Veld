@@ -1,13 +1,11 @@
 package io.github.yasmramos.veld.weaver;
 
-import org.objectweb.asm.*;
-import org.objectweb.asm.tree.*;
-
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
-
+import org.objectweb.asm.*;
 import static org.objectweb.asm.Opcodes.*;
+import org.objectweb.asm.tree.*;
 
 /**
  * Bytecode weaver that adds synthetic setter methods for private field injection.
@@ -56,10 +54,10 @@ public class FieldInjectorWeaver {
     
     /** Annotations that mark fields for injection */
     private static final Set<String> INJECT_ANNOTATIONS = Set.of(
-        "Lcom/veld/annotation/Inject;",
+        "Lio/github/yasmramos/veld/annotation/Inject;",
         "Ljavax/inject/Inject;",
         "Ljakarta/inject/Inject;",
-        "Lcom/veld/annotation/Value;"
+        "Lio/github/yasmramos/veld/annotation/Value;"
     );
     
     private final List<WeavingResult> results = new ArrayList<>();
