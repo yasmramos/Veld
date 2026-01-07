@@ -16,7 +16,7 @@
 [![Stars](https://img.shields.io/github/stars/yasmramos/Veld)](https://github.com/yasmramos/Veld/stargazers)
 [![Contributors](https://img.shields.io/github/contributors/yasmramos/Veld)](https://github.com/yasmramos/Veld/graphs/contributors)
 
-Veld is a **compile-time Dependency Injection framework** that generates pure code using ASM. Zero reflection at runtime means **maximum performance** - up to 100x faster than Spring for dependency resolution.
+Veld is a **compile-time Dependency Injection framework** that generates pure java code. Zero reflection at runtime means **maximum performance** - up to 100x faster than Spring for dependency resolution.
 
 ## Latest Updates (v1.0.3)
 
