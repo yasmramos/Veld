@@ -56,10 +56,10 @@ public class FieldInjectorWeaver {
     
     /** Annotations that mark fields for injection */
     private static final Set<String> INJECT_ANNOTATIONS = Set.of(
-        "Lcom/veld/annotation/Inject;",
+        "Lio/github/yasmramos/veld/annotation/Inject;",
         "Ljavax/inject/Inject;",
         "Ljakarta/inject/Inject;",
-        "Lcom/veld/annotation/Value;"
+        "Lio/github/yasmramos/veld/annotation/Value;"
     );
     
     private final List<WeavingResult> results = new ArrayList<>();
