@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Placeholder for future features
 
+### Changed
+- Bumped Byte Buddy to 1.18.3 in dependency management
+- Updated Spring Framework versions for parent (7.0.2) and benchmarks (5.3.39)
+
 ## [1.0.3] - 2025-12-29
 
 ### Added
