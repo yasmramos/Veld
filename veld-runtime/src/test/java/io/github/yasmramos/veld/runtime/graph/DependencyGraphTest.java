@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.runtime.graph;
 
-import io.github.yasmramos.veld.runtime.LegacyScope;
+import io.github.yasmramos.veld.annotation.ScopeType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -44,7 +44,7 @@ class DependencyGraphTest {
         @Test
         @DisplayName("Should add node and return it by class name")
         void testAddAndGetNode() {
-            DependencyNode node = new DependencyNode("com.example.Service", "service", LegacyScope.SINGLETON);
+            DependencyNode node = new DependencyNode("com.example.Service", "service", ScopeType.SINGLETON);
             graph.addNode(node);
 
             Optional<DependencyNode> result = graph.getNode("com.example.Service");
@@ -62,8 +62,8 @@ class DependencyGraphTest {
         @Test
         @DisplayName("Should return all nodes")
         void testGetAllNodes() {
-            DependencyNode node1 = new DependencyNode("com.example.Service1", "service1", LegacyScope.SINGLETON);
-            DependencyNode node2 = new DependencyNode("com.example.Service2", "service2", LegacyScope.PROTOTYPE);
+            DependencyNode node1 = new DependencyNode("com.example.Service1", "service1", ScopeType.SINGLETON);
+            DependencyNode node2 = new DependencyNode("com.example.Service2", "service2", ScopeType.PROTOTYPE);
             graph.addNode(node1);
             graph.addNode(node2);
 
@@ -78,18 +78,18 @@ class DependencyGraphTest {
         void testNodeCount() {
             assertEquals(0, graph.nodeCount());
 
-            graph.addNode(new DependencyNode("com.example.Service1", "service1", LegacyScope.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.Service1", "service1", ScopeType.SINGLETON));
             assertEquals(1, graph.nodeCount());
 
-            graph.addNode(new DependencyNode("com.example.Service2", "service2", LegacyScope.PROTOTYPE));
+            graph.addNode(new DependencyNode("com.example.Service2", "service2", ScopeType.PROTOTYPE));
             assertEquals(2, graph.nodeCount());
         }
 
         @Test
         @DisplayName("Should replace existing node with same class name")
         void testReplaceNode() {
-            DependencyNode node1 = new DependencyNode("com.example.Service", "service1", LegacyScope.SINGLETON);
-            DependencyNode node2 = new DependencyNode("com.example.Service", "service2", LegacyScope.PROTOTYPE);
+            DependencyNode node1 = new DependencyNode("com.example.Service", "service1", ScopeType.SINGLETON);
+            DependencyNode node2 = new DependencyNode("com.example.Service", "service2", ScopeType.PROTOTYPE);
 
             graph.addNode(node1);
             graph.addNode(node2);
@@ -142,11 +142,11 @@ class DependencyGraphTest {
         @Test
         @DisplayName("Should return unmodifiable nodes collection")
         void testNodesAreUnmodifiable() {
-            graph.addNode(new DependencyNode("com.example.A", "a", LegacyScope.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.A", "a", ScopeType.SINGLETON));
 
             Collection<DependencyNode> nodes = graph.getNodes();
             assertThrows(UnsupportedOperationException.class, () ->
-                nodes.add(new DependencyNode("com.example.B", "b", LegacyScope.SINGLETON)));
+                nodes.add(new DependencyNode("com.example.B", "b", ScopeType.SINGLETON)));
         }
     }
 
@@ -158,10 +158,10 @@ class DependencyGraphTest {
         void setUpComplexGraph() {
             // A -> B -> C
             // D -> B
-            graph.addNode(new DependencyNode("com.example.A", "a", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.B", "b", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.C", "c", LegacyScope.PROTOTYPE));
-            graph.addNode(new DependencyNode("com.example.D", "d", LegacyScope.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.A", "a", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.B", "b", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.C", "c", ScopeType.PROTOTYPE));
+            graph.addNode(new DependencyNode("com.example.D", "d", ScopeType.SINGLETON));
 
             graph.addEdge("com.example.A", "com.example.B", "dependsOn");
             graph.addEdge("com.example.B", "com.example.C", "dependsOn");
@@ -220,9 +220,9 @@ class DependencyGraphTest {
         @DisplayName("Should detect cycle in graph")
         void testFindCyclesWithCycle() {
             // A -> B -> C -> A
-            graph.addNode(new DependencyNode("com.example.A", "a", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.B", "b", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.C", "c", LegacyScope.PROTOTYPE));
+            graph.addNode(new DependencyNode("com.example.A", "a", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.B", "b", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.C", "c", ScopeType.PROTOTYPE));
 
             graph.addEdge("com.example.A", "com.example.B", "dependsOn");
             graph.addEdge("com.example.B", "com.example.C", "dependsOn");
@@ -236,9 +236,9 @@ class DependencyGraphTest {
         @DisplayName("Should not detect cycles in acyclic graph")
         void testFindCyclesWithoutCycle() {
             // A -> B -> C
-            graph.addNode(new DependencyNode("com.example.A", "a", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.B", "b", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.C", "c", LegacyScope.PROTOTYPE));
+            graph.addNode(new DependencyNode("com.example.A", "a", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.B", "b", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.C", "c", ScopeType.PROTOTYPE));
 
             graph.addEdge("com.example.A", "com.example.B", "dependsOn");
             graph.addEdge("com.example.B", "com.example.C", "dependsOn");
@@ -259,10 +259,10 @@ class DependencyGraphTest {
         void testFindMultipleCycles() {
             // A -> B -> A
             // C -> D -> C
-            graph.addNode(new DependencyNode("com.example.A", "a", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.B", "b", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.C", "c", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.D", "d", LegacyScope.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.A", "a", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.B", "b", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.C", "c", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.D", "d", ScopeType.SINGLETON));
 
             graph.addEdge("com.example.A", "com.example.B", "dependsOn");
             graph.addEdge("com.example.B", "com.example.A", "dependsOn");
@@ -281,8 +281,8 @@ class DependencyGraphTest {
         @Test
         @DisplayName("Should handle disconnected nodes")
         void testDisconnectedNodes() {
-            graph.addNode(new DependencyNode("com.example.ComponentA", "a", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.ComponentB", "b", LegacyScope.PROTOTYPE));
+            graph.addNode(new DependencyNode("com.example.ComponentA", "a", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.ComponentB", "b", ScopeType.PROTOTYPE));
             // No edges between them
 
             assertEquals(2, graph.nodeCount());
@@ -292,7 +292,7 @@ class DependencyGraphTest {
         @Test
         @DisplayName("Should handle self-referencing edges")
         void testSelfReferencingEdge() {
-            graph.addNode(new DependencyNode("com.example.Self", "self", LegacyScope.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.Self", "self", ScopeType.SINGLETON));
             graph.addEdge("com.example.Self", "com.example.Self", "selfDependsOn");
 
             assertEquals(1, graph.edgeCount());
@@ -309,10 +309,10 @@ class DependencyGraphTest {
             // A -> C
             // B -> D
             // C -> D
-            graph.addNode(new DependencyNode("com.example.A", "a", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.B", "b", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.C", "c", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.D", "d", LegacyScope.PROTOTYPE));
+            graph.addNode(new DependencyNode("com.example.A", "a", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.B", "b", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.C", "c", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.D", "d", ScopeType.PROTOTYPE));
 
             graph.addEdge("com.example.A", "com.example.B", "dependsOn");
             graph.addEdge("com.example.A", "com.example.C", "dependsOn");

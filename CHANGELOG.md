@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Placeholder for future features
 
+### Changed
+- Bumped Byte Buddy to 1.18.3 in dependency management
+- Updated Spring Framework versions for parent (7.0.2) and benchmarks (5.3.39)
+
 ## [1.0.3] - 2025-12-29
 
 ### Added
@@ -21,9 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `JsonExporter` for JSON format export with full metadata
 - Root and leaf node detection algorithms
 - Circular dependency detection at runtime
-- `LegacyScope` enum for backward compatibility
+- `ScopeType` enum for type-safe scope definitions
 - Comprehensive tests for graph operations and exporters
-- New test files: DependencyGraphTest, DotExporterTest, DependencyNodeTest, LegacyScopeTest
+- New test files: DependencyGraphTest, DotExporterTest, DependencyNodeTest, ScopeTest
 - EventBusTest for event bus functionality verification
 - AsmUtilsTest for ASM utilities testing
 
@@ -31,8 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Compilation error in DotExporterTest where assertEquals was used on void method
 - NullPointerException in ComponentFactoryTest by removing null-scope test
 - Incorrect root/leaf node expectations in DependencyGraphTest
-- AsmUtilsTest to expect LegacyScope instead of Scope enum
-- Source generators updated to use LegacyScope for backward compatibility
+- AsmUtilsTest to expect ScopeType instead of Scope enum
+- Source generators updated to use ScopeType for type-safe scope handling
 - Test fixture constructors updated to use new ComponentInfo signature
 
 ### Changed

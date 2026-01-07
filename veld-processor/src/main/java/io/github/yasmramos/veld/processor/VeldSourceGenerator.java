@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.LegacyScope;
+import io.github.yasmramos.veld.annotation.ScopeType;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +32,7 @@ public final class VeldSourceGenerator {
         // Imports
         sb.append("import io.github.yasmramos.veld.generated.VeldRegistry;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ComponentRegistry;\n");
-        sb.append("import io.github.yasmramos.veld.runtime.LegacyScope;\n");
+        sb.append("import io.github.yasmramos.veld.annotation.ScopeType;\n");
         sb.append("import io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ConditionalRegistry;\n");
         sb.append("import io.github.yasmramos.veld.runtime.event.EventBus;\n");
@@ -143,7 +143,7 @@ public final class VeldSourceGenerator {
     private void generateHolderClasses(StringBuilder sb) {
         sb.append("    // === HOLDER CLASSES FOR LOCK-FREE SINGLETON ACCESS ===\n\n");
         for (ComponentInfo comp : components) {
-            if (comp.getScope() == LegacyScope.SINGLETON) {
+            if (comp.getScope() == ScopeType.SINGLETON) {
                 String holderName = getHolderClassName(comp);
                 String returnType = comp.getClassName();
                 String simpleName = getSimpleName(comp);
@@ -163,7 +163,7 @@ public final class VeldSourceGenerator {
             
             sb.append("    public static ").append(returnType).append(" ").append(methodName).append("() {\n");
             
-            if (comp.getScope() == LegacyScope.SINGLETON) {
+            if (comp.getScope() == ScopeType.SINGLETON) {
                 // Singleton - use holder pattern (lock-free)
                 String holderName = getHolderClassName(comp);
                 sb.append("        return ").append(holderName).append(".INSTANCE;\n");

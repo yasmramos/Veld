@@ -17,17 +17,17 @@
     <properties>
         <!-- JMH -->
         <jmh.version>1.37</jmh.version>
-        
+
         <!-- Competing frameworks -->
-        <spring.version>5.3.30</spring.version>
+        <spring.version>5.3.39</spring.version>
         <guice.version>5.1.0</guice.version>
         <dagger.version>2.45</dagger.version>
-        
+
         <!-- Benchmark configuration -->
         <benchmark.forks>2</benchmark.forks>
         <benchmark.warmup.iterations>3</benchmark.warmup.iterations>
         <benchmark.measurement.iterations>5</benchmark.measurement.iterations>
-        
+
         <!-- Skip deployment for benchmark module -->
         <maven.deploy.skip>true</maven.deploy.skip>
     </properties>
@@ -95,7 +95,7 @@
             <version>${dagger.version}</version>
             <scope>provided</scope>
         </dependency>
-        
+
         <!-- Additional required dependencies -->
         <dependency>
             <groupId>javax.inject</groupId>
