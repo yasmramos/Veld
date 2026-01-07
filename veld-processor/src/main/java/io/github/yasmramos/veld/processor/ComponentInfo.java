@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.LegacyScope;
+import io.github.yasmramos.veld.annotation.ScopeType;
 import javax.lang.model.element.TypeElement;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,8 +15,8 @@ public final class ComponentInfo {
     private String className;              // Fully qualified: com.example.MyService
     private String internalName;           // ASM internal: com/example/MyService
     private final String componentName;          // @Component value or simple class name
-    private final LegacyScope scope;                   // SINGLETON or PROTOTYPE (for backwards compat)
-    private final String scopeId;                // Custom scope ID (null for built-in scopes)
+    private final ScopeType scope;                   // SINGLETON or PROTOTYPE
+    private String scopeId;                // Custom scope ID (null for built-in scopes)
     private final boolean lazy;                  // @Lazy - deferred initialization
     
     private InjectionPoint constructorInjection; // Constructor with @Inject (or default)
@@ -44,19 +44,19 @@ public final class ComponentInfo {
     // TypeElement for AOP processing (transient - not serialized)
     private transient TypeElement typeElement;
     
-    public ComponentInfo(String className, String componentName, LegacyScope scope) {
+    public ComponentInfo(String className, String componentName, ScopeType scope) {
         this(className, componentName, scope, null, false);
     }
     
-    public ComponentInfo(String className, String componentName, LegacyScope scope, String scopeId) {
+    public ComponentInfo(String className, String componentName, ScopeType scope, String scopeId) {
         this(className, componentName, scope, scopeId, false);
     }
     
-    public ComponentInfo(String className, String componentName, LegacyScope scope, String scopeId, boolean lazy) {
+    public ComponentInfo(String className, String componentName, ScopeType scope, String scopeId, boolean lazy) {
         this(className, componentName, scope, scopeId, lazy, false);
     }
     
-    public ComponentInfo(String className, String componentName, LegacyScope scope, String scopeId, boolean lazy, boolean isPrimary) {
+    public ComponentInfo(String className, String componentName, ScopeType scope, String scopeId, boolean lazy, boolean isPrimary) {
         this.className = className;
         this.internalName = className.replace('.', '/');
         this.componentName = componentName;
@@ -88,7 +88,7 @@ public final class ComponentInfo {
         return componentName;
     }
     
-    public LegacyScope getScope() {
+    public ScopeType getScope() {
         return scope;
     }
     
@@ -103,16 +103,17 @@ public final class ComponentInfo {
         if (scopeId != null && !scopeId.isEmpty()) {
             return scopeId;
         }
-        return scope != null ? scope.name().toLowerCase() : "singleton";
+        return scope != null ? scope.getScopeId() : "singleton";
     }
     
     /**
      * Sets a custom scope ID for this component.
+     * This allows overriding the default scope ID with a custom scope.
      * 
      * @param scopeId the custom scope identifier
      */
     public void setScopeId(String scopeId) {
-        // Intentionally blank - scopeId is final
+        this.scopeId = scopeId;
     }
     
     /**
@@ -492,5 +493,116 @@ public final class ComponentInfo {
      */
     public boolean hasUnresolvedInterfaceDependencies() {
         return !unresolvedInterfaceDependencies.isEmpty();
+    }
+
+    // === HOLD PATTERN SUPPORT ===
+    // Determines if this component can use the simpler holder pattern
+    // instead of the full factory pattern
+
+    /**
+     * Checks if this component can use the holder pattern for instantiation.
+     * 
+     * <p>The holder pattern is a simpler, more efficient approach that uses
+     * a static inner class to hold the singleton instance. It can be used
+     * when:</p>
+     * <ul>
+     *   <li>The component is a singleton (not prototype or custom scope)</li>
+     *   <li>The component is NOT lazy (eager initialization)</li>
+     *   <li>The component has NO dependencies to inject</li>
+     *   <li>The component has NO lifecycle callbacks (@PostConstruct, @PreDestroy)</li>
+     *   <li>The component has NO conditional registration</li>
+     *   <li>The component has NO AOP interceptors</li>
+     *   <li>The component has NO @Subscribe methods</li>
+     * </ul>
+     * 
+     * @return true if the holder pattern can be used, false if factory is required
+     */
+    public boolean canUseHolderPattern() {
+        // Holder pattern only makes sense for singletons
+        if (scope != ScopeType.SINGLETON) {
+            return false;
+        }
+
+        // Lazy beans need factory for deferred creation
+        if (lazy) {
+            return false;
+        }
+
+        // Beans with any dependencies need factory for injection
+        if (constructorInjection != null) {
+            return false;
+        }
+        if (!fieldInjections.isEmpty()) {
+            return false;
+        }
+        if (!methodInjections.isEmpty()) {
+            return false;
+        }
+
+        // Beans with lifecycle callbacks need factory for invocation
+        if (hasPostConstruct()) {
+            return false;
+        }
+        if (hasPreDestroy()) {
+            return false;
+        }
+
+        // Conditional beans need factory for runtime evaluation
+        if (hasConditions()) {
+            return false;
+        }
+
+        // Beans with AOP need factory for proxy creation
+        if (hasAopInterceptors()) {
+            return false;
+        }
+
+        // Event subscribers need factory for EventBus registration
+        if (hasSubscribeMethods()) {
+            return false;
+        }
+
+        // All checks passed - holder pattern can be used
+        return true;
+    }
+
+    /**
+     * Returns a description of why this component cannot use the holder pattern.
+     * Useful for debugging and optimization feedback.
+     * 
+     * @return description of the first blocking condition, or null if holder pattern is allowed
+     */
+    public String getHolderPatternRestriction() {
+        if (scope != ScopeType.SINGLETON) {
+            return "scope=" + scope + " (only SINGLETON supported)";
+        }
+        if (lazy) {
+            return "lazy=true (holder pattern requires eager initialization)";
+        }
+        if (constructorInjection != null) {
+            return "has constructor injection (holder pattern doesn't support DI)";
+        }
+        if (!fieldInjections.isEmpty()) {
+            return "has field injections (holder pattern doesn't support DI)";
+        }
+        if (!methodInjections.isEmpty()) {
+            return "has method injections (holder pattern doesn't support DI)";
+        }
+        if (hasPostConstruct()) {
+            return "has @PostConstruct callback (holder pattern doesn't support lifecycle)";
+        }
+        if (hasPreDestroy()) {
+            return "has @PreDestroy callback (holder pattern doesn't support lifecycle)";
+        }
+        if (hasConditions()) {
+            return "has @Conditional (holder pattern doesn't support conditional registration)";
+        }
+        if (hasAopInterceptors()) {
+            return "has AOP interceptors (holder pattern doesn't support AOP)";
+        }
+        if (hasSubscribeMethods()) {
+            return "has @Subscribe methods (holder pattern doesn't support event registration)";
+        }
+        return null; // No restrictions
     }
 }

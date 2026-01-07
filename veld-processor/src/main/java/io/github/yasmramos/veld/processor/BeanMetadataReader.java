@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.LegacyScope;
+import io.github.yasmramos.veld.annotation.ScopeType;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.TypeElement;
@@ -187,9 +187,9 @@ public final class BeanMetadataReader {
         String scopeStr = extractStringValue(entry, "scope");
         if (scopeStr != null) {
             try {
-                bean = bean.withScope(LegacyScope.valueOf(scopeStr.toUpperCase()));
+                bean = bean.withScope(ScopeType.valueOf(scopeStr.toUpperCase()));
             } catch (Exception e) {
-                bean = bean.withScope(LegacyScope.SINGLETON);
+                bean = bean.withScope(ScopeType.SINGLETON);
             }
         }
         
@@ -260,7 +260,7 @@ public final class BeanMetadataReader {
             metadata.getBeanName(),
             typeElement.asType(),
             metadata.getFactoryClassName(),
-            metadata.getScope() != null ? metadata.getScope() : LegacyScope.SINGLETON,
+            metadata.getScope() != null ? metadata.getScope() : ScopeType.SINGLETON,
             metadata.getQualifier(),
             metadata.isPrimary(),
             metadata.getDependencies()
@@ -336,13 +336,13 @@ public final class BeanMetadataReader {
         private final String beanName;
         private final TypeMirror beanType;
         private final String factoryClassName;
-        private final LegacyScope scope;
+        private final ScopeType scope;
         private final String qualifier;
         private final boolean isPrimary;
         private final List<String> dependencies;
 
         public ExternalBeanInfo(String beanName, TypeMirror beanType, String factoryClassName,
-                               LegacyScope scope, String qualifier, boolean isPrimary,
+                               ScopeType scope, String qualifier, boolean isPrimary,
                                List<String> dependencies) {
             this.beanName = beanName;
             this.beanType = beanType;
@@ -365,7 +365,7 @@ public final class BeanMetadataReader {
             return factoryClassName;
         }
 
-        public LegacyScope getScope() {
+        public ScopeType getScope() {
             return scope;
         }
 

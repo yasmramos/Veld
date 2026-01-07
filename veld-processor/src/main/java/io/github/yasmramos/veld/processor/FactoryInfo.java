@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.LegacyScope;
+import io.github.yasmramos.veld.annotation.ScopeType;
 
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
@@ -76,7 +76,7 @@ public final class FactoryInfo {
         private String postConstructDescriptor;
         private String preDestroyMethodName;
         private String preDestroyDescriptor;
-        private LegacyScope scope = LegacyScope.SINGLETON;
+        private ScopeType scope = ScopeType.SINGLETON;
         private String qualifier;  // For @Qualifier support
         private List<String> profiles = new ArrayList<>();  // For @Profile support
 
@@ -148,11 +148,11 @@ public final class FactoryInfo {
             this.preDestroyDescriptor = descriptor;
         }
 
-        public LegacyScope getScope() {
+        public ScopeType getScope() {
             return scope;
         }
 
-        public void setScope(LegacyScope scope) {
+        public void setScope(ScopeType scope) {
             this.scope = scope;
         }
 

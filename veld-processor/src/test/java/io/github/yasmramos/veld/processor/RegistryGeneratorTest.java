@@ -15,7 +15,7 @@
  */
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.LegacyScope;
+import io.github.yasmramos.veld.annotation.ScopeType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -121,7 +121,7 @@ class RegistryGeneratorTest {
         @DisplayName("should generate valid bytecode with single component")
         void shouldGenerateValidBytecodeWithSingleComponent() {
             List<ComponentInfo> components = Arrays.asList(
-                new ComponentInfo("com.example.MyService", "myService", LegacyScope.SINGLETON)
+                new ComponentInfo("com.example.MyService", "myService", ScopeType.SINGLETON)
             );
             RegistryGenerator generator = new RegistryGenerator(components);
             
@@ -135,9 +135,9 @@ class RegistryGeneratorTest {
         @DisplayName("should generate valid bytecode with multiple components")
         void shouldGenerateValidBytecodeWithMultipleComponents() {
             List<ComponentInfo> components = Arrays.asList(
-                new ComponentInfo("com.example.ServiceA", "serviceA", LegacyScope.SINGLETON),
-                new ComponentInfo("com.example.ServiceB", "serviceB", LegacyScope.PROTOTYPE),
-                new ComponentInfo("com.example.ServiceC", "serviceC", LegacyScope.SINGLETON)
+                new ComponentInfo("com.example.ServiceA", "serviceA", ScopeType.SINGLETON),
+                new ComponentInfo("com.example.ServiceB", "serviceB", ScopeType.PROTOTYPE),
+                new ComponentInfo("com.example.ServiceC", "serviceC", ScopeType.SINGLETON)
             );
             RegistryGenerator generator = new RegistryGenerator(components);
             
@@ -408,12 +408,12 @@ class RegistryGeneratorTest {
         void bytecodeSizeShouldIncreaseWithMoreComponents() {
             List<ComponentInfo> empty = new ArrayList<>();
             List<ComponentInfo> oneComp = Arrays.asList(
-                new ComponentInfo("com.example.A", "a", LegacyScope.SINGLETON)
+                new ComponentInfo("com.example.A", "a", ScopeType.SINGLETON)
             );
             List<ComponentInfo> threeComp = Arrays.asList(
-                new ComponentInfo("com.example.A", "a", LegacyScope.SINGLETON),
-                new ComponentInfo("com.example.B", "b", LegacyScope.SINGLETON),
-                new ComponentInfo("com.example.C", "c", LegacyScope.SINGLETON)
+                new ComponentInfo("com.example.A", "a", ScopeType.SINGLETON),
+                new ComponentInfo("com.example.B", "b", ScopeType.SINGLETON),
+                new ComponentInfo("com.example.C", "c", ScopeType.SINGLETON)
             );
             
             byte[] emptyBytecode = new RegistryGenerator(empty).generate();
@@ -432,7 +432,7 @@ class RegistryGeneratorTest {
             ComponentInfo comp = new ComponentInfo(
                 "com.example.ServiceImpl",
                 "serviceImpl",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             comp.addImplementedInterface("com.example.Service");
             comp.addImplementedInterface("com.example.OtherService");
@@ -455,10 +455,10 @@ class RegistryGeneratorTest {
         @DisplayName("should handle mixed scope components")
         void shouldHandleMixedScopeComponents() {
             List<ComponentInfo> components = Arrays.asList(
-                new ComponentInfo("com.example.SingletonA", "singletonA", LegacyScope.SINGLETON),
-                new ComponentInfo("com.example.PrototypeA", "prototypeA", LegacyScope.PROTOTYPE),
-                new ComponentInfo("com.example.SingletonB", "singletonB", LegacyScope.SINGLETON),
-                new ComponentInfo("com.example.PrototypeB", "prototypeB", LegacyScope.PROTOTYPE)
+                new ComponentInfo("com.example.SingletonA", "singletonA", ScopeType.SINGLETON),
+                new ComponentInfo("com.example.PrototypeA", "prototypeA", ScopeType.PROTOTYPE),
+                new ComponentInfo("com.example.SingletonB", "singletonB", ScopeType.SINGLETON),
+                new ComponentInfo("com.example.PrototypeB", "prototypeB", ScopeType.PROTOTYPE)
             );
             
             RegistryGenerator generator = new RegistryGenerator(components);
@@ -475,8 +475,8 @@ class RegistryGeneratorTest {
         @DisplayName("should handle lazy components")
         void shouldHandleLazyComponents() {
             List<ComponentInfo> components = Arrays.asList(
-                new ComponentInfo("com.example.LazyService", "lazyService", LegacyScope.SINGLETON, null, true),
-                new ComponentInfo("com.example.EagerService", "eagerService", LegacyScope.SINGLETON, null, false)
+                new ComponentInfo("com.example.LazyService", "lazyService", ScopeType.SINGLETON, null, true),
+                new ComponentInfo("com.example.EagerService", "eagerService", ScopeType.SINGLETON, null, false)
             );
             
             RegistryGenerator generator = new RegistryGenerator(components);
@@ -492,7 +492,7 @@ class RegistryGeneratorTest {
             ComponentInfo conditional = new ComponentInfo(
                 "com.example.ConditionalService",
                 "conditionalService",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             ConditionInfo conditions = new ConditionInfo();
             conditions.addPropertyCondition("feature.enabled", "true", false);
@@ -516,7 +516,7 @@ class RegistryGeneratorTest {
         @DisplayName("should generate parseable bytecode")
         void shouldGenerateParseableBytecode() {
             List<ComponentInfo> components = Arrays.asList(
-                new ComponentInfo("com.example.Test", "test", LegacyScope.SINGLETON)
+                new ComponentInfo("com.example.Test", "test", ScopeType.SINGLETON)
             );
             RegistryGenerator generator = new RegistryGenerator(components);
             
@@ -624,7 +624,7 @@ class RegistryGeneratorTest {
             String longName = "com.example.very.deep.package.hierarchy." +
                 "that.goes.on.for.a.while.MyVeryLongComponentName";
             
-            ComponentInfo comp = new ComponentInfo(longName, "comp", LegacyScope.SINGLETON);
+            ComponentInfo comp = new ComponentInfo(longName, "comp", ScopeType.SINGLETON);
             RegistryGenerator generator = new RegistryGenerator(Arrays.asList(comp));
             
             byte[] bytecode = generator.generate();
@@ -641,7 +641,7 @@ class RegistryGeneratorTest {
                 components.add(new ComponentInfo(
                     "com.example.Service" + i,
                     "service" + i,
-                    i % 2 == 0 ? LegacyScope.SINGLETON : LegacyScope.PROTOTYPE
+                    i % 2 == 0 ? ScopeType.SINGLETON : ScopeType.PROTOTYPE
                 ));
             }
             
@@ -659,7 +659,7 @@ class RegistryGeneratorTest {
             ComponentInfo comp = new ComponentInfo(
                 "com.example.MultiInterfaceService",
                 "multiInterfaceService",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             for (int i = 0; i < 10; i++) {

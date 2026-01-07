@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.LegacyScope;
+import io.github.yasmramos.veld.annotation.ScopeType;
 import java.util.List;
 
 /**
@@ -45,7 +45,7 @@ public final class BeanFactorySourceGenerator {
         // Imports
         sb.append("import io.github.yasmramos.veld.Veld;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ComponentFactory;\n");
-        sb.append("import io.github.yasmramos.veld.runtime.LegacyScope;\n");
+        sb.append("import io.github.yasmramos.veld.annotation.ScopeType;\n");
         sb.append("import java.util.List;\n");
         sb.append("import java.util.Arrays;\n\n");
 
@@ -95,9 +95,9 @@ public final class BeanFactorySourceGenerator {
 
         // getScope() - uses the scope from @Bean annotation
         sb.append("    @Override\n");
-        sb.append("    public LegacyScope getScope() {\n");
-        String scopeName = beanMethod.getScope() == LegacyScope.PROTOTYPE ? "PROTOTYPE" : "SINGLETON";
-        sb.append("        return LegacyScope.").append(scopeName).append(";\n");
+        sb.append("    public ScopeType getScope() {\n");
+        String scopeName = beanMethod.getScope() == ScopeType.PROTOTYPE ? "PROTOTYPE" : "SINGLETON";
+        sb.append("        return ScopeType.").append(scopeName).append(";\n");
         sb.append("    }\n\n");
 
         // getQualifier() - returns the qualifier name if present

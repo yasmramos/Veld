@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.LegacyScope;
+import io.github.yasmramos.veld.annotation.ScopeType;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Label;
@@ -62,7 +62,7 @@ public final class RegistryGenerator {
     private static final String COMPONENT_FACTORY = "io/github/yasmramos/veld/runtime/ComponentFactory";
     private static final String VELD_CLASS = "io/github/yasmramos/veld/Veld";
     private static final String VELD_EXCEPTION = "io/github/yasmramos/veld/VeldException";
-    private static final String SCOPE = "io/github/yasmramos/veld/runtime/LegacyScope";
+    private static final String SCOPE = "io/github/yasmramos/veld/annotation/ScopeType";
     private static final String OBJECT = "java/lang/Object";
     private static final String CLASS = "java/lang/Class";
     private static final String STRING = "java/lang/String";
@@ -492,7 +492,7 @@ public final class RegistryGenerator {
     }
     
     private void generateGetScope(ClassWriter cw) {
-        // Keep backwards compatibility - getScope returns Scope enum for built-in scopes
+        // Return ScopeType enum for built-in scopes
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "getScope",
                 "(I)L" + SCOPE + ";", null, null);
         mv.visitCode();
@@ -500,7 +500,7 @@ public final class RegistryGenerator {
         mv.visitFieldInsn(GETSTATIC, REGISTRY_NAME, "SCOPES", "[L" + STRING + ";");
         mv.visitVarInsn(ILOAD, 1);
         mv.visitInsn(AALOAD);
-        mv.visitMethodInsn(INVOKESTATIC, SCOPE, "fromId", "(L" + STRING + ";)L" + SCOPE + ";", false);
+        mv.visitMethodInsn(INVOKESTATIC, SCOPE, "fromScopeId", "(L" + STRING + ";)L" + SCOPE + ";", false);
         mv.visitInsn(ARETURN);
         
         mv.visitMaxs(0, 0);

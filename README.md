@@ -16,13 +16,13 @@
 [![Stars](https://img.shields.io/github/stars/yasmramos/Veld)](https://github.com/yasmramos/Veld/stargazers)
 [![Contributors](https://img.shields.io/github/contributors/yasmramos/Veld)](https://github.com/yasmramos/Veld/graphs/contributors)
 
-Veld is a **compile-time Dependency Injection framework** that generates pure code using ASM. Zero reflection at runtime means **maximum performance** - up to 100x faster than Spring for dependency resolution.
+Veld is a **compile-time Dependency Injection framework** that generates pure java code. Zero reflection at runtime means **maximum performance** - up to 100x faster than Spring for dependency resolution.
 
 ## Latest Updates (v1.0.3)
 
 ### Enhanced Test Coverage
 - **216 tests now passing** with comprehensive coverage across all modules
-- New test suites for DependencyGraph, DotExporter, DependencyNode, and LegacyScope
+- New test suites for DependencyGraph, DotExporter, DependencyNode, and ScopeType
 - Improved component factory and event bus testing
 - All edge cases and graph visualization features thoroughly validated
 
@@ -83,10 +83,10 @@ Veld provides powerful dependency graph visualization capabilities for analyzing
 DependencyGraph graph = new DependencyGraph();
 
 // Add nodes with their scopes
-graph.addNode(new DependencyNode("com.example.UserService", "UserService", LegacyScope.SINGLETON));
-graph.addNode(new DependencyNode("com.example.UserRepository", "UserRepository", LegacyScope.SINGLETON));
-graph.addNode(new DependencyNode("com.example.EmailService", "EmailService", LegacyScope.PROTOTYPE));
-graph.addNode(new DependencyNode("com.example.NotificationService", "NotificationService", LegacyScope.SINGLETON));
+graph.addNode(new DependencyNode("com.example.UserService", "UserService", ScopeType.SINGLETON));
+graph.addNode(new DependencyNode("com.example.UserRepository", "UserRepository", ScopeType.SINGLETON));
+graph.addNode(new DependencyNode("com.example.EmailService", "EmailService", ScopeType.PROTOTYPE));
+graph.addNode(new DependencyNode("com.example.NotificationService", "NotificationService", ScopeType.SINGLETON));
 
 // Define dependencies between components
 graph.addEdge("com.example.UserService", "com.example.UserRepository", "dependsOn");
@@ -272,9 +272,9 @@ if (!cycles.isEmpty()) {
 ```java
 // Create a graph with a circular dependency
 DependencyGraph graph = new DependencyGraph();
-graph.addNode(new DependencyNode("com.example.A", "A", LegacyScope.SINGLETON));
-graph.addNode(new DependencyNode("com.example.B", "B", LegacyScope.SINGLETON));
-graph.addNode(new DependencyNode("com.example.C", "C", LegacyScope.SINGLETON));
+graph.addNode(new DependencyNode("com.example.A", "A", ScopeType.SINGLETON));
+graph.addNode(new DependencyNode("com.example.B", "B", ScopeType.SINGLETON));
+graph.addNode(new DependencyNode("com.example.C", "C", ScopeType.SINGLETON));
 
 graph.addEdge("com.example.A", "com.example.B", "dependsOn");
 graph.addEdge("com.example.B", "com.example.C", "dependsOn");
