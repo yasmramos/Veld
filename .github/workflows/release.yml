@@ -126,8 +126,8 @@ jobs:
       run: |
         echo "=== Building Veld Framework ${{ needs.prepare-release.outputs.version }} ==="
         # Exclude example and benchmark modules - they are not published to Maven Central
-        # Use install to make artifacts available to dependent modules, skip javadoc attachment
-        mvn clean install -DskipTests=true -Dmaven.javadoc.attach=false -B -pl '!veld-example,!veld-spring-boot-example,!veld-benchmark'
+        # Skip tests and javadoc/build-helper plugins to avoid installation issues
+        mvn clean install -DskipTests=true -Dmaven.javadoc.attach=false -Dbuild-helper.attach.phase=none -B -pl '!veld-example,!veld-spring-boot-example,!veld-benchmark'
       env:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
 
