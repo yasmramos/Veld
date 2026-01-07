@@ -1,18 +1,17 @@
 package io.github.yasmramos.veld.runtime.graph;
 
-import io.github.yasmramos.veld.runtime.LegacyScope;
+import io.github.yasmramos.veld.annotation.ScopeType;
 
 import java.util.*;
 
 /**
  * Represents a node in the dependency graph.
  */
-@SuppressWarnings("deprecation")
 public final class DependencyNode {
     private final String className;
     private final String simpleName;
     private final String componentName;
-    private final LegacyScope scope;
+    private final ScopeType scope;
     private boolean isPrimary;
     private final Set<String> profiles = new HashSet<>();
     private final List<String> constructorDependencies = new ArrayList<>();
@@ -20,7 +19,7 @@ public final class DependencyNode {
     private final List<String> methodDependencies = new ArrayList<>();
     private final List<String> interfaces = new ArrayList<>();
     
-    public DependencyNode(String className, String componentName, LegacyScope scope) {
+    public DependencyNode(String className, String componentName, ScopeType scope) {
         this.className = className;
         this.simpleName = extractSimpleName(className);
         this.componentName = componentName;
@@ -41,7 +40,7 @@ public final class DependencyNode {
     public String getClassName() { return className; }
     public String getSimpleName() { return simpleName; }
     public String getComponentName() { return componentName; }
-    public LegacyScope getScope() { return scope; }
+    public ScopeType getScope() { return scope; }
     public boolean isPrimary() { return isPrimary; }
     public Set<String> getProfiles() { return profiles; }
     public List<String> getConstructorDependencies() { return constructorDependencies; }

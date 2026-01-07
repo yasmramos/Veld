@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.runtime.graph;
 
-import io.github.yasmramos.veld.runtime.LegacyScope;
+import io.github.yasmramos.veld.annotation.ScopeType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -62,7 +62,7 @@ class DotExporterTest {
         @Test
         @DisplayName("Should export graph with single node")
         void testExportSingleNode() throws Exception {
-            graph.addNode(new DependencyNode("com.example.Single", "single", LegacyScope.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.Single", "single", ScopeType.SINGLETON));
 
             StringWriter writer = new StringWriter();
             exporter.export(graph, writer);
@@ -76,8 +76,8 @@ class DotExporterTest {
         @Test
         @DisplayName("Should export graph with multiple nodes")
         void testExportMultipleNodes() throws Exception {
-            graph.addNode(new DependencyNode("com.example.Service", "service", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.Repository", "repository", LegacyScope.PROTOTYPE));
+            graph.addNode(new DependencyNode("com.example.Service", "service", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.Repository", "repository", ScopeType.PROTOTYPE));
 
             StringWriter writer = new StringWriter();
             exporter.export(graph, writer);
@@ -91,8 +91,8 @@ class DotExporterTest {
         @Test
         @DisplayName("Should export graph with edges")
         void testExportWithEdges() throws Exception {
-            graph.addNode(new DependencyNode("com.example.Service", "service", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.Repository", "repository", LegacyScope.PROTOTYPE));
+            graph.addNode(new DependencyNode("com.example.Service", "service", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.Repository", "repository", ScopeType.PROTOTYPE));
             graph.addEdge("com.example.Service", "com.example.Repository", "dependsOn");
 
             StringWriter writer = new StringWriter();
@@ -112,7 +112,7 @@ class DotExporterTest {
         @Test
         @DisplayName("Should use box shape for singleton scope")
         void testSingletonNodeShape() throws Exception {
-            graph.addNode(new DependencyNode("com.example.Singleton", "singleton", LegacyScope.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.Singleton", "singleton", ScopeType.SINGLETON));
 
             StringWriter writer = new StringWriter();
             exporter.export(graph, writer);
@@ -124,7 +124,7 @@ class DotExporterTest {
         @Test
         @DisplayName("Should use oval shape for prototype scope")
         void testPrototypeNodeShape() throws Exception {
-            graph.addNode(new DependencyNode("com.example.Prototype", "prototype", LegacyScope.PROTOTYPE));
+            graph.addNode(new DependencyNode("com.example.Prototype", "prototype", ScopeType.PROTOTYPE));
 
             StringWriter writer = new StringWriter();
             exporter.export(graph, writer);
@@ -141,7 +141,7 @@ class DotExporterTest {
         @Test
         @DisplayName("Should highlight primary nodes")
         void testPrimaryNodeHighlight() throws Exception {
-            DependencyNode primaryNode = new DependencyNode("com.example.Primary", "primary", LegacyScope.SINGLETON);
+            DependencyNode primaryNode = new DependencyNode("com.example.Primary", "primary", ScopeType.SINGLETON);
             primaryNode.setPrimary(true);
             graph.addNode(primaryNode);
 
@@ -156,7 +156,7 @@ class DotExporterTest {
         @Test
         @DisplayName("Should color nodes with profiles")
         void testProfileNodeColor() throws Exception {
-            DependencyNode profileNode = new DependencyNode("com.example.Profiled", "profiled", LegacyScope.SINGLETON);
+            DependencyNode profileNode = new DependencyNode("com.example.Profiled", "profiled", ScopeType.SINGLETON);
             profileNode.addProfile("dev");
             graph.addNode(profileNode);
 
@@ -170,7 +170,7 @@ class DotExporterTest {
         @Test
         @DisplayName("Should handle nodes without profiles")
         void testNoProfiles() throws Exception {
-            graph.addNode(new DependencyNode("com.example.NoProfiles", "noprof", LegacyScope.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.NoProfiles", "noprof", ScopeType.SINGLETON));
 
             StringWriter writer = new StringWriter();
             exporter.export(graph, writer);
@@ -189,8 +189,8 @@ class DotExporterTest {
         @Test
         @DisplayName("Should include edge labels")
         void testEdgeLabels() throws Exception {
-            graph.addNode(new DependencyNode("com.example.A", "a", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.B", "b", LegacyScope.PROTOTYPE));
+            graph.addNode(new DependencyNode("com.example.A", "a", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.B", "b", ScopeType.PROTOTYPE));
             graph.addEdge("com.example.A", "com.example.B", "dependsOn");
 
             StringWriter writer = new StringWriter();
@@ -203,8 +203,8 @@ class DotExporterTest {
         @Test
         @DisplayName("Should handle edges without labels")
         void testNoEdgeLabel() throws Exception {
-            graph.addNode(new DependencyNode("com.example.A", "a", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.B", "b", LegacyScope.PROTOTYPE));
+            graph.addNode(new DependencyNode("com.example.A", "a", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.B", "b", ScopeType.PROTOTYPE));
             graph.addEdge("com.example.A", "com.example.B", "");
 
             StringWriter writer = new StringWriter();
@@ -217,8 +217,8 @@ class DotExporterTest {
         @Test
         @DisplayName("Should avoid duplicate edges")
         void testNoDuplicateEdges() throws Exception {
-            graph.addNode(new DependencyNode("com.example.A", "a", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.B", "b", LegacyScope.PROTOTYPE));
+            graph.addNode(new DependencyNode("com.example.A", "a", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.B", "b", ScopeType.PROTOTYPE));
             // Add the same edge multiple times
             graph.addEdge("com.example.A", "com.example.B", "dependsOn");
             graph.addEdge("com.example.A", "com.example.B", "dependsOn");
@@ -247,9 +247,9 @@ class DotExporterTest {
         void testLeafNodeRanking() throws Exception {
             // A -> B
             // A -> C
-            graph.addNode(new DependencyNode("com.example.A", "a", LegacyScope.SINGLETON));
-            graph.addNode(new DependencyNode("com.example.B", "b", LegacyScope.PROTOTYPE));
-            graph.addNode(new DependencyNode("com.example.C", "c", LegacyScope.PROTOTYPE));
+            graph.addNode(new DependencyNode("com.example.A", "a", ScopeType.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.B", "b", ScopeType.PROTOTYPE));
+            graph.addNode(new DependencyNode("com.example.C", "c", ScopeType.PROTOTYPE));
 
             graph.addEdge("com.example.A", "com.example.B", "dependsOn");
             graph.addEdge("com.example.A", "com.example.C", "dependsOn");
@@ -270,7 +270,7 @@ class DotExporterTest {
         @Test
         @DisplayName("Should escape quotes in class names")
         void testQuoteEscaping() throws Exception {
-            graph.addNode(new DependencyNode("com.example.With\"Quotes\"", "quoted", LegacyScope.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.With\"Quotes\"", "quoted", ScopeType.SINGLETON));
 
             StringWriter writer = new StringWriter();
             exporter.export(graph, writer);
@@ -282,7 +282,7 @@ class DotExporterTest {
         @Test
         @DisplayName("Should escape backslashes")
         void testBackslashEscaping() throws Exception {
-            graph.addNode(new DependencyNode("com.example.With\\Backslash", "backslash", LegacyScope.SINGLETON));
+            graph.addNode(new DependencyNode("com.example.With\\Backslash", "backslash", ScopeType.SINGLETON));
 
             StringWriter writer = new StringWriter();
             exporter.export(graph, writer);
@@ -310,16 +310,16 @@ class DotExporterTest {
         @DisplayName("Should export complete component graph")
         void testCompleteGraph() throws Exception {
             // Setup a service layer graph
-            graph.addNode(new DependencyNode("com.example.Controller", "controller", LegacyScope.SINGLETON));
-            DependencyNode service = new DependencyNode("com.example.Service", "service", LegacyScope.SINGLETON);
+            graph.addNode(new DependencyNode("com.example.Controller", "controller", ScopeType.SINGLETON));
+            DependencyNode service = new DependencyNode("com.example.Service", "service", ScopeType.SINGLETON);
             service.setPrimary(true);
             graph.addNode(service);
 
-            DependencyNode repository = new DependencyNode("com.example.Repository", "repository", LegacyScope.PROTOTYPE);
+            DependencyNode repository = new DependencyNode("com.example.Repository", "repository", ScopeType.PROTOTYPE);
             repository.addProfile("dev");
             graph.addNode(repository);
 
-            graph.addNode(new DependencyNode("com.example.Database", "database", LegacyScope.PROTOTYPE));
+            graph.addNode(new DependencyNode("com.example.Database", "database", ScopeType.PROTOTYPE));
 
             graph.addEdge("com.example.Controller", "com.example.Service", "dependsOn");
             graph.addEdge("com.example.Service", "com.example.Repository", "dependsOn");

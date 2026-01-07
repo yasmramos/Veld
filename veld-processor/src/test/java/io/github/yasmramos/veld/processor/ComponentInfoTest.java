@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.LegacyScope;
+import io.github.yasmramos.veld.annotation.ScopeType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -23,7 +23,7 @@ class ComponentInfoTest {
         componentInfo = new ComponentInfo(
             "com.example.MyService",
             "myService",
-            LegacyScope.SINGLETON
+            ScopeType.SINGLETON
         );
     }
     
@@ -52,7 +52,7 @@ class ComponentInfoTest {
         @Test
         @DisplayName("Should return correct scope")
         void shouldReturnCorrectScope() {
-            assertEquals(LegacyScope.SINGLETON, componentInfo.getScope());
+            assertEquals(ScopeType.SINGLETON, componentInfo.getScope());
         }
         
         @Test
@@ -204,10 +204,10 @@ class ComponentInfoTest {
             ComponentInfo prototypeInfo = new ComponentInfo(
                 "com.example.Request",
                 "request",
-                LegacyScope.PROTOTYPE
+                ScopeType.PROTOTYPE
             );
             
-            assertEquals(LegacyScope.PROTOTYPE, prototypeInfo.getScope());
+            assertEquals(ScopeType.PROTOTYPE, prototypeInfo.getScope());
         }
     }
     
@@ -227,7 +227,7 @@ class ComponentInfoTest {
             ComponentInfo lazyInfo = new ComponentInfo(
                 "com.example.LazyService",
                 "lazyService",
-                LegacyScope.SINGLETON,
+                ScopeType.SINGLETON,
                 null,
                 true
             );
@@ -240,7 +240,7 @@ class ComponentInfoTest {
             ComponentInfo nonLazyInfo = new ComponentInfo(
                 "com.example.EagerService",
                 "eagerService",
-                LegacyScope.SINGLETON,
+                ScopeType.SINGLETON,
                 null,
                 false
             );
@@ -361,12 +361,241 @@ class ComponentInfoTest {
         void shouldUpdateOrderValueCorrectly() {
             componentInfo.setOrder(10);
             assertEquals(10, componentInfo.getOrder());
-            
+
             componentInfo.setOrder(20);
             assertEquals(20, componentInfo.getOrder());
-            
+
             componentInfo.setOrder(5);
             assertEquals(5, componentInfo.getOrder());
+        }
+    }
+
+    @Nested
+    @DisplayName("Holder Pattern Tests")
+    class HolderPatternTests {
+
+        @Test
+        @DisplayName("Simple singleton should use holder pattern")
+        void simpleSingletonShouldUseHolderPattern() {
+            ComponentInfo simpleComponent = new ComponentInfo(
+                "com.example.SimpleService",
+                "simpleService",
+                ScopeType.SINGLETON
+            );
+
+            assertTrue(simpleComponent.canUseHolderPattern());
+            assertNull(simpleComponent.getHolderPatternRestriction());
+        }
+
+        @Test
+        @DisplayName("Prototype scope should not use holder pattern")
+        void prototypeShouldNotUseHolderPattern() {
+            ComponentInfo prototypeComponent = new ComponentInfo(
+                "com.example.PrototypeService",
+                "prototypeService",
+                ScopeType.PROTOTYPE
+            );
+
+            assertFalse(prototypeComponent.canUseHolderPattern());
+            assertNotNull(prototypeComponent.getHolderPatternRestriction());
+            assertTrue(prototypeComponent.getHolderPatternRestriction().contains("PROTOTYPE"));
+        }
+
+        @Test
+        @DisplayName("Lazy singleton should not use holder pattern")
+        void lazySingletonShouldNotUseHolderPattern() {
+            ComponentInfo lazyComponent = new ComponentInfo(
+                "com.example.LazyService",
+                "lazyService",
+                ScopeType.SINGLETON,
+                null,
+                true
+            );
+
+            assertFalse(lazyComponent.canUseHolderPattern());
+            assertNotNull(lazyComponent.getHolderPatternRestriction());
+            assertTrue(lazyComponent.getHolderPatternRestriction().contains("lazy"));
+        }
+
+        @Test
+        @DisplayName("Singleton with constructor injection should not use holder pattern")
+        void singletonWithInjectionShouldNotUseHolderPattern() {
+            ComponentInfo injectedComponent = new ComponentInfo(
+                "com.example.InjectedService",
+                "injectedService",
+                ScopeType.SINGLETON
+            );
+            injectedComponent.setConstructorInjection(
+                new InjectionPoint(
+                    InjectionPoint.Type.CONSTRUCTOR,
+                    "<init>",
+                    "(Lcom/example/OtherService;)V",
+                    List.of(new InjectionPoint.Dependency("com.example.OtherService", "Lcom/example/OtherService;", null))
+                )
+            );
+
+            assertFalse(injectedComponent.canUseHolderPattern());
+            assertNotNull(injectedComponent.getHolderPatternRestriction());
+            assertTrue(injectedComponent.getHolderPatternRestriction().contains("injection"));
+        }
+
+        @Test
+        @DisplayName("Singleton with field injection should not use holder pattern")
+        void singletonWithFieldInjectionShouldNotUseHolderPattern() {
+            ComponentInfo injectedComponent = new ComponentInfo(
+                "com.example.FieldInjectedService",
+                "fieldInjectedService",
+                ScopeType.SINGLETON
+            );
+            InjectionPoint fieldInjection = new InjectionPoint(
+                InjectionPoint.Type.FIELD,
+                "dependency",
+                "Lcom/example/DependencyService;",
+                List.of(new InjectionPoint.Dependency("com.example.DependencyService", "Lcom/example/DependencyService;", null))
+            );
+            injectedComponent.addFieldInjection(fieldInjection);
+
+            assertFalse(injectedComponent.canUseHolderPattern());
+            assertNotNull(injectedComponent.getHolderPatternRestriction());
+        }
+
+        @Test
+        @DisplayName("Singleton with method injection should not use holder pattern")
+        void singletonWithMethodInjectionShouldNotUseHolderPattern() {
+            ComponentInfo injectedComponent = new ComponentInfo(
+                "com.example.MethodInjectedService",
+                "methodInjectedService",
+                ScopeType.SINGLETON
+            );
+            InjectionPoint methodInjection = new InjectionPoint(
+                InjectionPoint.Type.METHOD,
+                "setDependency",
+                "(Lcom/example/DependencyService;)V",
+                List.of(new InjectionPoint.Dependency("com.example.DependencyService", "Lcom/example/DependencyService;", null))
+            );
+            injectedComponent.addMethodInjection(methodInjection);
+
+            assertFalse(injectedComponent.canUseHolderPattern());
+            assertNotNull(injectedComponent.getHolderPatternRestriction());
+        }
+
+        @Test
+        @DisplayName("Singleton with @PostConstruct should not use holder pattern")
+        void singletonWithPostConstructShouldNotUseHolderPattern() {
+            ComponentInfo lifecycleComponent = new ComponentInfo(
+                "com.example.LifecycleService",
+                "lifecycleService",
+                ScopeType.SINGLETON
+            );
+            lifecycleComponent.setPostConstruct("init", "()V");
+
+            assertFalse(lifecycleComponent.canUseHolderPattern());
+            assertNotNull(lifecycleComponent.getHolderPatternRestriction());
+            assertTrue(lifecycleComponent.getHolderPatternRestriction().contains("PostConstruct"));
+        }
+
+        @Test
+        @DisplayName("Singleton with @PreDestroy should not use holder pattern")
+        void singletonWithPreDestroyShouldNotUseHolderPattern() {
+            ComponentInfo lifecycleComponent = new ComponentInfo(
+                "com.example.LifecycleService",
+                "lifecycleService",
+                ScopeType.SINGLETON
+            );
+            lifecycleComponent.setPreDestroy("cleanup", "()V");
+
+            assertFalse(lifecycleComponent.canUseHolderPattern());
+            assertNotNull(lifecycleComponent.getHolderPatternRestriction());
+            assertTrue(lifecycleComponent.getHolderPatternRestriction().contains("PreDestroy"));
+        }
+
+        @Test
+        @DisplayName("Singleton with @Conditional should not use holder pattern")
+        void singletonWithConditionalShouldNotUseHolderPattern() {
+            ComponentInfo conditionalComponent = new ComponentInfo(
+                "com.example.ConditionalService",
+                "conditionalService",
+                ScopeType.SINGLETON
+            );
+            ConditionInfo conditionInfo = new ConditionInfo();
+            conditionInfo.addPropertyCondition("feature.enabled", null, false);
+            conditionalComponent.setConditionInfo(conditionInfo);
+
+            assertFalse(conditionalComponent.canUseHolderPattern());
+            assertNotNull(conditionalComponent.getHolderPatternRestriction());
+            assertTrue(conditionalComponent.getHolderPatternRestriction().contains("Conditional"));
+        }
+
+        @Test
+        @DisplayName("Singleton with AOP interceptors should not use holder pattern")
+        void singletonWithAopShouldNotUseHolderPattern() {
+            ComponentInfo aopComponent = new ComponentInfo(
+                "com.example.AopService",
+                "aopService",
+                ScopeType.SINGLETON
+            );
+            aopComponent.addAopInterceptor("com.example.LoggingInterceptor");
+
+            assertFalse(aopComponent.canUseHolderPattern());
+            assertNotNull(aopComponent.getHolderPatternRestriction());
+            assertTrue(aopComponent.getHolderPatternRestriction().contains("AOP"));
+        }
+
+        @Test
+        @DisplayName("Singleton with @Subscribe methods should not use holder pattern")
+        void singletonWithSubscribeShouldNotUseHolderPattern() {
+            ComponentInfo eventComponent = new ComponentInfo(
+                "com.example.EventService",
+                "eventService",
+                ScopeType.SINGLETON
+            );
+            eventComponent.setHasSubscribeMethods(true);
+
+            assertFalse(eventComponent.canUseHolderPattern());
+            assertNotNull(eventComponent.getHolderPatternRestriction());
+            assertTrue(eventComponent.getHolderPatternRestriction().contains("Subscribe"));
+        }
+
+        @Test
+        @DisplayName("Complex component with multiple restrictions should return first restriction")
+        void complexComponentShouldReturnFirstRestriction() {
+            ComponentInfo complexComponent = new ComponentInfo(
+                "com.example.ComplexService",
+                "complexService",
+                ScopeType.PROTOTYPE
+            );
+            complexComponent.setConstructorInjection(
+                new InjectionPoint(
+                    InjectionPoint.Type.CONSTRUCTOR,
+                    "<init>",
+                    "(Lcom/example/OtherService;)V",
+                    List.of(new InjectionPoint.Dependency("com.example.OtherService", "Lcom/example/OtherService;", null))
+                )
+            );
+            complexComponent.setPostConstruct("init", "()V");
+
+            // Prototype is the first check, so that's what should be reported
+            assertFalse(complexComponent.canUseHolderPattern());
+            assertNotNull(complexComponent.getHolderPatternRestriction());
+            assertTrue(complexComponent.getHolderPatternRestriction().contains("PROTOTYPE"));
+        }
+
+        @Test
+        @DisplayName("Eager singleton without dependencies should use holder pattern")
+        void eagerSingletonWithoutDependenciesShouldUseHolderPattern() {
+            // This is the ideal case for holder pattern
+            ComponentInfo idealComponent = new ComponentInfo(
+                "com.example.IdealService",
+                "idealService",
+                ScopeType.SINGLETON,
+                null,
+                false  // Not lazy
+            );
+            // No constructor injection, no field injection, no method injection
+            // No lifecycle callbacks, no conditions, no AOP, no event subscriptions
+
+            assertTrue(idealComponent.canUseHolderPattern());
+            assertNull(idealComponent.getHolderPatternRestriction());
         }
     }
 }

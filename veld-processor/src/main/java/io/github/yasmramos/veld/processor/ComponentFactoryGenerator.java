@@ -1,7 +1,7 @@
 package io.github.yasmramos.veld.processor;
 
 import io.github.yasmramos.veld.processor.InjectionPoint.Dependency;
-import io.github.yasmramos.veld.runtime.LegacyScope;
+import io.github.yasmramos.veld.annotation.ScopeType;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 
@@ -24,7 +24,7 @@ import static org.objectweb.asm.Opcodes.*;
  *     
  *     public Class<MyService> getComponentType() { return MyService.class; }
  *     public String getComponentName() { return "myService"; }
- *     public LegacyScope getScope() { return LegacyScope.SINGLETON; }
+ *     public ScopeType getScope() { return ScopeType.SINGLETON; }
  *     public void invokePostConstruct(MyService instance) { instance.init(); }
  *     public void invokePreDestroy(MyService instance) { instance.cleanup(); }
  * }
@@ -34,7 +34,7 @@ public final class ComponentFactoryGenerator {
     
     private static final String COMPONENT_FACTORY = "io/github/yasmramos/veld/runtime/ComponentFactory";
     private static final String VELD_CLASS = "io/github/yasmramos/veld/Veld";
-    private static final String SCOPE = "io/github/yasmramos/veld/runtime/LegacyScope";
+    private static final String SCOPE = "io/github/yasmramos/veld/annotation/ScopeType";
     private static final String PROVIDER = "io/github/yasmramos/veld/runtime/Provider";
     private static final String OPTIONAL = "java/util/Optional";
     private static final String OBJECT = "java/lang/Object";
@@ -435,7 +435,7 @@ public final class ComponentFactoryGenerator {
                 "()L" + SCOPE + ";", null, null);
         mv.visitCode();
         
-        String scopeName = component.getScope() == LegacyScope.SINGLETON ? "SINGLETON" : "PROTOTYPE";
+        String scopeName = component.getScope() == ScopeType.SINGLETON ? "SINGLETON" : "PROTOTYPE";
         mv.visitFieldInsn(GETSTATIC, SCOPE, scopeName, "L" + SCOPE + ";");
         mv.visitInsn(ARETURN);
         

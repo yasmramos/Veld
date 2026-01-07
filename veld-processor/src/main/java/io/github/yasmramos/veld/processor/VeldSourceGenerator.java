@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.LegacyScope;
+import io.github.yasmramos.veld.annotation.ScopeType;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +32,7 @@ public final class VeldSourceGenerator {
         // Imports
         sb.append("import io.github.yasmramos.veld.generated.VeldRegistry;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ComponentRegistry;\n");
-        sb.append("import io.github.yasmramos.veld.runtime.LegacyScope;\n");
+        sb.append("import io.github.yasmramos.veld.annotation.ScopeType;\n");
         sb.append("import io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ConditionalRegistry;\n");
         sb.append("import io.github.yasmramos.veld.runtime.event.EventBus;\n");
@@ -84,9 +84,6 @@ public final class VeldSourceGenerator {
         
         // get() methods for each component
         generateGetMethods(sb);
-        
-        // createInstance methods
-        generateCreateInstanceMethods(sb);
         
         // Generic get by class
         generateGetByClass(sb);
@@ -143,13 +140,14 @@ public final class VeldSourceGenerator {
     private void generateHolderClasses(StringBuilder sb) {
         sb.append("    // === HOLDER CLASSES FOR LOCK-FREE SINGLETON ACCESS ===\n\n");
         for (ComponentInfo comp : components) {
-            if (comp.getScope() == LegacyScope.SINGLETON) {
+            if (comp.getScope() == ScopeType.SINGLETON && comp.canUseHolderPattern()) {
+                // Simple singleton - use true holder pattern with direct instantiation
                 String holderName = getHolderClassName(comp);
                 String returnType = comp.getClassName();
                 String simpleName = getSimpleName(comp);
                 
                 sb.append("    private static final class ").append(holderName).append(" {\n");
-                sb.append("        static final ").append(returnType).append(" INSTANCE = createInstance_").append(simpleName).append("();\n");
+                sb.append("        static final ").append(returnType).append(" INSTANCE = new ").append(simpleName).append("();\n");
                 sb.append("    }\n\n");
             }
         }
@@ -163,36 +161,22 @@ public final class VeldSourceGenerator {
             
             sb.append("    public static ").append(returnType).append(" ").append(methodName).append("() {\n");
             
-            if (comp.getScope() == LegacyScope.SINGLETON) {
-                // Singleton - use holder pattern (lock-free)
-                String holderName = getHolderClassName(comp);
-                sb.append("        return ").append(holderName).append(".INSTANCE;\n");
+            if (comp.getScope() == ScopeType.SINGLETON) {
+                if (comp.canUseHolderPattern()) {
+                    // Simple singleton - use holder pattern (lock-free, direct instantiation)
+                    String holderName = getHolderClassName(comp);
+                    sb.append("        return ").append(holderName).append(".INSTANCE;\n");
+                } else {
+                    // Complex singleton - use factory (supports DI, lifecycle, conditions, AOP)
+                    sb.append("        return (").append(returnType).append(") _registry.getFactory(").append(returnType).append(".class).create();\n");
+                }
             } else {
-                // Prototype - always create new
-                sb.append("        return createInstance_").append(getSimpleName(comp)).append("();\n");
+                // Prototype - always create new via factory
+                sb.append("        return (").append(returnType).append(") _registry.getFactory(").append(returnType).append(".class).create();\n");
             }
             
             sb.append("    }\n\n");
         }
-    }
-    
-    private void generateCreateInstanceMethods(StringBuilder sb) {
-        sb.append("    // === INSTANCE CREATION METHODS ===\n\n");
-        for (ComponentInfo comp : components) {
-            generateCreateInstanceMethod(sb, comp);
-        }
-    }
-    
-    private void generateCreateInstanceMethod(StringBuilder sb, ComponentInfo comp) {
-        String simpleName = getSimpleName(comp);
-        String returnType = comp.getClassName();
-        
-        sb.append("    private static ").append(returnType).append(" createInstance_").append(simpleName).append("() {\n");
-        
-        // Use the factory from registry to create the instance
-        sb.append("        return (").append(returnType).append(") _registry.getFactory(").append(returnType).append(".class).create();\n");
-        
-        sb.append("    }\n\n");
     }
     
     private void generateGetByClass(StringBuilder sb) {
@@ -200,10 +184,19 @@ public final class VeldSourceGenerator {
         sb.append("    @SuppressWarnings(\"unchecked\")\n");
         sb.append("    public static <T> T get(Class<T> type) {\n");
         
-        // Generate if-else chain for each component type using registry directly
+        // Generate if-else chain for each component type
         for (ComponentInfo comp : components) {
             sb.append("        if (type == ").append(comp.getClassName()).append(".class) {\n");
-            sb.append("            return (T) _registry.getFactory(type).create();\n");
+            
+            if (comp.getScope() == ScopeType.SINGLETON && comp.canUseHolderPattern()) {
+                // Simple singleton - use holder pattern
+                String holderName = getHolderClassName(comp);
+                sb.append("            return (T) ").append(holderName).append(".INSTANCE;\n");
+            } else {
+                // Complex singleton or prototype - use factory
+                sb.append("            return (T) _registry.getFactory(type).create();\n");
+            }
+            
             sb.append("        }\n");
         }
         
@@ -211,7 +204,14 @@ public final class VeldSourceGenerator {
         for (ComponentInfo comp : components) {
             for (String iface : comp.getImplementedInterfaces()) {
                 sb.append("        if (type == ").append(iface).append(".class) {\n");
-                sb.append("            return (T) _registry.getFactory(type).create();\n");
+                
+                if (comp.getScope() == ScopeType.SINGLETON && comp.canUseHolderPattern()) {
+                    String holderName = getHolderClassName(comp);
+                    sb.append("            return (T) ").append(holderName).append(".INSTANCE;\n");
+                } else {
+                    sb.append("            return (T) _registry.getFactory(type).create();\n");
+                }
+                
                 sb.append("        }\n");
             }
         }
