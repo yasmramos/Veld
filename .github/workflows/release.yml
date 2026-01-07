@@ -144,6 +144,28 @@ jobs:
         path: '*/target/surefire-reports/TEST-*.xml'
         reporter: java-junit
 
+    - name: Extract test count
+      id: test-count
+      if: always()
+      run: |
+        TOTAL_TESTS=$(find . -name "TEST-*.xml" -path "*/surefire-reports/*" -exec grep -h 'tests=' {} \; 2>/dev/null | grep -oP 'tests="\K[0-9]+' | awk '{sum+=$1} END {print sum+0}')
+        FAILED_TESTS=$(find . -name "TEST-*.xml" -path "*/surefire-reports/*" -exec grep -h 'failures=' {} \; 2>/dev/null | grep -oP 'failures="\K[0-9]+' | awk '{sum+=$1} END {print sum+0}')
+        echo "Total tests: $TOTAL_TESTS"
+        echo "Failed tests: $FAILED_TESTS"
+        echo "test_count=$TOTAL_TESTS" >> $GITHUB_OUTPUT
+        echo "failed_count=$FAILED_TESTS" >> $GITHUB_OUTPUT
+
+    - name: Update README badges
+      if: always() && needs.prepare-release.result == 'success'
+      run: |
+        TEST_COUNT="${{ steps.test-count.outputs.test_count }}"
+        FAILED_COUNT="${{ steps.test-count.outputs.failed_count }}"
+        
+        # Update test badge in README
+        sed -i 's/\[!\[Tests\](https:\/\/img.shields.io\/badge\/Tests-[0-9]*%20passed-green)\]("[^"]*")]/[![Tests](https:\/\/img.shields.io\/badge\/Tests-'"$TEST_COUNT"'%20passed-green)](https:\/\/github.com\/yasmramos\/Veld\/actions)]/g' README.md
+        
+        echo "README badges updated with test count: $TEST_COUNT"
+
     - name: Upload Test Results
       if: always()
       uses: actions/upload-artifact@v4
