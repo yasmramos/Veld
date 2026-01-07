@@ -85,8 +85,6 @@ public class EventSubscriber implements Comparable<EventSubscriber> {
         this.priority = priority;
         this.filter = filter != null ? filter : "";
         this.catchExceptions = catchExceptions;
-        this.signatureWarning = buildSignatureWarning(method, eventType);
-
         // Pre-compute MethodHandle for fast invocation
         this.methodHandle = precomputeMethodHandle(target, method);
 
