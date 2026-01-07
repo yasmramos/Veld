@@ -56,7 +56,7 @@ class AsmUtilsTest {
             assertEquals("io/github/yasmramos/veld/runtime/ComponentRegistry", AsmUtils.COMPONENT_REGISTRY);
             assertEquals("io/github/yasmramos/veld/runtime/ComponentFactory", AsmUtils.COMPONENT_FACTORY);
             assertEquals("io/github/yasmramos/veld/VeldException", AsmUtils.VELD_EXCEPTION);
-            assertEquals("io/github/yasmramos/veld/runtime/LegacyScope", AsmUtils.SCOPE);
+            assertEquals("io/github/yasmramos/veld/annotation/ScopeType", AsmUtils.SCOPE);
         }
 
         @Test

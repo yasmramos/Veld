@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.LegacyScope;
+import io.github.yasmramos.veld.annotation.ScopeType;
 import java.util.List;
 
 /**
@@ -37,7 +37,7 @@ public final class ComponentFactorySourceGenerator {
         // Imports
         sb.append("import io.github.yasmramos.veld.Veld;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ComponentFactory;\n");
-        sb.append("import io.github.yasmramos.veld.runtime.LegacyScope;\n");
+        sb.append("import io.github.yasmramos.veld.annotation.ScopeType;\n");
         sb.append("import java.util.List;\n");
         sb.append("import java.util.Arrays;\n\n");
         
@@ -69,9 +69,9 @@ public final class ComponentFactorySourceGenerator {
         
         // getScope()
         sb.append("    @Override\n");
-        sb.append("    public LegacyScope getScope() {\n");
-        String scopeName = component.getScope() == LegacyScope.SINGLETON ? "SINGLETON" : "PROTOTYPE";
-        sb.append("        return LegacyScope.").append(scopeName).append(";\n");
+        sb.append("    public ScopeType getScope() {\n");
+        String scopeName = component.getScope() == ScopeType.SINGLETON ? "SINGLETON" : "PROTOTYPE";
+        sb.append("        return ScopeType.").append(scopeName).append(";\n");
         sb.append("    }\n\n");
         
         // getScopeId() - supports custom scopes

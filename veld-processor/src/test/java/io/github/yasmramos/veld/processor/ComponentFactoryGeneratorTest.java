@@ -15,7 +15,7 @@
  */
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.LegacyScope;
+import io.github.yasmramos.veld.annotation.ScopeType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -83,7 +83,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.SimpleService",
                 "simpleService",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             ComponentFactoryGenerator generator = new ComponentFactoryGenerator(component);
@@ -99,7 +99,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.MyService",
                 "myService",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             ComponentFactoryGenerator generator = new ComponentFactoryGenerator(component);
@@ -115,7 +115,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.TestComponent",
                 "testComponent",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             ComponentFactoryGenerator generator = new ComponentFactoryGenerator(component);
@@ -133,7 +133,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.ServiceImpl",
                 "serviceImpl",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             ComponentFactoryGenerator generator = new ComponentFactoryGenerator(component);
@@ -149,7 +149,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.ServiceImpl",
                 "serviceImpl",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             ComponentFactoryGenerator generator = new ComponentFactoryGenerator(component);
@@ -170,7 +170,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.SingletonService",
                 "singletonService",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             ComponentFactoryGenerator generator = new ComponentFactoryGenerator(component);
@@ -186,7 +186,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.PrototypeService",
                 "prototypeService",
-                LegacyScope.PROTOTYPE
+                ScopeType.PROTOTYPE
             );
             
             ComponentFactoryGenerator generator = new ComponentFactoryGenerator(component);
@@ -207,7 +207,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.ConstructorTest",
                 "constructorTest",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             ComponentFactoryGenerator generator = new ComponentFactoryGenerator(component);
@@ -227,7 +227,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.TypeTest",
                 "typeTest",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             ComponentFactoryGenerator generator = new ComponentFactoryGenerator(component);
@@ -247,7 +247,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.NameTest",
                 "nameTest",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             ComponentFactoryGenerator generator = new ComponentFactoryGenerator(component);
@@ -267,7 +267,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.ScopeTest",
                 "scopeTest",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             ComponentFactoryGenerator generator = new ComponentFactoryGenerator(component);
@@ -278,7 +278,7 @@ class ComponentFactoryGeneratorTest {
             
             MethodNode method = getMethod(cn, "getScope");
             assertNotNull(method);
-            assertEquals("()Lio/github/yasmramos/veld/runtime/LegacyScope;", method.desc);
+            assertEquals("()Lio/github/yasmramos/veld/annotation/ScopeType;", method.desc);
         }
 
         @Test
@@ -287,7 +287,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.CreateTest",
                 "createTest",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             ComponentFactoryGenerator generator = new ComponentFactoryGenerator(component);
@@ -303,7 +303,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.LifecycleTest",
                 "lifecycleTest",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             ComponentFactoryGenerator generator = new ComponentFactoryGenerator(component);
@@ -319,7 +319,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.DestroyTest",
                 "destroyTest",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             ComponentFactoryGenerator generator = new ComponentFactoryGenerator(component);
@@ -335,7 +335,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.CompleteTest",
                 "completeTest",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             ComponentFactoryGenerator generator = new ComponentFactoryGenerator(component);
@@ -364,7 +364,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.LazyService",
                 "lazyService",
-                LegacyScope.SINGLETON,
+                ScopeType.SINGLETON,
                 null,
                 true  // lazy = true
             );
@@ -386,7 +386,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.EagerService",
                 "eagerService",
-                LegacyScope.SINGLETON,
+                ScopeType.SINGLETON,
                 null,
                 false  // lazy = false
             );
@@ -409,7 +409,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.ConditionalService",
                 "conditionalService",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             ConditionInfo conditions = new ConditionInfo();
             conditions.addPropertyCondition("feature.enabled", "true", false);
@@ -432,7 +432,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.EvalCondService",
                 "evalCondService",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             ConditionInfo conditions = new ConditionInfo();
             conditions.addProfileCondition(Arrays.asList("dev", "test"));
@@ -451,7 +451,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.CondEvalService",
                 "condEvalService",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             ConditionInfo conditions = new ConditionInfo();
             conditions.addClassCondition(Arrays.asList("com.optional.Library"));
@@ -470,7 +470,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.UnconditionalService",
                 "unconditionalService",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             // No conditions added
             
@@ -489,7 +489,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.MissingBeanService",
                 "missingBeanService",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             ConditionInfo conditions = new ConditionInfo();
             conditions.addMissingBeanTypeCondition(Arrays.asList("com.example.OtherService"));
@@ -514,7 +514,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.ServiceImpl",
                 "serviceImpl",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             component.addImplementedInterface("com.example.Service");
             component.addImplementedInterface("com.example.OtherService");
@@ -532,7 +532,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.StandaloneService",
                 "standaloneService",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             // No interfaces
             
@@ -554,7 +554,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.GenericService",
                 "genericService",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             ComponentFactoryGenerator generator = new ComponentFactoryGenerator(component);
@@ -577,7 +577,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.BridgeTest",
                 "bridgeTest",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             ComponentFactoryGenerator generator = new ComponentFactoryGenerator(component);
@@ -609,7 +609,7 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo component = new ComponentInfo(
                 "com.example.SimpleComponent",
                 "simpleComponent",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             ComponentFactoryGenerator generator = new ComponentFactoryGenerator(component);
@@ -626,13 +626,13 @@ class ComponentFactoryGeneratorTest {
             ComponentInfo simple = new ComponentInfo(
                 "com.example.Simple",
                 "simple",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             
             ComponentInfo conditional = new ComponentInfo(
                 "com.example.Conditional",
                 "conditional",
-                LegacyScope.SINGLETON
+                ScopeType.SINGLETON
             );
             ConditionInfo conditions = new ConditionInfo();
             conditions.addPropertyCondition("prop", "val", false);

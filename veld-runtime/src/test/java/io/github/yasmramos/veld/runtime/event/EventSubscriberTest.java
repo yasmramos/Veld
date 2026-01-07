@@ -2,6 +2,8 @@ package io.github.yasmramos.veld.runtime.event;
 
 import org.junit.jupiter.api.*;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -55,17 +57,43 @@ class EventSubscriberTest {
         private void privateHandler(TestEvent event) {
             methodCalled = true;
         }
+
+        // Methods for signature validation tests
+        public void noParams() {
+            // Invalid - no parameters
+        }
+
+        public void tooManyParams(TestEvent event1, TestEvent event2) {
+            // Invalid - too many parameters
+        }
+
+        public void nonEventParam(String notAnEvent) {
+            // Invalid - parameter doesn't extend Event
+        }
+
+        public void differentEventParam(OtherEvent event) {
+            // Invalid - different event type incompatible with TestEvent
+        }
     }
 
     private TestHandler handler;
     private Method handleEventMethod;
     private Method throwingMethod;
+    private Method noParamsMethod;
+    private Method tooManyParamsMethod;
+    private Method nonEventParamMethod;
+    private Method differentEventParamMethod;
+    private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
     @BeforeEach
     void setUp() throws Exception {
         handler = new TestHandler();
         handleEventMethod = TestHandler.class.getMethod("handleEvent", TestEvent.class);
         throwingMethod = TestHandler.class.getMethod("throwingHandler", TestEvent.class);
+        noParamsMethod = TestHandler.class.getMethod("noParams");
+        tooManyParamsMethod = TestHandler.class.getMethod("tooManyParams", TestEvent.class, TestEvent.class);
+        nonEventParamMethod = TestHandler.class.getMethod("nonEventParam", String.class);
+        differentEventParamMethod = TestHandler.class.getMethod("differentEventParam", OtherEvent.class);
     }
 
     @Nested
@@ -381,6 +409,101 @@ class EventSubscriberTest {
             String str = asyncSubscriber.toString();
 
             assertTrue(str.contains("async=true"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Signature Validation Tests")
+    class SignatureValidationTests {
+
+        @Test
+        @DisplayName("Should return null warning for valid signature")
+        void shouldReturnNullWarningForValidSignature() {
+            EventSubscriber subscriber = new EventSubscriber(
+                    handler, handleEventMethod, TestEvent.class,
+                    false, 0, "", false
+            );
+
+            assertNull(subscriber.getSignatureWarning());
+        }
+
+        @Test
+        @DisplayName("Should return warning for method with no parameters")
+        void shouldReturnWarningForNoParameters() {
+            EventSubscriber subscriber = new EventSubscriber(
+                    handler, noParamsMethod, TestEvent.class,
+                    false, 0, "", false
+            );
+
+            String warning = subscriber.getSignatureWarning();
+            assertNotNull(warning);
+            assertTrue(warning.contains("expected exactly one parameter but found 0"));
+        }
+
+        @Test
+        @DisplayName("Should return warning for method with too many parameters")
+        void shouldReturnWarningForTooManyParameters() {
+            EventSubscriber subscriber = new EventSubscriber(
+                    handler, tooManyParamsMethod, TestEvent.class,
+                    false, 0, "", false
+            );
+
+            String warning = subscriber.getSignatureWarning();
+            assertNotNull(warning);
+            assertTrue(warning.contains("expected exactly one parameter but found 2"));
+        }
+
+        @Test
+        @DisplayName("Should return warning for non-Event parameter type")
+        void shouldReturnWarningForNonEventParameter() {
+            EventSubscriber subscriber = new EventSubscriber(
+                    handler, nonEventParamMethod, TestEvent.class,
+                    false, 0, "", false
+            );
+
+            String warning = subscriber.getSignatureWarning();
+            assertNotNull(warning);
+            assertTrue(warning.contains("does not extend io.github.yasmramos.veld.runtime.event.Event"));
+        }
+
+        @Test
+        @DisplayName("Should return warning for incompatible event type")
+        void shouldReturnWarningForIncompatibleEventType() {
+            EventSubscriber subscriber = new EventSubscriber(
+                    handler, differentEventParamMethod, TestEvent.class,
+                    false, 0, "", false
+            );
+
+            String warning = subscriber.getSignatureWarning();
+            assertNotNull(warning);
+            assertTrue(warning.contains("is not compatible with parameter type"));
+        }
+
+        @Test
+        @DisplayName("Should include method signature in warning message")
+        void shouldIncludeMethodSignatureInWarning() {
+            EventSubscriber subscriber = new EventSubscriber(
+                    handler, nonEventParamMethod, TestEvent.class,
+                    false, 0, "", false
+            );
+
+            String warning = subscriber.getSignatureWarning();
+            assertNotNull(warning);
+            assertTrue(warning.contains("TestHandler#nonEventParam"));
+            assertTrue(warning.contains("String"));
+        }
+
+        @Test
+        @DisplayName("Functional interface constructor should have null warning")
+        void functionalInterfaceShouldHaveNullWarning() throws Exception {
+            MethodHandle handle = LOOKUP.unreflect(handleEventMethod).bindTo(handler);
+            EventSubscriber subscriber = new EventSubscriber(
+                    handler, "handleEvent", handle, TestEvent.class,
+                    false, 0, "", false
+            );
+
+            // Functional interface constructor sets signatureWarning to null
+            assertNull(subscriber.getSignatureWarning());
         }
     }
 }

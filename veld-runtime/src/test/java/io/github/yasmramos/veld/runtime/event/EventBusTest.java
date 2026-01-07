@@ -150,6 +150,18 @@ class EventBusTest {
             // Invalid - parameter doesn't extend Event
         }
     }
+
+    static class NoParamsSubscriber {
+        void noParams() {
+            // Invalid - no parameters
+        }
+    }
+
+    static class IncompatibleEventSubscriber {
+        void otherEvent(OtherEvent event) {
+            // Invalid - incompatible with TestEvent
+        }
+    }
     
     @Nested
     @DisplayName("Registration Tests")
@@ -447,6 +459,42 @@ class EventBusTest {
             assertDoesNotThrow(() -> eventBus.publish(new TestEvent(this, "test")));
             assertEquals(1, subscriber.callCount.get());
         }
+
+        @Test
+        @DisplayName("Should throw exception with descriptive message when not catching")
+        void shouldThrowExceptionWithDescriptiveMessage() throws NoSuchMethodException {
+            ExceptionSubscriber subscriber = new ExceptionSubscriber();
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                ExceptionSubscriber.class.getDeclaredMethod("onEventWithException", TestEvent.class),
+                TestEvent.class, false, 0, null, false
+            );
+            eventBus.register(eventSubscriber);
+
+            RuntimeException thrown = assertThrows(RuntimeException.class, () ->
+                eventBus.publish(new TestEvent(this, "test")));
+
+            assertTrue(thrown.getMessage().contains("Exception in subscriber"));
+            assertTrue(thrown.getMessage().contains("TestEvent"));
+        }
+
+        @Test
+        @DisplayName("Should include original exception in thrown exception")
+        void shouldIncludeOriginalExceptionInThrown() throws NoSuchMethodException {
+            ExceptionSubscriber subscriber = new ExceptionSubscriber();
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                ExceptionSubscriber.class.getDeclaredMethod("onEventWithException", TestEvent.class),
+                TestEvent.class, false, 0, null, false
+            );
+            eventBus.register(eventSubscriber);
+
+            RuntimeException thrown = assertThrows(RuntimeException.class, () ->
+                eventBus.publish(new TestEvent(this, "test")));
+
+            assertNotNull(thrown.getCause());
+            assertTrue(thrown.getCause() instanceof RuntimeException);
+        }
     }
     
     @Nested
@@ -681,6 +729,68 @@ class EventBusTest {
             EventBus bus2 = EventBus.getInstance();
 
             assertSame(bus1, bus2);
+        }
+    }
+
+    @Nested
+    @DisplayName("Signature Warning Tests")
+    class SignatureWarningTests {
+
+        @Test
+        @DisplayName("Should output warning for invalid signature during registration")
+        void shouldOutputWarningForInvalidSignature() throws NoSuchMethodException {
+            InvalidTypeSubscriber subscriber = new InvalidTypeSubscriber();
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                InvalidTypeSubscriber.class.getDeclaredMethod("nonEventParam", String.class),
+                TestEvent.class, false, 0, null, false
+            );
+
+            // Should not throw, but should output warning to stderr
+            assertDoesNotThrow(() -> eventBus.register(eventSubscriber));
+            assertEquals(1, eventBus.getSubscriberCount());
+        }
+
+        @Test
+        @DisplayName("Should output warning for no parameters signature")
+        void shouldOutputWarningForNoParameters() throws NoSuchMethodException {
+            NoParamsSubscriber subscriber = new NoParamsSubscriber();
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                NoParamsSubscriber.class.getDeclaredMethod("noParams"),
+                TestEvent.class, false, 0, null, false
+            );
+
+            assertDoesNotThrow(() -> eventBus.register(eventSubscriber));
+            assertEquals(1, eventBus.getSubscriberCount());
+        }
+
+        @Test
+        @DisplayName("Should output warning for incompatible event type")
+        void shouldOutputWarningForIncompatibleEventType() throws NoSuchMethodException {
+            IncompatibleEventSubscriber subscriber = new IncompatibleEventSubscriber();
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                IncompatibleEventSubscriber.class.getDeclaredMethod("otherEvent", OtherEvent.class),
+                TestEvent.class, false, 0, null, false
+            );
+
+            assertDoesNotThrow(() -> eventBus.register(eventSubscriber));
+            assertEquals(1, eventBus.getSubscriberCount());
+        }
+
+        @Test
+        @DisplayName("Should not output warning for valid signature")
+        void shouldNotOutputWarningForValidSignature() throws NoSuchMethodException {
+            SimpleSubscriber subscriber = new SimpleSubscriber();
+            EventSubscriber eventSubscriber = new EventSubscriber(
+                subscriber,
+                SimpleSubscriber.class.getDeclaredMethod("onEvent", TestEvent.class),
+                TestEvent.class, false, 0, null, false
+            );
+
+            assertDoesNotThrow(() -> eventBus.register(eventSubscriber));
+            assertEquals(1, eventBus.getSubscriberCount());
         }
     }
 }

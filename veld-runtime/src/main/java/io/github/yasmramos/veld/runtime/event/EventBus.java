@@ -407,7 +407,7 @@ public class EventBus implements ObjectEventBus, ObjectLessEventBus {
                 subscriber.invoke(event);
             } catch (Throwable e) {
                 String message = "[EventBus] Exception in subscriber " + subscriber +
-                        " while handling " + event.getClass().getName() + ": " + e.getMessage();
+                    " while handling " + event.getClass().getName() + ": " + e.getMessage();
                 if (subscriber.isCatchExceptions()) {
                     // Log the exception but don't propagate
                     System.err.println(message);

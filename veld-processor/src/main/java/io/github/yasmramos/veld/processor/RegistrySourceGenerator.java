@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.runtime.LegacyScope;
+import io.github.yasmramos.veld.annotation.ScopeType;
 import java.util.*;
 
 /**
@@ -59,7 +59,7 @@ public final class RegistrySourceGenerator {
         // Standard imports
         sb.append("import io.github.yasmramos.veld.runtime.ComponentFactory;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ComponentRegistry;\n");
-        sb.append("import io.github.yasmramos.veld.runtime.LegacyScope;\n");
+        sb.append("import io.github.yasmramos.veld.annotation.ScopeType;\n");
         sb.append("import java.util.*;\n\n");
         
         // Class declaration
@@ -222,8 +222,8 @@ public final class RegistrySourceGenerator {
     
     private void generateGetScope(StringBuilder sb) {
         sb.append("    @Override\n");
-        sb.append("    public LegacyScope getScope(int index) {\n");
-        sb.append("        return LegacyScope.fromId(SCOPES[index]);\n");
+        sb.append("    public ScopeType getScope(int index) {\n");
+        sb.append("        return ScopeType.fromScopeId(SCOPES[index]);\n");
         sb.append("    }\n\n");
     }
     
