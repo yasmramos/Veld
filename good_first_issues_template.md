@@ -1,25 +1,25 @@
-# Good First Issues para Veld Framework
+# Good First Issues for Veld Framework
 
-Este archivo contiene los 13 issues listos para crear en GitHub.
+This file contains the 13 issues ready to be created on GitHub.
 
 ---
 
-## Issue 1: Documentación de APIs del Módulo Runtime
+## Issue 1: Document Runtime Module APIs
 
-**Título:** `[Docs] Documentar APIs del módulo veld-runtime`
+**Title:** `[Docs] Document veld-runtime module APIs`
 
-**Descripción:**
+**Description:**
 
-El módulo `veld-runtime` contiene múltiples clases de infraestructura que carecen de documentación Javadoc adecuada. Las clases como `ValueResolver`, `EventBus`, `ScopeRegistry`, `ConditionEvaluator` y los exportadores de grafo (`DependencyGraph`, `DotExporter`, `JsonExporter`) tienen funcionalidad importante pero documentación incompleta.
+The `veld-runtime` module contains multiple infrastructure classes that lack adequate Javadoc documentation. Classes like `ValueResolver`, `EventBus`, `ScopeRegistry`, `ConditionEvaluator`, and graph exporters (`DependencyGraph`, `DotExporter`, `JsonExporter`) have important functionality but incomplete documentation.
 
-**Criterios de aceptación:**
+**Acceptance Criteria:**
 
-- [ ] Todas las clases públicas tienen documentación Javadoc con descripción de propósito
-- [ ] Cada método público está documentado con parámetros, retorno y excepciones
-- [ ] Los ejemplos de uso están incluidos donde es apropiado
-- [ ] El comando `./mvnw javadoc:javadoc` genera documentación sin errores
+- [ ] All public classes have Javadoc documentation with purpose description
+- [ ] Each public method is documented with parameters, return, and exceptions
+- [ ] Usage examples are included where appropriate
+- [ ] The command `./mvnw javadoc:javadoc` generates documentation without errors
 
-**Archivos relacionados:**
+**Related Files:**
 - `veld-runtime/src/main/java/io/github/yasmramos/veld/runtime/value/ValueResolver.java`
 - `veld-runtime/src/main/java/io/github/yasmramos/veld/runtime/event/EventBus.java`
 - `veld-runtime/src/main/java/io/github/yasmramos/veld/runtime/scope/ScopeRegistry.java`
@@ -28,265 +28,265 @@ El módulo `veld-runtime` contiene múltiples clases de infraestructura que care
 - `veld-runtime/src/main/java/io/github/yasmramos/veld/runtime/graph/DotExporter.java`
 - `veld-runtime/src/main/java/io/github/yasmramos/veld/runtime/graph/JsonExporter.java`
 
-**Dificultad:** 🟢 Principiante  
-**Tiempo estimado:** 3-5 horas  
-**Etiquetas:** `documentation`, `good first issue`, `help wanted`
+**Difficulty:** 🟢 Beginner  
+**Estimated Time:** 3-5 hours  
+**Labels:** `documentation`, `good first issue`, `help wanted`
 
 ---
 
-## Issue 2: Tests Unitarios para ValueResolver
+## Issue 2: Add Unit Tests for ValueResolver
 
-**Título:** `[Test] Agregar tests unitarios para ValueResolver`
+**Title:** `[Test] Add unit tests for ValueResolver`
 
-**Descripción:**
+**Description:**
 
-El `ValueResolver` es responsable de resolver expresiones de propiedades pero tiene cobertura de pruebas limitada.
+The `ValueResolver` is responsible for resolving property expressions but has limited test coverage.
 
-**Criterios de aceptación:**
+**Acceptance Criteria:**
 
-- [ ] Tests para resolución de propiedades existentes
-- [ ] Tests para propiedades con valores por defecto
-- [ ] Tests para propiedades sin valor por defecto
-- [ ] Tests para expresiones con tipos primitivos
-- [ ] Tests para expresiones mal formateadas
+- [ ] Tests for existing property resolution
+- [ ] Tests for properties with default values
+- [ ] Tests for properties without default value
+- [ ] Tests for expressions with primitive types
+- [ ] Tests for malformed expressions
 
-**Archivo a modificar:**
+**File to Modify:**
 - `veld-runtime/src/main/java/io/github/yasmramos/veld/runtime/value/ValueResolver.java`
 
-**Dificultad:** 🟢 Principiante  
-**Tiempo estimado:** 2-3 horas  
-**Etiquetas:** `testing`, `good first issue`, `help wanted`
+**Difficulty:** 🟢 Beginner  
+**Estimated Time:** 2-3 hours  
+**Labels:** `testing`, `good first issue`, `help wanted`
 
 ---
 
-## Issue 3: Guía de Inicio Rápido Completa
+## Issue 3: Create Complete Quick Start Guide
 
-**Título:** `[Docs] Crear guía de inicio rápido con ejemplos completos`
+**Title:** `[Docs] Create quick start guide with complete examples`
 
-**Descripción:**
+**Description:**
 
-El README.md contiene una sección básica de "Quick Start". Se necesita una guía completa que demuestre todas las características importantes.
+The README.md contains a basic "Quick Start" section. A complete guide demonstrating all important features is needed.
 
-**Criterios de aceptación:**
+**Acceptance Criteria:**
 
-- [ ] Guía con al menos 8 secciones cubriendo diferentes características
-- [ ] Cada sección incluye código funcional
-- [ ] Todos los ejemplos han sido verificados funcionando
+- [ ] Guide with at least 8 sections covering different features
+- [ ] Each section includes functional code
+- [ ] All examples have been verified working
 
-**Secciones sugeridas:**
-1. Inyección constructor básica
-2. Field injection (campos privados)
+**Suggested Sections:**
+1. Basic constructor injection
+2. Field injection (private fields)
 3. Method injection
-4. Scopes: Singleton y Prototype
+4. Scopes: Singleton and Prototype
 5. Lifecycle callbacks
-6. Uso básico del EventBus
-7. Anotaciones cualificadas (@Named)
-8. Configuración de propiedades (@Value)
+6. Basic EventBus usage
+7. Qualified annotations (@Named)
+8. Property configuration (@Value)
 
-**Dificultad:** 🟢 Principiante  
-**Tiempo estimado:** 3-5 horas  
-**Etiquetas:** `documentation`, `good first issue`, `help wanted`
-
----
-
-## Issue 4: Tests para DependencyNode
-
-**Título:** `[Test] Agregar tests para DependencyNode`
-
-**Descripción:**
-
-La clase `DependencyNode` carece de tests unitarios dedicados para la funcionalidad de visualización del grafo de dependencias.
-
-**Criterios de aceptación:**
-
-- [ ] Tests para creación de DependencyNode con diferentes scopes
-- [ ] Tests para agregar y consultar dependencias de un nodo
-- [ ] Tests para la serialización correcta a formatos exportables
-
-**Dificultad:** 🟢 Principiante  
-**Tiempo estimado:** 1-2 horas  
-**Etiquetas:** `testing`, `good first issue`, `help wanted`
+**Difficulty:** 🟢 Beginner  
+**Estimated Time:** 3-5 hours  
+**Labels:** `documentation`, `good first issue`, `help wanted`
 
 ---
 
-## Issue 5: Documentación de Anotaciones de Resiliencia
+## Issue 4: Add Tests for DependencyNode
 
-**Título:** `[Docs] Documentar anotaciones del módulo veld-resilience`
+**Title:** `[Test] Add tests for DependencyNode`
 
-**Descripción:**
+**Description:**
 
-Las anotaciones de resiliencia (@Retry, @CircuitBreaker, @RateLimiter, @Bulkhead, @Timeout) carecen de documentación Javadoc detallada.
+The `DependencyNode` class lacks dedicated unit tests for the dependency graph visualization functionality.
 
-**Criterios de aceptación:**
+**Acceptance Criteria:**
 
-- [ ] Cada anotación tiene documentación Javadoc completa
-- [ ] La documentación incluye descripción de cada parámetro con valores por defecto
-- [ ] La documentación incluye ejemplos de uso
+- [ ] Tests for DependencyNode creation with different scopes
+- [ ] Tests for adding and querying node dependencies
+- [ ] Tests for correct serialization to exportable formats
 
-**Dificultad:** 🟢 Principiante  
-**Tiempo estimado:** 2-3 horas  
-**Etiquetas:** `documentation`, `good first issue`, `help wanted`
-
----
-
-## Issue 6: Tests para ScopeRegistry
-
-**Título:** `[Test] Agregar tests para ScopeRegistry`
-
-**Descripción:**
-
-El `ScopeRegistry` carece de tests unitarios dedicados para el registro y resolución de scopes personalizados.
-
-**Dificultad:** 🟢 Principiante  
-**Tiempo estimado:** 1-2 horas  
-**Etiquetas:** `testing`, `good first issue`, `help wanted`
+**Difficulty:** 🟢 Beginner  
+**Estimated Time:** 1-2 hours  
+**Labels:** `testing`, `good first issue`, `help wanted`
 
 ---
 
-## Issue 7: Actualización de Dependencias
+## Issue 5: Document Resilience Annotations
 
-**Título:** `[Chore] Actualizar dependencias del proyecto`
+**Title:** `[Docs] Document veld-resilience module annotations`
 
-**Descripción:**
+**Description:**
 
-El archivo `pom.xml` tiene dependencias que podrían actualizarse a versiones más recientes manteniendo compatibilidad.
+Resilience annotations (@Retry, @CircuitBreaker, @RateLimiter, @Bulkhead, @Timeout) lack detailed Javadoc documentation.
 
-**Criterios de aceptación:**
+**Acceptance Criteria:**
 
-- [ ] JaCoCo actualizado a la última versión estable
-- [ ] Todas las pruebas pasan después de la actualización
-- [ ] Los cambios documentados en CHANGELOG.md
+- [ ] Each annotation has complete Javadoc documentation
+- [ ] Documentation includes description of each parameter with default values
+- [ ] Documentation includes usage examples
 
-**Dificultad:** 🟢 Principiante  
-**Tiempo estimado:** 1-2 horas  
-**Etiquetas:** `chore`, `dependencies`, `good first issue`, `help wanted`
-
----
-
-## Issue 8: Mejora del README de Spring Boot Starter
-
-**Título:** `[Docs] Mejorar documentación de veld-spring-boot-starter`
-
-**Descripción:**
-
-El README no demuestra todos los escenarios de integración posibles entre Veld y Spring Boot.
-
-**Criterios de aceptación:**
-
-- [ ] Ejemplos de beans Veld en aplicación Spring Boot
-- [ ] Documentación de configuración mixta
-- [ ] Sección de troubleshooting
-
-**Dificultad:** 🟢 Principiante  
-**Tiempo estimado:** 2-4 horas  
-**Etiquetas:** `documentation`, `integration`, `good first issue`, `help wanted`
+**Difficulty:** 🟢 Beginner  
+**Estimated Time:** 2-3 hours  
+**Labels:** `documentation`, `good first issue`, `help wanted`
 
 ---
 
-## Issue 9: Normalización de Plantillas de Pull Request
+## Issue 6: Add Tests for ScopeRegistry
 
-**Título:** `[Maintenance] Normalizar plantillas de Pull Request`
+**Title:** `[Test] Add tests for ScopeRegistry`
 
-**Descripción:**
+**Description:**
 
-Las plantillas de Pull Request tienen diferentes formatos. Normalizar mejorará la consistencia.
+The `ScopeRegistry` lacks dedicated unit tests for custom scope registration and resolution.
 
-**Dificultad:** 🟢 Principiante  
-**Tiempo estimado:** 1-2 horas  
-**Etiquetas:** `maintenance`, `documentation`, `good first issue`, `help wanted`
-
----
-
-## Issue 10: Ejemplo del Módulo de Resiliencia
-
-**Título:** `[Example] Crear ejemplo funcional de anotaciones de resiliencia`
-
-**Descripción:**
-
-El módulo `veld-resilience` no tiene un ejemplo funcional completo que demuestre @Retry, @CircuitBreaker, @RateLimiter, etc.
-
-**Criterios de aceptación:**
-
-- [ ] Ejemplo funcional con simulación de servicio externo
-- [ ] Demostración de @Retry con diferentes configuraciones
-- [ ] Demostración de @CircuitBreaker con transición de estados
-
-**Dificultad:** 🟡 Intermedio  
-**Tiempo estimado:** 4-6 horas  
-**Etiquetas:** `example`, `documentation`, `good first issue`, `help wanted`
+**Difficulty:** 🟢 Beginner  
+**Estimated Time:** 1-2 hours  
+**Labels:** `testing`, `good first issue`, `help wanted`
 
 ---
 
-## Issue 11: Ejemplo de Conditional Registration
+## Issue 7: Update Dependencies
 
-**Título:** `[Example] Crear ejemplos de registro condicional`
+**Title:** `[Chore] Update project dependencies`
 
-**Descripción:**
+**Description:**
 
-El sistema de registro condicional (@ConditionalOnProperty, @ConditionalOnMissingBean, etc.) carece de ejemplos dedicados.
+The `pom.xml` file has dependencies that could be updated to more recent versions while maintaining compatibility.
 
-**Criterios de aceptación:**
+**Acceptance Criteria:**
 
-- [ ] Ejemplo funcional para @ConditionalOnProperty
-- [ ] Ejemplo funcional para @ConditionalOnMissingBean
-- [ ] Ejemplo funcional para @ConditionalOnClass
-- [ ] Ejemplo funcional para @ConditionalOnBean
+- [ ] JaCoCo updated to latest stable version
+- [ ] All tests pass after the update
+- [ ] Changes documented in CHANGELOG.md
 
-**Dificultad:** 🟡 Intermedio  
-**Tiempo estimado:** 3-4 horas  
-**Etiquetas:** `example`, `documentation`, `good first issue`, `help wanted`
-
----
-
-## Issue 12: Mejora del Manejo de Errores en EventBus
-
-**Título:** `[Enhancement] Mejorar manejo de errores en EventBus`
-
-**Descripción:**
-
-El `EventBus` podría mejorar su manejo de errores con mensajes más descriptivos.
-
-**Criterios de aceptación:**
-
-- [ ] El EventBus loguea advertencias cuando un suscriptor tiene firma inválida
-- [ ] Los mensajes de error incluyen información suficiente para debugging
-
-**Dificultad:** 🟡 Intermedio  
-**Tiempo estimado:** 2-3 horas  
-**Etiquetas:** `enhancement`, `error-handling`, `good first issue`, `help wanted`
+**Difficulty:** 🟢 Beginner  
+**Estimated Time:** 1-2 hours  
+**Labels:** `chore`, `dependencies`, `good first issue`, `help wanted`
 
 ---
 
-## Issue 13: Mejora de Mensajes de Error en ConditionEvaluator
+## Issue 8: Improve Spring Boot Starter README
 
-**Título:** `[Enhancement] Mejorar mensajes de error en ConditionEvaluator`
+**Title:** `[Docs] Improve veld-spring-boot-starter documentation`
 
-**Descripción:**
+**Description:**
 
-El `ConditionEvaluator` podría proporcionar mensajes de error más descriptivos cuando las condiciones fallan.
+The README does not demonstrate all possible integration scenarios between Veld and Spring Boot.
 
-**Dificultad:** 🟡 Intermedio  
-**Tiempo estimado:** 2-3 horas  
-**Etiquetas:** `enhancement`, `error-handling`, `good first issue`, `help wanted`
+**Acceptance Criteria:**
+
+- [ ] Examples of Veld beans in Spring Boot application
+- [ ] Mixed configuration documentation
+- [ ] Troubleshooting section
+
+**Difficulty:** 🟢 Beginner  
+**Estimated Time:** 2-4 hours  
+**Labels:** `documentation`, `integration`, `good first issue`, `help wanted`
 
 ---
 
-## Resumen
+## Issue 9: Normalize Pull Request Templates
 
-| # | Issue | Dificultad | Tiempo |
-|---|-------|------------|--------|
-| 1 | Documentación de APIs del Módulo Runtime | 🟢 | 3-5h |
-| 2 | Tests Unitarios para ValueResolver | 🟢 | 2-3h |
-| 3 | Guía de Inicio Rápido Completa | 🟢 | 3-5h |
-| 4 | Tests para DependencyNode | 🟢 | 1-2h |
-| 5 | Documentación de Anotaciones de Resiliencia | 🟢 | 2-3h |
-| 6 | Tests para ScopeRegistry | 🟢 | 1-2h |
-| 7 | Actualización de Dependencias | 🟢 | 1-2h |
-| 8 | Mejora del README de Spring Boot Starter | 🟢 | 2-4h |
-| 9 | Normalización de Plantillas de Pull Request | 🟢 | 1-2h |
-| 10 | Ejemplo del Módulo de Resiliencia | 🟡 | 4-6h |
-| 11 | Ejemplo de Conditional Registration | 🟡 | 3-4h |
-| 12 | Mejora del Manejo de Errores en EventBus | 🟡 | 2-3h |
-| 13 | Mejora de Mensajes de Error en ConditionEvaluator | 🟡 | 2-3h |
+**Title:** `[Maintenance] Normalize Pull Request templates`
 
-**Total:** 13 issues (9 principiante, 4 intermedio)
+**Description:**
+
+Pull Request templates have different formats. Normalizing will improve consistency.
+
+**Difficulty:** 🟢 Beginner  
+**Estimated Time:** 1-2 hours  
+**Labels:** `maintenance`, `documentation`, `good first issue`, `help wanted`
+
+---
+
+## Issue 10: Create Resilience Module Example
+
+**Title:** `[Example] Create functional resilience annotations example`
+
+**Description:**
+
+The `veld-resilience` module lacks a complete functional example demonstrating @Retry, @CircuitBreaker, @RateLimiter, etc.
+
+**Acceptance Criteria:**
+
+- [ ] Functional example with external service simulation
+- [ ] Demonstration of @Retry with different configurations
+- [ ] Demonstration of @CircuitBreaker with state transitions
+
+**Difficulty:** 🟡 Intermediate  
+**Estimated Time:** 4-6 hours  
+**Labels:** `example`, `documentation`, `good first issue`, `help wanted`
+
+---
+
+## Issue 11: Create Conditional Registration Examples
+
+**Title:** `[Example] Create conditional registration examples`
+
+**Description:**
+
+The conditional registration system (@ConditionalOnProperty, @ConditionalOnMissingBean, etc.) lacks dedicated examples.
+
+**Acceptance Criteria:**
+
+- [ ] Functional example for @ConditionalOnProperty
+- [ ] Functional example for @ConditionalOnMissingBean
+- [ ] Functional example for @ConditionalOnClass
+- [ ] Functional example for @ConditionalOnBean
+
+**Difficulty:** 🟡 Intermediate  
+**Estimated Time:** 3-4 hours  
+**Labels:** `example`, `documentation`, `good first issue`, `help wanted`
+
+---
+
+## Issue 12: Improve EventBus Error Handling
+
+**Title:** `[Enhancement] Improve EventBus error handling`
+
+**Description:**
+
+The `EventBus` could improve error handling with more descriptive messages.
+
+**Acceptance Criteria:**
+
+- [ ] EventBus logs warnings when subscriber has invalid signature
+- [ ] Error messages include sufficient information for debugging
+
+**Difficulty:** 🟡 Intermediate  
+**Estimated Time:** 2-3 hours  
+**Labels:** `enhancement`, `error-handling`, `good first issue`, `help wanted`
+
+---
+
+## Issue 13: Improve ConditionEvaluator Error Messages
+
+**Title:** `[Enhancement] Improve ConditionEvaluator error messages`
+
+**Description:**
+
+The `ConditionEvaluator` could provide more descriptive error messages when conditions fail.
+
+**Difficulty:** 🟡 Intermediate  
+**Estimated Time:** 2-3 hours  
+**Labels:** `enhancement`, `error-handling`, `good first issue`, `help wanted`
+
+---
+
+## Summary
+
+| # | Issue | Difficulty | Time |
+|---|-------|------------|------|
+| 1 | Document Runtime Module APIs | 🟢 | 3-5h |
+| 2 | Add Unit Tests for ValueResolver | 🟢 | 2-3h |
+| 3 | Create Complete Quick Start Guide | 🟢 | 3-5h |
+| 4 | Add Tests for DependencyNode | 🟢 | 1-2h |
+| 5 | Document Resilience Annotations | 🟢 | 2-3h |
+| 6 | Add Tests for ScopeRegistry | 🟢 | 1-2h |
+| 7 | Update Dependencies | 🟢 | 1-2h |
+| 8 | Improve Spring Boot Starter README | 🟢 | 2-4h |
+| 9 | Normalize Pull Request Templates | 🟢 | 1-2h |
+| 10 | Create Resilience Module Example | 🟡 | 4-6h |
+| 11 | Create Conditional Registration Examples | 🟡 | 3-4h |
+| 12 | Improve EventBus Error Handling | 🟡 | 2-3h |
+| 13 | Improve ConditionEvaluator Error Messages | 🟡 | 2-3h |
+
+**Total:** 13 issues (9 beginner, 4 intermediate)
