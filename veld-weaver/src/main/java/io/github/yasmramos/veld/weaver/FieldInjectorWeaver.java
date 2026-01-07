@@ -340,22 +340,20 @@ public class FieldInjectorWeaver {
     private int getLoadOpcode(String desc) {
         if (desc.length() == 1) {
             // Primitive types
-            switch (desc.charAt(0)) {
-                case 'Z': // boolean
-                case 'B': // byte
-                case 'C': // char
-                case 'S': // short
-                case 'I': // int
-                    return ILOAD;
-                case 'J': // long
-                    return LLOAD;
-                case 'F': // float
-                    return FLOAD;
-                case 'D': // double
-                    return DLOAD;
-                default:
-                    return ALOAD;
-            }
+            return switch (desc.charAt(0)) {
+                case 'Z', 'B', 'C', 'S', 'I' -> ILOAD;
+                case 'J' -> LLOAD;
+                case 'F' -> FLOAD;
+                case 'D' -> DLOAD;
+                default -> ALOAD;
+            }; // boolean
+            // byte
+            // char
+            // short
+            // int
+            // long
+            // float
+            // double
         }
         // Object or array type
         return ALOAD;
