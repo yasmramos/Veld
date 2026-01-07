@@ -3,7 +3,6 @@ package io.github.yasmramos.veld.processor;
 import io.github.yasmramos.veld.annotation.*;
 import io.github.yasmramos.veld.processor.AnnotationHelper.InjectSource;
 import io.github.yasmramos.veld.processor.InjectionPoint.Dependency;
-import io.github.yasmramos.veld.runtime.LegacyScope;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
@@ -517,10 +516,10 @@ public class VeldProcessor extends AbstractProcessor {
 
             // Get scope from annotation (as string, then convert to enum)
             String scopeString = beanAnnotation.scope();
-            LegacyScope scope =
+            ScopeType scope =
                 "prototype".equalsIgnoreCase(scopeString)
-                    ? LegacyScope.PROTOTYPE
-                    : LegacyScope.SINGLETON;
+                    ? ScopeType.PROTOTYPE
+                    : ScopeType.SINGLETON;
 
             // Get return type info
             String returnTypeName = getTypeName(returnType);
@@ -541,7 +540,7 @@ public class VeldProcessor extends AbstractProcessor {
 
             // Set scope
             beanMethod.setScope(scope);
-            if (scope == LegacyScope.PROTOTYPE) {
+            if (scope == ScopeType.PROTOTYPE) {
                 note("  -> @Bean scope: PROTOTYPE");
             }
 
@@ -936,7 +935,7 @@ public class VeldProcessor extends AbstractProcessor {
         }
         
         // Determine scope and check for @Lazy
-        LegacyScope scope = determineScope(typeElement);
+        ScopeType scope = determineScope(typeElement);
         boolean isLazy = typeElement.getAnnotation(Lazy.class) != null;
         
         // Check for @Primary annotation
@@ -1014,29 +1013,29 @@ public class VeldProcessor extends AbstractProcessor {
      * All other scope annotations (Veld @Singleton, javax/jakarta @Singleton) result in SINGLETON.
      * Default is SINGLETON if no explicit scope is specified.
      */
-    private LegacyScope determineScope(TypeElement typeElement) {
+    private ScopeType determineScope(TypeElement typeElement) {
         // Check for @Prototype first - it's the only way to get prototype scope
         if (typeElement.getAnnotation(Prototype.class) != null) {
             note("  -> Scope: PROTOTYPE");
-            return LegacyScope.PROTOTYPE;
+            return ScopeType.PROTOTYPE;
         }
         
         // Check for explicit singleton annotations
         if (typeElement.getAnnotation(Singleton.class) != null ||
             AnnotationHelper.hasSingletonAnnotation(typeElement)) {
             note("  -> Scope: SINGLETON (explicit)");
-            return LegacyScope.SINGLETON;
+            return ScopeType.SINGLETON;
         }
         
         // Check for @Lazy alone (implies singleton)
         if (typeElement.getAnnotation(Lazy.class) != null) {
             note("  -> Scope: SINGLETON (from @Lazy)");
-            return LegacyScope.SINGLETON;
+            return ScopeType.SINGLETON;
         }
         
         // Default scope
         note("  -> Scope: SINGLETON (default)");
-        return LegacyScope.SINGLETON;
+        return ScopeType.SINGLETON;
     }
     
     /**

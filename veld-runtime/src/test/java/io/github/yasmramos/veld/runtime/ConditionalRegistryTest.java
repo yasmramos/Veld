@@ -1,5 +1,6 @@
 package io.github.yasmramos.veld.runtime;
 
+import io.github.yasmramos.veld.annotation.ScopeType;
 import io.github.yasmramos.veld.runtime.condition.Condition;
 import io.github.yasmramos.veld.runtime.condition.ConditionContext;
 import io.github.yasmramos.veld.runtime.condition.ConditionEvaluator;
@@ -30,20 +31,20 @@ class ConditionalRegistryTest {
     static class TestFactory<T> implements ComponentFactory<T> {
         private final Class<T> type;
         private final String name;
-        private final LegacyScope scope;
+        private final ScopeType scope;
         private final boolean hasConditions;
         private final boolean conditionResult;
         private final List<String> interfaces;
 
         TestFactory(Class<T> type, String name) {
-            this(type, name, LegacyScope.SINGLETON, false, true, Collections.emptyList());
+            this(type, name, ScopeType.SINGLETON, false, true, Collections.emptyList());
         }
 
         TestFactory(Class<T> type, String name, boolean hasConditions, boolean conditionResult) {
-            this(type, name, LegacyScope.SINGLETON, hasConditions, conditionResult, Collections.emptyList());
+            this(type, name, ScopeType.SINGLETON, hasConditions, conditionResult, Collections.emptyList());
         }
 
-        TestFactory(Class<T> type, String name, LegacyScope scope, boolean hasConditions, 
+        TestFactory(Class<T> type, String name, ScopeType scope, boolean hasConditions, 
                    boolean conditionResult, List<String> interfaces) {
             this.type = type;
             this.name = name;
@@ -73,7 +74,7 @@ class ConditionalRegistryTest {
         }
 
         @Override
-        public LegacyScope getScope() {
+        public ScopeType getScope() {
             return scope;
         }
 
@@ -252,7 +253,7 @@ class ConditionalRegistryTest {
             List<String> interfaces = Collections.singletonList(ServiceInterface.class.getName());
             originalRegistry.addFactory(new TestFactory<>(
                 ServiceWithInterface.class, "serviceWithInterface",
-                LegacyScope.SINGLETON, false, true, interfaces
+                ScopeType.SINGLETON, false, true, interfaces
             ));
 
             ConditionalRegistry registry = new ConditionalRegistry(originalRegistry);
@@ -627,7 +628,7 @@ class ConditionalRegistryTest {
         @DisplayName("Should register factory for interface")
         void shouldRegisterFactoryForInterface() {
             originalRegistry.addFactory(new TestFactory<>(ServiceWithInterface.class, "serviceImpl",
-                LegacyScope.SINGLETON, false, true,
+                ScopeType.SINGLETON, false, true,
                 Collections.singletonList(ServiceInterface.class.getName())));
 
             ConditionalRegistry registry = new ConditionalRegistry(originalRegistry);

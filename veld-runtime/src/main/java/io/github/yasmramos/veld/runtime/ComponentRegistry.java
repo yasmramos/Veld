@@ -1,6 +1,7 @@
 package io.github.yasmramos.veld.runtime;
 
 import io.github.yasmramos.veld.VeldException;
+import io.github.yasmramos.veld.annotation.ScopeType;
 import io.github.yasmramos.veld.runtime.graph.DependencyGraph;
 import io.github.yasmramos.veld.runtime.graph.DependencyNode;
 
@@ -143,13 +144,12 @@ public interface ComponentRegistry {
      * @param index the component index
      * @return the component scope
      */
-    @SuppressWarnings("deprecation")
-    default LegacyScope getScope(int index) {
+    default ScopeType getScope(int index) {
         List<ComponentFactory<?>> factories = getAllFactories();
         if (index >= 0 && index < factories.size()) {
             return factories.get(index).getScope();
         }
-        return LegacyScope.SINGLETON;
+        return ScopeType.SINGLETON;
     }
     
     /**
@@ -157,7 +157,7 @@ public interface ComponentRegistry {
      * Returns the scope identifier string (e.g., "singleton", "prototype", or custom scope ID).
      * Direct array access, O(1).
      *
-     * <p>This method supports custom scopes that are not represented in the LegacyScope enum.
+     * <p>This method supports custom scopes that are not represented in the ScopeType enum.
      * Use this method when you need to distinguish between custom scopes.</p>
      *
      * @param index the component index
