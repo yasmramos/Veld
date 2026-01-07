@@ -1,0 +1,1739 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] Veld Framework                                                     [pom]
+[INFO] Veld Annotations                                                   [jar]
+[INFO] Veld Runtime                                                       [jar]
+[INFO] Veld AOP                                                           [jar]
+[INFO] Veld Processor                                                     [jar]
+[INFO] Veld Weaver                                               [maven-plugin]
+[INFO] Veld Maven Plugin                                         [maven-plugin]
+[INFO] Veld Spring Boot Starter                                           [jar]
+[INFO] Veld Example                                                       [jar]
+[INFO] Veld Spring Boot Example                                           [jar]
+[INFO] Veld Benchmark                                                     [jar]
+[INFO] Veld Resilience                                                    [jar]
+[INFO] Veld Cache                                                         [jar]
+[INFO] Veld Validation                                                    [jar]
+[INFO] Veld Security                                                      [jar]
+[INFO] Veld Metrics                                                       [jar]
+[INFO] Veld Transactions                                                  [jar]
+[INFO] Veld Test Framework                                                [jar]
+[INFO] 
+[INFO] ------------------< io.github.yasmramos:veld-parent >-------------------
+[INFO] Building Veld Framework 1.0.3                                     [1/18]
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:prepare-agent (prepare-agent) @ veld-parent ---
+[INFO] argLine set to -javaagent:/home/minimax/.m2/repository/org/jacoco/org.jacoco.agent/0.8.14/org.jacoco.agent-0.8.14-runtime.jar=destfile=/workspace/Veld/target/jacoco.exec
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:report (report) @ veld-parent ---
+[INFO] Skipping JaCoCo execution due to missing execution data file.
+[INFO] 
+[INFO] ----------------< io.github.yasmramos:veld-annotations >----------------
+[INFO] Building Veld Annotations 1.0.3                                   [2/18]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:prepare-agent (prepare-agent) @ veld-annotations ---
+[INFO] Skipping JaCoCo execution because property jacoco.skip is set.
+[INFO] argLine set to empty
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ veld-annotations ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-annotations/src/main/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:compile (default-compile) @ veld-annotations ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ veld-annotations ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-annotations/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:testCompile (default-testCompile) @ veld-annotations ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-surefire-plugin:3.5.4:test (default-test) @ veld-annotations ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running Annotations Tests
+[INFO] Running AOP Annotations Tests
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.060 s -- in AOP Annotations Tests
+[INFO] Running Bean Annotation Tests
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.027 s -- in Bean Annotation Tests
+[INFO] Running Component Annotation Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in Component Annotation Tests
+[INFO] Running Conditional Annotations Tests
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in Conditional Annotations Tests
+[INFO] Running DependsOn Annotation Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in DependsOn Annotation Tests
+[INFO] Running Factory Annotation Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in Factory Annotation Tests
+[INFO] Running Inject Annotation Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Inject Annotation Tests
+[INFO] Running Lazy Annotation Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Lazy Annotation Tests
+[INFO] Running Lifecycle Annotations Tests
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.052 s -- in Lifecycle Annotations Tests
+[INFO] Running Named Annotation Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Named Annotation Tests
+[INFO] Running Optional Annotation Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.015 s -- in Optional Annotation Tests
+[INFO] Running PostConstruct Annotation Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in PostConstruct Annotation Tests
+[INFO] Running PreDestroy Annotation Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in PreDestroy Annotation Tests
+[INFO] Running Primary Annotation Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Primary Annotation Tests
+[INFO] Running Profile Annotation Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Profile Annotation Tests
+[INFO] Running Prototype Annotation Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.010 s -- in Prototype Annotation Tests
+[INFO] Running Qualifier Annotation Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s -- in Qualifier Annotation Tests
+[INFO] Running Singleton Annotation Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.044 s -- in Singleton Annotation Tests
+[INFO] Running Subscribe Annotation Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Subscribe Annotation Tests
+[INFO] Running Value Annotation Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Value Annotation Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.308 s -- in Annotations Tests
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 69, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:report (report) @ veld-annotations ---
+[INFO] Skipping JaCoCo execution because property jacoco.skip is set.
+[INFO] 
+[INFO] ------------------< io.github.yasmramos:veld-runtime >------------------
+[INFO] Building Veld Runtime 1.0.3                                       [3/18]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:prepare-agent (prepare-agent) @ veld-runtime ---
+[INFO] argLine set to -javaagent:/home/minimax/.m2/repository/org/jacoco/org.jacoco.agent/0.8.14/org.jacoco.agent-0.8.14-runtime.jar=destfile=/workspace/Veld/veld-runtime/target/jacoco.exec
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ veld-runtime ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 3 resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:compile (default-compile) @ veld-runtime ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ veld-runtime ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-runtime/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:testCompile (default-testCompile) @ veld-runtime ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-surefire-plugin:3.5.4:test (default-test) @ veld-runtime ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.github.yasmramos.veld.VeldTest
+[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.159 s -- in io.github.yasmramos.veld.VeldTest
+[INFO] Running ComponentFactory Default Methods Tests
+[INFO] Running Default createConditionEvaluator() Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Default createConditionEvaluator() Tests
+[INFO] Running Default evaluateConditions() Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Default evaluateConditions() Tests
+[INFO] Running Default getBeanMethodName() Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in Default getBeanMethodName() Tests
+[INFO] Running Default getDependencyTypes() Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Default getDependencyTypes() Tests
+[INFO] Running Default getDestroyOrder() Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Default getDestroyOrder() Tests
+[INFO] Running Default getDestructionDependencies() Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Default getDestructionDependencies() Tests
+[INFO] Running Default getFactoryClass() Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Default getFactoryClass() Tests
+[INFO] Running Default getFactoryMethodParameters() Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Default getFactoryMethodParameters() Tests
+[INFO] Running Default getImplementedInterfaces() Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Default getImplementedInterfaces() Tests
+[INFO] Running Default getIndex() Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Default getIndex() Tests
+[INFO] Running Default getOrder() Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Default getOrder() Tests
+[INFO] Running Default getQualifier() Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Default getQualifier() Tests
+[INFO] Running Default getScopeId() Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Default getScopeId() Tests
+[INFO] Running Default hasConditions() Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Default hasConditions() Tests
+[INFO] Running Default isLazy() Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Default isLazy() Tests
+[INFO] Running Default isPrimary() Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Default isPrimary() Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.073 s -- in ComponentFactory Default Methods Tests
+[INFO] Running io.github.yasmramos.veld.runtime.ComponentRegistryTest
+[INFO] Tests run: 24, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.073 s -- in io.github.yasmramos.veld.runtime.ComponentRegistryTest
+[INFO] Running ConditionalRegistry Tests
+[INFO] Running Active Profiles Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s -- in Active Profiles Tests
+[INFO] Running Basic Registration Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Basic Registration Tests
+[INFO] Running Bean Existence Check Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Bean Existence Check Tests
+[INFO] Running Conditional Registration Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Conditional Registration Tests
+[INFO] Running Constructor Variants Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Constructor Variants Tests
+[INFO] Running Excluded Components Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Excluded Components Tests
+[INFO] Running Factory List Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.051 s -- in Factory List Tests
+[INFO] Running Interface Registration Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Interface Registration Tests
+[INFO] Running Is Profile Active Tests
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Is Profile Active Tests
+[INFO] Running Supertype Map Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s -- in Supertype Map Tests
+[INFO] Running Was Excluded Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Was Excluded Tests
+[INFO] Running ConditionalRegistry Constructor Edge Cases
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in ConditionalRegistry Constructor Edge Cases
+[INFO] Running Get Active Profiles Edge Cases
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Get Active Profiles Edge Cases
+[INFO] Running Set Active Profiles Edge Cases
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Set Active Profiles Edge Cases
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.100 s -- in ConditionalRegistry Tests
+[INFO] Running LazyHolder Tests
+[INFO] Running Exception Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Exception Tests
+[INFO] Running Initialized Check Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Initialized Check Tests
+[INFO] Running Lazy Initialization Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Lazy Initialization Tests
+[INFO] Running Null Value Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s -- in Null Value Tests
+[INFO] Running Thread Safety Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s -- in Thread Safety Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.021 s -- in LazyHolder Tests
+[INFO] Running io.github.yasmramos.veld.runtime.LockFreeLazyHolderTest
+[INFO] Tests run: 15, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.060 s -- in io.github.yasmramos.veld.runtime.LockFreeLazyHolderTest
+[INFO] Running io.github.yasmramos.veld.runtime.ProviderTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in io.github.yasmramos.veld.runtime.ProviderTest
+[INFO] Running ScopeType Tests
+[INFO] Running Default Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s -- in Default Tests
+[INFO] Running Enum Values Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Enum Values Tests
+[INFO] Running From Scope ID Tests
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in From Scope ID Tests
+[INFO] Running Is BuiltIn Scope Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Is BuiltIn Scope Tests
+[INFO] Running Name Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s -- in Name Tests
+[INFO] Running Scope ID Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Scope ID Tests
+[INFO] Running Value Of Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Value Of Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s -- in ScopeType Tests
+[INFO] Running VeldException Tests
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in VeldException Tests
+[INFO] Running io.github.yasmramos.veld.runtime.VeldTypeTest
+[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.018 s -- in io.github.yasmramos.veld.runtime.VeldTypeTest
+[INFO] Running io.github.yasmramos.veld.runtime.aop.LoggingInterceptorTest
+[AOP] String.testMethod completed in 4488ns
+[AOP] Object.slowMethod completed in 10084951ns
+[AOP] Void.voidMethod completed in 2798ns
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.094 s -- in io.github.yasmramos.veld.runtime.aop.LoggingInterceptorTest
+[INFO] Running io.github.yasmramos.veld.runtime.aop.MethodInvocationTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in io.github.yasmramos.veld.runtime.aop.MethodInvocationTest
+[INFO] Running io.github.yasmramos.veld.runtime.async.AsyncExecutorTest
+[INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.064 s -- in io.github.yasmramos.veld.runtime.async.AsyncExecutorTest
+[INFO] Running io.github.yasmramos.veld.runtime.async.CronExpressionTest
+[INFO] Tests run: 20, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.133 s -- in io.github.yasmramos.veld.runtime.async.CronExpressionTest
+[INFO] Running io.github.yasmramos.veld.runtime.async.SchedulerServiceTest
+[Veld] Scheduled task failed: test exception
+java.lang.RuntimeException: test exception
+	at io.github.yasmramos.veld.runtime@1.0.3/io.github.yasmramos.veld.runtime.async.SchedulerServiceTest.lambda$scheduleAtFixedRate_handlesExceptionGracefully$8(SchedulerServiceTest.java:115)
+	at io.github.yasmramos.veld.runtime@1.0.3/io.github.yasmramos.veld.runtime.async.SchedulerService.lambda$wrapTask$0(SchedulerService.java:121)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:305)
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+[Veld] Scheduled task failed: test exception
+java.lang.RuntimeException: test exception
+	at io.github.yasmramos.veld.runtime@1.0.3/io.github.yasmramos.veld.runtime.async.SchedulerServiceTest.lambda$scheduleWithFixedDelay_handlesExceptionGracefully$10(SchedulerServiceTest.java:186)
+	at io.github.yasmramos.veld.runtime@1.0.3/io.github.yasmramos.veld.runtime.async.SchedulerService.lambda$wrapTask$0(SchedulerService.java:121)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:305)
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:305)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 33.25 s -- in io.github.yasmramos.veld.runtime.async.SchedulerServiceTest
+[INFO] Running ClassCondition Tests
+[INFO] Running Constructor Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in Constructor Tests
+[INFO] Running Description Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Description Tests
+[INFO] Running Framework Class Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Framework Class Tests
+[INFO] Running Getter Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Getter Tests
+[INFO] Running Multiple Classes Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Multiple Classes Tests
+[INFO] Running Single Class Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Single Class Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.018 s -- in ClassCondition Tests
+[INFO] Running ConditionContext Tests
+[INFO] Running Bean Registration Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Bean Registration Tests
+[INFO] Running Class Presence Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Class Presence Tests
+[INFO] Running Constructor Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Constructor Tests
+[INFO] Running Profile Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Profile Tests
+[INFO] Running Property Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Property Tests
+[INFO] Running ToString Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s -- in ToString Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.014 s -- in ConditionContext Tests
+[INFO] Running ConditionEvaluator Tests
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.188 s -- in ConditionEvaluator Tests
+[INFO] Running MissingBeanCondition Tests
+[INFO] Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.120 s -- in MissingBeanCondition Tests
+[INFO] Running PresentBeanCondition Tests
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.101 s -- in PresentBeanCondition Tests
+[INFO] Running ProfileCondition Tests
+[INFO] Running Edge Cases
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.049 s -- in Edge Cases
+[INFO] Running Getter and Description Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s -- in Getter and Description Tests
+[INFO] Running Multiple Active Profiles
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Multiple Active Profiles
+[INFO] Running Negation Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Negation Tests
+[INFO] Running Simple Profile Matching
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Simple Profile Matching
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.077 s -- in ProfileCondition Tests
+[INFO] Running PropertyCondition Tests
+[INFO] Running Boolean Property Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Boolean Property Tests
+[INFO] Running Description Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Description Tests
+[INFO] Running Getter Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Getter Tests
+[INFO] Running Property Existence Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Property Existence Tests
+[INFO] Running Property Value Matching Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Property Value Matching Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.024 s -- in PropertyCondition Tests
+[INFO] Running EventBus Coverage Gap Tests
+[INFO] Running Concurrent Publish Tests
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.047 s -- in Concurrent Publish Tests
+[INFO] Running EventChannel Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.019 s -- in EventChannel Tests
+[INFO] Running Five Listener Dispatch Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.030 s -- in Five Listener Dispatch Tests
+[INFO] Running Four Listener Dispatch Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.022 s -- in Four Listener Dispatch Tests
+[INFO] Running Listener Management Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Listener Management Tests
+[INFO] Running ObjectLessEventBus Async Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s -- in ObjectLessEventBus Async Tests
+[INFO] Running ObjectLessEventBus Dispatch Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.020 s -- in ObjectLessEventBus Dispatch Tests
+[INFO] Running Payload Type Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Payload Type Tests
+[INFO] Running Single Listener Dispatch Tests
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Single Listener Dispatch Tests
+[INFO] Running Three Listener Dispatch Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s -- in Three Listener Dispatch Tests
+[INFO] Running Two Listener Dispatch Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s -- in Two Listener Dispatch Tests
+[INFO] Running Zero Listener Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Zero Listener Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.191 s -- in EventBus Coverage Gap Tests
+[INFO] Running EventBus Public API Coverage Tests
+[INFO] Running Dispatch Path Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in Dispatch Path Tests
+[INFO] Running Edge Cases Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in Edge Cases Tests
+[INFO] Running EventChannel Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in EventChannel Tests
+[INFO] Running EventFilter Expression Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.048 s -- in EventFilter Expression Tests
+[INFO] Running EventBus Lifecycle Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Shutdown complete
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s -- in EventBus Lifecycle Tests
+[INFO] Running EventBus Listener Registration Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in EventBus Listener Registration Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.086 s -- in EventBus Public API Coverage Tests
+[INFO] Running EventBus Tests
+[INFO] Running Async Publishing Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.010 s -- in Async Publishing Tests
+[INFO] Running Edge Cases Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Edge Cases Tests
+[INFO] Running Event Cancellation Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Event Cancellation Tests
+[INFO] Running Exception Handling Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Exception in subscriber EventSubscriber[ExceptionSubscriber.onEventWithException(TestEvent), priority=0, async=false] while handling io.github.yasmramos.veld.runtime.event.EventBusTest$TestEvent: Test exception
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.050 s -- in Exception Handling Tests
+[INFO] Running Exception Handling Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Exception Handling Tests
+[INFO] Running Filter Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Filter Tests
+[INFO] Running Lifecycle Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Lifecycle Tests
+[INFO] Running Publishing Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Publishing Tests
+[INFO] Running Registration Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Unregistered: SimpleSubscriber
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Warning: Invalid subscriber signature for io.github.yasmramos.veld.runtime.event.EventBusTest$InvalidTypeSubscriber#nonEventParam(java.lang.String): parameter type java.lang.String does not extend io.github.yasmramos.veld.runtime.event.Event
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Warning: Invalid subscriber signature for io.github.yasmramos.veld.runtime.event.EventBusTest$InvalidSubscriber#tooManyParams(io.github.yasmramos.veld.runtime.event.EventBusTest$TestEvent, io.github.yasmramos.veld.runtime.event.EventBusTest$TestEvent): expected exactly one parameter but found 2
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in Registration Tests
+[INFO] Running Shutdown Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Shutdown complete
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Shutdown complete
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Shutdown Tests
+[INFO] Running Signature Warning Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Warning: Invalid subscriber signature for io.github.yasmramos.veld.runtime.event.EventBusTest$IncompatibleEventSubscriber#otherEvent(io.github.yasmramos.veld.runtime.event.EventBusTest$OtherEvent): event type io.github.yasmramos.veld.runtime.event.EventBusTest$TestEvent is not compatible with parameter type io.github.yasmramos.veld.runtime.event.EventBusTest$OtherEvent
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Warning: Invalid subscriber signature for io.github.yasmramos.veld.runtime.event.EventBusTest$NoParamsSubscriber#noParams(): expected exactly one parameter but found 0
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Warning: Invalid subscriber signature for io.github.yasmramos.veld.runtime.event.EventBusTest$InvalidTypeSubscriber#nonEventParam(java.lang.String): parameter type java.lang.String does not extend io.github.yasmramos.veld.runtime.event.Event
+[EventBus] Registered EventSubscriber: TestEvent
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Signature Warning Tests
+[INFO] Running Singleton Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Singleton Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.101 s -- in EventBus Tests
+[INFO] Running EventFilter Tests
+[INFO] Running Boolean Comparison Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Boolean Comparison Tests
+[INFO] Running Edge Cases Tests
+[EventFilter] Invalid expression syntax: type == 'PREMIUM'
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Edge Cases Tests
+[INFO] Running Empty Filter Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Empty Filter Tests
+[INFO] Running Invalid Expression Tests
+[EventFilter] Property not found: nonExistent
+[EventFilter] Invalid expression syntax: invalid expression
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.051 s -- in Invalid Expression Tests
+[INFO] Running Null Value Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Null Value Tests
+[INFO] Running Numeric Comparison Tests
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Numeric Comparison Tests
+[INFO] Running String Comparison Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in String Comparison Tests
+[INFO] Running Whitespace Handling Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Whitespace Handling Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.077 s -- in EventFilter Tests
+[INFO] Running EventRegistrationSPI Tests
+[INFO] Running Complete Implementation Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Complete Implementation Tests
+[INFO] Running Default getHandlerCount() Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s -- in Default getHandlerCount() Tests
+[INFO] Running Interface Implementation Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.015 s -- in Interface Implementation Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.033 s -- in EventRegistrationSPI Tests
+[INFO] Running EventSubscriber Tests
+[INFO] Running CanHandle Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in CanHandle Tests
+[INFO] Running CompareTo Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in CompareTo Tests
+[INFO] Running Constructor Tests
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.047 s -- in Constructor Tests
+[INFO] Running Equals and HashCode Tests
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in Equals and HashCode Tests
+[INFO] Running Invoke Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Invoke Tests
+[INFO] Running Property Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Property Tests
+[INFO] Running Signature Validation Tests
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Signature Validation Tests
+[INFO] Running ToString Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in ToString Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.079 s -- in EventSubscriber Tests
+[INFO] Running Event Tests
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s -- in Event Tests
+[INFO] Running StandardEventChannel Coverage Gap Tests
+[INFO] Running Complex Scenario Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Complex Scenario Tests
+[INFO] Running Five Listener Dispatch Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.093 s -- in Five Listener Dispatch Tests
+[INFO] Running Four Listener Dispatch Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.023 s -- in Four Listener Dispatch Tests
+[INFO] Running Listener Management Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Listener Management Tests
+[INFO] Running Payload Type Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in Payload Type Tests
+[INFO] Running Priority Edge Cases Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.049 s -- in Priority Edge Cases Tests
+[INFO] Running Single Listener Dispatch Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Single Listener Dispatch Tests
+[INFO] Running Two Listener Dispatch Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s -- in Two Listener Dispatch Tests
+[INFO] Running Zero Listener Tests
+[EventBus] Cleared all subscribers and listeners
+[EventBus] Cleared all subscribers and listeners
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s -- in Zero Listener Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.196 s -- in StandardEventChannel Coverage Gap Tests
+[INFO] Running StandardEventChannel Tests
+[INFO] Running Async Publish Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Async Publish Tests
+[INFO] Running Constructor Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Constructor Tests
+[INFO] Running dispatchFour Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in dispatchFour Tests
+[INFO] Running dispatchMultiple Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in dispatchMultiple Tests
+[INFO] Running dispatchSingle Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in dispatchSingle Tests
+[INFO] Running dispatchThree Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in dispatchThree Tests
+[INFO] Running dispatchTwo Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in dispatchTwo Tests
+[INFO] Running Edge Cases Tests
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Edge Cases Tests
+[INFO] Running ListenerEntry Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in ListenerEntry Tests
+[INFO] Running ObjectLessListener Default Methods Tests
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.017 s -- in ObjectLessListener Default Methods Tests
+[INFO] Running Priority Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Priority Tests
+[INFO] Running Registration Validation Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Registration Validation Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.051 s -- in StandardEventChannel Tests
+[INFO] Running DependencyGraph Tests
+[INFO] Running Complex Graph Scenarios
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s -- in Complex Graph Scenarios
+[INFO] Running Constructor Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Constructor Tests
+[INFO] Running Cycle Detection Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Cycle Detection Tests
+[INFO] Running DependencyEdge Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in DependencyEdge Tests
+[INFO] Running Edge Operations
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Edge Operations
+[INFO] Running Node Operations
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Node Operations
+[INFO] Running Root and Leaf Node Detection
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Root and Leaf Node Detection
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.033 s -- in DependencyGraph Tests
+[INFO] Running DependencyNode Tests
+[INFO] Running Constructor Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Constructor Tests
+[INFO] Running Dependency Management Tests
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Dependency Management Tests
+[INFO] Running Integration Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Integration Tests
+[INFO] Running Interface Management Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Interface Management Tests
+[INFO] Running Primary Status Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Primary Status Tests
+[INFO] Running Profile Management Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Profile Management Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.020 s -- in DependencyNode Tests
+[INFO] Running DotExporter Tests
+[INFO] Running Basic Export Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.043 s -- in Basic Export Tests
+[INFO] Running Complex Graph Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Complex Graph Tests
+[INFO] Running Edge Export Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Edge Export Tests
+[INFO] Running Character Escaping Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Character Escaping Tests
+[INFO] Running Format Info Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Format Info Tests
+[INFO] Running Leaf Node Rank Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Leaf Node Rank Tests
+[INFO] Running Node Shape Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Node Shape Tests
+[INFO] Running Special Node Attributes Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Special Node Attributes Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.060 s -- in DotExporter Tests
+[INFO] Running LifecycleProcessor Tests
+[INFO] Running Bean Registration Tests
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor onRefresh
+INFO: Container refreshed with 0 beans in 100ms
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.292 s -- in Bean Registration Tests
+[INFO] Running Destroy Tests
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor destroy
+INFO: Container closed: 1 beans destroyed, uptime: PT0S
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor destroy
+INFO: Container closed: 0 beans destroyed, uptime: PT0S
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor destroy
+INFO: Container closed: 0 beans destroyed, uptime: PT0S
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor start
+INFO: Lifecycle started: 1 beans
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor stop
+INFO: Lifecycle stopped: 1 beans
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor destroy
+INFO: Container closed: 0 beans destroyed, uptime: PT0S
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.019 s -- in Destroy Tests
+[INFO] Running InitializingBean Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in InitializingBean Tests
+[INFO] Running Lifecycle Start Tests
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor start
+INFO: Lifecycle started: 0 beans
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor start
+WARNING: Lifecycle already started
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor start
+INFO: Lifecycle started: 2 beans
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor start
+INFO: Lifecycle started: 0 beans
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor start
+INFO: Lifecycle started: 1 beans
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor start
+INFO: Lifecycle started: 0 beans
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.021 s -- in Lifecycle Start Tests
+[INFO] Running Lifecycle Stop Tests
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor start
+INFO: Lifecycle started: 0 beans
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor stop
+INFO: Lifecycle stopped: 0 beans
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor stop
+WARNING: Lifecycle not running
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor start
+INFO: Lifecycle started: 0 beans
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor stop
+INFO: Lifecycle stopped: 0 beans
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor start
+INFO: Lifecycle started: 1 beans
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor stop
+INFO: Lifecycle stopped: 1 beans
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in Lifecycle Stop Tests
+[INFO] Running Post Processor Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.034 s -- in Post Processor Tests
+[INFO] Running Refresh Tests
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor onRefresh
+INFO: Container refreshed with 0 beans in 100ms
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor onRefresh
+INFO: Container refreshed with 0 beans in 100ms
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor onRefresh
+INFO: Container refreshed with 0 beans in 100ms
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Refresh Tests
+[INFO] Running Statistics Tests
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor start
+INFO: Lifecycle started: 0 beans
+Jan 07, 2026 8:51:47 PM io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor stop
+INFO: Lifecycle stopped: 0 beans
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Statistics Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.394 s -- in LifecycleProcessor Tests
+[INFO] Running Context Events Tests
+[INFO] Running ContextClosedEvent Tests
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in ContextClosedEvent Tests
+[INFO] Running ContextEvent Base Tests
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in ContextEvent Base Tests
+[INFO] Running ContextRefreshedEvent Tests
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in ContextRefreshedEvent Tests
+[INFO] Running ContextStartedEvent Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in ContextStartedEvent Tests
+[INFO] Running ContextStoppedEvent Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in ContextStoppedEvent Tests
+[INFO] Running Event Inheritance Tests
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Event Inheritance Tests
+[INFO] Running Event State Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Event State Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.026 s -- in Context Events Tests
+[INFO] Running ValueResolver Tests
+[INFO] Running Default Value Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Default Value Tests
+[INFO] Running Embedded Placeholder Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Embedded Placeholder Tests
+[INFO] Running Exception Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Exception Tests
+[INFO] Running Literal Value Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Literal Value Tests
+[INFO] Running Programmatic Property Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Programmatic Property Tests
+[INFO] Running Reload Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Reload Tests
+[INFO] Running Singleton Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Singleton Tests
+[INFO] Running System Property Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in System Property Tests
+[INFO] Running Type Conversion Tests
+[INFO] Tests run: 22, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.044 s -- in Type Conversion Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.064 s -- in ValueResolver Tests
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 713, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:report (report) @ veld-runtime ---
+[INFO] Loading execution data file /workspace/Veld/veld-runtime/target/jacoco.exec
+[INFO] Analyzed bundle 'Veld Runtime' with 71 classes
+[INFO] 
+[INFO] --------------------< io.github.yasmramos:veld-aop >--------------------
+[INFO] Building Veld AOP 1.0.3                                           [4/18]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:prepare-agent (prepare-agent) @ veld-aop ---
+[INFO] argLine set to -javaagent:/home/minimax/.m2/repository/org/jacoco/org.jacoco.agent/0.8.14/org.jacoco.agent-0.8.14-runtime.jar=destfile=/workspace/Veld/veld-aop/target/jacoco.exec
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ veld-aop ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-aop/src/main/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:compile (default-compile) @ veld-aop ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ veld-aop ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-aop/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:testCompile (default-testCompile) @ veld-aop ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-surefire-plugin:3.5.4:test (default-test) @ veld-aop ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running Advice
+[INFO] Running Factory Methods
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.090 s -- in Factory Methods
+[INFO] Running Invocation
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Invocation
+[INFO] Running Ordering
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Ordering
+[INFO] Running Pointcut Matching
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.025 s -- in Pointcut Matching
+[INFO] Running ToString
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.014 s -- in ToString
+[INFO] Running Type Enum
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Type Enum
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.159 s -- in Advice
+[INFO] Running InterceptorRegistry
+[INFO] Running Aspect Registration
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.072 s -- in Aspect Registration
+[INFO] Running Interceptor Registration
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s -- in Interceptor Registration
+[INFO] Running Singleton
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Singleton
+[INFO] Running Statistics
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s -- in Statistics
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.099 s -- in InterceptorRegistry
+[INFO] Running MethodInvocation
+[INFO] Running Basic Properties
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.014 s -- in Basic Properties
+[INFO] Running Context Data
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Context Data
+[INFO] Running Interceptor Chain
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in Interceptor Chain
+[INFO] Running Method Invocation
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Method Invocation
+[INFO] Running Parameter Modification
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Parameter Modification
+[INFO] Running Signature Methods
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.034 s -- in Signature Methods
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.073 s -- in MethodInvocation
+[INFO] Running io.github.yasmramos.veld.aop.interceptor.LoggedAnnotationTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in io.github.yasmramos.veld.aop.interceptor.LoggedAnnotationTest
+[INFO] Running io.github.yasmramos.veld.aop.interceptor.LoggingInterceptorTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s -- in io.github.yasmramos.veld.aop.interceptor.LoggingInterceptorTest
+[INFO] Running CompositePointcut
+[INFO] Running AND Operator
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in AND Operator
+[INFO] Running Could Match Optimization
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Could Match Optimization
+[INFO] Running NOT Operator
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in NOT Operator
+[INFO] Running Operator Precedence
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Operator Precedence
+[INFO] Running OR Operator
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in OR Operator
+[INFO] Running Parentheses
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Parentheses
+[INFO] Running Simple Pointcuts
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Simple Pointcuts
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.023 s -- in CompositePointcut
+[INFO] Running PointcutExpression
+[INFO] Running Annotation Pointcuts
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Annotation Pointcuts
+[INFO] Running Default Behavior
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Default Behavior
+[INFO] Running Execution Pointcuts
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Execution Pointcuts
+[INFO] Running ToString
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in ToString
+[INFO] Running Within Annotation Pointcuts
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Within Annotation Pointcuts
+[INFO] Running Within Pointcuts
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.032 s -- in Within Pointcuts
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.054 s -- in PointcutExpression
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 105, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:report (report) @ veld-aop ---
+[INFO] Loading execution data file /workspace/Veld/veld-aop/target/jacoco.exec
+[INFO] Analyzed bundle 'Veld AOP' with 15 classes
+[INFO] 
+[INFO] -----------------< io.github.yasmramos:veld-processor >-----------------
+[INFO] Building Veld Processor 1.0.3                                     [5/18]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:prepare-agent (prepare-agent) @ veld-processor ---
+[INFO] argLine set to -javaagent:/home/minimax/.m2/repository/org/jacoco/org.jacoco.agent/0.8.14/org.jacoco.agent-0.8.14-runtime.jar=destfile=/workspace/Veld/veld-processor/target/jacoco.exec
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ veld-processor ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:compile (default-compile) @ veld-processor ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ veld-processor ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-processor/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:testCompile (default-testCompile) @ veld-processor ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-surefire-plugin:3.5.4:test (default-test) @ veld-processor ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running AnnotationHelper Tests
+[INFO] Running All InjectSource Enum Values Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.084 s -- in All InjectSource Enum Values Tests
+[INFO] Running Inject Annotation Detection Tests
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.351 s -- in Inject Annotation Detection Tests
+[INFO] Running InjectSource Detection Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s -- in InjectSource Detection Tests
+[INFO] Running InjectSource Enum Tests
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s -- in InjectSource Enum Tests
+[INFO] Running Named Value Extraction Tests
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.274 s -- in Named Value Extraction Tests
+[INFO] Running Provider Type Detection Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s -- in Provider Type Detection Tests
+[INFO] Running Qualifier Value Extraction Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in Qualifier Value Extraction Tests
+[INFO] Running Singleton Annotation Detection Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.010 s -- in Singleton Annotation Detection Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.798 s -- in AnnotationHelper Tests
+[INFO] Running AsmUtils Tests
+[INFO] Running Class Loading Utilities
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.082 s -- in Class Loading Utilities
+[INFO] Running ClassWriter Creation
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.010 s -- in ClassWriter Creation
+[INFO] Running Constant Definitions
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in Constant Definitions
+[INFO] Running Constructor Generation
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Constructor Generation
+[INFO] Running Exception Handling
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Exception Handling
+[INFO] Running Method Invocation Generation
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.024 s -- in Method Invocation Generation
+[INFO] Running Object Instantiation
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Object Instantiation
+[INFO] Running Return Instructions
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Return Instructions
+[INFO] Running Type Conversion Utilities
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Type Conversion Utilities
+[INFO] Running Utility Class Design
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Utility Class Design
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.173 s -- in AsmUtils Tests
+[INFO] Running io.github.yasmramos.veld.processor.BeanFactorySourceGeneratorTest
+[INFO] Running BeanFactorySourceGenerator - Code Structure
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.018 s -- in BeanFactorySourceGenerator - Code Structure
+[INFO] Running BeanFactorySourceGenerator - Factory Class Name
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in BeanFactorySourceGenerator - Factory Class Name
+[INFO] Running BeanFactorySourceGenerator - Lifecycle Generation
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in BeanFactorySourceGenerator - Lifecycle Generation
+[INFO] Running BeanFactorySourceGenerator - Qualifier Generation
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in BeanFactorySourceGenerator - Qualifier Generation
+[INFO] Running BeanFactorySourceGenerator - Scope Generation
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in BeanFactorySourceGenerator - Scope Generation
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.045 s -- in io.github.yasmramos.veld.processor.BeanFactorySourceGeneratorTest
+[INFO] Running ComponentFactoryGenerator Private Field Tests
+[INFO] Running Mixed Visibility Fields
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.074 s -- in Mixed Visibility Fields
+[INFO] Running Private Field Injection
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Private Field Injection
+[INFO] Running Primitive Type Private Fields
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Primitive Type Private Fields
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.119 s -- in ComponentFactoryGenerator Private Field Tests
+[INFO] Running ComponentFactoryGenerator Tests
+[INFO] Running Basic Factory Generation
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s -- in Basic Factory Generation
+[INFO] Running Bridge Methods Generation
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Bridge Methods Generation
+[INFO] Running Bytecode Size Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.078 s -- in Bytecode Size Tests
+[INFO] Running Conditional Component Generation
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s -- in Conditional Component Generation
+[INFO] Running Interface Implementation Generation
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Interface Implementation Generation
+[INFO] Running Lazy Component Generation
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Lazy Component Generation
+[INFO] Running Method Generation
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.017 s -- in Method Generation
+[INFO] Running Scope Generation
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.045 s -- in Scope Generation
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.202 s -- in ComponentFactoryGenerator Tests
+[INFO] Running ComponentInfo Tests
+[INFO] Running Condition Info
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Condition Info
+[INFO] Running Explicit Dependencies
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Explicit Dependencies
+[INFO] Running Holder Pattern Tests
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.021 s -- in Holder Pattern Tests
+[INFO] Running Order
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s -- in Order
+[INFO] Running Subscribe Methods
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Subscribe Methods
+[INFO] Running Lifecycle Methods
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in Lifecycle Methods
+[INFO] Running Interface Support
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Interface Support
+[INFO] Running Lazy Initialization
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.024 s -- in Lazy Initialization
+[INFO] Running Prototype Scope
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Prototype Scope
+[INFO] Running Basic Properties
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s -- in Basic Properties
+[INFO] Running Injection Points
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Injection Points
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.118 s -- in ComponentInfo Tests
+[INFO] Running ConditionInfo Tests
+[INFO] Running Class Condition Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Class Condition Tests
+[INFO] Running Combined Condition Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in Combined Condition Tests
+[INFO] Running Empty Condition Tests
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s -- in Empty Condition Tests
+[INFO] Running Missing Bean Condition Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Missing Bean Condition Tests
+[INFO] Running Present Bean Condition Tests
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s -- in Present Bean Condition Tests
+[INFO] Running Profile Condition Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Profile Condition Tests
+[INFO] Running Property Condition Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Property Condition Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.081 s -- in ConditionInfo Tests
+[INFO] Running DependencyGraph Tests
+[INFO] Running Graph String Representation
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Graph String Representation
+[INFO] Running Topological Sort
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in Topological Sort
+[INFO] Running Factory Bean Cycle Detection
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.010 s -- in Factory Bean Cycle Detection
+[INFO] Running Cycle Formatting
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Cycle Formatting
+[INFO] Running Cycle Detection
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in Cycle Detection
+[INFO] Running Basic Operations
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Basic Operations
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.049 s -- in DependencyGraph Tests
+[INFO] Running InjectionPoint Tests
+[INFO] Running Dependency Tests
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.045 s -- in Dependency Tests
+[INFO] Running Synthetic Setter Tests
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.014 s -- in Synthetic Setter Tests
+[INFO] Running Type Enum Tests
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Type Enum Tests
+[INFO] Running Visibility Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Visibility Tests
+[INFO] Running InjectionPoint Tests
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s -- in InjectionPoint Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.128 s -- in InjectionPoint Tests
+[INFO] Running RegistryGenerator Tests
+[INFO] Running Basic Registry Generation
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.023 s -- in Basic Registry Generation
+[INFO] Running Bytecode Validity Tests
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s -- in Bytecode Validity Tests
+[INFO] Running Class Structure Generation
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Class Structure Generation
+[INFO] Running Component Registration Tests
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.052 s -- in Component Registration Tests
+[INFO] Running Edge Cases
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.014 s -- in Edge Cases
+[INFO] Running Field Generation
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.010 s -- in Field Generation
+[INFO] Running Method Generation
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s -- in Method Generation
+[INFO] Running Method Signatures Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Method Signatures Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.156 s -- in RegistryGenerator Tests
+[INFO] Running VeldProcessor Tests
+[INFO] Running Annotation Compatibility Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s -- in Annotation Compatibility Tests
+[INFO] Running Annotation Type Coverage Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Annotation Type Coverage Tests
+[INFO] Running Decapitalize Logic Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Decapitalize Logic Tests
+[INFO] Running Edge Cases Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Edge Cases Tests
+[INFO] Running Init Method Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.299 s -- in Init Method Tests
+[INFO] Running Process Method Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.088 s -- in Process Method Tests
+[INFO] Running Processor Configuration Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Processor Configuration Tests
+[INFO] Running Processor Instantiation Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Processor Instantiation Tests
+[INFO] Running Processor Methods Tests
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in Processor Methods Tests
+[INFO] Running Supported Annotations Tests
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s -- in Supported Annotations Tests
+[INFO] Running Supported Source Version Tests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in Supported Source Version Tests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.468 s -- in VeldProcessor Tests
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 293, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:report (report) @ veld-processor ---
+[INFO] Loading execution data file /workspace/Veld/veld-processor/target/jacoco.exec
+[INFO] Analyzed bundle 'Veld Processor' with 36 classes
+[INFO] 
+[INFO] ------------------< io.github.yasmramos:veld-weaver >-------------------
+[INFO] Building Veld Weaver 1.0.3                                        [6/18]
+[INFO] ----------------------------[ maven-plugin ]----------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:prepare-agent (prepare-agent) @ veld-weaver ---
+[INFO] argLine set to -javaagent:/home/minimax/.m2/repository/org/jacoco/org.jacoco.agent/0.8.14/org.jacoco.agent-0.8.14-runtime.jar=destfile=/workspace/Veld/veld-weaver/target/jacoco.exec
+[INFO] 
+[INFO] --- maven-plugin-plugin:3.9.0:helpmojo (help-goal) @ veld-weaver ---
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ veld-weaver ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-weaver/src/main/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:compile (default-compile) @ veld-weaver ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-plugin-plugin:3.9.0:descriptor (default-descriptor) @ veld-weaver ---
+[WARNING] 
+Some dependencies of Maven Plugins are expected to be in provided scope.
+Please make sure that dependencies listed below declared in POM
+have set '<scope>provided</scope>' as well.
+The following dependencies are in wrong scope:
+ * org.apache.maven:maven-plugin-api:jar:3.9.6:compile
+ * org.apache.maven:maven-artifact:jar:3.9.6:compile
+ * org.apache.maven:maven-core:jar:3.9.6:compile
+ * org.apache.maven:maven-settings:jar:3.9.6:compile
+ * org.apache.maven:maven-settings-builder:jar:3.9.6:compile
+ * org.apache.maven:maven-builder-support:jar:3.9.6:compile
+ * org.apache.maven:maven-repository-metadata:jar:3.9.6:compile
+ * org.apache.maven:maven-model-builder:jar:3.9.6:compile
+ * org.apache.maven:maven-resolver-provider:jar:3.9.6:compile
+ * org.apache.maven:maven-model:jar:3.9.6:compile
+[INFO] Using 'UTF-8' encoding to read mojo source files.
+[INFO] java-annotations mojo extractor found 2 mojo descriptors.
+[INFO] java-javadoc mojo extractor found 0 mojo descriptor.
+[INFO] ant mojo extractor found 0 mojo descriptor.
+[INFO] bsh mojo extractor found 0 mojo descriptor.
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ veld-weaver ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-weaver/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:testCompile (default-testCompile) @ veld-weaver ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-surefire-plugin:3.5.4:test (default-test) @ veld-weaver ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running FieldInjectorWeaver Tests
+[INFO] Running WeavingResult Tests
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.074 s -- in WeavingResult Tests
+[INFO] Running Static Final Fields
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.043 s -- in Static Final Fields
+[INFO] Running Field Visibility
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.051 s -- in Field Visibility
+[INFO] Running Static Fields
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.010 s -- in Static Fields
+[INFO] Running Multiple Fields
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Multiple Fields
+[INFO] Running Re-weaving Prevention
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in Re-weaving Prevention
+[INFO] Running Final Fields
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in Final Fields
+[INFO] Running Directory Weaving
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.081 s -- in Directory Weaving
+[INFO] Running Bytecode Verification
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s -- in Bytecode Verification
+[INFO] Running Primitive Types
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.017 s -- in Primitive Types
+[INFO] Running No Injection Annotation
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s -- in No Injection Annotation
+[INFO] Running Single Field Injection
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in Single Field Injection
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.323 s -- in FieldInjectorWeaver Tests
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 37, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:report (report) @ veld-weaver ---
+[INFO] Loading execution data file /workspace/Veld/veld-weaver/target/jacoco.exec
+[INFO] Analyzed bundle 'Veld Weaver' with 4 classes
+[INFO] 
+[INFO] ---------------< io.github.yasmramos:veld-maven-plugin >----------------
+[INFO] Building Veld Maven Plugin 1.0.3                                  [7/18]
+[INFO] ----------------------------[ maven-plugin ]----------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:prepare-agent (prepare-agent) @ veld-maven-plugin ---
+[INFO] argLine set to -javaagent:/home/minimax/.m2/repository/org/jacoco/org.jacoco.agent/0.8.14/org.jacoco.agent-0.8.14-runtime.jar=destfile=/workspace/Veld/veld-maven-plugin/target/jacoco.exec
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ veld-maven-plugin ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:compile (default-compile) @ veld-maven-plugin ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-plugin-plugin:3.13.1:descriptor (default-descriptor) @ veld-maven-plugin ---
+[WARNING] 
+Some dependencies of Maven Plugins are expected to be in provided scope.
+Please make sure that dependencies listed below declared in POM
+have set '<scope>provided</scope>' as well.
+The following dependencies are in wrong scope:
+ * org.apache.maven:maven-model:jar:3.9.6:compile
+[INFO] Using 'UTF-8' encoding to read mojo source files.
+[INFO] java-annotations mojo extractor found 1 mojo descriptor.
+[INFO] java-javadoc mojo extractor found 0 mojo descriptor.
+[INFO] ant mojo extractor found 0 mojo descriptor.
+[INFO] bsh mojo extractor found 0 mojo descriptor.
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ veld-maven-plugin ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-maven-plugin/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:testCompile (default-testCompile) @ veld-maven-plugin ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-surefire-plugin:3.5.4:test (default-test) @ veld-maven-plugin ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.github.yasmramos.veld.maven.VeldCompileMojoExclusionTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.124 s -- in io.github.yasmramos.veld.maven.VeldCompileMojoExclusionTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:report (report) @ veld-maven-plugin ---
+[INFO] Loading execution data file /workspace/Veld/veld-maven-plugin/target/jacoco.exec
+[INFO] Analyzed bundle 'Veld Maven Plugin' with 1 classes
+[INFO] 
+[INFO] ------------< io.github.yasmramos:veld-spring-boot-starter >------------
+[INFO] Building Veld Spring Boot Starter 1.0.3                           [8/18]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:prepare-agent (prepare-agent) @ veld-spring-boot-starter ---
+[INFO] Skipping JaCoCo execution because property jacoco.skip is set.
+[INFO] argLine set to empty
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ veld-spring-boot-starter ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.11.0:compile (default-compile) @ veld-spring-boot-starter ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ veld-spring-boot-starter ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.11.0:testCompile (default-testCompile) @ veld-spring-boot-starter ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- maven-surefire-plugin:3.5.4:test (default-test) @ veld-spring-boot-starter ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.github.yasmramos.veld.boot.starter.config.VeldSpringBootStarterIntegrationTest
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v4.0.1)
+2026-01-07T20:52:12.993Z  INFO 5556 --- [veld-spring-boot-starter-test] [           main] s.c.VeldSpringBootStarterIntegrationTest : Starting VeldSpringBootStarterIntegrationTest using Java 17.0.17 with PID 5556 (started by minimax in /workspace/Veld/veld-spring-boot-starter)
+2026-01-07T20:52:12.996Z  INFO 5556 --- [veld-spring-boot-starter-test] [           main] s.c.VeldSpringBootStarterIntegrationTest : No active profile set, falling back to 1 default profile: "default"
+2026-01-07T20:52:13.755Z  INFO 5556 --- [veld-spring-boot-starter-test] [           main] s.c.VeldSpringBootStarterIntegrationTest : Started VeldSpringBootStarterIntegrationTest in 1.072 seconds (process running for 2.206)
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+Veld properties test executed
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.044 s -- in io.github.yasmramos.veld.boot.starter.config.VeldSpringBootStarterIntegrationTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:report (report) @ veld-spring-boot-starter ---
+[INFO] Skipping JaCoCo execution because property jacoco.skip is set.
+[INFO] 
+[INFO] ------------------< io.github.yasmramos:veld-example >------------------
+[INFO] Building Veld Example 1.0.3                                       [9/18]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:prepare-agent (prepare-agent) @ veld-example ---
+[INFO] Skipping JaCoCo execution because property jacoco.skip is set.
+[INFO] argLine set to empty
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ veld-example ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.11.0:compile (default-compile) @ veld-example ---
+[WARNING] ******************************************************************************************************************************************
+[WARNING] * Required filename-based automodules detected: [javax.inject-1.jar]. Please don't publish this project to a public artifact repository! *
+[WARNING] ******************************************************************************************************************************************
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ veld-example ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-example/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.11.0:testCompile (default-testCompile) @ veld-example ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- maven-surefire-plugin:3.5.4:test (default-test) @ veld-example ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:report (report) @ veld-example ---
+[INFO] Skipping JaCoCo execution because property jacoco.skip is set.
+[INFO] 
+[INFO] ------------< io.github.yasmramos:veld-spring-boot-example >------------
+[INFO] Building Veld Spring Boot Example 1.0.3                          [10/18]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:prepare-agent (prepare-agent) @ veld-spring-boot-example ---
+[INFO] argLine set to -javaagent:/home/minimax/.m2/repository/org/jacoco/org.jacoco.agent/0.8.14/org.jacoco.agent-0.8.14-runtime.jar=destfile=/workspace/Veld/veld-spring-boot-example/target/jacoco.exec
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ veld-spring-boot-example ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:compile (default-compile) @ veld-spring-boot-example ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ veld-spring-boot-example ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-spring-boot-example/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:testCompile (default-testCompile) @ veld-spring-boot-example ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- maven-surefire-plugin:3.5.4:test (default-test) @ veld-spring-boot-example ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:report (report) @ veld-spring-boot-example ---
+[INFO] Skipping JaCoCo execution due to missing execution data file.
+[INFO] 
+[INFO] -----------------< io.github.yasmramos:veld-benchmark >-----------------
+[INFO] Building Veld Benchmark 1.0.3                                    [11/18]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:prepare-agent (prepare-agent) @ veld-benchmark ---
+[INFO] Skipping JaCoCo execution because property jacoco.skip is set.
+[INFO] argLine set to empty
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ veld-benchmark ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.11.0:compile (default-compile) @ veld-benchmark ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- veld-maven-plugin:1.0.3:compile (default) @ veld-benchmark ---
+[INFO] Veld Maven Plugin: Weaving...
+[INFO]   Phase 2: Weaving bytecode...
+[INFO] Veld Maven Plugin: Build complete
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ veld-benchmark ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-benchmark/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.11.0:testCompile (default-testCompile) @ veld-benchmark ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- maven-surefire-plugin:3.5.4:test (default-test) @ veld-benchmark ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:report (report) @ veld-benchmark ---
+[INFO] Skipping JaCoCo execution because property jacoco.skip is set.
+[INFO] 
+[INFO] ----------------< io.github.yasmramos:veld-resilience >-----------------
+[INFO] Building Veld Resilience 1.0.3                                   [12/18]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:prepare-agent (prepare-agent) @ veld-resilience ---
+[INFO] argLine set to -javaagent:/home/minimax/.m2/repository/org/jacoco/org.jacoco.agent/0.8.14/org.jacoco.agent-0.8.14-runtime.jar=destfile=/workspace/Veld/veld-resilience/target/jacoco.exec
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ veld-resilience ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-resilience/src/main/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:compile (default-compile) @ veld-resilience ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ veld-resilience ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-resilience/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:testCompile (default-testCompile) @ veld-resilience ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- maven-surefire-plugin:3.5.4:test (default-test) @ veld-resilience ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:report (report) @ veld-resilience ---
+[INFO] Skipping JaCoCo execution due to missing execution data file.
+[INFO] 
+[INFO] -------------------< io.github.yasmramos:veld-cache >-------------------
+[INFO] Building Veld Cache 1.0.3                                        [13/18]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:prepare-agent (prepare-agent) @ veld-cache ---
+[INFO] argLine set to -javaagent:/home/minimax/.m2/repository/org/jacoco/org.jacoco.agent/0.8.14/org.jacoco.agent-0.8.14-runtime.jar=destfile=/workspace/Veld/veld-cache/target/jacoco.exec
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ veld-cache ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-cache/src/main/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:compile (default-compile) @ veld-cache ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ veld-cache ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-cache/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:testCompile (default-testCompile) @ veld-cache ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- maven-surefire-plugin:3.5.4:test (default-test) @ veld-cache ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:report (report) @ veld-cache ---
+[INFO] Skipping JaCoCo execution due to missing execution data file.
+[INFO] 
+[INFO] ----------------< io.github.yasmramos:veld-validation >-----------------
+[INFO] Building Veld Validation 1.0.3                                   [14/18]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:prepare-agent (prepare-agent) @ veld-validation ---
+[INFO] argLine set to -javaagent:/home/minimax/.m2/repository/org/jacoco/org.jacoco.agent/0.8.14/org.jacoco.agent-0.8.14-runtime.jar=destfile=/workspace/Veld/veld-validation/target/jacoco.exec
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ veld-validation ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-validation/src/main/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:compile (default-compile) @ veld-validation ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ veld-validation ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-validation/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:testCompile (default-testCompile) @ veld-validation ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- maven-surefire-plugin:3.5.4:test (default-test) @ veld-validation ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:report (report) @ veld-validation ---
+[INFO] Skipping JaCoCo execution due to missing execution data file.
+[INFO] 
+[INFO] -----------------< io.github.yasmramos:veld-security >------------------
+[INFO] Building Veld Security 1.0.3                                     [15/18]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:prepare-agent (prepare-agent) @ veld-security ---
+[INFO] argLine set to -javaagent:/home/minimax/.m2/repository/org/jacoco/org.jacoco.agent/0.8.14/org.jacoco.agent-0.8.14-runtime.jar=destfile=/workspace/Veld/veld-security/target/jacoco.exec
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ veld-security ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-security/src/main/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:compile (default-compile) @ veld-security ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ veld-security ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-security/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:testCompile (default-testCompile) @ veld-security ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- maven-surefire-plugin:3.5.4:test (default-test) @ veld-security ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:report (report) @ veld-security ---
+[INFO] Skipping JaCoCo execution due to missing execution data file.
+[INFO] 
+[INFO] ------------------< io.github.yasmramos:veld-metrics >------------------
+[INFO] Building Veld Metrics 1.0.3                                      [16/18]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:prepare-agent (prepare-agent) @ veld-metrics ---
+[INFO] argLine set to -javaagent:/home/minimax/.m2/repository/org/jacoco/org.jacoco.agent/0.8.14/org.jacoco.agent-0.8.14-runtime.jar=destfile=/workspace/Veld/veld-metrics/target/jacoco.exec
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ veld-metrics ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-metrics/src/main/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:compile (default-compile) @ veld-metrics ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ veld-metrics ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-metrics/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:testCompile (default-testCompile) @ veld-metrics ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- maven-surefire-plugin:3.5.4:test (default-test) @ veld-metrics ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:report (report) @ veld-metrics ---
+[INFO] Skipping JaCoCo execution due to missing execution data file.
+[INFO] 
+[INFO] --------------------< io.github.yasmramos:veld-tx >---------------------
+[INFO] Building Veld Transactions 1.0.3                                 [17/18]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:prepare-agent (prepare-agent) @ veld-tx ---
+[INFO] argLine set to -javaagent:/home/minimax/.m2/repository/org/jacoco/org.jacoco.agent/0.8.14/org.jacoco.agent-0.8.14-runtime.jar=destfile=/workspace/Veld/veld-tx/target/jacoco.exec
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ veld-tx ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-tx/src/main/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:compile (default-compile) @ veld-tx ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ veld-tx ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-tx/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.14.1:testCompile (default-testCompile) @ veld-tx ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- maven-surefire-plugin:3.5.4:test (default-test) @ veld-tx ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:report (report) @ veld-tx ---
+[INFO] Skipping JaCoCo execution due to missing execution data file.
+[INFO] 
+[INFO] -------------------< io.github.yasmramos:veld-test >--------------------
+[INFO] Building Veld Test Framework 1.0.3                               [18/18]
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:prepare-agent (prepare-agent) @ veld-test ---
+[INFO] argLine set to -javaagent:/home/minimax/.m2/repository/org/jacoco/org.jacoco.agent/0.8.14/org.jacoco.agent-0.8.14-runtime.jar=destfile=/workspace/Veld/veld-test/target/jacoco.exec
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:resources (default-resources) @ veld-test ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-test/src/main/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.12.1:compile (default-compile) @ veld-test ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-resources-plugin:2.6:testResources (default-testResources) @ veld-test ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] skip non existing resourceDirectory /workspace/Veld/veld-test/src/test/resources
+[INFO] 
+[INFO] --- maven-compiler-plugin:3.12.1:testCompile (default-testCompile) @ veld-test ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- maven-surefire-plugin:3.2.5:test (default-test) @ veld-test ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running io.github.yasmramos.veld.test.VeldTestIntegrationTest
+[INFO] Running io.github.yasmramos.veld.test.VeldTestIntegrationTest$BasicInjectionTests
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.227 s -- in io.github.yasmramos.veld.test.VeldTestIntegrationTest$BasicInjectionTests
+[INFO] Running io.github.yasmramos.veld.test.VeldTestIntegrationTest$TestContextTests
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.250 s -- in io.github.yasmramos.veld.test.VeldTestIntegrationTest$TestContextTests
+[INFO] Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.506 s -- in io.github.yasmramos.veld.test.VeldTestIntegrationTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] 
+[INFO] --- jacoco-maven-plugin:0.8.14:report (report) @ veld-test ---
+[INFO] Loading execution data file /workspace/Veld/veld-test/target/jacoco.exec
+[INFO] Analyzed bundle 'Veld Test Framework' with 7 classes
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for Veld Framework 1.0.3:
+[INFO] 
+[INFO] Veld Framework ..................................... SUCCESS [  0.204 s]
+[INFO] Veld Annotations ................................... SUCCESS [  4.468 s]
+[INFO] Veld Runtime ....................................... SUCCESS [ 46.266 s]
+[INFO] Veld AOP ........................................... SUCCESS [  3.053 s]
+[INFO] Veld Processor ..................................... SUCCESS [  7.941 s]
+[INFO] Veld Weaver ........................................ SUCCESS [  3.992 s]
+[INFO] Veld Maven Plugin .................................. SUCCESS [  2.547 s]
+[INFO] Veld Spring Boot Starter ........................... SUCCESS [  3.322 s]
+[INFO] Veld Example ....................................... SUCCESS [  0.163 s]
+[INFO] Veld Spring Boot Example ........................... SUCCESS [  0.274 s]
+[INFO] Veld Benchmark ..................................... SUCCESS [  1.186 s]
+[INFO] Veld Resilience .................................... SUCCESS [  0.071 s]
+[INFO] Veld Cache ......................................... SUCCESS [  0.019 s]
+[INFO] Veld Validation .................................... SUCCESS [  0.079 s]
+[INFO] Veld Security ...................................... SUCCESS [  0.055 s]
+[INFO] Veld Metrics ....................................... SUCCESS [  0.061 s]
+[INFO] Veld Transactions .................................. SUCCESS [  0.072 s]
+[INFO] Veld Test Framework ................................ SUCCESS [  3.331 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  01:17 min
+[INFO] Finished at: 2026-01-07T20:52:19Z
+[INFO] ------------------------------------------------------------------------
