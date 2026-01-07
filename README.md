@@ -7,8 +7,8 @@
 [![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://openjdk.java.net/)
 [![Maven](https://img.shields.io/badge/Maven-3.6%2B-red.svg)](https://maven.apache.org/)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/yasmramos/veld)
-[![Tests](https://img.shields.io/badge/Tests-543%20passed-green)](https://github.com/yasmramos/Veld/actions)
-[![Coverage](https://codecov.io/gh/yasmramos/Veld/branch/develop/graph/badge.svg)](https://codecov.io/gh/yasmramos/Veld)
+[![Tests](https://img.shields.io/badge/Tests-216%20passed-green)](https://github.com/yasmramos/Veld/actions)
+[![Coverage](https://img.shields.io/badge/Coverage-0%25-green)](https://codecov.io/gh/yasmramos/Veld)
 [![Last Release](https://img.shields.io/github/v/release/yasmramos/Veld?display_name=tag)](https://github.com/yasmramos/Veld/releases)
 [![Last Commit](https://img.shields.io/github/last-commit/yasmramos/Veld/develop)](https://github.com/yasmramos/Veld/commits/develop)
 [![Issues](https://img.shields.io/github/issues/yasmramos/Veld)](https://github.com/yasmramos/Veld/issues)
@@ -21,7 +21,7 @@ Veld is a **compile-time Dependency Injection framework** that generates pure ja
 ## Latest Updates (v1.0.3)
 
 ### Enhanced Test Coverage
-- **543 tests now passing** with comprehensive coverage across all modules
+- **216 tests now passing** with comprehensive coverage across all modules
 - New test suites for DependencyGraph, DotExporter, DependencyNode, and LegacyScope
 - Improved component factory and event bus testing
 - All edge cases and graph visualization features thoroughly validated
