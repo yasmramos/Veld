@@ -72,7 +72,6 @@ jobs:
       with:
         java-version: ${{ env.JAVA_VERSION }}
         distribution: 'temurin'
-        cache: none
 
     - name: 🧹 Clean Build Cache
       if: always()
@@ -203,7 +202,6 @@ jobs:
       with:
         java-version: ${{ matrix.java-version }}
         distribution: 'temurin'
-        cache: none
 
     - name: 🧹 Clean Build Cache
       if: always()
@@ -294,7 +292,6 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: none
 
     - name: 🧹 Clean Build Cache
       if: always()
@@ -376,7 +373,6 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: none
 
     - name: 🧹 Clean Build Cache
       if: always()
@@ -470,7 +466,6 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: none
 
     - name: 🧹 Clean Build Cache
       if: always()
