@@ -86,6 +86,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -133,6 +136,9 @@
                     <execution>
                         <id>default-descriptor</id>
                         <phase>process-classes</phase>
+                        <goals>
+                            <goal>descriptor</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
