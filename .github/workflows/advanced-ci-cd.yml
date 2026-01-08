@@ -39,12 +39,40 @@ jobs:
       with:
         fetch-depth: 0
         
+    - name: 🧹 Aggressive Cache Cleanup
+      run: |
+        echo "🧹 Performing aggressive cache cleanup..."
+        
+        # Remove all GitHub Actions caches for this repository
+        echo "Removing all GitHub Actions caches..."
+        for cache in $(gh cache list --repo yasmramos/Veld -L 100 2>/dev/null | awk '{print $1}'); do
+          gh cache delete "$cache" --repo yasmramos/Veld 2>/dev/null || true
+        done
+        echo "✅ GitHub Actions caches removed"
+        
+        # Clean Maven wrapper and local caches
+        echo "Cleaning Maven caches..."
+        rm -rf ~/.m2/wrapper/
+        rm -rf ~/.m2/repository/
+        rm -rf .mvn/.caches/
+        rm -rf .mvn/timing.properties
+        
+        # Clean all target directories
+        echo "Cleaning target directories..."
+        find . -type d -name "target" -exec rm -rf {} + 2>/dev/null || true
+        
+        # Clean any .gradle caches
+        echo "Cleaning Gradle caches..."
+        find . -type d -name ".gradle" -exec rm -rf {} + 2>/dev/null || true
+        
+        echo "✅ Aggressive cache cleanup completed"
+        
     - name: ☕ Setup JDK
       uses: actions/setup-java@v4
       with:
         java-version: ${{ env.JAVA_VERSION }}
         distribution: 'temurin'
-        cache: maven
+        cache: none
 
     - name: 🧹 Clean Build Cache
       if: always()
@@ -142,12 +170,40 @@ jobs:
     - name: 🔍 Checkout Repository
       uses: actions/checkout@v4
       
+    - name: 🧹 Aggressive Cache Cleanup
+      run: |
+        echo "🧹 Performing aggressive cache cleanup..."
+        
+        # Remove all GitHub Actions caches for this repository
+        echo "Removing all GitHub Actions caches..."
+        for cache in $(gh cache list --repo yasmramos/Veld -L 100 2>/dev/null | awk '{print $1}'); do
+          gh cache delete "$cache" --repo yasmramos/Veld 2>/dev/null || true
+        done
+        echo "✅ GitHub Actions caches removed"
+        
+        # Clean Maven wrapper and local caches
+        echo "Cleaning Maven caches..."
+        rm -rf ~/.m2/wrapper/
+        rm -rf ~/.m2/repository/
+        rm -rf .mvn/.caches/
+        rm -rf .mvn/timing.properties
+        
+        # Clean all target directories
+        echo "Cleaning target directories..."
+        find . -type d -name "target" -exec rm -rf {} + 2>/dev/null || true
+        
+        # Clean any .gradle caches
+        echo "Cleaning Gradle caches..."
+        find . -type d -name ".gradle" -exec rm -rf {} + 2>/dev/null || true
+        
+        echo "✅ Aggressive cache cleanup completed"
+        
     - name: ☕ Setup JDK ${{ matrix.java-version }}
       uses: actions/setup-java@v4
       with:
         java-version: ${{ matrix.java-version }}
         distribution: 'temurin'
-        cache: maven
+        cache: none
 
     - name: 🧹 Clean Build Cache
       if: always()
@@ -205,12 +261,40 @@ jobs:
     - name: 🔍 Checkout Repository
       uses: actions/checkout@v4
       
+    - name: 🧹 Aggressive Cache Cleanup
+      run: |
+        echo "🧹 Performing aggressive cache cleanup..."
+        
+        # Remove all GitHub Actions caches for this repository
+        echo "Removing all GitHub Actions caches..."
+        for cache in $(gh cache list --repo yasmramos/Veld -L 100 2>/dev/null | awk '{print $1}'); do
+          gh cache delete "$cache" --repo yasmramos/Veld 2>/dev/null || true
+        done
+        echo "✅ GitHub Actions caches removed"
+        
+        # Clean Maven wrapper and local caches
+        echo "Cleaning Maven caches..."
+        rm -rf ~/.m2/wrapper/
+        rm -rf ~/.m2/repository/
+        rm -rf .mvn/.caches/
+        rm -rf .mvn/timing.properties
+        
+        # Clean all target directories
+        echo "Cleaning target directories..."
+        find . -type d -name "target" -exec rm -rf {} + 2>/dev/null || true
+        
+        # Clean any .gradle caches
+        echo "Cleaning Gradle caches..."
+        find . -type d -name ".gradle" -exec rm -rf {} + 2>/dev/null || true
+        
+        echo "✅ Aggressive cache cleanup completed"
+        
     - name: ☕ Setup JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: maven
+        cache: none
 
     - name: 🧹 Clean Build Cache
       if: always()
@@ -259,12 +343,40 @@ jobs:
     - name: 🔍 Checkout Repository
       uses: actions/checkout@v4
 
+    - name: 🧹 Aggressive Cache Cleanup
+      run: |
+        echo "🧹 Performing aggressive cache cleanup..."
+        
+        # Remove all GitHub Actions caches for this repository
+        echo "Removing all GitHub Actions caches..."
+        for cache in $(gh cache list --repo yasmramos/Veld -L 100 2>/dev/null | awk '{print $1}'); do
+          gh cache delete "$cache" --repo yasmramos/Veld 2>/dev/null || true
+        done
+        echo "✅ GitHub Actions caches removed"
+        
+        # Clean Maven wrapper and local caches
+        echo "Cleaning Maven caches..."
+        rm -rf ~/.m2/wrapper/
+        rm -rf ~/.m2/repository/
+        rm -rf .mvn/.caches/
+        rm -rf .mvn/timing.properties
+        
+        # Clean all target directories
+        echo "Cleaning target directories..."
+        find . -type d -name "target" -exec rm -rf {} + 2>/dev/null || true
+        
+        # Clean any .gradle caches
+        echo "Cleaning Gradle caches..."
+        find . -type d -name ".gradle" -exec rm -rf {} + 2>/dev/null || true
+        
+        echo "✅ Aggressive cache cleanup completed"
+        
     - name: ☕ Setup JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: maven
+        cache: none
 
     - name: 🧹 Clean Build Cache
       if: always()
@@ -325,12 +437,40 @@ jobs:
     - name: 🔍 Checkout Repository
       uses: actions/checkout@v4
       
+    - name: 🧹 Aggressive Cache Cleanup
+      run: |
+        echo "🧹 Performing aggressive cache cleanup..."
+        
+        # Remove all GitHub Actions caches for this repository
+        echo "Removing all GitHub Actions caches..."
+        for cache in $(gh cache list --repo yasmramos/Veld -L 100 2>/dev/null | awk '{print $1}'); do
+          gh cache delete "$cache" --repo yasmramos/Veld 2>/dev/null || true
+        done
+        echo "✅ GitHub Actions caches removed"
+        
+        # Clean Maven wrapper and local caches
+        echo "Cleaning Maven caches..."
+        rm -rf ~/.m2/wrapper/
+        rm -rf ~/.m2/repository/
+        rm -rf .mvn/.caches/
+        rm -rf .mvn/timing.properties
+        
+        # Clean all target directories
+        echo "Cleaning target directories..."
+        find . -type d -name "target" -exec rm -rf {} + 2>/dev/null || true
+        
+        # Clean any .gradle caches
+        echo "Cleaning Gradle caches..."
+        find . -type d -name ".gradle" -exec rm -rf {} + 2>/dev/null || true
+        
+        echo "✅ Aggressive cache cleanup completed"
+        
     - name: ☕ Setup JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: maven
+        cache: none
 
     - name: 🧹 Clean Build Cache
       if: always()
