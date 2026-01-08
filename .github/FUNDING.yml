@@ -1,11 +1,13 @@
 # Funding Configuration for Veld Framework
 
 # These settings enable sponsor buttons and links across GitHub
+# IMPORTANT: GitHub Sponsors requires enrollment at https://github.com/sponsors
+# Uncomment the github line once enrolled, otherwise remove or comment it
 
-github: yasmramos
+# GitHub Sponsors (requires enrollment)
+# github: yasmramos
 
-# GitHub Sponsors tier (optional)
-# Uncomment and customize when ready
+# Custom funding links (e.g., Ko-fi, Buy Me a Coffee)
 # custom: ["ko-fi.com/yourusername", "buymeacoffee.com/yourusername"]
 
 # Open Collective (optional)
@@ -29,9 +31,8 @@ github: yasmramos
 ---
 
 **Note**: This file enables funding links on your GitHub repository.
-To activate GitHub Sponsors, visit https://github.com/sponsors
-
+To activate GitHub Sponsors, visit https://github.com/sponsors and apply.
 For other platforms, create accounts and uncomment the relevant lines.
 
-**Last Updated**: 2025-12-30
-**Version**: 1.0.3
+**Last Updated**: 2025-01-09
+**Version**: 1.0.4
