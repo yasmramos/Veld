@@ -2,8 +2,10 @@ package io.github.yasmramos.veld.processor;
 
 import io.github.yasmramos.veld.annotation.ScopeType;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Generates Veld.java source code instead of bytecode.
@@ -155,11 +157,23 @@ public final class VeldSourceGenerator {
     
     private void generateGetMethods(StringBuilder sb) {
         sb.append("    // === GETTER METHODS ===\n\n");
+        
+        // Track generated method names to avoid duplicates
+        Set<String> generatedMethodNames = new HashSet<>();
+        
         for (ComponentInfo comp : components) {
             String methodName = getGetterMethodName(comp);
             String returnType = comp.getClassName();
             
-            sb.append("    public static ").append(returnType).append(" ").append(methodName).append("() {\n");
+            // Handle duplicate method names by adding a suffix
+            String uniqueMethodName = methodName;
+            int suffix = 1;
+            while (generatedMethodNames.contains(uniqueMethodName)) {
+                uniqueMethodName = methodName + "_" + suffix++;
+            }
+            generatedMethodNames.add(uniqueMethodName);
+            
+            sb.append("    public static ").append(returnType).append(" ").append(uniqueMethodName).append("() {\n");
             
             if (comp.getScope() == ScopeType.SINGLETON) {
                 if (comp.canUseHolderPattern()) {
@@ -257,27 +271,6 @@ public final class VeldSourceGenerator {
      * For unresolved interface dependencies, returns null (to be resolved at runtime).
      * 
      * @param typeName the dependency type name
-     * @return the getter call code
-     */
-    private String getGetterCallForType(String typeName) {
-        for (ComponentInfo comp : components) {
-            if (comp.getClassName().equals(typeName)) {
-                return getGetterMethodName(comp) + "()";
-            }
-            for (String iface : comp.getImplementedInterfaces()) {
-                if (iface.equals(typeName)) {
-                    return getGetterMethodName(comp) + "()";
-                }
-            }
-        }
-        return "get(" + typeName + ".class)";
-    }
-    
-    /**
-     * Gets the getter call for a dependency type, handling unresolved interface dependencies.
-     * For unresolved interface dependencies, returns null (to be resolved at runtime).
-     * 
-     * @param typeName the dependency type name
      * @param component the component being created (to check its unresolved deps)
      * @return the getter call code
      */
@@ -290,17 +283,53 @@ public final class VeldSourceGenerator {
             return "null /* unresolved interface: " + typeName + " */";
         }
         
-        // Check in component list first
+        // Find the component that matches this type and get its unique method name
+        String methodName = getGetterMethodNameForType(typeName);
+        if (methodName != null) {
+            return methodName;
+        }
+        
+        return "get(" + typeName + ".class)";
+    }
+    
+    /**
+     * Gets the unique getter method name for a given type.
+     * Handles duplicate names by adding suffixes.
+     * 
+     * @param typeName the dependency type name
+     * @return the unique getter method name, or null if not found
+     */
+    private String getGetterMethodNameForType(String typeName) {
+        // First pass: count occurrences to determine suffixes needed
+        int occurrenceCount = 0;
+        ComponentInfo matchedComponent = null;
         for (ComponentInfo comp : components) {
             if (comp.getClassName().equals(typeName)) {
-                return getGetterMethodName(comp) + "()";
+                occurrenceCount++;
+                matchedComponent = comp;
             }
             for (String iface : comp.getImplementedInterfaces()) {
                 if (iface.equals(typeName)) {
-                    return getGetterMethodName(comp) + "()";
+                    occurrenceCount++;
+                    matchedComponent = comp;
                 }
             }
         }
-        return "get(" + typeName + ".class)";
+        
+        if (occurrenceCount == 0) {
+            return null;
+        }
+        
+        // Generate unique method name
+        String baseMethodName = getGetterMethodName(matchedComponent);
+        
+        if (occurrenceCount == 1) {
+            return baseMethodName + "()";
+        }
+        
+        // Multiple components with same name - need to find the correct one
+        // Use class name hash to make unique suffix
+        int hash = typeName.hashCode() & 0xFFFF;
+        return baseMethodName + "_" + hash + "()";
     }
 }

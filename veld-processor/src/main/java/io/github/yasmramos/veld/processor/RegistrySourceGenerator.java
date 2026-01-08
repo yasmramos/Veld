@@ -301,6 +301,14 @@ public final class RegistrySourceGenerator {
     }
     
     private String getPackageName(String className) {
+        // For inner classes (Outer$Inner), find the package by looking for $ first
+        int dollarSign = className.lastIndexOf('$');
+        if (dollarSign > 0) {
+            // It's an inner class, find the last dot before the $
+            int lastDot = className.lastIndexOf('.', dollarSign - 1);
+            return lastDot >= 0 ? className.substring(0, lastDot) : "";
+        }
+        // Regular class - find the last dot
         int lastDot = className.lastIndexOf('.');
         return lastDot >= 0 ? className.substring(0, lastDot) : "";
     }

@@ -220,11 +220,26 @@ public final class ComponentFactorySourceGenerator {
     }
     
     private String getPackageName(String className) {
+        // For inner classes (Outer$Inner), find the package by looking for $ first
+        // Then find the last dot before the $
+        int dollarSign = className.lastIndexOf('$');
+        if (dollarSign > 0) {
+            // It's an inner class, find the last dot before the $
+            int lastDot = className.lastIndexOf('.', dollarSign - 1);
+            return lastDot >= 0 ? className.substring(0, lastDot) : "";
+        }
+        // Regular class - find the last dot
         int lastDot = className.lastIndexOf('.');
         return lastDot >= 0 ? className.substring(0, lastDot) : "";
     }
     
     private String getSimpleName(String className) {
+        // For inner classes (Outer$Inner), get just the inner class name
+        int lastDollar = className.lastIndexOf('$');
+        if (lastDollar >= 0) {
+            return className.substring(lastDollar + 1);
+        }
+        // For regular classes, get the class name after the last dot
         int lastDot = className.lastIndexOf('.');
         return lastDot >= 0 ? className.substring(lastDot + 1) : className;
     }
