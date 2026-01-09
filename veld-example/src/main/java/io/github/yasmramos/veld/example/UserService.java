@@ -11,12 +11,12 @@ import io.github.yasmramos.veld.annotation.Singleton;
 @Component
 public class UserService {
     private final DatabaseService databaseService;
-    
+
     @Inject
     public UserService(DatabaseService databaseService) {
         this.databaseService = databaseService;
     }
-    
+
     /**
      * Obtiene el nombre de usuario por ID.
      * @param userId ID del usuario
@@ -30,7 +30,7 @@ public class UserService {
             default: return "User-" + userId;
         }
     }
-    
+
     /**
      * Crea un nuevo usuario.
      * @param userId ID del usuario
@@ -40,7 +40,7 @@ public class UserService {
     public void createUser(Long userId, String name, String email) {
         System.out.println("  [UserService] Creating user: " + name + " (ID: " + userId + ", Email: " + email + ")");
     }
-    
+
     public String getUserEmail(String userId) {
         return databaseService.getUserEmail(userId);
     }

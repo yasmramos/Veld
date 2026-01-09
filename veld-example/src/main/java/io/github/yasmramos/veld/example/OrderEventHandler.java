@@ -3,6 +3,7 @@ package io.github.yasmramos.veld.example;
 import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.annotation.Singleton;
 import io.github.yasmramos.veld.annotation.Subscribe;
+import io.github.yasmramos.veld.runtime.event.Event;
 
 /**
  * Manejador de eventos de órdenes.

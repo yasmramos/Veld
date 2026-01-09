@@ -14,7 +14,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Ejemplo complejo que demuestra TODAS las características de Veld funcionando juntas:
+ * Ejemplo complejo que demuestra TODAS las características de Veld funcionando juntos:
  * 
  * [OK] Lifecycle Callbacks (@PostConstruct, @PreDestroy)
  * [OK] EventBus (@Subscribe) 
@@ -104,11 +104,11 @@ public class ComplexApplicationExample {
             System.out.println("  [OK] Orden creada: " + orderId);
             
             // Procesar pago
-            PaymentResult payment = paymentService.processPayment(orderId, 99.99);
+            PaymentResult payment = paymentService.processPayment(order.getId(), order.getTotal());
             System.out.println("  [OK] Pago procesado: " + payment.getStatus() + " - " + payment.getTransactionId());
             
             // Enviar notificaciones
-            notificationService.sendOrderConfirmation(orderId);
+            notificationService.sendOrderConfirmation(order.getId());
             System.out.println("  [OK] Notificaciones enviadas");
             
         } catch (Exception e) {
