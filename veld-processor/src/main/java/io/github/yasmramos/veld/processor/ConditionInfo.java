@@ -24,6 +24,9 @@ public final class ConditionInfo {
     
     // Profile conditions
     private final List<ProfileConditionInfo> profileConditions = new ArrayList<>();
+
+    public ConditionInfo() {
+    }
     
     /**
      * Adds a property condition.

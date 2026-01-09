@@ -1,6 +1,5 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.annotation.ScopeType;
 import java.util.*;
 
 /**

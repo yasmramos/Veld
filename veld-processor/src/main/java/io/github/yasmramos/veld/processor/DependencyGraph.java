@@ -19,6 +19,9 @@ public class DependencyGraph {
     private final Set<String> visited = new HashSet<>();
     private final Set<String> recursionStack = new HashSet<>();
     private final Map<String, String> parent = new HashMap<>();
+
+    public DependencyGraph() {
+    }
     
     /**
      * Adds a component to the graph.

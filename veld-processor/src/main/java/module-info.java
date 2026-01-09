@@ -7,7 +7,7 @@ module io.github.yasmramos.veld.processor {
     requires transitive java.compiler;
     
     // Required Veld modules
-    requires io.github.yasmramos.veld.annotation;
+    requires transitive io.github.yasmramos.veld.annotation;
     requires io.github.yasmramos.veld.runtime;
     
     // Required external modules

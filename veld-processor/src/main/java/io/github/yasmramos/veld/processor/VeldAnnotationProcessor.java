@@ -80,8 +80,7 @@ public class VeldAnnotationProcessor extends AbstractProcessor {
 
         for (TypeElement annotation : annotations) {
             for (Element element : roundEnv.getElementsAnnotatedWith(annotation)) {
-                if (element instanceof ExecutableElement) {
-                    ExecutableElement method = (ExecutableElement) element;
+                if (element instanceof ExecutableElement method) {
                     TypeElement classElement = (TypeElement) method.getEnclosingElement();
 
                     String annotationName = annotation.getQualifiedName().toString();
