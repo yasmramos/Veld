@@ -45,16 +45,14 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Clean Cache
+    - name: Clean Maven Cache
       uses: actions/cache@v4
       with:
         path: |
           ~/.m2
           ~/.cache
-          target
-        key: ${{ runner.os }}-clean-${{ github.sha }}
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
-          ${{ runner.os }}-maven-${{ github.sha }}
           ${{ runner.os }}-maven-
 
     - name: Clean Build Artifacts
