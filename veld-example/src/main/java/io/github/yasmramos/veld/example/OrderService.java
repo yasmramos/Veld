@@ -2,78 +2,42 @@ package io.github.yasmramos.veld.example;
 
 import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.annotation.Inject;
-import io.github.yasmramos.veld.annotation.PostConstruct;
+import io.github.yasmramos.veld.annotation.Singleton;
+import io.github.yasmramos.veld.runtime.event.Event;
+
+import java.util.List;
 
 /**
- * Example service using Veld annotations.
- * Demonstrates Veld's native annotation support for dependency injection.
- * 
- * Note: @Component provides the same functionality as @jakarta.inject.Singleton + @Named.
- * Veld recognizes Veld annotations natively.
+ * Servicio para gestionar órdenes de compra.
  */
-@Component("orderService")
+@Singleton
+@Component
 public class OrderService {
+    private final UserService userService;
+    private final DatabaseService databaseService;
     
-    private LogService logService;
-    private PaymentService paymentService;
-    private IUserRepository userRepository;
-    
-    /**
-     * Constructor injection using Veld @Inject
-     */
     @Inject
-    public OrderService(LogService logService) {
-        this.logService = logService;
-        System.out.println("[OrderService] Created with Veld @Inject constructor");
+    public OrderService(UserService userService, DatabaseService databaseService) {
+        this.userService = userService;
+        this.databaseService = databaseService;
     }
     
-    /**
-     * Method injection using Veld @Inject
-     */
-    @Inject
-    public void setPaymentService(PaymentService paymentService) {
-        this.paymentService = paymentService;
-        System.out.println("[OrderService] PaymentService injected via Veld @Inject method");
-    }
-    
-    /**
-     * Another method injection demonstrating interface-based injection
-     */
-    @Inject
-    public void setUserRepository(IUserRepository userRepository) {
-        this.userRepository = userRepository;
-        System.out.println("[OrderService] IUserRepository injected -> " + 
-            userRepository.getClass().getSimpleName());
-    }
-    
-    @PostConstruct
+    @io.github.yasmramos.veld.annotation.PostConstruct
     public void init() {
-        logService.log("OrderService initialized with Jakarta Inject annotations");
+        System.out.println("  [OrderService] Inicializando servicio de órdenes...");
     }
     
-    public String createOrder(Long userId, String productName, double price) {
-        // Validate user exists
-        var user = userRepository.findById(userId);
-        if (user.isEmpty()) {
-            return "ERROR: User not found";
-        }
-        
-        // Validate payment
-        if (!paymentService.validatePayment(price)) {
-            return "ERROR: Payment validation failed";
-        }
-        
-        String orderId = "ORD-" + System.currentTimeMillis();
-        logService.log("Order created: " + orderId + " for user: " + user.get());
-        
-        // Process payment
-        paymentService.processPayment(orderId, price);
-        
+    /**
+     * Crea una nueva orden de compra.
+     * @param userId ID del usuario
+     * @param productName Nombre del producto
+     * @param amount Monto de la orden
+     * @return ID de la orden creada
+     */
+    public String createOrder(Long userId, String productName, double amount) {
+        String orderId = "ORDER-" + userId + "-" + System.currentTimeMillis();
+        System.out.println("  [OrderService] Creating order: " + orderId + " for user: " + userId);
+        System.out.println("  [OrderService] Product: " + productName + ", Amount: $" + amount);
         return orderId;
-    }
-    
-    public void cancelOrder(String orderId) {
-        logService.log("Order cancelled: " + orderId);
-        System.out.println("[OrderService] Order " + orderId + " has been cancelled");
     }
 }

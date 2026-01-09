@@ -3,7 +3,6 @@ package io.github.yasmramos.veld.example;
 import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.annotation.Inject;
 import io.github.yasmramos.veld.annotation.PostConstruct;
-import io.github.yasmramos.veld.example.LogService;
 
 /**
  * Configuración de aplicación - componente base sin dependencias.
@@ -19,6 +18,11 @@ public class ConfigService {
     
     @Inject
     private LogService logService;
+    
+    // Setter for field injection by Veld
+    public void __di_set_logService(LogService logService) {
+        this.logService = logService;
+    }
     
     @PostConstruct
     public void init() {
