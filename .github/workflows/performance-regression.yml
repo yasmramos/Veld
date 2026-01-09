@@ -174,16 +174,22 @@ jobs:
         ls -la target/classes/ 2>/dev/null || echo "No target/classes/ directory"
 
         echo ""
+        echo "=== Building classpath with Veld dependencies ==="
+
+        # Build complete classpath including Veld framework dependencies
+        VELD_CLASSPATH=$(mvn -f .. dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q 2>/dev/null || echo "")
+        BENCHMARK_CLASSPATH="target/veld-benchmark.jar:target/classes:$VELD_CLASSPATH"
+
         echo "=== Running regression test ==="
 
-        # Compile and run regression test with explicit classpath
+        # Compile and run regression test with complete classpath
         echo "Compiling regression test..."
-        javac -cp "target/veld-benchmark.jar:target/classes" \
+        javac -cp "$BENCHMARK_CLASSPATH" \
           src/main/java/io/github/yasmramos/veld/benchmark/regression/PerformanceRegressionTest.java \
           || { echo "ERROR: Failed to compile regression test"; exit 1; }
 
         echo "Running regression test..."
-        java -cp "target/veld-benchmark.jar:target/classes:src/main/java" \
+        java -cp "$BENCHMARK_CLASSPATH:src/main/java" \
           io.github.yasmramos.veld.benchmark.regression.PerformanceRegressionTest \
           --run-benchmarks \
           || { echo "ERROR: Regression test failed"; exit 1; }
