@@ -182,46 +182,16 @@ public final class ComponentFactorySourceGenerator {
      * Handles Provider<T> and Optional<T> types correctly.
      */
     private String generateDependencyGetExpression(InjectionPoint.Dependency dep) {
-        String depType = dep.getActualTypeName();
-        
-        if (isProviderType(depType)) {
+        if (dep.isProvider()) {
             // Provider<T> injection - use Veld.getProvider()
-            String containedType = extractTypeArgument(depType);
-            return "Veld.getProvider(" + containedType + ".class)";
-        } else if (isOptionalType(depType)) {
+            return "Veld.getProvider(" + dep.getActualTypeName() + ".class)";
+        } else if (dep.isOptionalWrapper()) {
             // Optional<T> injection - use Veld.getOptional()
-            String containedType = extractTypeArgument(depType);
-            return "Veld.getOptional(" + containedType + ".class)";
+            return "Veld.getOptional(" + dep.getActualTypeName() + ".class)";
         } else {
             // Regular injection
-            return "Veld.get(" + depType + ".class)";
+            return "Veld.get(" + dep.getTypeName() + ".class)";
         }
-    }
-    
-    /**
-     * Checks if a type is Provider<T>.
-     */
-    private boolean isProviderType(String typeName) {
-        return typeName.startsWith("Provider<");
-    }
-    
-    /**
-     * Checks if a type is Optional<T>.
-     */
-    private boolean isOptionalType(String typeName) {
-        return typeName.startsWith("Optional<");
-    }
-    
-    /**
-     * Extracts the type argument from a generic type like Provider<T> or Optional<T>.
-     */
-    private String extractTypeArgument(String genericType) {
-        int start = genericType.indexOf('<');
-        int end = genericType.lastIndexOf('>');
-        if (start >= 0 && end > start) {
-            return genericType.substring(start + 1, end);
-        }
-        return genericType;
     }
     
     private void generateGetDependencyTypes(StringBuilder sb) {
