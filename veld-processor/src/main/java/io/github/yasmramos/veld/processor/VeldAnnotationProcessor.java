@@ -15,11 +15,15 @@
  */
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.annotation.Subscribe;
 import io.github.yasmramos.veld.annotation.OnStart;
 import io.github.yasmramos.veld.annotation.OnStop;
 import io.github.yasmramos.veld.annotation.PostInitialize;
-
+import io.github.yasmramos.veld.annotation.Subscribe;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
@@ -27,11 +31,6 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 /**
  * Annotation processor that generates zero-reflection registration code at compile time.
@@ -63,7 +62,7 @@ import java.util.Set;
     "io.github.yasmramos.veld.annotation.OnStop",
     "io.github.yasmramos.veld.annotation.PostInitialize"
 })
-@SupportedSourceVersion(SourceVersion.RELEASE_8)
+@SupportedSourceVersion(SourceVersion.RELEASE_17)
 public class VeldAnnotationProcessor extends AbstractProcessor {
 
     @Override
