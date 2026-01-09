@@ -289,6 +289,14 @@ public class VeldAnnotationProcessor extends AbstractProcessor {
 
     private String getPackageName(TypeElement classElement) {
         String fullName = classElement.getQualifiedName().toString();
+        // For inner classes (Outer$Inner), find the package by looking for $ first
+        int dollarSign = fullName.lastIndexOf('$');
+        if (dollarSign > 0) {
+            // It's an inner class, find the last dot before the $
+            int lastDot = fullName.lastIndexOf('.', dollarSign - 1);
+            return lastDot > 0 ? fullName.substring(0, lastDot) : "";
+        }
+        // Regular class - find the last dot
         int lastDot = fullName.lastIndexOf('.');
         return lastDot > 0 ? fullName.substring(0, lastDot) : "";
     }
