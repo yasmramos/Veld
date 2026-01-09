@@ -24,15 +24,20 @@ public final class VeldSourceGenerator {
         this.components = components;
         this.aopClassMap = aopClassMap;
     }
-    
+
+    public String getClassName() {
+        return "io.github.yasmramos.veld.generated.Veld";
+    }
+
     public String generate() {
         StringBuilder sb = new StringBuilder();
-        
-        // Package declaration
-        sb.append("package io.github.yasmramos.veld;\n\n");
-        
+
+        // Package declaration - use generated package to avoid conflict with veld-runtime
+        sb.append("package io.github.yasmramos.veld.generated;\n\n");
+
         // Imports
         sb.append("import io.github.yasmramos.veld.generated.VeldRegistry;\n");
+        sb.append("import io.github.yasmramos.veld.VeldException;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ComponentRegistry;\n");
         sb.append("import io.github.yasmramos.veld.annotation.ScopeType;\n");
         sb.append("import io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor;\n");

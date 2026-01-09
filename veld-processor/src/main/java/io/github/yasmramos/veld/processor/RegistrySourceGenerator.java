@@ -42,20 +42,13 @@ public final class RegistrySourceGenerator {
     
     public String generate() {
         StringBuilder sb = new StringBuilder();
-        
+
         // Package declaration
         sb.append("package io.github.yasmramos.veld.generated;\n\n");
-        
-        // Imports for factory classes (they may be in different packages)
-        for (ComponentInfo comp : components) {
-            String factoryClassName = comp.getFactoryClassName();
-            String packageName = getPackageName(factoryClassName);
-            if (!packageName.isEmpty()) {
-                sb.append("import ").append(factoryClassName).append(";\n");
-            }
-        }
-        sb.append("\n");
-        
+
+        // Import all factories from gen package
+        sb.append("import io.github.yasmramos.veld.gen.*;\n\n");
+
         // Standard imports
         sb.append("import io.github.yasmramos.veld.runtime.ComponentFactory;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ComponentRegistry;\n");
@@ -116,9 +109,9 @@ public final class RegistrySourceGenerator {
         // TYPE_INDICES
         for (int i = 0; i < components.size(); i++) {
             ComponentInfo comp = components.get(i);
-            sb.append("        TYPE_INDICES.put(").append(comp.getClassName()).append(".class, ").append(i).append(");\n");
+            sb.append("        TYPE_INDICES.put(").append(toSourceName(comp.getClassName())).append(".class, ").append(i).append(");\n");
             for (String iface : comp.getImplementedInterfaces()) {
-                sb.append("        TYPE_INDICES.put(").append(iface).append(".class, ").append(i).append(");\n");
+                sb.append("        TYPE_INDICES.put(").append(toSourceName(iface)).append(".class, ").append(i).append(");\n");
             }
         }
         sb.append("\n");
@@ -153,7 +146,7 @@ public final class RegistrySourceGenerator {
         for (Map.Entry<String, List<Integer>> entry : supertypeIndices.entrySet()) {
             String type = entry.getKey();
             List<Integer> indices = entry.getValue();
-            sb.append("        SUPERTYPE_INDICES.put(").append(type).append(".class, new int[] {");
+            sb.append("        SUPERTYPE_INDICES.put(").append(toSourceName(type)).append(".class, new int[] {");
             for (int i = 0; i < indices.size(); i++) {
                 if (i > 0) sb.append(", ");
                 sb.append(indices.get(i));
@@ -167,33 +160,34 @@ public final class RegistrySourceGenerator {
     private void generateConstructor(StringBuilder sb) {
         sb.append("    public VeldRegistry() {\n");
         sb.append("        factories = new ComponentFactory[").append(components.size()).append("];\n");
-        
+
         for (int i = 0; i < components.size(); i++) {
             ComponentInfo comp = components.get(i);
-            
+
             // Instantiate the generated factory class for this component
+            // Factory names are in io.github.yasmramos.veld.gen package with flattened names
+            // Use simple name since they're imported via wildcard
             String factoryClassName = comp.getFactoryClassName();
             String simpleFactoryName = factoryClassName.substring(factoryClassName.lastIndexOf('.') + 1);
-            
             sb.append("        factories[").append(i).append("] = new ").append(simpleFactoryName).append("();\n");
-            
-            sb.append("        factoriesByType.put(").append(comp.getClassName()).append(".class, factories[").append(i).append("]);\n");
+
+            sb.append("        factoriesByType.put(").append(toSourceName(comp.getClassName())).append(".class, factories[").append(i).append("]);\n");
             sb.append("        factoriesByName.put(\"").append(comp.getComponentName()).append("\", factories[").append(i).append("]);\n");
-            
+
             // Register interfaces
             for (String iface : comp.getImplementedInterfaces()) {
-                sb.append("        factoriesByType.put(").append(iface).append(".class, factories[").append(i).append("]);\n");
+                sb.append("        factoriesByType.put(").append(toSourceName(iface)).append(".class, factories[").append(i).append("]);\n");
             }
-            
+
             // Register in supertype map
-            sb.append("        factoriesBySupertype.computeIfAbsent(").append(comp.getClassName())
+            sb.append("        factoriesBySupertype.computeIfAbsent(").append(toSourceName(comp.getClassName()))
               .append(".class, k -> new ArrayList<>()).add(factories[").append(i).append("]);\n");
             for (String iface : comp.getImplementedInterfaces()) {
-                sb.append("        factoriesBySupertype.computeIfAbsent(").append(iface)
+                sb.append("        factoriesBySupertype.computeIfAbsent(").append(toSourceName(iface))
                   .append(".class, k -> new ArrayList<>()).add(factories[").append(i).append("]);\n");
             }
         }
-        
+
         sb.append("    }\n\n");
     }
     
@@ -299,17 +293,41 @@ public final class RegistrySourceGenerator {
         sb.append("        return (List) new ArrayList<>(list);\n");
         sb.append("    }\n\n");
     }
+
+    /**
+     * Converts a binary class name to a source code compatible name.
+     * Binary names use '$' for inner classes (e.g., "Outer$Inner"),
+     * but source code uses '.' (e.g., "Outer.Inner").
+     *
+     * @param binaryName the binary class name
+     * @return the source-compatible class name
+     */
+    private String toSourceName(String binaryName) {
+        return binaryName.replace('$', '.');
+    }
     
+    /**
+     * Extracts the package name from a fully qualified class name.
+     * Factory names have format: io.github.pkg.Class$$VeldFactory$H<hash>
+     *
+     * @param className the fully qualified class name
+     * @return the package name, or empty string if no package
+     */
     private String getPackageName(String className) {
-        // For inner classes (Outer$Inner), find the package by looking for $ first
-        int dollarSign = className.lastIndexOf('$');
-        if (dollarSign > 0) {
-            // It's an inner class, find the last dot before the $
-            int lastDot = className.lastIndexOf('.', dollarSign - 1);
-            return lastDot >= 0 ? className.substring(0, lastDot) : "";
+        // Factory class names are like: io.github.pkg.Class$$VeldFactory$H<hash>
+        // We need to extract: io.github.pkg
+
+        // Find the last segment before $$VeldFactory
+        int factorySuffix = className.indexOf("$$VeldFactory");
+        if (factorySuffix > 0) {
+            String baseName = className.substring(0, factorySuffix);
+            // Now find the last dot in the base name
+            int lastDot = baseName.lastIndexOf('.');
+            return lastDot > 0 ? baseName.substring(0, lastDot) : "";
         }
-        // Regular class - find the last dot
+
+        // Fallback: find last dot
         int lastDot = className.lastIndexOf('.');
-        return lastDot >= 0 ? className.substring(0, lastDot) : "";
+        return lastDot > 0 ? className.substring(0, lastDot) : "";
     }
 }

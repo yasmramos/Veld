@@ -130,11 +130,17 @@ public final class ComponentInfo {
     }
     
     public String getFactoryClassName() {
-        return className + "$$VeldFactory";
+        // Generate all factories in io.github.yasmramos.veld.gen package with flattened names
+        // This avoids package conflicts and ensures correct compilation order
+        // Example: io.github.pkg.Class -> io.github.yasmramos.veld.gen.io_github_pkg_Class$$VeldFactory
+        String flattened = className.replace('.', '_').replace('$', '_');
+        return "io.github.yasmramos.veld.gen." + flattened + "$$VeldFactory";
     }
-    
+
     public String getFactoryInternalName() {
-        return internalName + "$$VeldFactory";
+        // Convert to internal format
+        String flattened = className.replace('.', '_').replace('$', '_');
+        return "io/github/yasmramos/veld/gen/" + flattened + "$$VeldFactory";
     }
     
     public InjectionPoint getConstructorInjection() {
