@@ -1,15 +1,12 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.annotation.ScopeType;
 
-import javax.tools.FileObject;
-import javax.tools.StandardLocation;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import javax.tools.FileObject;
+import javax.tools.StandardLocation;
 
 /**
  * Writes bean metadata to JSON files in META-INF/veld/.
@@ -21,6 +18,9 @@ public final class BeanMetadataWriter {
 
     private static final String METADATA_DIR = "META-INF/veld/";
     private static final String METADATA_SUFFIX = "-beans.json";
+
+    public BeanMetadataWriter() {
+    }
 
     /**
      * Writes metadata for all beans discovered during processing.
