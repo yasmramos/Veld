@@ -41,7 +41,7 @@
         <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.11.3</junit.version>
-        <mockito.version>5.11.0</mockito.version>
+        <mockito.version>5.21.0</mockito.version>
     </properties>
 
     <dependencies>
