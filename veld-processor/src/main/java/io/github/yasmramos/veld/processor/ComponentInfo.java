@@ -163,21 +163,9 @@ public final class ComponentInfo {
         // Example: com.example.Outer$Inner -> com.example.veld.Inner$$VeldFactory
         String pkg = getPackageName();
         String simpleName = getSimpleName();
-        
-        // Check if this is a special case where the outer class name conflicts with directory structure
-        // If the outer class name equals the last package segment, use parent package
-        String outerClassName = getOuterClassName();
-        String lastPackageSegment = "";
-        if (!pkg.isEmpty()) {
-            lastPackageSegment = pkg.substring(pkg.lastIndexOf('.') + 1);
-        }
-        if (outerClassName.equalsIgnoreCase(lastPackageSegment)) {
-            // Use parent package to avoid conflicts
-            int lastDot = pkg.lastIndexOf('.');
-            String parentPkg = lastDot > 0 ? pkg.substring(0, lastDot) : "";
-            return parentPkg.isEmpty() ? "veld." + simpleName + "$$VeldFactory" : parentPkg + ".veld." + simpleName + "$$VeldFactory";
-        }
-        
+
+        // Always use the component's package (no special case for package/class name collisions)
+        // The .veld subpackage ensures generated factories don't conflict with user code
         return pkg.isEmpty() ? "veld." + simpleName + "$$VeldFactory" : pkg + ".veld." + simpleName + "$$VeldFactory";
     }
 
@@ -186,19 +174,8 @@ public final class ComponentInfo {
         // Example: com.example.Component -> com/example/veld/Component$$VeldFactory
         String pkg = getPackageName();
         String simpleName = getSimpleName();
-        
-        // Check if this is a special case where the outer class name conflicts with directory structure
-        String outerClassName = getOuterClassName();
-        String lastPackageSegment = "";
-        if (!pkg.isEmpty()) {
-            lastPackageSegment = pkg.substring(pkg.lastIndexOf('.') + 1);
-        }
-        if (outerClassName.equalsIgnoreCase(lastPackageSegment)) {
-            int lastDot = pkg.lastIndexOf('.');
-            String parentPkg = lastDot > 0 ? pkg.substring(0, lastDot) : "";
-            return parentPkg.isEmpty() ? "veld/" + simpleName + "$$VeldFactory" : parentPkg.replace('.', '/') + "/veld/" + simpleName + "$$VeldFactory";
-        }
-        
+
+        // Always use the component's package (no special case for package/class name collisions)
         return pkg.isEmpty() ? "veld/" + simpleName + "$$VeldFactory" : pkg.replace('.', '/') + "/veld/" + simpleName + "$$VeldFactory";
     }
     
