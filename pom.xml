@@ -103,7 +103,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- Dependencies versions -->
-        <junit.version>6.0.1</junit.version>
+        <junit.version>5.11.3</junit.version>
         <mockito.version>5.21.0</mockito.version>
         <bytebuddy.version>1.18.3</bytebuddy.version>
         <asm.version>9.9.1</asm.version>
@@ -146,6 +146,7 @@
 
         <!-- CI/Benchmark properties -->
         <ci.skip>false</ci.skip>
+        <skipDependencyCheck>false</skipDependencyCheck>
     </properties>
 
     <dependencyManagement>
@@ -474,6 +475,39 @@
                         </goals>
                         <configuration>
                             <outputDirectory>${project.basedir}/target/site/jacoco-aggregate</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- OWASP Dependency-Check Plugin -->
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>11.2.1</version>
+                <executions>
+                    <execution>
+                        <id>dependency-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Fail build on high severity vulnerabilities -->
+                            <failBuildOnCVSS>7</failBuildOnCVSS>
+                            <!-- Exclude test dependencies from critical failures -->
+                            <scopeProvidedDependencies>compile</scopeProvidedDependencies>
+                            <!-- Suppress known false positives -->
+                            <suppressionFiles>
+                                <suppressionFile>${project.basedir}/.owasp-suppressions.xml</suppressionFile>
+                            </suppressionFiles>
+                            <!-- Output formats -->
+                            <formats>
+                                <format>HTML</format>
+                                <format>JSON</format>
+                            </formats>
+                            <!-- Skip in CI to avoid slow scans on every build -->
+                            <skip>${skipDependencyCheck}</skip>
                         </configuration>
                     </execution>
                 </executions>
