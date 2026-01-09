@@ -9,7 +9,10 @@ module io.github.yasmramos.veld.runtime {
     // Required Veld modules
     requires transitive io.github.yasmramos.veld.annotation;
     
-    // Export all runtime packages
+    // Export runtime packages
+    // Note: io.github.yasmramos.veld contains the stub. The processor generates
+    // classes in this package in the consumer's target/generated-sources directory,
+    // which takes precedence at compile/runtime because it appears first in classpath.
     exports io.github.yasmramos.veld;
     exports io.github.yasmramos.veld.runtime;
     exports io.github.yasmramos.veld.runtime.condition;
