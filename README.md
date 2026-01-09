@@ -1,3 +1,4 @@
+[![Veld](.github/assets/logo.png)][website]
 # Veld Framework
 
 **Ultra-fast Dependency Injection for Java - Zero Reflection, Pure Code Generation**

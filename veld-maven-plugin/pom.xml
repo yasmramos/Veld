@@ -80,6 +80,8 @@
     <build>
         <plugins>
             <!-- Generate Javadoc JAR -->
+            <!-- Temporarily disabled until javadoc generation is fixed -->
+            <!--
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -93,8 +95,11 @@
                     </execution>
                 </executions>
             </plugin>
+            -->
 
             <!-- Build Helper Maven Plugin to attach pre-created javadoc JAR -->
+            <!-- Temporarily disabled until javadoc generation is fixed -->
+            <!--
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
@@ -118,6 +123,7 @@
                     </execution>
                 </executions>
             </plugin>
+            -->
             
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -125,9 +131,8 @@
                 <version>3.13.1</version>
                 <configuration>
                     <goalPrefix>veld</goalPrefix>
-                    <!-- Use project classpath to detect @Mojo annotations -->
-                    <useProjectClasspath>true</useProjectClasspath>
-                    <skipErrorNoDescriptorsFound>false</skipErrorNoDescriptorsFound>
+                    <!-- Use Java annotations to generate plugin descriptor -->
+                    <skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
                 </configuration>
                 <executions>
                     <execution>
@@ -135,6 +140,13 @@
                         <phase>process-classes</phase>
                         <goals>
                             <goal>descriptor</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>help-descriptor</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>helpmojo</goal>
                         </goals>
                     </execution>
                 </executions>
