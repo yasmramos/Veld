@@ -46,14 +46,10 @@ jobs:
         distribution: 'temurin'
 
     - name: Clean Maven Cache
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.m2
-          ~/.cache
-        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-        restore-keys: |
-          ${{ runner.os }}-maven-
+      run: |
+        echo "=== Cleaning Maven Cache ==="
+        rm -rf ~/.m2/repository
+        echo "✅ Maven cache cleaned"
 
     - name: Clean Build Artifacts
       run: |
