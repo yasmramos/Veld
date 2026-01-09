@@ -1,17 +1,8 @@
 package io.github.yasmramos.veld.example;
 
-import io.github.yasmramos.veld.annotation.*;
 import io.github.yasmramos.veld.Veld;
 import io.github.yasmramos.veld.runtime.event.EventBus;
-import io.github.yasmramos.veld.runtime.event.Event;
 import io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor;
-import io.github.yasmramos.veld.runtime.value.ValueResolver;
-import io.github.yasmramos.veld.runtime.Provider;
-
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Ejemplo complejo que demuestra TODAS las características de Veld funcionando juntos:
@@ -104,11 +95,11 @@ public class ComplexApplicationExample {
             System.out.println("  [OK] Orden creada: " + orderId);
             
             // Procesar pago
-            PaymentResult payment = paymentService.processPayment(order.getId(), order.getTotal());
+            PaymentResult payment = paymentService.processPayment(orderId, 99.99);
             System.out.println("  [OK] Pago procesado: " + payment.getStatus() + " - " + payment.getTransactionId());
             
             // Enviar notificaciones
-            notificationService.sendOrderConfirmation(order.getId());
+            notificationService.sendOrderConfirmation(orderId);
             System.out.println("  [OK] Notificaciones enviadas");
             
         } catch (Exception e) {
