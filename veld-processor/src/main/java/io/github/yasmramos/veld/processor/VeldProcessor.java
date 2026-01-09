@@ -104,6 +104,9 @@ public class VeldProcessor extends AbstractProcessor {
 
     // Event subscriptions for zero-reflection event registration
     private final List<EventRegistryGenerator.SubscriptionInfo> eventSubscriptions = new ArrayList<>();
+
+    public VeldProcessor() {
+    }
     
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {

@@ -65,6 +65,9 @@ import javax.tools.JavaFileObject;
 @SupportedSourceVersion(SourceVersion.RELEASE_17)
 public class VeldAnnotationProcessor extends AbstractProcessor {
 
+    public VeldAnnotationProcessor() {
+    }
+
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         if (roundEnv.processingOver()) {
