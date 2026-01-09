@@ -1,73 +1,31 @@
 # 🔥 Hotfix Urgente
 
-## 🚨 Información Crítica
-- [ ] **Es un fix urgente** para producción
-- [ ] **Requiere release inmediato**
-- [ ] **Impacto crítico** en usuarios
+## 🚨 Resumen
+Qué problema crítico se corrige y por qué es urgente.
 
-## 📝 Resumen
-Descripción concisa del problema crítico y la solución.
+## 🔄 Alcance del Cambio
+- [ ] Producción impactada
+- [ ] Fix temporal
+- [ ] Requiere release inmediato
+- [ ] Mitigación aplicada
 
-## ⚠️ Severidad
-- [ ] **Crítico** - Sistema no funcional
-- [ ] **Alto** - Funcionalidad principal afectada
-- [ ] **Medio** - Funcionalidad secundaria afectada
-- [ ] **Bajo** - Problema menor
+Detalles de la solución:
+- …
 
-## 🐛 Problema Identificado
-
-### Descripción del Issue
-¿Qué está fallando? ¿Cómo afecta a los usuarios?
-
-### Impacto en Producción
-- ¿Cuántos usuarios se ven afectados?
-- ¿Qué funcionalidades están rotas?
-- ¿Hay workaround disponible?
-
-## 🔧 Solución
-
-### Cambio Mínimo
-Describe el cambio mínimo necesario para resolver el problema.
-
-### Módulos Afectados
-- [ ] `veld-annotations`
-- [ ] `veld-runtime`
-- [ ] `veld-processor`
-- [ ] `veld-aop`
-- [ ] `veld-benchmark`
-
-## 🧪 Validación Rápida
-
-### Pruebas Críticas
-- [ ] Funcionalidad principal verificada
-- [ ] No se introdujeron regresiones
-- [ ] Performance no degradada
-
-### Deploy/Testing
-- [ ] Probado en entorno de staging
-- [ ] Ready para deploy inmediato
-- [ ] Rollback plan preparado
-
-## 📋 Aprobación de Emergencia
-
-### Aprobado por
-- [ ] **Product Owner**: @usuario
-- [ ] **Tech Lead**: @usuario
-- [ ] **DevOps**: @usuario
-
-### Release Information
-- **Versión target**: vX.Y.Z
-- **Branch target**: main
-- **Release date**: YYYY-MM-DD
+## 🧪 Pruebas
+- [ ] Caso que fallaba verificado
+- [ ] Tests unitarios relevantes
+- [ ] Pruebas manuales en entorno afectado
+- [ ] Sin pruebas (explicar)
 
 ## ✅ Checklist
-- [ ] Solución mínima y segura implementada
-- [ ] Validación básica completada
-- [ ] Aprobaciones obtenidas
-- [ ] Ready para merge inmediato
-- [ ] Comunicación a stakeholders enviada
+- [ ] Riesgos evaluados y aceptados
+- [ ] Cambios mínimos necesarios
+- [ ] Plan de rollback definido (si aplica)
+- [ ] Auto-review completada
+- [ ] Documentación/notas de despliegue actualizadas (si aplica)
 
----
-**⚠️ PROCESO ACELERADO - Merge tan pronto como sea posible**
-
-*Hotfix PR template - Para issues críticos en producción*
+## 🔗 Referencias
+- Issue relacionado: #(número del issue)
+- Incidente/alerta: …
+- Documentación/Runbook: …
