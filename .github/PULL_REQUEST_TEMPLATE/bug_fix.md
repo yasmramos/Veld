@@ -42,6 +42,7 @@ Describe los cambios específicos que solucionan el bug.
 - [ ] `veld-processor`
 - [ ] `veld-aop`
 - [ ] `veld-benchmark`
+- [ ] Otros (especificar)
 
 ## 🧪 Validación
 
@@ -62,10 +63,11 @@ Describe los cambios específicos que solucionan el bug.
 
 ## ✅ Checklist
 - [ ] Bug reproducible identificado y corregido
-- [ ] Tests agregados para prevenir regresión
+- [ ] Tests agregados o actualizados según corresponda
 - [ ] Casos de prueba validados
 - [ ] Documentación actualizada si es necesario
 - [ ] Auto-review completado
+- [ ] Cumple las convenciones de contribución
 
 ---
 *Bug Fix PR template - Revisar [guía de contribución](./CONTRIBUTING.md)*
