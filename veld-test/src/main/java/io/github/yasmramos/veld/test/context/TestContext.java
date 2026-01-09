@@ -530,6 +530,8 @@ public final class TestContext implements AutoCloseable {
      * Exception specific for test context errors.
      */
     public static class TestContextException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+        
         public TestContextException(String message) {
             super(message);
         }
