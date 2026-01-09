@@ -44,7 +44,25 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: maven
+
+    - name: Clean Cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.m2
+          ~/.cache
+          target
+        key: ${{ runner.os }}-clean-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-maven-${{ github.sha }}
+          ${{ runner.os }}-maven-
+
+    - name: Clean Build Artifacts
+      run: |
+        echo "=== Cleaning previous build artifacts ==="
+        mvn clean || true
+        rm -rf veld-benchmark/target || true
+        echo "✅ Build artifacts cleaned"
 
     - name: Display environment
       run: |

@@ -40,19 +40,54 @@ jobs:
       id: test-count
       run: |
         mvn test -q -DskipTests=false -Dmaven.javadoc.skip=true -Dbuild-helper.attach.phase=none -B -pl '!veld-example,!veld-spring-boot-example,!veld-benchmark' 2>/dev/null || true
-        
-        TOTAL_TESTS=$(find . -name "TEST-*.xml" -path "*/surefire-reports/*" -exec grep -h 'tests=' {} \; 2>/dev/null | grep -oP 'tests="\K[0-9]+' | awk '{sum+=$1} END {print sum+0}')
-        FAILED_TESTS=$(find . -name "TEST-*.xml" -path "*/surefire-reports/*" -exec grep -h 'failures=' {} \; 2>/dev/null | grep -oP 'failures="\K[0-9]+' | awk '{sum+=$1} END {print sum+0}')
-        
+
+        # Count total tests from all surefire reports
+        TOTAL_TESTS=0
+        FAILED_TESTS=0
+        ERROR_TESTS=0
+
+        for xml in $(find . -name "TEST-*.xml" -path "*/surefire-reports/*" 2>/dev/null); do
+          if [ -f "$xml" ]; then
+            # Parse tests attribute safely
+            tests=$(grep -oP 'tests="\K[0-9]+' "$xml" | head -1)
+            failures=$(grep -oP 'failures="\K[0-9]+' "$xml" | head -1)
+            errors=$(grep -oP 'errors="\K[0-9]+' "$xml" | head -1)
+
+            TOTAL_TESTS=$((TOTAL_TESTS + ${tests:-0}))
+            FAILED_TESTS=$((FAILED_TESTS + ${failures:-0}))
+            ERROR_TESTS=$((ERROR_TESTS + ${errors:-0}))
+          fi
+        done
+
         echo "Total tests: $TOTAL_TESTS"
         echo "Failed tests: $FAILED_TESTS"
+        echo "Error tests: $ERROR_TESTS"
         echo "test_count=$TOTAL_TESTS" >> $GITHUB_OUTPUT
         echo "failed_count=$FAILED_TESTS" >> $GITHUB_OUTPUT
 
     - name: Get coverage percentage
       id: coverage
       run: |
-        COVERAGE=$(find . -name "jacoco.xml" -path "*/site/jacoco/*" -exec grep -h 'line-coverage value=' {} \; 2>/dev/null | head -1 | grep -oP 'value="\K[0-9.]+' || echo "0")
+        # Get total coverage from aggregated report if exists, otherwise calculate from all modules
+        if [ -f "target/site/jacoco/jacoco.xml" ]; then
+          COVERAGE=$(grep -oP 'line-coverage value="\K[0-9.]+' target/site/jacoco/jacoco.xml 2>/dev/null | head -1 || echo "0")
+        else
+          # Calculate average coverage from all module reports
+          COVERAGE=0
+          COUNT=0
+          for jacoco in $(find . -name "jacoco.xml" -path "*/site/jacoco/*" 2>/dev/null); do
+            val=$(grep -oP 'line-coverage value="\K[0-9.]+' "$jacoco" 2>/dev/null | head -1)
+            if [ -n "$val" ]; then
+              COVERAGE=$(echo "$COVERAGE + $val" | bc 2>/dev/null || echo "$COVERAGE")
+              COUNT=$((COUNT + 1))
+            fi
+          done
+          if [ $COUNT -gt 0 ]; then
+            COVERAGE=$(echo "scale=1; $COVERAGE / $COUNT" | bc 2>/dev/null || echo "0")
+          else
+            COVERAGE="0"
+          fi
+        fi
         echo "Coverage: $COVERAGE%"
         echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
 
