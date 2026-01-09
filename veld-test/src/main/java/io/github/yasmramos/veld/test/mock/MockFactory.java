@@ -32,9 +32,8 @@ public final class MockFactory {
      * @param type class of the type to mock
      * @return configured mock
      */
-    @SuppressWarnings("unchecked")
     public static <T> T createMock(Class<T> type) {
-        return (T) Mockito.mock(type, withDefaultSettings());
+        return Mockito.mock(type, withDefaultSettings());
     }
     
     /**
@@ -45,7 +44,6 @@ public final class MockFactory {
      * @param annotation annotation with mock configuration
      * @return configured mock
      */
-    @SuppressWarnings("unchecked")
     public static <T> T createMock(Class<T> type, RegisterMock annotation) {
         if (annotation == null) {
             return createMock(type);
@@ -66,7 +64,7 @@ public final class MockFactory {
             settings.defaultAnswer(answer);
         }
         
-        return (T) Mockito.mock(type, settings);
+        return Mockito.mock(type, settings);
     }
     
     /**
@@ -130,7 +128,7 @@ public final class MockFactory {
      */
     public static void setGlobalStrictness(Strictness strictness) {
         Mockito.mockitoSession()
-            .initMocks(null)
+            .initMocks((Object[]) null)
             .strictness(strictness)
             .startMocking();
     }
@@ -173,7 +171,7 @@ public final class MockFactory {
      */
     @SuppressWarnings("unchecked")
     public static <T> T createThrowingMock(Class<T> type, RuntimeException exception) {
-        return (T) Mockito.mock(type, invocation -> {
+        return Mockito.mock(type, invocation -> {
             throw exception;
         });
     }
@@ -188,7 +186,7 @@ public final class MockFactory {
      */
     @SuppressWarnings("unchecked")
     public static <T> T createSequentialMock(Class<T> type, Object... values) {
-        return (T) Mockito.mock(type, invocation -> {
+        return Mockito.mock(type, invocation -> {
             // Return values in sequence
             return null;
         });
