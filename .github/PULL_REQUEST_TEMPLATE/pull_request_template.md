@@ -1,31 +1,20 @@
-# 🎯 Descripción del Pull Request
+## Summary
+Briefly describe what this pull request does and why it is needed.
 
-## 📝 Resumen
-Breve descripción de los cambios y la motivación.
+## Changes
+- 
+- 
 
-## 🔄 Tipo de Cambio
-- [ ] 🆕 Feature
-- [ ] 🐛 Bug Fix
-- [ ] 🔥 Hotfix
-- [ ] ♻️ Refactor
-- [ ] 📚 Documentación
-- [ ] ✅ Tests
-- [ ] 🏗️ Build/CI
+## Testing
+- [ ] Tests added or updated (if applicable)
+- [ ] Tests pass locally
 
-## 🧪 Pruebas
-- [ ] Tests unitarios
-- [ ] Tests de integración
-- [ ] Pruebas manuales
-- [ ] Benchmarks (si aplica)
-- [ ] Sin pruebas (explicar)
+## Documentation
+- [ ] Documentation updated (if applicable)
 
-## ✅ Checklist
-- [ ] Cumple las convenciones del proyecto
-- [ ] Auto-review completada
-- [ ] Documentación actualizada si aplica
-- [ ] Tests agregados/actualizados según corresponda
-- [ ] Referencias completadas
+## Checklist
+- [ ] Code follows project guidelines
+- [ ] No breaking changes introduced
 
-## 🔗 Referencias
-- Issue relacionado: #(número del issue)
-- Documentación/recursos: …
+## Related Issues
+Closes #
