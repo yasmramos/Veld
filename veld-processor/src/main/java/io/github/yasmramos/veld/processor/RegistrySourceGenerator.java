@@ -36,14 +36,14 @@ public final class RegistrySourceGenerator {
     }
     
     public String getClassName() {
-        return "io.github.yasmramos.veld.VeldRegistry";
+        return "io.github.yasmramos.veld.generated.VeldRegistry";
     }
     
     public String generate() {
         StringBuilder sb = new StringBuilder();
 
-        // Package declaration - generate in veld package to match Veld.java
-        sb.append("package io.github.yasmramos.veld;\n\n");
+        // Package declaration - generate in generated package
+        sb.append("package io.github.yasmramos.veld.generated;\n\n");
 
         // Import factories using fully qualified names to avoid package conflicts
         // Each factory is now in its original component's package
