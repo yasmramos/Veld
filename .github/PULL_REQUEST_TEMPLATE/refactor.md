@@ -1,90 +1,30 @@
-# ♻️ Refactoring
+# ♻️ Refactor
 
 ## 📝 Resumen
-Descripción clara de qué se está refactorizando y por qué.
+Qué área se refactoriza y objetivo (legibilidad, deuda técnica, performance).
 
-## 🎯 Objetivos del Refactoring
+## 🔄 Cambios
+- [ ] API sin cambios
+- [ ] Mejora de estructura/código
+- [ ] Simplificación de lógica
+- [ ] Eliminación de código muerto
+- [ ] Otros (especificar)
 
-### Problemas que Resuelve
-- [ ] **Rendimiento** - Optimización de performance
-- [ ] **Mantenibilidad** - Código más fácil de mantener
-- [ ] **Legibilidad** - Código más fácil de entender
-- [ ] **Testabilidad** - Mejor separación de responsabilidades
-- [ ] **Modularidad** - Mejor organización del código
-- [ ] **Debt** - Reducción de technical debt
+Notas sobre el enfoque:
+- …
 
-### Beneficios Esperados
-Describe qué mejoras se esperan obtener.
-
-## 🔍 Análisis del Código Actual
-
-### Áreas de Mejora Identificadas
-Describe qué problemas específicos se identificaron en el código actual.
-
-### Métricas Actuales (si aplica)
-- Complejidad ciclomática
-- Líneas de código
-- Acoplamiento
-- Cohesión
-
-## 🏗️ Nueva Arquitectura
-
-### Cambios Estructurales
-Describe cómo se reorganiza el código.
-
-### Patrones Aplicados
-- [ ] Factory Pattern
-- [ ] Strategy Pattern
-- [ ] Decorator Pattern
-- [ ] Observer Pattern
-- [ ] Dependency Injection
-- [ ] Otro: _______________
-
-### Módulos Afectados
-- [ ] `veld-annotations`
-- [ ] `veld-runtime`
-- [ ] `veld-processor`
-- [ ] `veld-aop`
-- [ ] `veld-benchmark`
-
-## 📊 Comparación Antes/Después
-
-### Mejoras Esperadas
-- **Performance**: X% mejoría en Y metric
-- **Maintainability**: Mejora en Z factor
-- **Testability**: Incremento en coverage del X%
-
-### Compatibilidad
-- [ ] **Backward Compatible** - No breaking changes
-- [ ] **API Changes** - Cambios de API documentados
-- [ ] **Migration Guide** - Guía de migración necesaria
-
-## 🧪 Validación
-
-### Tests de Regresión
-- [ ] Todos los tests existentes siguen pasando
-- [ ] Performance tests ejecutados
-- [ ] Memory usage analizado
-
-### Nuevos Tests
-- [ ] Tests agregados para nueva estructura
-- [ ] Integration tests actualizados
-- [ ] Benchmarks (si performance es crítico)
-
-## 📚 Documentación
-
-### Actualizaciones Necesarias
-- [ ] Javadoc actualizado
-- [ ] README actualizado
-- [ ] Migration guide escrita
-- [ ] Architecture docs actualizadas
+## 🧪 Pruebas
+- [ ] Tests unitarios existentes pasan
+- [ ] Tests de integración relevantes pasan
+- [ ] Nuevos tests agregados si hubo cambios funcionales
+- [ ] Pruebas manuales (si aplica)
 
 ## ✅ Checklist
-- [ ] Refactoring mantiene funcionalidad existente
-- [ ] Tests de regresión pasando
-- [ ] Performance no degradada
-- [ ] Documentación actualizada
-- [ ] Code review completado
+- [ ] Sin cambios de comportamiento intencionados
+- [ ] Auto-review completada
+- [ ] Documentación/comentarios actualizados si aplica
+- [ ] Cumple estándares de estilo
 
----
-*Refactor PR template - Revisar [guía de refactoring](./CONTRIBUTING.md)*
+## 🔗 Referencias
+- Issue relacionado: #(número del issue)
+- Documentación/ADR: …
