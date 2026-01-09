@@ -30,6 +30,23 @@ public class ConditionalDemoService {
     @Inject
     Optional<JacksonJsonService> jacksonService;
     
+    // Setters for field injection by Veld
+    public void setDatabaseService(DatabaseService databaseService) {
+        this.databaseService = databaseService;
+    }
+    
+    public void setDebugService(Optional<DebugService> debugService) {
+        this.debugService = debugService;
+    }
+    
+    public void setFeatureXService(Optional<FeatureXService> featureXService) {
+        this.featureXService = featureXService;
+    }
+    
+    public void setJacksonService(Optional<JacksonJsonService> jacksonService) {
+        this.jacksonService = jacksonService;
+    }
+    
     @PostConstruct
     public void init() {
         System.out.println("[ConditionalDemoService] Initialized with:");

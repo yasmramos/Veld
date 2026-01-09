@@ -34,6 +34,15 @@ public class OptionalDemoService {
         this.logService = logService;
     }
     
+    // Setters for field injection by Veld
+    public void setCacheService(CacheService cacheService) {
+        this.cacheService = cacheService;
+    }
+    
+    public void setMetricsService(java.util.Optional<io.github.yasmramos.veld.example.lifecycle.MetricsService> metricsService) {
+        this.metricsService = metricsService;
+    }
+    
     @PostConstruct
     public void init() {
         System.out.println("  OptionalDemoService initialized");
