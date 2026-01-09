@@ -1,7 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
 import io.github.yasmramos.veld.annotation.ScopeType;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,7 +23,7 @@ public final class BeanMetadata {
     private ScopeType scope;
     private String qualifier;
     private boolean isPrimary;
-    private List<String> dependencies = new ArrayList<>();
+    private final List<String> dependencies = new ArrayList<>();
 
     public BeanMetadata() {
     }

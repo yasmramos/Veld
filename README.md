@@ -1,7 +1,4 @@
-[![Veld](.github/assets/logo.png)][website]
-# Veld Framework
-
-**Ultra-fast Dependency Injection for Java - Zero Reflection, Pure Code Generation**
+![Veld](.github/assets/logo.png)
 
 [![Build Status](https://github.com/yasmramos/Veld/actions/workflows/maven.yml/badge.svg)](https://github.com/yasmramos/Veld/actions)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
@@ -16,6 +13,10 @@
 [![Forks](https://img.shields.io/github/forks/yasmramos/Veld)](https://github.com/yasmramos/Veld/network/members)
 [![Stars](https://img.shields.io/github/stars/yasmramos/Veld)](https://github.com/yasmramos/Veld/stargazers)
 [![Contributors](https://img.shields.io/github/contributors/yasmramos/Veld)](https://github.com/yasmramos/Veld/graphs/contributors)
+
+# Veld Framework
+
+**Ultra-fast Dependency Injection for Java - Zero Reflection, Pure Code Generation**
 
 Veld is a **compile-time Dependency Injection framework** that generates pure java code. Zero reflection at runtime means **maximum performance** - up to 100x faster than Spring for dependency resolution.
 

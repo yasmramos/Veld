@@ -5,11 +5,13 @@ import io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor;
 import io.github.yasmramos.veld.runtime.event.EventBus;
 import io.github.yasmramos.veld.runtime.graph.*;
 import io.github.yasmramos.veld.runtime.value.ValueResolver;
+import io.github.yasmramos.veld.runtime.Provider;
 
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
@@ -32,7 +34,11 @@ public class Veld {
         throw new VeldException("Stub - use generated Veld class");
     }
     
-    public static <T> Supplier<T> getProvider(Class<T> type) {
+    public static <T> Provider<T> getProvider(Class<T> type) {
+        throw new VeldException("Stub - use generated Veld class");
+    }
+    
+    public static <T> Optional<T> getOptional(Class<T> type) {
         throw new VeldException("Stub - use generated Veld class");
     }
     

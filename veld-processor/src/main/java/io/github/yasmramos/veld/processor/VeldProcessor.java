@@ -3,7 +3,16 @@ package io.github.yasmramos.veld.processor;
 import io.github.yasmramos.veld.annotation.*;
 import io.github.yasmramos.veld.processor.AnnotationHelper.InjectSource;
 import io.github.yasmramos.veld.processor.InjectionPoint.Dependency;
-
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
@@ -16,16 +25,6 @@ import javax.tools.Diagnostic;
 import javax.tools.FileObject;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardLocation;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 
 /**
  * Annotation Processor that generates ComponentFactory implementations and VeldRegistry
@@ -82,7 +81,7 @@ import java.util.Set;
     "javax.inject.Singleton",
     "jakarta.inject.Singleton"
 })
-@SupportedSourceVersion(SourceVersion.RELEASE_11)
+@SupportedSourceVersion(SourceVersion.RELEASE_17)
 public class VeldProcessor extends AbstractProcessor {
     
     private Messager messager;
@@ -105,6 +104,9 @@ public class VeldProcessor extends AbstractProcessor {
 
     // Event subscriptions for zero-reflection event registration
     private final List<EventRegistryGenerator.SubscriptionInfo> eventSubscriptions = new ArrayList<>();
+
+    public VeldProcessor() {
+    }
     
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {

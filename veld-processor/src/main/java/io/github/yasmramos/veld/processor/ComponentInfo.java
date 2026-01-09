@@ -69,6 +69,33 @@ public final class ComponentInfo {
     public String getClassName() {
         return className;
     }
+
+    /**
+     * Returns the package name of the component class.
+     * For nested classes (Outer$Inner), returns the package of the outer class.
+     * 
+     * @return the package name, or empty string if in default package
+     */
+    public String getPackageName() {
+        // Handle nested classes - package is everything before the outer class name
+        int dollarIndex = className.indexOf('$');
+        String baseName = dollarIndex > 0 ? className.substring(0, dollarIndex) : className;
+        
+        int lastDot = baseName.lastIndexOf('.');
+        return lastDot > 0 ? baseName.substring(0, lastDot) : "";
+    }
+
+    /**
+     * Returns the simple name of the component class (without package or outer class for nested classes).
+     * For nested classes (Outer$Inner), returns just "Inner".
+     * 
+     * @return the simple class name
+     */
+    public String getSimpleName() {
+        int dollarIndex = className.lastIndexOf('$');
+        String baseName = dollarIndex > 0 ? className.substring(dollarIndex + 1) : className;
+        return baseName.substring(baseName.lastIndexOf('.') + 1);
+    }
     
     /**
      * Sets the class name and updates internal name accordingly.
@@ -130,17 +157,42 @@ public final class ComponentInfo {
     }
     
     public String getFactoryClassName() {
-        // Generate all factories in io.github.yasmramos.veld.gen package with flattened names
-        // This avoids package conflicts and ensures correct compilation order
-        // Example: io.github.pkg.Class -> io.github.yasmramos.veld.gen.io_github_pkg_Class$$VeldFactory
-        String flattened = className.replace('.', '_').replace('$', '_');
-        return "io.github.yasmramos.veld.gen." + flattened + "$$VeldFactory";
+        // Generate factory in .veld subpackage of the original class's package
+        // This avoids conflicts when class name equals package name
+        // Example: com.example.Component -> com.example.veld.Component$$VeldFactory
+        // Example: com.example.Outer$Inner -> com.example.veld.Inner$$VeldFactory
+        String pkg = getPackageName();
+        String simpleName = getSimpleName();
+
+        // Always use the component's package (no special case for package/class name collisions)
+        // The .veld subpackage ensures generated factories don't conflict with user code
+        return pkg.isEmpty() ? "veld." + simpleName + "$$VeldFactory" : pkg + ".veld." + simpleName + "$$VeldFactory";
     }
 
     public String getFactoryInternalName() {
         // Convert to internal format
-        String flattened = className.replace('.', '_').replace('$', '_');
-        return "io/github/yasmramos/veld/gen/" + flattened + "$$VeldFactory";
+        // Example: com.example.Component -> com/example/veld/Component$$VeldFactory
+        String pkg = getPackageName();
+        String simpleName = getSimpleName();
+
+        // Always use the component's package (no special case for package/class name collisions)
+        return pkg.isEmpty() ? "veld/" + simpleName + "$$VeldFactory" : pkg.replace('.', '/') + "/veld/" + simpleName + "$$VeldFactory";
+    }
+    
+    /**
+     * Returns the outer class name for nested classes.
+     * For Outer$Inner, returns "Outer". For regular classes, returns null.
+     */
+    private String getOuterClassName() {
+        int dollarIndex = className.indexOf('$');
+        if (dollarIndex > 0) {
+            String outerPart = className.substring(0, dollarIndex);
+            int lastDot = outerPart.lastIndexOf('.');
+            return lastDot > 0 ? outerPart.substring(lastDot + 1) : outerPart;
+        }
+        // For non-nested classes, check if class name matches last package segment
+        int lastDot = className.lastIndexOf('.');
+        return lastDot > 0 ? className.substring(lastDot + 1) : className;
     }
     
     public InjectionPoint getConstructorInjection() {

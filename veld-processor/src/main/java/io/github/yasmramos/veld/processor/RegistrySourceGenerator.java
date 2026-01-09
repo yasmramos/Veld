@@ -1,6 +1,5 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.annotation.ScopeType;
 import java.util.*;
 
 /**
@@ -46,10 +45,8 @@ public final class RegistrySourceGenerator {
         // Package declaration
         sb.append("package io.github.yasmramos.veld.generated;\n\n");
 
-        // Import all factories from gen package
-        sb.append("import io.github.yasmramos.veld.gen.*;\n\n");
-
-        // Standard imports
+        // Import factories using fully qualified names to avoid package conflicts
+        // Each factory is now in its original component's package
         sb.append("import io.github.yasmramos.veld.runtime.ComponentFactory;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ComponentRegistry;\n");
         sb.append("import io.github.yasmramos.veld.annotation.ScopeType;\n");
@@ -165,11 +162,9 @@ public final class RegistrySourceGenerator {
             ComponentInfo comp = components.get(i);
 
             // Instantiate the generated factory class for this component
-            // Factory names are in io.github.yasmramos.veld.gen package with flattened names
-            // Use simple name since they're imported via wildcard
+            // Factory is in the same package as the original component
             String factoryClassName = comp.getFactoryClassName();
-            String simpleFactoryName = factoryClassName.substring(factoryClassName.lastIndexOf('.') + 1);
-            sb.append("        factories[").append(i).append("] = new ").append(simpleFactoryName).append("();\n");
+            sb.append("        factories[").append(i).append("] = new ").append(factoryClassName).append("();\n");
 
             sb.append("        factoriesByType.put(").append(toSourceName(comp.getClassName())).append(".class, factories[").append(i).append("]);\n");
             sb.append("        factoriesByName.put(\"").append(comp.getComponentName()).append("\", factories[").append(i).append("]);\n");

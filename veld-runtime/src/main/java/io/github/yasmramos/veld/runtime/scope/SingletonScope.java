@@ -1,10 +1,10 @@
 package io.github.yasmramos.veld.runtime.scope;
 
-import io.github.yasmramos.veld.runtime.ComponentFactory;
-import io.github.yasmramos.veld.runtime.lifecycle.DisposableBean;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import io.github.yasmramos.veld.runtime.ComponentFactory;
+import io.github.yasmramos.veld.runtime.lifecycle.DisposableBean;
 
 /**
  * Scope implementation for singleton beans.
@@ -41,63 +41,69 @@ import java.util.concurrent.ConcurrentHashMap;
  * @see io.github.yasmramos.veld.annotation.Singleton
  */
 public final class SingletonScope implements Scope {
-    
+
     public static final String SCOPE_ID = "singleton";
-    
+
     /**
      * Map of bean name to singleton instance.
      * Uses ConcurrentHashMap for thread-safe access.
      */
     private final Map<String, Object> instances = new ConcurrentHashMap<>();
-    
+
     /**
      * Map of bean name to its creation factory.
      * Stored to support re-creation if needed and for debugging.
      */
     private final Map<String, Object> factories = new ConcurrentHashMap<>();
-    
+
+    /**
+     * Dedicated lock object for instance creation.
+     * Using a separate lock avoids synchronizing on the ConcurrentHashMap.
+     */
+    private final Object lock = new Object();
+
     /**
      * Creates a new SingletonScope instance.
      */
     public SingletonScope() {
         // Default constructor for SPI and manual instantiation
     }
-    
+
     @Override
     public String getId() {
         return SCOPE_ID;
     }
-    
+
     @Override
     public String getDisplayName() {
         return "Singleton";
     }
-    
+
     @Override
     public <T> T get(String name, ComponentFactory<T> factory) {
-        // Check if instance already exists
+        // Fast path: check without locking using ConcurrentHashMap's thread-safety
         @SuppressWarnings("unchecked")
         T instance = (T) instances.get(name);
-        
+
         if (instance != null) {
             return instance;
         }
-        
-        // Create new instance with double-checked locking pattern
-        synchronized (instances) {
+
+        // Slow path: synchronize only instance creation
+        synchronized (lock) {
             // Double-check after acquiring lock
             instance = (T) instances.get(name);
             if (instance != null) {
                 return instance;
             }
-            
+
             // Create the instance
             instance = factory.create();
-            
+
             // Store instance and factory
             instances.put(name, instance);
             factories.put(name, factory);
-            
+
             return instance;
         }
     }

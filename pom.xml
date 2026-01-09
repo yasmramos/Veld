@@ -146,6 +146,7 @@
 
         <!-- CI/Benchmark properties -->
         <ci.skip>false</ci.skip>
+        <skipDependencyCheck>false</skipDependencyCheck>
     </properties>
 
     <dependencyManagement>

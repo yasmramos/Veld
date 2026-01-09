@@ -148,7 +148,7 @@ public class VeldCompileMojo extends AbstractMojo {
             options.add(source);
             options.add("-target");
             options.add(target);
-            options.add("-proc:full");
+            // -proc:full is not valid in Java 8+, annotation processing is enabled by default
             
             // Add module path via command line option for modular projects
             if (hasModuleInfo && !classpathFiles.isEmpty()) {

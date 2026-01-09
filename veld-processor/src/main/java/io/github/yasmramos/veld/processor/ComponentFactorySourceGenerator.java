@@ -1,7 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
 import io.github.yasmramos.veld.annotation.ScopeType;
-import java.util.List;
 
 /**
  * Generates ComponentFactory source code instead of bytecode.
@@ -27,14 +26,15 @@ public final class ComponentFactorySourceGenerator {
     public String generate() {
         StringBuilder sb = new StringBuilder();
 
-        // All factories are generated in io.github.yasmramos.veld.gen package
-        String packageName = "io.github.yasmramos.veld.gen";
+        // Factory is generated in .veld subpackage of the original component's package
+        String packageName = component.getPackageName();
+        String factoryPackageName = packageName.isEmpty() ? "veld" : packageName + ".veld";
         String factoryClassName = component.getFactoryClassName();
-        // Extract simple name: io.github.yasmramos.veld.gen.io_github_pkg_Class$$VeldFactory -> io_github_pkg_Class$$VeldFactory
-        String factorySimpleName = factoryClassName.substring(packageName.length() + 1);
+        // Extract simple name: com.example.veld.Component$$VeldFactory -> Component$$VeldFactory
+        String factorySimpleName = factoryClassName.substring(factoryClassName.lastIndexOf('.') + 1);
 
         // Package declaration
-        sb.append("package ").append(packageName).append(";\n\n");
+        sb.append("package ").append(factoryPackageName).append(";\n\n");
 
         // Imports
         sb.append("import io.github.yasmramos.veld.Veld;\n");
@@ -181,46 +181,16 @@ public final class ComponentFactorySourceGenerator {
      * Handles Provider<T> and Optional<T> types correctly.
      */
     private String generateDependencyGetExpression(InjectionPoint.Dependency dep) {
-        String depType = dep.getActualTypeName();
-        
-        if (isProviderType(depType)) {
+        if (dep.isProvider()) {
             // Provider<T> injection - use Veld.getProvider()
-            String containedType = extractTypeArgument(depType);
-            return "Veld.getProvider(" + containedType + ".class)";
-        } else if (isOptionalType(depType)) {
+            return "Veld.getProvider(" + dep.getActualTypeName() + ".class)";
+        } else if (dep.isOptionalWrapper()) {
             // Optional<T> injection - use Veld.getOptional()
-            String containedType = extractTypeArgument(depType);
-            return "Veld.getOptional(" + containedType + ".class)";
+            return "Veld.getOptional(" + dep.getActualTypeName() + ".class)";
         } else {
             // Regular injection
-            return "Veld.get(" + depType + ".class)";
+            return "Veld.get(" + dep.getTypeName() + ".class)";
         }
-    }
-    
-    /**
-     * Checks if a type is Provider<T>.
-     */
-    private boolean isProviderType(String typeName) {
-        return typeName.startsWith("Provider<");
-    }
-    
-    /**
-     * Checks if a type is Optional<T>.
-     */
-    private boolean isOptionalType(String typeName) {
-        return typeName.startsWith("Optional<");
-    }
-    
-    /**
-     * Extracts the type argument from a generic type like Provider<T> or Optional<T>.
-     */
-    private String extractTypeArgument(String genericType) {
-        int start = genericType.indexOf('<');
-        int end = genericType.lastIndexOf('>');
-        if (start >= 0 && end > start) {
-            return genericType.substring(start + 1, end);
-        }
-        return genericType;
     }
     
     private void generateGetDependencyTypes(StringBuilder sb) {
