@@ -15,23 +15,20 @@
  */
 package io.github.yasmramos.veld.processor;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.TypeElement;
-import java.lang.annotation.Annotation;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-
 import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import static org.mockito.Mockito.*;
 
 /**
@@ -165,13 +162,13 @@ class VeldProcessorTest {
         }
 
         @Test
-        @DisplayName("should support Java 11")
-        void shouldSupportJava11() {
+        @DisplayName("should support Java 17")
+        void shouldSupportJava17() {
             SupportedSourceVersion annotation = VeldProcessor.class.getAnnotation(SupportedSourceVersion.class);
             assertNotNull(annotation);
             
-            assertEquals(SourceVersion.RELEASE_11, annotation.value(), 
-                "Should support Java 11");
+            assertEquals(SourceVersion.RELEASE_17, annotation.value(), 
+                "Should support Java 17");
         }
     }
 
@@ -200,10 +197,10 @@ class VeldProcessorTest {
         }
 
         @Test
-        @DisplayName("getSupportedSourceVersion should return Java 11")
-        void getSupportedSourceVersionShouldReturnJava11() {
+        @DisplayName("getSupportedSourceVersion should return Java 17")
+        void getSupportedSourceVersionShouldReturnJava17() {
             SourceVersion version = processor.getSupportedSourceVersion();
-            assertEquals(SourceVersion.RELEASE_11, version);
+            assertEquals(SourceVersion.RELEASE_17, version);
         }
     }
 
