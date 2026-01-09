@@ -26,17 +26,17 @@ public final class VeldSourceGenerator {
     }
 
     public String getClassName() {
-        return "io.github.yasmramos.veld.generated.Veld";
+        return "io.github.yasmramos.veld.Veld";
     }
 
     public String generate() {
         StringBuilder sb = new StringBuilder();
 
-        // Package declaration - generate in generated package
-        sb.append("package io.github.yasmramos.veld.generated;\n\n");
+        // Package declaration - generate in veld package to replace stub
+        sb.append("package io.github.yasmramos.veld;\n\n");
 
         // Imports
-        sb.append("import io.github.yasmramos.veld.generated.VeldRegistry;\n");
+        sb.append("import io.github.yasmramos.veld.VeldRegistry;\n");
         sb.append("import io.github.yasmramos.veld.VeldException;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ComponentRegistry;\n");
         sb.append("import io.github.yasmramos.veld.annotation.ScopeType;\n");
