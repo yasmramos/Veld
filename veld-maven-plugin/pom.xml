@@ -79,9 +79,6 @@
 
     <build>
         <plugins>
-            <!-- Generate Javadoc JAR -->
-            <!-- Temporarily disabled until javadoc generation is fixed -->
-            <!--
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -95,11 +92,8 @@
                     </execution>
                 </executions>
             </plugin>
-            -->
-
+            
             <!-- Build Helper Maven Plugin to attach pre-created javadoc JAR -->
-            <!-- Temporarily disabled until javadoc generation is fixed -->
-            <!--
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
@@ -123,7 +117,6 @@
                     </execution>
                 </executions>
             </plugin>
-            -->
             
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
