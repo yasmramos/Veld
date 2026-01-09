@@ -172,24 +172,37 @@ jobs:
         echo ""
         echo "Contents of target/classes/:"
         ls -la target/classes/ 2>/dev/null || echo "No target/classes/ directory"
-
         echo ""
-        echo "=== Building classpath with Veld dependencies ==="
 
         # Build complete classpath including Veld framework dependencies
-        VELD_CLASSPATH=$(mvn -f .. dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q 2>/dev/null || echo "")
-        BENCHMARK_CLASSPATH="target/veld-benchmark.jar:target/classes:$VELD_CLASSPATH"
+        # Run from veld-benchmark directory to get correct dependencies
+        echo "=== Building classpath with Veld dependencies ==="
+        VELD_CLASSPATH=$(mvn dependency:build-classpath -Dmdep.outputFile=/dev/stdout 2>&1 | tail -1)
+        echo "VELD_CLASSPATH length: ${#VELD_CLASSPATH}"
+        echo "VELD_CLASSPATH: $VELD_CLASSPATH"
 
+        # Validate classpath is not empty
+        if [ -z "$VELD_CLASSPATH" ] || [ "$VELD_CLASSPATH" = "null" ]; then
+          echo "WARNING: VELD_CLASSPATH is empty, using fallback classpath"
+          # Fallback: construct classpath manually from installed jars
+          VELD_CLASSPATH="$HOME/.m2/repository/io/github/yasmramos/veld/veld-runtime/1.0.3/veld-runtime-1.0.3.jar:$HOME/.m2/repository/io/github/yasmramos/veld/veld-annotations/1.0.3/veld-annotations-1.0.3.jar:$HOME/.m2/repository/io/github/yasmramos/veld/veld-aop/1.0.3/veld-aop-1.0.3.jar:$HOME/.m2/repository/io/github/yasmramos/veld/veld-weaver/1.0.3/veld-weaver-1.0.3.jar"
+          echo "Fallback VELD_CLASSPATH: $VELD_CLASSPATH"
+        fi
+
+        BENCHMARK_CLASSPATH="target/classes:$VELD_CLASSPATH"
+
+        echo ""
         echo "=== Running regression test ==="
 
         # Compile and run regression test with complete classpath
-        echo "Compiling regression test..."
+        echo "Compiling regression test with classpath..."
         javac -cp "$BENCHMARK_CLASSPATH" \
           src/main/java/io/github/yasmramos/veld/benchmark/regression/PerformanceRegressionTest.java \
+          -d target/classes/regression \
           || { echo "ERROR: Failed to compile regression test"; exit 1; }
 
         echo "Running regression test..."
-        java -cp "$BENCHMARK_CLASSPATH:src/main/java" \
+        java -cp "$BENCHMARK_CLASSPATH:target/classes/regression" \
           io.github.yasmramos.veld.benchmark.regression.PerformanceRegressionTest \
           --run-benchmarks \
           || { echo "ERROR: Regression test failed"; exit 1; }
