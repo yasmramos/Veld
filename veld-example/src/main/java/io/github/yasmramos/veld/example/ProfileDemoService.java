@@ -25,6 +25,19 @@ public class ProfileDemoService {
     @Optional
     MockPaymentGateway mockPayment;
     
+    // Setters for field injection by Veld
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+    
+    public void setVerboseLogging(VerboseLoggingService verboseLogging) {
+        this.verboseLogging = verboseLogging;
+    }
+    
+    public void setMockPayment(MockPaymentGateway mockPayment) {
+        this.mockPayment = mockPayment;
+    }
+    
     @PostConstruct
     public void init() {
         System.out.println("[ProfileDemoService] Initialized with profile-specific dependencies:");

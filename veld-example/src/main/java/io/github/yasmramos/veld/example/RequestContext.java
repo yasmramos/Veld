@@ -20,6 +20,11 @@ public class RequestContext {
     @Inject
     LogService logService;  // Package-private for bytecode injection
     
+    // Setter for field injection by Veld
+    public void setLogService(LogService logService) {
+        this.logService = logService;
+    }
+    
     private final String requestId;
     private final int instanceNumber;
     private long timestamp;
