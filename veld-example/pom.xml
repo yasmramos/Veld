@@ -80,7 +80,23 @@
 
     <build>
         <plugins>
-            <!-- Note: maven-compiler-plugin removed because veld-maven-plugin handles all compilation -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <release>17</release>
+                    <compilerArgs>
+                        <arg>--add-opens</arg>
+                        <arg>java.base/java.lang=ALL-UNNAMED</arg>
+                        <arg>--add-opens</arg>
+                        <arg>java.base/java.lang.reflect=ALL-UNNAMED</arg>
+                        <arg>--add-opens</arg>
+                        <arg>java.base/java.util=ALL-UNNAMED</arg>
+                    </compilerArgs>
+                    <!-- Note: annotationProcessorPaths NOT configured here to allow veld-maven-plugin to handle compilation -->
+                </configuration>
+            </plugin>
             <!-- Generate Javadoc JAR -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
