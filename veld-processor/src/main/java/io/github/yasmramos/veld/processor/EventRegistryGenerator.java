@@ -70,7 +70,7 @@ public class EventRegistryGenerator {
 
     public EventRegistryGenerator(List<SubscriptionInfo> subscriptions) {
         this.subscriptions = subscriptions;
-        this.packageName = "io.github.yasmramos.veld.generated";
+        this.packageName = "io.github.yasmramos.veld";
         this.className = "VeldEventRegistryImpl";
     }
 
