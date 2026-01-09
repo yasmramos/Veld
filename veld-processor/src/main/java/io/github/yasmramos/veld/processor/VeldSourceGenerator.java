@@ -39,6 +39,7 @@ public final class VeldSourceGenerator {
         sb.append("import io.github.yasmramos.veld.VeldRegistry;\n");
         sb.append("import io.github.yasmramos.veld.VeldException;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ComponentRegistry;\n");
+        sb.append("import io.github.yasmramos.veld.runtime.Provider;\n");
         sb.append("import io.github.yasmramos.veld.annotation.ScopeType;\n");
         sb.append("import io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ConditionalRegistry;\n");
@@ -48,6 +49,9 @@ public final class VeldSourceGenerator {
         sb.append("import java.util.HashMap;\n");
         sb.append("import java.util.concurrent.ConcurrentHashMap;\n");
         sb.append("import java.util.Set;\n");
+        sb.append("import java.util.List;\n");
+        sb.append("import java.util.ArrayList;\n");
+        sb.append("import java.util.Optional;\n");
         sb.append("import java.util.function.Supplier;\n");
         sb.append("import java.util.Comparator;\n");
         sb.append("import java.util.stream.Collectors;\n\n");
@@ -94,6 +98,9 @@ public final class VeldSourceGenerator {
         
         // Generic get by class
         generateGetByClass(sb);
+        
+        // Additional generic methods (getOptional, getProvider, getAll, etc.)
+        generateAdditionalGenericMethods(sb);
         
         // Registry accessor
         sb.append("    public static ComponentRegistry getRegistry() {\n");
@@ -236,6 +243,60 @@ public final class VeldSourceGenerator {
         }
         
         sb.append("        throw new VeldException(\"No component registered for type: \" + type.getName());\n");
+        sb.append("    }\n\n");
+    }
+    
+    private void generateAdditionalGenericMethods(StringBuilder sb) {
+        sb.append("    // === ADDITIONAL GENERIC METHODS ===\n\n");
+        
+        // get(Class<T> type, String name)
+        sb.append("    @SuppressWarnings(\"unchecked\")\n");
+        sb.append("    public static <T> T get(Class<T> type, String name) {\n");
+        sb.append("        ComponentFactory<?> factory = _registry.getFactory(name);\n");
+        sb.append("        if (factory != null) {\n");
+        sb.append("            return (T) factory.create();\n");
+        sb.append("        }\n");
+        sb.append("        throw new VeldException(\"No component registered with name: \" + name);\n");
+        sb.append("    }\n\n");
+        
+        // getAll(Class<T> type)
+        sb.append("    @SuppressWarnings(\"unchecked\")\n");
+        sb.append("    public static <T> List<T> getAll(Class<T> type) {\n");
+        sb.append("        List<ComponentFactory<? extends T>> factories = _registry.getFactoriesForType(type);\n");
+        sb.append("        List<T> instances = new ArrayList<>();\n");
+        sb.append("        for (ComponentFactory<? extends T> factory : factories) {\n");
+        sb.append("            instances.add((T) factory.create());\n");
+        sb.append("        }\n");
+        sb.append("        return instances;\n");
+        sb.append("    }\n\n");
+        
+        // getProvider(Class<T> type)
+        sb.append("    public static <T> Provider<T> getProvider(Class<T> type) {\n");
+        sb.append("        ComponentFactory<T> factory = _registry.getFactory(type);\n");
+        sb.append("        if (factory != null) {\n");
+        sb.append("            return () -> (T) factory.create();\n");
+        sb.append("        }\n");
+        sb.append("        return () -> { throw new VeldException(\"No component registered for type: \" + type.getName()); };\n");
+        sb.append("    }\n\n");
+        
+        // getOptional(Class<T> type)
+        sb.append("    @SuppressWarnings(\"unchecked\")\n");
+        sb.append("    public static <T> Optional<T> getOptional(Class<T> type) {\n");
+        sb.append("        ComponentFactory<T> factory = _registry.getFactory(type);\n");
+        sb.append("        if (factory != null) {\n");
+        sb.append("            return Optional.of((T) factory.create());\n");
+        sb.append("        }\n");
+        sb.append("        return Optional.empty();\n");
+        sb.append("    }\n\n");
+        
+        // contains(Class<?> type)
+        sb.append("    public static boolean contains(Class<?> type) {\n");
+        sb.append("        return _registry.getFactory(type) != null;\n");
+        sb.append("    }\n\n");
+        
+        // componentCount()
+        sb.append("    public static int componentCount() {\n");
+        sb.append("        return _registry.getComponentCount();\n");
         sb.append("    }\n\n");
     }
     
