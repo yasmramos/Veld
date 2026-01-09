@@ -484,7 +484,7 @@
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
-                <version>11.2.1</version>
+                <version>12.1.9</version>
                 <executions>
                     <execution>
                         <id>dependency-check</id>
