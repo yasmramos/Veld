@@ -1,6 +1,4 @@
-<a href="https://veld.io/">
-  <img src=".github/assets/logo.png" alt="Veld" width="200"/>
-</a>
+![Veld](.github/assets/logo.png)
 # Veld Framework
 
 **Ultra-fast Dependency Injection for Java - Zero Reflection, Pure Code Generation**
