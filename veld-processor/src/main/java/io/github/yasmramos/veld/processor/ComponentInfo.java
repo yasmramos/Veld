@@ -72,12 +72,29 @@ public final class ComponentInfo {
 
     /**
      * Returns the package name of the component class.
+     * For nested classes (Outer$Inner), returns the package of the outer class.
      * 
      * @return the package name, or empty string if in default package
      */
     public String getPackageName() {
-        int lastDot = className.lastIndexOf('.');
-        return lastDot > 0 ? className.substring(0, lastDot) : "";
+        // Handle nested classes - package is everything before the outer class name
+        int dollarIndex = className.indexOf('$');
+        String baseName = dollarIndex > 0 ? className.substring(0, dollarIndex) : className;
+        
+        int lastDot = baseName.lastIndexOf('.');
+        return lastDot > 0 ? baseName.substring(0, lastDot) : "";
+    }
+
+    /**
+     * Returns the simple name of the component class (without package or outer class for nested classes).
+     * For nested classes (Outer$Inner), returns just "Inner".
+     * 
+     * @return the simple class name
+     */
+    public String getSimpleName() {
+        int dollarIndex = className.lastIndexOf('$');
+        String baseName = dollarIndex > 0 ? className.substring(dollarIndex + 1) : className;
+        return baseName.substring(baseName.lastIndexOf('.') + 1);
     }
     
     /**
@@ -140,14 +157,65 @@ public final class ComponentInfo {
     }
     
     public String getFactoryClassName() {
-        // Generate factory in the same package as the original class
-        // Example: com.example.myapp.Component -> com.example.myapp.Component$$VeldFactory
-        return className + "$$VeldFactory";
+        // Generate factory in .veld subpackage of the original class's package
+        // This avoids conflicts when class name equals package name
+        // Example: com.example.Component -> com.example.veld.Component$$VeldFactory
+        // Example: com.example.Outer$Inner -> com.example.veld.Inner$$VeldFactory
+        String pkg = getPackageName();
+        String simpleName = getSimpleName();
+        
+        // Check if this is a special case where the outer class name conflicts with directory structure
+        // If the outer class name equals the last package segment, use parent package
+        String outerClassName = getOuterClassName();
+        String lastPackageSegment = "";
+        if (!pkg.isEmpty()) {
+            lastPackageSegment = pkg.substring(pkg.lastIndexOf('.') + 1);
+        }
+        if (outerClassName.equalsIgnoreCase(lastPackageSegment)) {
+            // Use parent package to avoid conflicts
+            int lastDot = pkg.lastIndexOf('.');
+            String parentPkg = lastDot > 0 ? pkg.substring(0, lastDot) : "";
+            return parentPkg.isEmpty() ? "veld." + simpleName + "$$VeldFactory" : parentPkg + ".veld." + simpleName + "$$VeldFactory";
+        }
+        
+        return pkg.isEmpty() ? "veld." + simpleName + "$$VeldFactory" : pkg + ".veld." + simpleName + "$$VeldFactory";
     }
 
     public String getFactoryInternalName() {
         // Convert to internal format
-        return className.replace('.', '/') + "$$VeldFactory";
+        // Example: com.example.Component -> com/example/veld/Component$$VeldFactory
+        String pkg = getPackageName();
+        String simpleName = getSimpleName();
+        
+        // Check if this is a special case where the outer class name conflicts with directory structure
+        String outerClassName = getOuterClassName();
+        String lastPackageSegment = "";
+        if (!pkg.isEmpty()) {
+            lastPackageSegment = pkg.substring(pkg.lastIndexOf('.') + 1);
+        }
+        if (outerClassName.equalsIgnoreCase(lastPackageSegment)) {
+            int lastDot = pkg.lastIndexOf('.');
+            String parentPkg = lastDot > 0 ? pkg.substring(0, lastDot) : "";
+            return parentPkg.isEmpty() ? "veld/" + simpleName + "$$VeldFactory" : parentPkg.replace('.', '/') + "/veld/" + simpleName + "$$VeldFactory";
+        }
+        
+        return pkg.isEmpty() ? "veld/" + simpleName + "$$VeldFactory" : pkg.replace('.', '/') + "/veld/" + simpleName + "$$VeldFactory";
+    }
+    
+    /**
+     * Returns the outer class name for nested classes.
+     * For Outer$Inner, returns "Outer". For regular classes, returns null.
+     */
+    private String getOuterClassName() {
+        int dollarIndex = className.indexOf('$');
+        if (dollarIndex > 0) {
+            String outerPart = className.substring(0, dollarIndex);
+            int lastDot = outerPart.lastIndexOf('.');
+            return lastDot > 0 ? outerPart.substring(lastDot + 1) : outerPart;
+        }
+        // For non-nested classes, check if class name matches last package segment
+        int lastDot = className.lastIndexOf('.');
+        return lastDot > 0 ? className.substring(lastDot + 1) : className;
     }
     
     public InjectionPoint getConstructorInjection() {
