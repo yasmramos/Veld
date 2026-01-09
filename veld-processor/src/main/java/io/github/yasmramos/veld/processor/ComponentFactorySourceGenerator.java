@@ -26,21 +26,23 @@ public final class ComponentFactorySourceGenerator {
     
     public String generate() {
         StringBuilder sb = new StringBuilder();
-        
-        String packageName = getPackageName(component.getClassName());
-        String simpleName = getSimpleName(component.getClassName());
-        String factorySimpleName = simpleName + "$$VeldFactory";
-        
+
+        // All factories are generated in io.github.yasmramos.veld.gen package
+        String packageName = "io.github.yasmramos.veld.gen";
+        String factoryClassName = component.getFactoryClassName();
+        // Extract simple name: io.github.yasmramos.veld.gen.io_github_pkg_Class$$VeldFactory -> io_github_pkg_Class$$VeldFactory
+        String factorySimpleName = factoryClassName.substring(packageName.length() + 1);
+
         // Package declaration
         sb.append("package ").append(packageName).append(";\n\n");
-        
+
         // Imports
         sb.append("import io.github.yasmramos.veld.Veld;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ComponentFactory;\n");
         sb.append("import io.github.yasmramos.veld.annotation.ScopeType;\n");
         sb.append("import java.util.List;\n");
         sb.append("import java.util.Arrays;\n\n");
-        
+
         // Class declaration
         sb.append("/**\n");
         sb.append(" * Generated factory for ").append(component.getClassName()).append(".\n");
@@ -48,7 +50,7 @@ public final class ComponentFactorySourceGenerator {
         sb.append("@SuppressWarnings({\"unchecked\", \"rawtypes\"})\n");
         sb.append("public final class ").append(factorySimpleName);
         sb.append(" implements ComponentFactory<").append(component.getClassName()).append("> {\n\n");
-        
+
         // Constructor
         sb.append("    public ").append(factorySimpleName).append("() {}\n\n");
         
@@ -132,7 +134,7 @@ public final class ComponentFactorySourceGenerator {
             for (InjectionPoint.Dependency dep : ctor.getDependencies()) {
                 if (!first) sb.append(", ");
                 first = false;
-                sb.append("Veld.get(").append(dep.getActualTypeName()).append(".class)");
+                sb.append(generateDependencyGetExpression(dep));
             }
         }
         sb.append(");\n");
@@ -154,7 +156,7 @@ public final class ComponentFactorySourceGenerator {
                     // Use normal setter
                     sb.append("        instance.set").append(capitalize(fieldName)).append("(");
                 }
-                sb.append("Veld.get(").append(dep.getActualTypeName()).append(".class));\n");
+                sb.append(generateDependencyGetExpression(dep)).append(");\n");
             }
         }
         
@@ -165,13 +167,60 @@ public final class ComponentFactorySourceGenerator {
             for (InjectionPoint.Dependency dep : method.getDependencies()) {
                 if (!first) sb.append(", ");
                 first = false;
-                sb.append("Veld.get(").append(dep.getActualTypeName()).append(".class)");
+                sb.append(generateDependencyGetExpression(dep));
             }
             sb.append(");\n");
         }
         
         sb.append("        return instance;\n");
         sb.append("    }\n\n");
+    }
+    
+    /**
+     * Generates the appropriate Veld.get() expression for a dependency.
+     * Handles Provider<T> and Optional<T> types correctly.
+     */
+    private String generateDependencyGetExpression(InjectionPoint.Dependency dep) {
+        String depType = dep.getActualTypeName();
+        
+        if (isProviderType(depType)) {
+            // Provider<T> injection - use Veld.getProvider()
+            String containedType = extractTypeArgument(depType);
+            return "Veld.getProvider(" + containedType + ".class)";
+        } else if (isOptionalType(depType)) {
+            // Optional<T> injection - use Veld.getOptional()
+            String containedType = extractTypeArgument(depType);
+            return "Veld.getOptional(" + containedType + ".class)";
+        } else {
+            // Regular injection
+            return "Veld.get(" + depType + ".class)";
+        }
+    }
+    
+    /**
+     * Checks if a type is Provider<T>.
+     */
+    private boolean isProviderType(String typeName) {
+        return typeName.startsWith("Provider<");
+    }
+    
+    /**
+     * Checks if a type is Optional<T>.
+     */
+    private boolean isOptionalType(String typeName) {
+        return typeName.startsWith("Optional<");
+    }
+    
+    /**
+     * Extracts the type argument from a generic type like Provider<T> or Optional<T>.
+     */
+    private String extractTypeArgument(String genericType) {
+        int start = genericType.indexOf('<');
+        int end = genericType.lastIndexOf('>');
+        if (start >= 0 && end > start) {
+            return genericType.substring(start + 1, end);
+        }
+        return genericType;
     }
     
     private void generateGetDependencyTypes(StringBuilder sb) {
@@ -217,16 +266,6 @@ public final class ComponentFactorySourceGenerator {
         
         sb.append("\n        );\n");
         sb.append("    }\n\n");
-    }
-    
-    private String getPackageName(String className) {
-        int lastDot = className.lastIndexOf('.');
-        return lastDot >= 0 ? className.substring(0, lastDot) : "";
-    }
-    
-    private String getSimpleName(String className) {
-        int lastDot = className.lastIndexOf('.');
-        return lastDot >= 0 ? className.substring(lastDot + 1) : className;
     }
     
     private String capitalize(String name) {

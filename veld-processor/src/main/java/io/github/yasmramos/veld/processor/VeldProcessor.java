@@ -1892,7 +1892,7 @@ public class VeldProcessor extends AbstractProcessor {
             // Generate Veld.java source code (passing AOP class map for wrapper instantiation)
             VeldSourceGenerator veldGen = new VeldSourceGenerator(discoveredComponents, aopClassMap);
             String veldSource = veldGen.generate();
-            writeJavaSource("io.github.yasmramos.veld.Veld", veldSource);
+            writeJavaSource(veldGen.getClassName(), veldSource);
             note("Generated Veld.java with " + discoveredComponents.size() + " components");
 
             // Write component metadata for weaver
