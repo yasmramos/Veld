@@ -37,7 +37,7 @@ class FieldInjectorWeaverTest {
                 "com/example/TestService",
                 "repository",
                 "Lcom/example/Repository;",
-                "Lcom/veld/annotation/Inject;"
+                "Lio/github/yasmramos/veld/annotation/Inject;"
             );
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
@@ -96,7 +96,7 @@ class FieldInjectorWeaverTest {
                 "com/example/TestService",
                 "timeout",
                 "I",
-                "Lcom/veld/annotation/Value;"
+                "Lio/github/yasmramos/veld/annotation/Value;"
             );
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
@@ -122,7 +122,7 @@ class FieldInjectorWeaverTest {
                 "com/example/TestService",
                 "repository",
                 "Lcom/example/Repository;",
-                "Lcom/veld/annotation/Inject;",
+                "Lio/github/yasmramos/veld/annotation/Inject;",
                 ACC_PUBLIC
             );
             
@@ -138,7 +138,7 @@ class FieldInjectorWeaverTest {
                 "com/example/TestService",
                 "repository",
                 "Lcom/example/Repository;",
-                "Lcom/veld/annotation/Inject;",
+                "Lio/github/yasmramos/veld/annotation/Inject;",
                 ACC_PROTECTED
             );
             
@@ -154,7 +154,7 @@ class FieldInjectorWeaverTest {
                 "com/example/TestService",
                 "repository",
                 "Lcom/example/Repository;",
-                "Lcom/veld/annotation/Inject;",
+                "Lio/github/yasmramos/veld/annotation/Inject;",
                 0  // package-private
             );
             
@@ -213,12 +213,12 @@ class FieldInjectorWeaverTest {
             
             // Private field with @Inject - should get setter
             FieldVisitor fv1 = cw.visitField(ACC_PRIVATE, "privateField", "Lcom/example/Dep;", null, null);
-            fv1.visitAnnotation("Lcom/veld/annotation/Inject;", false).visitEnd();
+            fv1.visitAnnotation("Lio/github/yasmramos/veld/annotation/Inject;", false).visitEnd();
             fv1.visitEnd();
             
             // Public field with @Inject - should NOT get setter
             FieldVisitor fv2 = cw.visitField(ACC_PUBLIC, "publicField", "Lcom/example/Dep;", null, null);
-            fv2.visitAnnotation("Lcom/veld/annotation/Inject;", false).visitEnd();
+            fv2.visitAnnotation("Lio/github/yasmramos/veld/annotation/Inject;", false).visitEnd();
             fv2.visitEnd();
             
             // Private field WITHOUT @Inject - should NOT get setter
@@ -245,7 +245,7 @@ class FieldInjectorWeaverTest {
         @DisplayName("Should generate setter for int field")
         void shouldGenerateSetterForIntField() {
             byte[] originalClass = generateClassWithPrivateInjectField(
-                "com/example/TestService", "count", "I", "Lcom/veld/annotation/Value;");
+                "com/example/TestService", "count", "I", "Lio/github/yasmramos/veld/annotation/Value;");
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
@@ -259,7 +259,7 @@ class FieldInjectorWeaverTest {
         @DisplayName("Should generate setter for long field")
         void shouldGenerateSetterForLongField() {
             byte[] originalClass = generateClassWithPrivateInjectField(
-                "com/example/TestService", "timestamp", "J", "Lcom/veld/annotation/Value;");
+                "com/example/TestService", "timestamp", "J", "Lio/github/yasmramos/veld/annotation/Value;");
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
@@ -273,7 +273,7 @@ class FieldInjectorWeaverTest {
         @DisplayName("Should generate setter for double field")
         void shouldGenerateSetterForDoubleField() {
             byte[] originalClass = generateClassWithPrivateInjectField(
-                "com/example/TestService", "rate", "D", "Lcom/veld/annotation/Value;");
+                "com/example/TestService", "rate", "D", "Lio/github/yasmramos/veld/annotation/Value;");
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
@@ -287,7 +287,7 @@ class FieldInjectorWeaverTest {
         @DisplayName("Should generate setter for boolean field")
         void shouldGenerateSetterForBooleanField() {
             byte[] originalClass = generateClassWithPrivateInjectField(
-                "com/example/TestService", "enabled", "Z", "Lcom/veld/annotation/Value;");
+                "com/example/TestService", "enabled", "Z", "Lio/github/yasmramos/veld/annotation/Value;");
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
@@ -301,7 +301,7 @@ class FieldInjectorWeaverTest {
         @DisplayName("Should generate setter for float field")
         void shouldGenerateSetterForFloatField() {
             byte[] originalClass = generateClassWithPrivateInjectField(
-                "com/example/TestService", "ratio", "F", "Lcom/veld/annotation/Value;");
+                "com/example/TestService", "ratio", "F", "Lio/github/yasmramos/veld/annotation/Value;");
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
@@ -315,7 +315,7 @@ class FieldInjectorWeaverTest {
         @DisplayName("Should generate setter for char field")
         void shouldGenerateSetterForCharField() {
             byte[] originalClass = generateClassWithPrivateInjectField(
-                "com/example/TestService", "code", "C", "Lcom/veld/annotation/Value;");
+                "com/example/TestService", "code", "C", "Lio/github/yasmramos/veld/annotation/Value;");
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
@@ -329,7 +329,7 @@ class FieldInjectorWeaverTest {
         @DisplayName("Should generate setter for byte field")
         void shouldGenerateSetterForByteField() {
             byte[] originalClass = generateClassWithPrivateInjectField(
-                "com/example/TestService", "data", "B", "Lcom/veld/annotation/Value;");
+                "com/example/TestService", "data", "B", "Lio/github/yasmramos/veld/annotation/Value;");
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
@@ -343,7 +343,7 @@ class FieldInjectorWeaverTest {
         @DisplayName("Should generate setter for short field")
         void shouldGenerateSetterForShortField() {
             byte[] originalClass = generateClassWithPrivateInjectField(
-                "com/example/TestService", "port", "S", "Lcom/veld/annotation/Value;");
+                "com/example/TestService", "port", "S", "Lio/github/yasmramos/veld/annotation/Value;");
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
@@ -357,7 +357,7 @@ class FieldInjectorWeaverTest {
         @DisplayName("Should generate setter for array field")
         void shouldGenerateSetterForArrayField() {
             byte[] originalClass = generateClassWithPrivateInjectField(
-                "com/example/TestService", "items", "[Ljava/lang/String;", "Lcom/veld/annotation/Value;");
+                "com/example/TestService", "items", "[Ljava/lang/String;", "Lio/github/yasmramos/veld/annotation/Value;");
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
             
@@ -381,7 +381,7 @@ class FieldInjectorWeaverTest {
             
             // Private field with @Inject
             FieldVisitor fv = cw.visitField(ACC_PRIVATE, "repo", "Lcom/example/Repo;", null, null);
-            fv.visitAnnotation("Lcom/veld/annotation/Inject;", false).visitEnd();
+            fv.visitAnnotation("Lio/github/yasmramos/veld/annotation/Inject;", false).visitEnd();
             fv.visitEnd();
             
             // Existing setter (as if already woven)
@@ -413,14 +413,14 @@ class FieldInjectorWeaverTest {
         void shouldWeaveAllClassFilesInDirectory(@TempDir Path tempDir) throws IOException {
             // Create class file 1
             byte[] class1 = generateClassWithPrivateInjectField(
-                "com/example/Service1", "dep", "Lcom/example/Dep;", "Lcom/veld/annotation/Inject;");
+                "com/example/Service1", "dep", "Lcom/example/Dep;", "Lio/github/yasmramos/veld/annotation/Inject;");
             Path classFile1 = tempDir.resolve("com/example/Service1.class");
             Files.createDirectories(classFile1.getParent());
             Files.write(classFile1, class1);
             
             // Create class file 2
             byte[] class2 = generateClassWithPrivateInjectField(
-                "com/example/Service2", "config", "Lcom/example/Config;", "Lcom/veld/annotation/Inject;");
+                "com/example/Service2", "config", "Lcom/example/Config;", "Lio/github/yasmramos/veld/annotation/Inject;");
             Path classFile2 = tempDir.resolve("com/example/Service2.class");
             Files.write(classFile2, class2);
             
@@ -468,7 +468,7 @@ class FieldInjectorWeaverTest {
                 "com/example/StaticService",
                 "instance",
                 "Lcom/example/StaticService;",
-                "Lcom/veld/annotation/Inject;",
+                "Lio/github/yasmramos/veld/annotation/Inject;",
                 ACC_PRIVATE | ACC_STATIC
             );
             
@@ -493,7 +493,7 @@ class FieldInjectorWeaverTest {
                 "com/example/StaticService",
                 "config",
                 "Lcom/example/Config;",
-                "Lcom/veld/annotation/Inject;",
+                "Lio/github/yasmramos/veld/annotation/Inject;",
                 ACC_PRIVATE | ACC_STATIC
             );
             
@@ -523,7 +523,7 @@ class FieldInjectorWeaverTest {
                 "com/example/Counter",
                 "count",
                 "I",
-                "Lcom/veld/annotation/Value;",
+                "Lio/github/yasmramos/veld/annotation/Value;",
                 ACC_PRIVATE | ACC_STATIC
             );
             
@@ -548,7 +548,7 @@ class FieldInjectorWeaverTest {
                 "com/example/ImmutableService",
                 "dependency",
                 "Lcom/example/Dep;",
-                "Lcom/veld/annotation/Inject;",
+                "Lio/github/yasmramos/veld/annotation/Inject;",
                 ACC_PRIVATE | ACC_FINAL
             );
             
@@ -575,7 +575,7 @@ class FieldInjectorWeaverTest {
                 "com/example/Constants",
                 "maxSize",
                 "I",
-                "Lcom/veld/annotation/Value;",
+                "Lio/github/yasmramos/veld/annotation/Value;",
                 ACC_PRIVATE | ACC_FINAL
             );
             
@@ -602,7 +602,7 @@ class FieldInjectorWeaverTest {
                 "com/example/Singleton",
                 "INSTANCE",
                 "Lcom/example/Singleton;",
-                "Lcom/veld/annotation/Inject;",
+                "Lio/github/yasmramos/veld/annotation/Inject;",
                 ACC_PRIVATE | ACC_STATIC | ACC_FINAL
             );
             
@@ -630,7 +630,7 @@ class FieldInjectorWeaverTest {
                 "com/example/Config",
                 "DEFAULT",
                 "Ljava/lang/String;",
-                "Lcom/veld/annotation/Value;",
+                "Lio/github/yasmramos/veld/annotation/Value;",
                 ACC_PRIVATE | ACC_STATIC | ACC_FINAL
             );
             
@@ -655,7 +655,7 @@ class FieldInjectorWeaverTest {
                 "com/example/Timing",
                 "TIMEOUT",
                 "J",
-                "Lcom/veld/annotation/Value;",
+                "Lio/github/yasmramos/veld/annotation/Value;",
                 ACC_PRIVATE | ACC_STATIC | ACC_FINAL
             );
             
@@ -680,7 +680,7 @@ class FieldInjectorWeaverTest {
                 "com/example/TestService",
                 "repository",
                 "Lcom/example/Repository;",
-                "Lcom/veld/annotation/Inject;"
+                "Lio/github/yasmramos/veld/annotation/Inject;"
             );
             
             FieldInjectorWeaver.WeavingResult result = weaver.weaveClass(originalClass);
@@ -844,7 +844,7 @@ class FieldInjectorWeaverTest {
         
         for (int i = 0; i < fieldNames.length; i++) {
             FieldVisitor fv = cw.visitField(ACC_PRIVATE, fieldNames[i], fieldDescs[i], null, null);
-            fv.visitAnnotation("Lcom/veld/annotation/Inject;", false).visitEnd();
+            fv.visitAnnotation("Lio/github/yasmramos/veld/annotation/Inject;", false).visitEnd();
             fv.visitEnd();
         }
         

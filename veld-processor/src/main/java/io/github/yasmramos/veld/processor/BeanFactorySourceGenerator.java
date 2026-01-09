@@ -203,11 +203,25 @@ public final class BeanFactorySourceGenerator {
     }
 
     private String getPackageName(String fullClassName) {
+        // For inner classes (Outer$Inner), find the package by looking for $ first
+        int dollarSign = fullClassName.lastIndexOf('$');
+        if (dollarSign > 0) {
+            // It's an inner class, find the last dot before the $
+            int lastDot = fullClassName.lastIndexOf('.', dollarSign - 1);
+            return lastDot > 0 ? fullClassName.substring(0, lastDot) : null;
+        }
+        // Regular class - find the last dot
         int lastDot = fullClassName.lastIndexOf('.');
         return lastDot > 0 ? fullClassName.substring(0, lastDot) : null;
     }
 
     private String getSimpleName(String fullClassName) {
+        // For inner classes (Outer$Inner), get just the inner class name
+        int lastDollar = fullClassName.lastIndexOf('$');
+        if (lastDollar >= 0) {
+            return fullClassName.substring(lastDollar + 1);
+        }
+        // For regular classes, get the class name after the last dot
         int lastDot = fullClassName.lastIndexOf('.');
         return lastDot > 0 ? fullClassName.substring(lastDot + 1) : fullClassName;
     }

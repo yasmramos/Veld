@@ -1,6 +1,14 @@
 package io.github.yasmramos.veld.maven;
 
 import io.github.yasmramos.veld.weaver.FieldInjectorWeaver;
+import java.io.File;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.file.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import javax.tools.*;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -10,15 +18,6 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.utils.io.SelectorUtils;
-
-import javax.tools.*;
-import java.io.File;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Unified Veld Maven plugin that handles compilation with annotation processing
@@ -43,10 +42,10 @@ public class VeldCompileMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project.compileClasspathElements}", readonly = true)
     private List<String> classpathElements;
 
-    @Parameter(property = "maven.compiler.source", defaultValue = "11")
+    @Parameter(property = "maven.compiler.source", defaultValue = "17")
     private String source;
 
-    @Parameter(property = "maven.compiler.target", defaultValue = "11")
+    @Parameter(property = "maven.compiler.target", defaultValue = "17")
     private String target;
 
     @Parameter(property = "veld.skip", defaultValue = "false")

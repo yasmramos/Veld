@@ -130,11 +130,17 @@ public final class ComponentInfo {
     }
     
     public String getFactoryClassName() {
-        return className + "$$VeldFactory";
+        // Generate all factories in io.github.yasmramos.veld.gen package with flattened names
+        // This avoids package conflicts and ensures correct compilation order
+        // Example: io.github.pkg.Class -> io.github.yasmramos.veld.gen.io_github_pkg_Class$$VeldFactory
+        String flattened = className.replace('.', '_').replace('$', '_');
+        return "io.github.yasmramos.veld.gen." + flattened + "$$VeldFactory";
     }
-    
+
     public String getFactoryInternalName() {
-        return internalName + "$$VeldFactory";
+        // Convert to internal format
+        String flattened = className.replace('.', '_').replace('$', '_');
+        return "io/github/yasmramos/veld/gen/" + flattened + "$$VeldFactory";
     }
     
     public InjectionPoint getConstructorInjection() {
@@ -493,5 +499,116 @@ public final class ComponentInfo {
      */
     public boolean hasUnresolvedInterfaceDependencies() {
         return !unresolvedInterfaceDependencies.isEmpty();
+    }
+
+    // === HOLD PATTERN SUPPORT ===
+    // Determines if this component can use the simpler holder pattern
+    // instead of the full factory pattern
+
+    /**
+     * Checks if this component can use the holder pattern for instantiation.
+     * 
+     * <p>The holder pattern is a simpler, more efficient approach that uses
+     * a static inner class to hold the singleton instance. It can be used
+     * when:</p>
+     * <ul>
+     *   <li>The component is a singleton (not prototype or custom scope)</li>
+     *   <li>The component is NOT lazy (eager initialization)</li>
+     *   <li>The component has NO dependencies to inject</li>
+     *   <li>The component has NO lifecycle callbacks (@PostConstruct, @PreDestroy)</li>
+     *   <li>The component has NO conditional registration</li>
+     *   <li>The component has NO AOP interceptors</li>
+     *   <li>The component has NO @Subscribe methods</li>
+     * </ul>
+     * 
+     * @return true if the holder pattern can be used, false if factory is required
+     */
+    public boolean canUseHolderPattern() {
+        // Holder pattern only makes sense for singletons
+        if (scope != ScopeType.SINGLETON) {
+            return false;
+        }
+
+        // Lazy beans need factory for deferred creation
+        if (lazy) {
+            return false;
+        }
+
+        // Beans with any dependencies need factory for injection
+        if (constructorInjection != null) {
+            return false;
+        }
+        if (!fieldInjections.isEmpty()) {
+            return false;
+        }
+        if (!methodInjections.isEmpty()) {
+            return false;
+        }
+
+        // Beans with lifecycle callbacks need factory for invocation
+        if (hasPostConstruct()) {
+            return false;
+        }
+        if (hasPreDestroy()) {
+            return false;
+        }
+
+        // Conditional beans need factory for runtime evaluation
+        if (hasConditions()) {
+            return false;
+        }
+
+        // Beans with AOP need factory for proxy creation
+        if (hasAopInterceptors()) {
+            return false;
+        }
+
+        // Event subscribers need factory for EventBus registration
+        if (hasSubscribeMethods()) {
+            return false;
+        }
+
+        // All checks passed - holder pattern can be used
+        return true;
+    }
+
+    /**
+     * Returns a description of why this component cannot use the holder pattern.
+     * Useful for debugging and optimization feedback.
+     * 
+     * @return description of the first blocking condition, or null if holder pattern is allowed
+     */
+    public String getHolderPatternRestriction() {
+        if (scope != ScopeType.SINGLETON) {
+            return "scope=" + scope + " (only SINGLETON supported)";
+        }
+        if (lazy) {
+            return "lazy=true (holder pattern requires eager initialization)";
+        }
+        if (constructorInjection != null) {
+            return "has constructor injection (holder pattern doesn't support DI)";
+        }
+        if (!fieldInjections.isEmpty()) {
+            return "has field injections (holder pattern doesn't support DI)";
+        }
+        if (!methodInjections.isEmpty()) {
+            return "has method injections (holder pattern doesn't support DI)";
+        }
+        if (hasPostConstruct()) {
+            return "has @PostConstruct callback (holder pattern doesn't support lifecycle)";
+        }
+        if (hasPreDestroy()) {
+            return "has @PreDestroy callback (holder pattern doesn't support lifecycle)";
+        }
+        if (hasConditions()) {
+            return "has @Conditional (holder pattern doesn't support conditional registration)";
+        }
+        if (hasAopInterceptors()) {
+            return "has AOP interceptors (holder pattern doesn't support AOP)";
+        }
+        if (hasSubscribeMethods()) {
+            return "has @Subscribe methods (holder pattern doesn't support event registration)";
+        }
+        return null; // No restrictions
     }
 }
