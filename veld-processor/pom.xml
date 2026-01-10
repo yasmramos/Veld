@@ -25,6 +25,10 @@
             <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-runtime</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.github.yasmramos</groupId>
+            <artifactId>veld-aop</artifactId>
+        </dependency>
 
         <!-- ASM for bytecode generation -->
         <dependency>
@@ -57,6 +61,13 @@
             <groupId>jakarta.inject</groupId>
             <artifactId>jakarta.inject-api</artifactId>
             <scope>provided</scope>
+        </dependency>
+
+        <!-- JavaPoet for code generation -->
+        <dependency>
+            <groupId>com.squareup</groupId>
+            <artifactId>javapoet</artifactId>
+            <version>1.13.0</version>
         </dependency>
 
         <!-- Testing -->
