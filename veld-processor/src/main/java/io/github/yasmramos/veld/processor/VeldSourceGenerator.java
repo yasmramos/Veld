@@ -1,25 +1,55 @@
 package io.github.yasmramos.veld.processor;
 
+import com.squareup.javapoet.AnnotationSpec;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.TypeVariableName;
+import io.github.yasmramos.veld.VeldException;
+import io.github.yasmramos.veld.VeldRegistry;
+import io.github.yasmramos.veld.annotation.Inject;
 import io.github.yasmramos.veld.annotation.ScopeType;
-import java.util.Collections;
+import io.github.yasmramos.veld.annotation.Value;
+import io.github.yasmramos.veld.runtime.ComponentFactory;
+import io.github.yasmramos.veld.runtime.ComponentRegistry;
+import io.github.yasmramos.veld.runtime.ConditionalRegistry;
+import io.github.yasmramos.veld.runtime.Provider;
+import io.github.yasmramos.veld.runtime.event.EventBus;
+import io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor;
+import io.github.yasmramos.veld.runtime.value.ValueResolver;
+
+import javax.annotation.processing.SuppressWarnings;
+import javax.lang.model.element.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Generates Veld.java source code instead of bytecode.
  * Uses the Initialization-on-demand holder idiom for lock-free singleton access.
  */
 public final class VeldSourceGenerator {
-    
+
     private final List<ComponentInfo> components;
     private final Map<String, String> aopClassMap;
-    
+
     public VeldSourceGenerator(List<ComponentInfo> components) {
-        this(components, Collections.emptyMap());
+        this(components, java.util.Collections.emptyMap());
     }
-    
+
     public VeldSourceGenerator(List<ComponentInfo> components, Map<String, String> aopClassMap) {
         this.components = components;
         this.aopClassMap = aopClassMap;
@@ -29,205 +59,154 @@ public final class VeldSourceGenerator {
         return "io.github.yasmramos.veld.Veld";
     }
 
-    public String generate() {
-        StringBuilder sb = new StringBuilder();
+    public JavaFile generate() {
+        // Build class declaration with Javadoc
+        TypeSpec.Builder classBuilder = TypeSpec.classBuilder("Veld")
+                .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+                .addJavadoc(
+                        "Generated service locator for Veld DI container.\n" +
+                        "Uses Initialization-on-demand holder idiom for lock-free singleton access.\n")
+                .addAnnotation(createSuppressWarningsAnnotation());
 
-        // Package declaration - generate in veld package to replace stub
-        sb.append("package io.github.yasmramos.veld;\n\n");
+        // Add static fields
+        addStaticFields(classBuilder);
 
-        // Imports
-        sb.append("import io.github.yasmramos.veld.VeldRegistry;\n");
-        sb.append("import io.github.yasmramos.veld.VeldException;\n");
-        sb.append("import io.github.yasmramos.veld.runtime.ComponentRegistry;\n");
-        sb.append("import io.github.yasmramos.veld.runtime.Provider;\n");
-        sb.append("import io.github.yasmramos.veld.annotation.ScopeType;\n");
-        sb.append("import io.github.yasmramos.veld.runtime.lifecycle.LifecycleProcessor;\n");
-        sb.append("import io.github.yasmramos.veld.runtime.ConditionalRegistry;\n");
-        sb.append("import io.github.yasmramos.veld.runtime.event.EventBus;\n");
-        sb.append("import io.github.yasmramos.veld.runtime.ComponentFactory;\n");
-        sb.append("import io.github.yasmramos.veld.runtime.value.ValueResolver;\n");
-        sb.append("import java.util.Map;\n");
-        sb.append("import java.util.HashMap;\n");
-        sb.append("import java.util.concurrent.ConcurrentHashMap;\n");
-        sb.append("import java.util.Set;\n");
-        sb.append("import java.util.List;\n");
-        sb.append("import java.util.ArrayList;\n");
-        sb.append("import java.util.Optional;\n");
-        sb.append("import java.util.function.Supplier;\n");
-        sb.append("import java.util.Comparator;\n");
-        sb.append("import java.util.stream.Collectors;\n\n");
-        
-        // Class declaration
-        sb.append("/**\n");
-        sb.append(" * Generated service locator for Veld DI container.\n");
-        sb.append(" * Uses Initialization-on-demand holder idiom for lock-free singleton access.\n");
-        sb.append(" */\n");
-        sb.append("@SuppressWarnings({\"unchecked\", \"rawtypes\"})\n");
-        sb.append("public final class Veld {\n\n");
-        
-        // Registry and lifecycle processor (no volatile needed for final fields)
-        sb.append("    private static final VeldRegistry _registry = new VeldRegistry();\n");
-        sb.append("    private static final LifecycleProcessor _lifecycle;\n");
-        sb.append("    private static final ConditionalRegistry _conditionalRegistry;\n");
-        sb.append("    private static final EventBus _eventBus = EventBus.getInstance();\n");
-        sb.append("    private static String[] _activeProfiles = new String[0];\n\n");
-        
-        // Static initializer
-        sb.append("    static {\n");
-        sb.append("        Set<String> initialProfiles = computeActiveProfiles();\n");
-        sb.append("        _activeProfiles = initialProfiles.toArray(new String[0]);\n");
-        sb.append("        _lifecycle = new LifecycleProcessor();\n");
-        sb.append("        _lifecycle.setEventBus(_eventBus);\n");
-        sb.append("        _conditionalRegistry = new ConditionalRegistry(_registry, initialProfiles);\n");
-        sb.append("    }\n\n");
-        
-        // computeActiveProfiles
-        sb.append("    private static Set<String> computeActiveProfiles() {\n");
-        sb.append("        String profiles = System.getProperty(\"veld.profiles.active\", \n");
-        sb.append("            System.getenv().getOrDefault(\"VELD_PROFILES_ACTIVE\", \"\"));\n");
-        sb.append("        if (profiles.isEmpty()) {\n");
-        sb.append("            return Set.of();\n");
-        sb.append("        }\n");
-        sb.append("        return Set.of(profiles.split(\",\"));\n");
-        sb.append("    }\n\n");
-        
-        // Generate Holder classes for singletons
-        generateHolderClasses(sb);
-        
-        // get() methods for each component
-        generateGetMethods(sb);
-        
-        // Generic get by class
-        generateGetByClass(sb);
-        
-        // Additional generic methods (getOptional, getProvider, getAll, etc.)
-        generateAdditionalGenericMethods(sb);
-        
-        // Registry accessor
-        sb.append("    public static ComponentRegistry getRegistry() {\n");
-        sb.append("        return _registry;\n");
-        sb.append("    }\n\n");
-        
-        // EventBus accessor
-        sb.append("    public static EventBus getEventBus() {\n");
-        sb.append("        return _eventBus;\n");
-        sb.append("    }\n\n");
-        
-        // LifecycleProcessor accessor
-        sb.append("    public static LifecycleProcessor getLifecycleProcessor() {\n");
-        sb.append("        return _lifecycle;\n");
-        sb.append("    }\n\n");
-        
-        // Shutdown method
-        sb.append("    public static void shutdown() {\n");
-        sb.append("        _lifecycle.destroy();\n");
-        sb.append("    }\n\n");
+        // Add static initializer
+        addStaticInitializer(classBuilder);
 
-        // Inject dependencies into an instance
-        sb.append("    /**\n");
-        sb.append("     * Injects dependencies into an instance using field injection.\n");
-        sb.append("     * Used by generated factories to inject dependencies into factory class instances.\n");
-        sb.append("     *\n");
-        sb.append("     * @param instance the instance to inject dependencies into\n");
-        sb.append("     */\n");
-        sb.append("    public static void inject(Object instance) {\n");
-        sb.append("        if (instance == null) return;\n");
-        sb.append("        // Use reflection to inject fields - this is only called for factory instances\n");
-        sb.append("        // which are created by the generated factory classes themselves\n");
-        sb.append("        Class<?> clazz = instance.getClass();\n");
-        sb.append("        for (java.lang.reflect.Field field : clazz.getDeclaredFields()) {\n");
-        sb.append("            if (!java.lang.reflect.Modifier.isStatic(field.getModifiers()) &&\n");
-        sb.append("                !java.lang.reflect.Modifier.isFinal(field.getModifiers())) {\n");
-        sb.append("                io.github.yasmramos.veld.annotation.Inject injectAnn = field.getAnnotation(io.github.yasmramos.veld.annotation.Inject.class);\n");
-        sb.append("                io.github.yasmramos.veld.annotation.Value valueAnn = field.getAnnotation(io.github.yasmramos.veld.annotation.Value.class);\n");
-        sb.append("                if (injectAnn != null) {\n");
-        sb.append("                    try {\n");
-        sb.append("                        field.setAccessible(true);\n");
-        sb.append("                        Class<?> fieldType = field.getType();\n");
-        sb.append("                        Object value = get(fieldType);\n");
-        sb.append("                        field.set(instance, value);\n");
-        sb.append("                    } catch (Exception e) {\n");
-        sb.append("                        throw new VeldException(\"Failed to inject field: \" + field.getName(), e);\n");
-        sb.append("                    }\n");
-        sb.append("                } else if (valueAnn != null) {\n");
-        sb.append("                    try {\n");
-        sb.append("                        field.setAccessible(true);\n");
-        sb.append("                        Object value = resolveValue(valueAnn.value());\n");
-        sb.append("                        field.set(instance, value);\n");
-        sb.append("                    } catch (Exception e) {\n");
-        sb.append("                        throw new VeldException(\"Failed to inject @Value field: \" + field.getName(), e);\n");
-        sb.append("                    }\n");
-        sb.append("                }\n");
-        sb.append("            }\n");
-        sb.append("        }\n");
-        sb.append("    }\n\n");
+        // Add computeActiveProfiles method
+        addComputeActiveProfilesMethod(classBuilder);
 
-        // resolveValue method
-        sb.append("    /**\n");
-        sb.append("     * Resolves a value expression using the ValueResolver.\n");
-        sb.append("     *\n");
-        sb.append("     * @param expression the value expression to resolve\n");
-        sb.append("     * @return the resolved value as a String\n");
-        sb.append("     */\n");
-        sb.append("    public static String resolveValue(String expression) {\n");
-        sb.append("        return ValueResolver.getInstance().resolve(expression);\n");
-        sb.append("    }\n\n");
+        // Add Holder classes for singletons
+        generateHolderClasses(classBuilder);
 
-        // Profile management methods
-        sb.append("    // === PROFILE MANAGEMENT ===\n\n");
-        sb.append("    public static void setActiveProfiles(String... profiles) {\n");
-        sb.append("        _activeProfiles = profiles != null ? profiles : new String[0];\n");
-        sb.append("    }\n\n");
-        sb.append("    public static String[] getActiveProfiles() {\n");
-        sb.append("        return _activeProfiles.clone();\n");
-        sb.append("    }\n\n");
-        sb.append("    public static boolean isProfileActive(String profile) {\n");
-        sb.append("        if (profile == null) return false;\n");
-        sb.append("        for (String p : _activeProfiles) {\n");
-        sb.append("            if (profile.equals(p)) return true;\n");
-        sb.append("        }\n");
-        sb.append("        return false;\n");
-        sb.append("    }\n\n");
-        
-        // Sort factories by order (lower values have higher priority)
-        sb.append("    private static java.util.List<ComponentFactory<?>> sortByOrder(java.util.List<ComponentFactory<?>> factories) {\n");
-        sb.append("        return factories.stream()\n");
-        sb.append("            .sorted(Comparator.comparingInt(ComponentFactory::getOrder))\n");
-        sb.append("            .collect(Collectors.toList());\n");
-        sb.append("    }\n\n");
-        
-        // Close class
-        sb.append("}\n");
-        
-        return sb.toString();
+        // Add getter methods for each component
+        generateGetMethods(classBuilder);
+
+        // Add generic get by class method
+        generateGetByClass(classBuilder);
+
+        // Add additional generic methods
+        generateAdditionalGenericMethods(classBuilder);
+
+        // Add registry accessor
+        addRegistryAccessorMethod(classBuilder);
+
+        // Add EventBus accessor
+        addEventBusAccessorMethod(classBuilder);
+
+        // Add LifecycleProcessor accessor
+        addLifecycleProcessorAccessorMethod(classBuilder);
+
+        // Add shutdown method
+        addShutdownMethod(classBuilder);
+
+        // Add inject method
+        addInjectMethod(classBuilder);
+
+        // Add resolveValue method
+        addResolveValueMethod(classBuilder);
+
+        // Add profile management methods
+        addProfileManagementMethods(classBuilder);
+
+        // Add sortByOrder method
+        addSortByOrderMethod(classBuilder);
+
+        // Build JavaFile
+        JavaFile.Builder javaFileBuilder = JavaFile.builder("io.github.yasmramos.veld", classBuilder.build());
+
+        return javaFileBuilder.build();
     }
-    
-    private void generateHolderClasses(StringBuilder sb) {
-        sb.append("    // === HOLDER CLASSES FOR LOCK-FREE SINGLETON ACCESS ===\n\n");
+
+    private void addStaticFields(TypeSpec.Builder classBuilder) {
+        // Registry and lifecycle processor (no volatile needed for final fields)
+        FieldSpec registryField = FieldSpec.builder(ClassName.get(VeldRegistry.class), "_registry")
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                .initializer("new $T()", VeldRegistry.class)
+                .build();
+        classBuilder.addField(registryField);
+
+        FieldSpec lifecycleField = FieldSpec.builder(ClassName.get(LifecycleProcessor.class), "_lifecycle")
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                .build();
+        classBuilder.addField(lifecycleField);
+
+        FieldSpec conditionalRegistryField = FieldSpec.builder(ClassName.get(ConditionalRegistry.class), "_conditionalRegistry")
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                .build();
+        classBuilder.addField(conditionalRegistryField);
+
+        FieldSpec eventBusField = FieldSpec.builder(ClassName.get(EventBus.class), "_eventBus")
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                .initializer("$T.getInstance()", EventBus.class)
+                .build();
+        classBuilder.addField(eventBusField);
+
+        FieldSpec activeProfilesField = FieldSpec.builder(String[].class, "_activeProfiles")
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
+                .initializer("new $T[0]", String.class)
+                .build();
+        classBuilder.addField(activeProfilesField);
+    }
+
+    private void addStaticInitializer(TypeSpec.Builder classBuilder) {
+        MethodSpec staticInitializer = MethodSpec.staticInitializerBuilder()
+                .addStatement("Set<String> initialProfiles = computeActiveProfiles()")
+                .addStatement("_activeProfiles = initialProfiles.toArray(new $T[0])", String.class)
+                .addStatement("_lifecycle = new $T()", LifecycleProcessor.class)
+                .addStatement("_lifecycle.setEventBus(_eventBus)")
+                .addStatement("_conditionalRegistry = new $T(_registry, initialProfiles)", ConditionalRegistry.class)
+                .build();
+        classBuilder.addInitializer(staticInitializer);
+    }
+
+    private void addComputeActiveProfilesMethod(TypeSpec.Builder classBuilder) {
+        MethodSpec computeProfiles = MethodSpec.methodBuilder("computeActiveProfiles")
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
+                .returns(ClassName.get(Set.class, String.class))
+                .addStatement("$T profiles = $T.getProperty(\"veld.profiles.active\", \n            $T.getenv().getOrDefault(\"VELD_PROFILES_ACTIVE\", \"\"))",
+                        String.class, System.class, System.class)
+                .beginControlFlow("if (profiles.isEmpty())")
+                .addStatement("return $T.of()", Set.class)
+                .endControlFlow()
+                .addStatement("return $T.of(profiles.split(\",\"))", Set.class)
+                .build();
+        classBuilder.addMethod(computeProfiles);
+    }
+
+    private void generateHolderClasses(TypeSpec.Builder classBuilder) {
+        classBuilder.addComment("=== HOLDER CLASSES FOR LOCK-FREE SINGLETON ACCESS ===");
+
         for (ComponentInfo comp : components) {
             if (comp.getScope() == ScopeType.SINGLETON && comp.canUseHolderPattern()) {
-                // Simple singleton - use true holder pattern with direct instantiation
                 String holderName = getHolderClassName(comp);
-                String returnType = comp.getClassName();
+                TypeName returnType = ClassName.get(comp.getClassName());
                 String simpleName = getSimpleName(comp);
-                
-                sb.append("    private static final class ").append(holderName).append(" {\n");
-                sb.append("        static final ").append(returnType).append(" INSTANCE = new ").append(simpleName).append("();\n");
-                sb.append("    }\n\n");
+
+                TypeSpec holderClass = TypeSpec.classBuilder(holderName)
+                        .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
+                        .addField(FieldSpec.builder(returnType, "INSTANCE")
+                                .addModifiers(Modifier.STATIC, Modifier.FINAL)
+                                .initializer("new $T()", ClassName.get(comp.getClassName()))
+                                .build())
+                        .build();
+
+                classBuilder.addType(holderClass);
             }
         }
     }
-    
-    private void generateGetMethods(StringBuilder sb) {
-        sb.append("    // === GETTER METHODS ===\n\n");
-        
+
+    private void generateGetMethods(TypeSpec.Builder classBuilder) {
+        classBuilder.addComment("=== GETTER METHODS ===");
+
         // Track generated method names to avoid duplicates
         Set<String> generatedMethodNames = new HashSet<>();
-        
+
         for (ComponentInfo comp : components) {
             String methodName = getGetterMethodName(comp);
-            String returnType = comp.getClassName();
-            
+            TypeName returnType = ClassName.get(comp.getClassName());
+
             // Handle duplicate method names by adding a suffix
             String uniqueMethodName = methodName;
             int suffix = 1;
@@ -235,137 +214,313 @@ public final class VeldSourceGenerator {
                 uniqueMethodName = methodName + "_" + suffix++;
             }
             generatedMethodNames.add(uniqueMethodName);
-            
-            sb.append("    public static ").append(returnType).append(" ").append(uniqueMethodName).append("() {\n");
-            
+
+            MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(uniqueMethodName)
+                    .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                    .returns(returnType);
+
             if (comp.getScope() == ScopeType.SINGLETON) {
                 if (comp.canUseHolderPattern()) {
                     // Simple singleton - use holder pattern (lock-free, direct instantiation)
                     String holderName = getHolderClassName(comp);
-                    sb.append("        return ").append(holderName).append(".INSTANCE;\n");
+                    methodBuilder.addStatement("$N.INSTANCE", holderName);
                 } else {
                     // Complex singleton - use factory (supports DI, lifecycle, conditions, AOP)
-                    sb.append("        return (").append(returnType).append(") _registry.getFactory(").append(returnType).append(".class).create();\n");
+                    methodBuilder.addStatement("($T) _registry.getFactory($T.class).create()", returnType, ClassName.get(comp.getClassName()));
                 }
             } else {
                 // Prototype - always create new via factory
-                sb.append("        return (").append(returnType).append(") _registry.getFactory(").append(returnType).append(".class).create();\n");
+                methodBuilder.addStatement("($T) _registry.getFactory($T.class).create()", returnType, ClassName.get(comp.getClassName()));
             }
-            
-            sb.append("    }\n\n");
+
+            classBuilder.addMethod(methodBuilder.build());
         }
     }
-    
-    private void generateGetByClass(StringBuilder sb) {
-        sb.append("    // === GENERIC GET BY CLASS ===\n\n");
-        sb.append("    @SuppressWarnings(\"unchecked\")\n");
-        sb.append("    public static <T> T get(Class<T> type) {\n");
-        
+
+    private void generateGetByClass(TypeSpec.Builder classBuilder) {
+        classBuilder.addComment("=== GENERIC GET BY CLASS ===");
+
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("get")
+                .addAnnotation(AnnotationSpec.builder(SuppressWarnings.class)
+                        .addMember("value", "$S", "unchecked")
+                        .build())
+                .addTypeVariable(TypeVariableName.get("T"))
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(TypeVariableName.get("T"))
+                .addParameter(ParameterSpec.builder(ClassName.get(Class.class, TypeVariableName.get("T")), "type").build());
+
         // Generate if-else chain for each component type
         for (ComponentInfo comp : components) {
-            sb.append("        if (type == ").append(comp.getClassName()).append(".class) {\n");
-            
+            methodBuilder.beginControlFlow("if (type == $T.class)", ClassName.get(comp.getClassName()));
+
             if (comp.getScope() == ScopeType.SINGLETON && comp.canUseHolderPattern()) {
                 // Simple singleton - use holder pattern
                 String holderName = getHolderClassName(comp);
-                sb.append("            return (T) ").append(holderName).append(".INSTANCE;\n");
+                methodBuilder.addStatement("return ($T) $N.INSTANCE", TypeVariableName.get("T"), holderName);
             } else {
                 // Complex singleton or prototype - use factory
-                sb.append("            return (T) _registry.getFactory(type).create();\n");
+                methodBuilder.addStatement("return ($T) _registry.getFactory(type).create()", TypeVariableName.get("T"));
             }
-            
-            sb.append("        }\n");
+
+            methodBuilder.endControlFlow();
         }
-        
+
         // Also check interfaces
         for (ComponentInfo comp : components) {
             for (String iface : comp.getImplementedInterfaces()) {
-                sb.append("        if (type == ").append(iface).append(".class) {\n");
-                
+                methodBuilder.beginControlFlow("if (type == $T.class)", ClassName.get(iface));
+
                 if (comp.getScope() == ScopeType.SINGLETON && comp.canUseHolderPattern()) {
                     String holderName = getHolderClassName(comp);
-                    sb.append("            return (T) ").append(holderName).append(".INSTANCE;\n");
+                    methodBuilder.addStatement("return ($T) $N.INSTANCE", TypeVariableName.get("T"), holderName);
                 } else {
-                    sb.append("            return (T) _registry.getFactory(type).create();\n");
+                    methodBuilder.addStatement("return ($T) _registry.getFactory(type).create()", TypeVariableName.get("T"));
                 }
-                
-                sb.append("        }\n");
+
+                methodBuilder.endControlFlow();
             }
         }
-        
-        sb.append("        throw new VeldException(\"No component registered for type: \" + type.getName());\n");
-        sb.append("    }\n\n");
+
+        methodBuilder.addStatement("throw new $T(\"No component registered for type: \" + type.getName())", VeldException.class);
+
+        classBuilder.addMethod(methodBuilder.build());
     }
-    
-    private void generateAdditionalGenericMethods(StringBuilder sb) {
-        sb.append("    // === ADDITIONAL GENERIC METHODS ===\n\n");
-        
+
+    private void generateAdditionalGenericMethods(TypeSpec.Builder classBuilder) {
+        classBuilder.addComment("=== ADDITIONAL GENERIC METHODS ===");
+
         // get(Class<T> type, String name)
-        sb.append("    @SuppressWarnings(\"unchecked\")\n");
-        sb.append("    public static <T> T get(Class<T> type, String name) {\n");
-        sb.append("        ComponentFactory<?> factory = _registry.getFactory(name);\n");
-        sb.append("        if (factory != null) {\n");
-        sb.append("            return (T) factory.create();\n");
-        sb.append("        }\n");
-        sb.append("        throw new VeldException(\"No component registered with name: \" + name);\n");
-        sb.append("    }\n\n");
-        
+        MethodSpec getByName = MethodSpec.methodBuilder("get")
+                .addAnnotation(AnnotationSpec.builder(SuppressWarnings.class)
+                        .addMember("value", "$S", "unchecked")
+                        .build())
+                .addTypeVariable(TypeVariableName.get("T"))
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(TypeVariableName.get("T"))
+                .addParameter(ParameterSpec.builder(ClassName.get(Class.class, TypeVariableName.get("T")), "type").build())
+                .addParameter(ParameterSpec.builder(String.class, "name").build())
+                .addStatement("$T<?> factory = _registry.getFactory(name)", ComponentFactory.class)
+                .beginControlFlow("if (factory != null)")
+                .addStatement("return ($T) factory.create()", TypeVariableName.get("T"))
+                .endControlFlow()
+                .addStatement("throw new $T(\"No component registered with name: \" + name)", VeldException.class)
+                .build();
+        classBuilder.addMethod(getByName);
+
         // getAll(Class<T> type)
-        sb.append("    @SuppressWarnings(\"unchecked\")\n");
-        sb.append("    public static <T> List<T> getAll(Class<T> type) {\n");
-        sb.append("        List<ComponentFactory<? extends T>> factories = _registry.getFactoriesForType(type);\n");
-        sb.append("        List<T> instances = new ArrayList<>();\n");
-        sb.append("        for (ComponentFactory<? extends T> factory : factories) {\n");
-        sb.append("            instances.add((T) factory.create());\n");
-        sb.append("        }\n");
-        sb.append("        return instances;\n");
-        sb.append("    }\n\n");
-        
+        MethodSpec getAll = MethodSpec.methodBuilder("getAll")
+                .addAnnotation(AnnotationSpec.builder(SuppressWarnings.class)
+                        .addMember("value", "$S", "unchecked")
+                        .build())
+                .addTypeVariable(TypeVariableName.get("T"))
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(ParameterizedTypeName.get(ClassName.get(List.class), TypeVariableName.get("T")))
+                .addParameter(ParameterSpec.builder(ClassName.get(Class.class, TypeVariableName.get("T")), "type").build())
+                .addStatement("$T<$T<? extends $T>> factories = _registry.getFactoriesForType(type)",
+                        List.class, ComponentFactory.class, TypeVariableName.get("T"))
+                .addStatement("$T<$T> instances = new $T<>()", List.class, TypeVariableName.get("T"), ArrayList.class)
+                .beginControlFlow("for ($T<? extends $T> factory : factories)",
+                        ComponentFactory.class, TypeVariableName.get("T"))
+                .addStatement("instances.add(($T) factory.create())", TypeVariableName.get("T"))
+                .endControlFlow()
+                .addStatement("return instances")
+                .build();
+        classBuilder.addMethod(getAll);
+
         // getProvider(Class<T> type)
-        sb.append("    public static <T> Provider<T> getProvider(Class<T> type) {\n");
-        sb.append("        ComponentFactory<T> factory = _registry.getFactory(type);\n");
-        sb.append("        if (factory != null) {\n");
-        sb.append("            return () -> (T) factory.create();\n");
-        sb.append("        }\n");
-        sb.append("        return () -> { throw new VeldException(\"No component registered for type: \" + type.getName()); };\n");
-        sb.append("    }\n\n");
-        
+        MethodSpec getProvider = MethodSpec.methodBuilder("getProvider")
+                .addTypeVariable(TypeVariableName.get("T"))
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(ParameterizedTypeName.get(ClassName.get(Provider.class), TypeVariableName.get("T")))
+                .addParameter(ParameterSpec.builder(ClassName.get(Class.class, TypeVariableName.get("T")), "type").build())
+                .addStatement("$T<$T> factory = _registry.getFactory(type)", ComponentFactory.class, TypeVariableName.get("T"))
+                .beginControlFlow("if (factory != null)")
+                .addStatement("return () -> ($T) factory.create()", TypeVariableName.get("T"))
+                .endControlFlow()
+                .addStatement("return () -> { throw new $T(\"No component registered for type: \" + type.getName()); };", VeldException.class)
+                .build();
+        classBuilder.addMethod(getProvider);
+
         // getOptional(Class<T> type)
-        sb.append("    @SuppressWarnings(\"unchecked\")\n");
-        sb.append("    public static <T> Optional<T> getOptional(Class<T> type) {\n");
-        sb.append("        ComponentFactory<T> factory = _registry.getFactory(type);\n");
-        sb.append("        if (factory != null) {\n");
-        sb.append("            return Optional.of((T) factory.create());\n");
-        sb.append("        }\n");
-        sb.append("        return Optional.empty();\n");
-        sb.append("    }\n\n");
-        
+        MethodSpec getOptional = MethodSpec.methodBuilder("getOptional")
+                .addAnnotation(AnnotationSpec.builder(SuppressWarnings.class)
+                        .addMember("value", "$S", "unchecked")
+                        .build())
+                .addTypeVariable(TypeVariableName.get("T"))
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(ParameterizedTypeName.get(ClassName.get(Optional.class), TypeVariableName.get("T")))
+                .addParameter(ParameterSpec.builder(ClassName.get(Class.class, TypeVariableName.get("T")), "type").build())
+                .addStatement("$T<$T> factory = _registry.getFactory(type)", ComponentFactory.class, TypeVariableName.get("T"))
+                .beginControlFlow("if (factory != null)")
+                .addStatement("return $T.of(($T) factory.create())", Optional.class, TypeVariableName.get("T"))
+                .endControlFlow()
+                .addStatement("return $T.empty()", Optional.class)
+                .build();
+        classBuilder.addMethod(getOptional);
+
         // contains(Class<?> type)
-        sb.append("    public static boolean contains(Class<?> type) {\n");
-        sb.append("        return _registry.getFactory(type) != null;\n");
-        sb.append("    }\n\n");
-        
+        MethodSpec contains = MethodSpec.methodBuilder("contains")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(boolean.class)
+                .addParameter(ParameterSpec.builder(ClassName.get(Class.class), "type").build())
+                .addStatement("return _registry.getFactory(type) != null")
+                .build();
+        classBuilder.addMethod(contains);
+
         // componentCount()
-        sb.append("    public static int componentCount() {\n");
-        sb.append("        return _registry.getComponentCount();\n");
-        sb.append("    }\n\n");
+        MethodSpec componentCount = MethodSpec.methodBuilder("componentCount")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(int.class)
+                .addStatement("return _registry.getComponentCount()")
+                .build();
+        classBuilder.addMethod(componentCount);
     }
-    
+
+    private void addRegistryAccessorMethod(TypeSpec.Builder classBuilder) {
+        MethodSpec registryAccessor = MethodSpec.methodBuilder("getRegistry")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(ClassName.get(ComponentRegistry.class))
+                .addStatement("return _registry")
+                .build();
+        classBuilder.addMethod(registryAccessor);
+    }
+
+    private void addEventBusAccessorMethod(TypeSpec.Builder classBuilder) {
+        MethodSpec eventBusAccessor = MethodSpec.methodBuilder("getEventBus")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(ClassName.get(EventBus.class))
+                .addStatement("return _eventBus")
+                .build();
+        classBuilder.addMethod(eventBusAccessor);
+    }
+
+    private void addLifecycleProcessorAccessorMethod(TypeSpec.Builder classBuilder) {
+        MethodSpec lifecycleAccessor = MethodSpec.methodBuilder("getLifecycleProcessor")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(ClassName.get(LifecycleProcessor.class))
+                .addStatement("return _lifecycle")
+                .build();
+        classBuilder.addMethod(lifecycleAccessor);
+    }
+
+    private void addShutdownMethod(TypeSpec.Builder classBuilder) {
+        MethodSpec shutdown = MethodSpec.methodBuilder("shutdown")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .addStatement("_lifecycle.destroy()")
+                .build();
+        classBuilder.addMethod(shutdown);
+    }
+
+    private void addInjectMethod(TypeSpec.Builder classBuilder) {
+        MethodSpec.Builder injectMethod = MethodSpec.methodBuilder("inject")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .addParameter(ParameterSpec.builder(ClassName.get(Object.class), "instance").build())
+                .addStatement("if (instance == null) return")
+                .addComment("Use reflection to inject fields - this is only called for factory instances")
+                .addComment("which are created by the generated factory classes themselves")
+                .addStatement("$T<?> clazz = instance.getClass()", Class.class)
+                .beginControlFlow("for ($T field : clazz.getDeclaredFields())", java.lang.reflect.Field.class)
+                .addStatement("if (!$T.isStatic(field.getModifiers()) && !$T.isFinal(field.getModifiers()))",
+                        java.lang.reflect.Modifier.class, java.lang.reflect.Modifier.class)
+                .addStatement("$T injectAnn = field.getAnnotation($T.class)", Inject.class, Inject.class)
+                .addStatement("$T valueAnn = field.getAnnotation($T.class)", Value.class, Value.class)
+                .beginControlFlow("if (injectAnn != null)")
+                .addStatement("try")
+                .addStatement("field.setAccessible(true)")
+                .addStatement("$T<?> fieldType = field.getType()", Class.class)
+                .addStatement("$T value = get(fieldType)", Object.class)
+                .addStatement("field.set(instance, value)")
+                .addStatement("catch ($T e)", Exception.class)
+                .addStatement("throw new $T(\"Failed to inject field: \" + field.getName(), e)", VeldException.class)
+                .endControlFlow()
+                .beginControlFlow("else if (valueAnn != null)")
+                .addStatement("try")
+                .addStatement("field.setAccessible(true)")
+                .addStatement("$T value = resolveValue(valueAnn.value())", Object.class)
+                .addStatement("field.set(instance, value)")
+                .addStatement("catch ($T e)", Exception.class)
+                .addStatement("throw new $T(\"Failed to inject @Value field: \" + field.getName(), e)", VeldException.class)
+                .endControlFlow()
+                .endControlFlow()
+                .endControlFlow()
+                .build();
+
+        classBuilder.addMethod(injectMethod);
+    }
+
+    private void addResolveValueMethod(TypeSpec.Builder classBuilder) {
+        MethodSpec resolveValue = MethodSpec.methodBuilder("resolveValue")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(String.class)
+                .addParameter(ParameterSpec.builder(String.class, "expression").build())
+                .addStatement("return $T.getInstance().resolve(expression)", ValueResolver.class)
+                .build();
+        classBuilder.addMethod(resolveValue);
+    }
+
+    private void addProfileManagementMethods(TypeSpec.Builder classBuilder) {
+        classBuilder.addComment("=== PROFILE MANAGEMENT ===");
+
+        MethodSpec setActiveProfiles = MethodSpec.methodBuilder("setActiveProfiles")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .addParameter(ParameterSpec.builder(String[].class, "profiles").varargs().build())
+                .addStatement("_activeProfiles = profiles != null ? profiles : new $T[0]", String.class)
+                .build();
+        classBuilder.addMethod(setActiveProfiles);
+
+        MethodSpec getActiveProfiles = MethodSpec.methodBuilder("getActiveProfiles")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(String[].class)
+                .addStatement("return _activeProfiles.clone()")
+                .build();
+        classBuilder.addMethod(getActiveProfiles);
+
+        MethodSpec isProfileActive = MethodSpec.methodBuilder("isProfileActive")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(boolean.class)
+                .addParameter(ParameterSpec.builder(String.class, "profile").build())
+                .addStatement("if (profile == null) return false")
+                .beginControlFlow("for ($T p : _activeProfiles)", String.class)
+                .addStatement("if (profile.equals(p)) return true")
+                .endControlFlow()
+                .addStatement("return false")
+                .build();
+        classBuilder.addMethod(isProfileActive);
+    }
+
+    private void addSortByOrderMethod(TypeSpec.Builder classBuilder) {
+        MethodSpec sortByOrder = MethodSpec.methodBuilder("sortByOrder")
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
+                .returns(ParameterizedTypeName.get(ClassName.get(List.class), ClassName.get(ComponentFactory.class)))
+                .addParameter(ParameterSpec.builder(ParameterizedTypeName.get(ClassName.get(List.class), ClassName.get(ComponentFactory.class)), "factories").build())
+                .addStatement("return factories.stream()\n            .sorted($T.comparingInt($T::getOrder))\n            .collect($T.toList())",
+                        Comparator.class, ComponentFactory.class, Collectors.class)
+                .build();
+        classBuilder.addMethod(sortByOrder);
+    }
+
+    private AnnotationSpec createSuppressWarningsAnnotation() {
+        return AnnotationSpec.builder(SuppressWarnings.class)
+                .addMember("value", "$S", "unchecked")
+                .addMember("value", "$S", "rawtypes")
+                .build();
+    }
+
     private String getHolderClassName(ComponentInfo comp) {
         return "Holder_" + getSimpleName(comp);
     }
-    
+
     private String getGetterMethodName(ComponentInfo comp) {
         String simpleName = getSimpleName(comp);
         return decapitalize(simpleName);
     }
-    
+
     private String decapitalize(String name) {
         if (name == null || name.isEmpty()) return name;
         if (name.length() > 1 && Character.isUpperCase(name.charAt(1))) return name;
         return Character.toLowerCase(name.charAt(0)) + name.substring(1);
     }
-    
+
     private String getSimpleName(ComponentInfo comp) {
         String className = comp.getClassName();
         // For inner classes (Outer$Inner), get just the simple name (Inner)
@@ -376,77 +531,5 @@ public final class VeldSourceGenerator {
         // For regular classes (package.Class), get the class name
         int lastDot = className.lastIndexOf('.');
         return lastDot >= 0 ? className.substring(lastDot + 1) : className;
-    }
-    
-    private String capitalize(String name) {
-        if (name == null || name.isEmpty()) return name;
-        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
-    }
-    
-    /**
-     * Gets the getter call for a dependency type.
-     * For unresolved interface dependencies, returns null (to be resolved at runtime).
-     * 
-     * @param typeName the dependency type name
-     * @param component the component being created (to check its unresolved deps)
-     * @return the getter call code
-     */
-    private String getGetterCallForType(String typeName, ComponentInfo component) {
-        // Check if this is an unresolved interface dependency
-        if (component.hasUnresolvedInterfaceDependencies() && 
-            component.getUnresolvedInterfaceDependencies().contains(typeName)) {
-            // For unresolved interface dependencies, return null
-            // These will be resolved at runtime (e.g., via mocks in tests)
-            return "null /* unresolved interface: " + typeName + " */";
-        }
-        
-        // Find the component that matches this type and get its unique method name
-        String methodName = getGetterMethodNameForType(typeName);
-        if (methodName != null) {
-            return methodName;
-        }
-        
-        return "get(" + typeName + ".class)";
-    }
-    
-    /**
-     * Gets the unique getter method name for a given type.
-     * Handles duplicate names by adding suffixes.
-     * 
-     * @param typeName the dependency type name
-     * @return the unique getter method name, or null if not found
-     */
-    private String getGetterMethodNameForType(String typeName) {
-        // First pass: count occurrences to determine suffixes needed
-        int occurrenceCount = 0;
-        ComponentInfo matchedComponent = null;
-        for (ComponentInfo comp : components) {
-            if (comp.getClassName().equals(typeName)) {
-                occurrenceCount++;
-                matchedComponent = comp;
-            }
-            for (String iface : comp.getImplementedInterfaces()) {
-                if (iface.equals(typeName)) {
-                    occurrenceCount++;
-                    matchedComponent = comp;
-                }
-            }
-        }
-        
-        if (occurrenceCount == 0) {
-            return null;
-        }
-        
-        // Generate unique method name
-        String baseMethodName = getGetterMethodName(matchedComponent);
-        
-        if (occurrenceCount == 1) {
-            return baseMethodName + "()";
-        }
-        
-        // Multiple components with same name - need to find the correct one
-        // Use class name hash to make unique suffix
-        int hash = typeName.hashCode() & 0xFFFF;
-        return baseMethodName + "_" + hash + "()";
     }
 }

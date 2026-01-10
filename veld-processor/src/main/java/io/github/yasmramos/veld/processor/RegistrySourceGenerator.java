@@ -1,26 +1,47 @@
 package io.github.yasmramos.veld.processor;
 
-import java.util.*;
+import com.squareup.javapoet.AnnotationSpec;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.TypeVariableName;
+import io.github.yasmramos.veld.VeldRegistry;
+import io.github.yasmramos.veld.annotation.ScopeType;
+import io.github.yasmramos.veld.runtime.ComponentFactory;
+import io.github.yasmramos.veld.runtime.ComponentRegistry;
+
+import javax.annotation.processing.SuppressWarnings;
+import javax.lang.model.element.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Generates VeldRegistry.java source code instead of bytecode.
  */
 public final class RegistrySourceGenerator {
-    
+
     private final List<ComponentInfo> components;
     private final List<FactoryInfo> factories;
     private final Map<String, List<Integer>> supertypeIndices = new HashMap<>();
-    
+
     public RegistrySourceGenerator(List<ComponentInfo> components) {
         this(components, new ArrayList<>());
     }
-    
+
     public RegistrySourceGenerator(List<ComponentInfo> components, List<FactoryInfo> factories) {
         this.components = components;
         this.factories = factories;
         buildSupertypeIndices();
     }
-    
+
     private void buildSupertypeIndices() {
         for (int i = 0; i < components.size(); i++) {
             ComponentInfo comp = components.get(i);
@@ -30,133 +51,201 @@ public final class RegistrySourceGenerator {
             }
         }
     }
-    
+
     private void addSupertypeIndex(String type, int index) {
         supertypeIndices.computeIfAbsent(type, k -> new ArrayList<>()).add(index);
     }
-    
+
     public String getClassName() {
         return "io.github.yasmramos.veld.VeldRegistry";
     }
-    
-    public String generate() {
-        StringBuilder sb = new StringBuilder();
 
-        // Package declaration - generate in veld package to match Veld.java
-        sb.append("package io.github.yasmramos.veld;\n\n");
+    public JavaFile generate() {
+        // Build the class using JavaPoet
+        TypeSpec.Builder classBuilder = TypeSpec.classBuilder("VeldRegistry")
+                .superclass(ClassName.get(ComponentRegistry.class))
+                .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+                .addJavadoc(
+                        "Generated component registry for Veld DI container.\n" +
+                        "This class is auto-generated - do not modify.\n")
+                .addAnnotation(createSuppressWarningsAnnotation());
 
-        // Import factories using fully qualified names to avoid package conflicts
-        // Each factory is now in its original component's package
-        sb.append("import io.github.yasmramos.veld.runtime.ComponentFactory;\n");
-        sb.append("import io.github.yasmramos.veld.runtime.ComponentRegistry;\n");
-        sb.append("import io.github.yasmramos.veld.annotation.ScopeType;\n");
-        sb.append("import java.util.*;\n\n");
-        
-        // Class declaration
-        sb.append("/**\n");
-        sb.append(" * Generated component registry for Veld DI container.\n");
-        sb.append(" * This class is auto-generated - do not modify.\n");
-        sb.append(" */\n");
-        sb.append("@SuppressWarnings({\"unchecked\", \"rawtypes\"})\n");
-        sb.append("public final class VeldRegistry implements ComponentRegistry {\n\n");
-        
         // Static fields
-        sb.append("    private static final IdentityHashMap<Class<?>, Integer> TYPE_INDICES = new IdentityHashMap<>();\n");
-        sb.append("    private static final HashMap<String, Integer> NAME_INDICES = new HashMap<>();\n");
-        sb.append("    private static final String[] SCOPES;\n");
-        sb.append("    private static final boolean[] LAZY_FLAGS;\n");
-        sb.append("    private static final HashMap<Class<?>, int[]> SUPERTYPE_INDICES = new HashMap<>();\n\n");
-        
+        addStaticFields(classBuilder);
+
         // Instance fields
-        sb.append("    private final ComponentFactory<?>[] factories;\n");
-        sb.append("    private final Map<Class<?>, ComponentFactory<?>> factoriesByType = new HashMap<>();\n");
-        sb.append("    private final Map<String, ComponentFactory<?>> factoriesByName = new HashMap<>();\n");
-        sb.append("    private final Map<Class<?>, List<ComponentFactory<?>>> factoriesBySupertype = new HashMap<>();\n\n");
-        
+        addInstanceFields(classBuilder);
+
         // Static initializer
-        generateStaticInitializer(sb);
-        
+        addStaticInitializer(classBuilder);
+
         // Constructor
-        generateConstructor(sb);
-        
+        addConstructor(classBuilder);
+
         // Methods
-        generateGetIndexByType(sb);
-        generateGetIndexByName(sb);
-        generateGetComponentCount(sb);
-        generateGetScope(sb);
-        generateIsLazy(sb);
-        generateCreate(sb);
-        generateGetIndicesForType(sb);
-        generateInvokePostConstruct(sb);
-        generateInvokePreDestroy(sb);
-        generateGetAllFactories(sb);
-        generateGetFactoryByType(sb);
-        generateGetFactoryByName(sb);
-        generateGetFactoriesForType(sb);
-        
-        // Close class
-        sb.append("}\n");
-        
-        return sb.toString();
+        addGetIndexByType(classBuilder);
+        addGetIndexByName(classBuilder);
+        addGetComponentCount(classBuilder);
+        addGetScope(classBuilder);
+        addIsLazy(classBuilder);
+        addCreate(classBuilder);
+        addGetIndicesForType(classBuilder);
+        addInvokePostConstruct(classBuilder);
+        addInvokePreDestroy(classBuilder);
+        addGetAllFactories(classBuilder);
+        addGetFactoryByType(classBuilder);
+        addGetFactoryByName(classBuilder);
+        addGetFactoriesForType(classBuilder);
+
+        // Build JavaFile
+        JavaFile.Builder javaFileBuilder = JavaFile.builder("io.github.yasmramos.veld", classBuilder.build());
+
+        return javaFileBuilder.build();
     }
-    
-    private void generateStaticInitializer(StringBuilder sb) {
-        sb.append("    static {\n");
-        
+
+    private void addStaticFields(TypeSpec.Builder classBuilder) {
         // TYPE_INDICES
+        FieldSpec typeIndicesField = FieldSpec.builder(ParameterizedTypeName.get(
+                ClassName.get(IdentityHashMap.class), ClassName.get(Class.class), Integer.class), "TYPE_INDICES")
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                .initializer("new $T<>()", IdentityHashMap.class)
+                .build();
+        classBuilder.addField(typeIndicesField);
+
+        // NAME_INDICES
+        FieldSpec nameIndicesField = FieldSpec.builder(ParameterizedTypeName.get(
+                ClassName.get(HashMap.class), ClassName.get(String.class), Integer.class), "NAME_INDICES")
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                .initializer("new $T<>()", HashMap.class)
+                .build();
+        classBuilder.addField(nameIndicesField);
+
+        // SCOPES
+        FieldSpec scopesField = FieldSpec.builder(String[].class, "SCOPES")
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                .build();
+        classBuilder.addField(scopesField);
+
+        // LAZY_FLAGS
+        FieldSpec lazyFlagsField = FieldSpec.builder(boolean[].class, "LAZY_FLAGS")
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                .build();
+        classBuilder.addField(lazyFlagsField);
+
+        // SUPERTYPE_INDICES
+        FieldSpec supertypeIndicesField = FieldSpec.builder(ParameterizedTypeName.get(
+                ClassName.get(HashMap.class), ClassName.get(Class.class), TypeName.get(int[].class)), "SUPERTYPE_INDICES")
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                .initializer("new $T<>()", HashMap.class)
+                .build();
+        classBuilder.addField(supertypeIndicesField);
+    }
+
+    private void addInstanceFields(TypeSpec.Builder classBuilder) {
+        // factories array
+        FieldSpec factoriesField = FieldSpec.builder(ParameterizedTypeName.get(
+                ClassName.get(ComponentFactory.class), TypeVariableName.get("?")), "factories")
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
+                .initializer("new $T[$L]", ComponentFactory.class, components.size())
+                .build();
+        classBuilder.addField(factoriesField);
+
+        // factoriesByType map
+        FieldSpec factoriesByTypeField = FieldSpec.builder(ParameterizedTypeName.get(
+                ClassName.get(HashMap.class), ClassName.get(Class.class), ParameterizedTypeName.get(
+                        ClassName.get(ComponentFactory.class), TypeVariableName.get "?"))), "factoriesByType")
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
+                .initializer("new $T<>()", HashMap.class)
+                .build();
+        classBuilder.addField(factoriesByTypeField);
+
+        // factoriesByName map
+        FieldSpec factoriesByNameField = FieldSpec.builder(ParameterizedTypeName.get(
+                ClassName.get(HashMap.class), ClassName.get(String.class), ParameterizedTypeName.get(
+                        ClassName.get(ComponentFactory.class), TypeVariableName.get("?"))), "factoriesByName")
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
+                .initializer("new $T<>()", HashMap.class)
+                .build();
+        classBuilder.addField(factoriesByNameField);
+
+        // factoriesBySupertype map
+        FieldSpec factoriesBySupertypeField = FieldSpec.builder(ParameterizedTypeName.get(
+                ClassName.get(HashMap.class), ClassName.get(Class.class), ParameterizedTypeName.get(
+                        ClassName.get(List.class), ParameterizedTypeName.get(
+                                ClassName.get(ComponentFactory.class), TypeVariableName.get("?")))), "factoriesBySupertype")
+                .addModifiers(Modifier.PRIVATE, Modifier.FINAL)
+                .initializer("new $T<>()", HashMap.class)
+                .build();
+        classBuilder.addField(factoriesBySupertypeField);
+    }
+
+    private void addStaticInitializer(TypeSpec.Builder classBuilder) {
+        MethodSpec staticInitializer = MethodSpec.staticInitializerBuilder().build();
+
+        StringBuilder typeIndicesInit = new StringBuilder();
         for (int i = 0; i < components.size(); i++) {
             ComponentInfo comp = components.get(i);
-            sb.append("        TYPE_INDICES.put(").append(toSourceName(comp.getClassName())).append(".class, ").append(i).append(");\n");
+            typeIndicesInit.append("        TYPE_INDICES.put(").append(toSourceName(comp.getClassName())).append(".class, ").append(i).append(");\n");
             for (String iface : comp.getImplementedInterfaces()) {
-                sb.append("        TYPE_INDICES.put(").append(toSourceName(iface)).append(".class, ").append(i).append(");\n");
+                typeIndicesInit.append("        TYPE_INDICES.put(").append(toSourceName(iface)).append(".class, ").append(i).append(");\n");
             }
         }
-        sb.append("\n");
-        
-        // NAME_INDICES
+
+        StringBuilder nameIndicesInit = new StringBuilder();
         for (int i = 0; i < components.size(); i++) {
             ComponentInfo comp = components.get(i);
-            sb.append("        NAME_INDICES.put(\"").append(comp.getComponentName()).append("\", ").append(i).append(");\n");
+            nameIndicesInit.append("        NAME_INDICES.put(\"").append(comp.getComponentName()).append("\", ").append(i).append(");\n");
         }
-        sb.append("\n");
-        
-        // SCOPES
-        sb.append("        SCOPES = new String[] {\n");
+
+        StringBuilder scopesInit = new StringBuilder();
+        scopesInit.append("        SCOPES = new String[] {\n");
         for (int i = 0; i < components.size(); i++) {
             ComponentInfo comp = components.get(i);
             String scopeId = comp.getScopeId();
-            sb.append("            \"").append(scopeId).append("\"");
-            if (i < components.size() - 1) sb.append(",");
-            sb.append("\n");
+            scopesInit.append("            \"").append(scopeId).append("\"");
+            if (i < components.size() - 1) scopesInit.append(",");
+            scopesInit.append("\n");
         }
-        sb.append("        };\n\n");
-        
-        // LAZY_FLAGS
-        sb.append("        LAZY_FLAGS = new boolean[] {");
+        scopesInit.append("        };\n");
+
+        StringBuilder lazyFlagsInit = new StringBuilder();
+        lazyFlagsInit.append("        LAZY_FLAGS = new boolean[] {");
         for (int i = 0; i < components.size(); i++) {
-            if (i > 0) sb.append(", ");
-            sb.append(components.get(i).isLazy());
+            if (i > 0) lazyFlagsInit.append(", ");
+            lazyFlagsInit.append(components.get(i).isLazy());
         }
-        sb.append("};\n\n");
-        
-        // SUPERTYPE_INDICES
+        lazyFlagsInit.append("};\n");
+
+        StringBuilder supertypeIndicesInit = new StringBuilder();
         for (Map.Entry<String, List<Integer>> entry : supertypeIndices.entrySet()) {
             String type = entry.getKey();
             List<Integer> indices = entry.getValue();
-            sb.append("        SUPERTYPE_INDICES.put(").append(toSourceName(type)).append(".class, new int[] {");
+            supertypeIndicesInit.append("        SUPERTYPE_INDICES.put(").append(toSourceName(type)).append(".class, new int[] {");
             for (int i = 0; i < indices.size(); i++) {
-                if (i > 0) sb.append(", ");
-                sb.append(indices.get(i));
+                if (i > 0) supertypeIndicesInit.append(", ");
+                supertypeIndicesInit.append(indices.get(i));
             }
-            sb.append("});\n");
+            supertypeIndicesInit.append("});\n");
         }
-        
-        sb.append("    }\n\n");
+
+        // Build the static initializer with all statements
+        MethodSpec.Builder staticInitBuilder = MethodSpec.staticInitializerBuilder()
+                .addCode(typeIndicesInit.toString())
+                .addCode("\n")
+                .addCode(nameIndicesInit.toString())
+                .addCode("\n")
+                .addCode(scopesInit.toString())
+                .addCode("\n")
+                .addCode(lazyFlagsInit.toString())
+                .addCode("\n")
+                .addCode(supertypeIndicesInit.toString());
+
+        classBuilder.addInitializer(staticInitBuilder.build());
     }
-    
-    private void generateConstructor(StringBuilder sb) {
-        sb.append("    public VeldRegistry() {\n");
-        sb.append("        factories = new ComponentFactory[").append(components.size()).append("];\n");
+
+    private void addConstructor(TypeSpec.Builder classBuilder) {
+        MethodSpec.Builder constructorBuilder = MethodSpec.constructorBuilder()
+                .addStatement("factories = new $T[$L]", ComponentFactory.class, components.size());
 
         for (int i = 0; i < components.size(); i++) {
             ComponentInfo comp = components.get(i);
@@ -164,129 +253,209 @@ public final class RegistrySourceGenerator {
             // Instantiate the generated factory class for this component
             // Factory is in the same package as the original component
             String factoryClassName = comp.getFactoryClassName();
-            sb.append("        factories[").append(i).append("] = new ").append(factoryClassName).append("();\n");
+            constructorBuilder.addStatement("factories[$L] = new $T()", i, ClassName.get(factoryClassName));
 
-            sb.append("        factoriesByType.put(").append(toSourceName(comp.getClassName())).append(".class, factories[").append(i).append("]);\n");
-            sb.append("        factoriesByName.put(\"").append(comp.getComponentName()).append("\", factories[").append(i).append("]);\n");
+            constructorBuilder.addStatement("factoriesByType.put($T.class, factories[$L])",
+                    ClassName.get(comp.getClassName()), i);
+            constructorBuilder.addStatement("factoriesByName.put($S, factories[$L])", comp.getComponentName(), i);
 
             // Register interfaces
             for (String iface : comp.getImplementedInterfaces()) {
-                sb.append("        factoriesByType.put(").append(toSourceName(iface)).append(".class, factories[").append(i).append("]);\n");
+                constructorBuilder.addStatement("factoriesByType.put($T.class, factories[$L])",
+                        ClassName.get(iface), i);
             }
 
             // Register in supertype map
-            sb.append("        factoriesBySupertype.computeIfAbsent(").append(toSourceName(comp.getClassName()))
-              .append(".class, k -> new ArrayList<>()).add(factories[").append(i).append("]);\n");
+            constructorBuilder.addStatement("factoriesBySupertype.computeIfAbsent($T.class, k -> new $T<>()).add(factories[$L])",
+                    ClassName.get(comp.getClassName()), ArrayList.class, i);
             for (String iface : comp.getImplementedInterfaces()) {
-                sb.append("        factoriesBySupertype.computeIfAbsent(").append(toSourceName(iface))
-                  .append(".class, k -> new ArrayList<>()).add(factories[").append(i).append("]);\n");
+                constructorBuilder.addStatement("factoriesBySupertype.computeIfAbsent($T.class, k -> new $T<>()).add(factories[$L])",
+                        ClassName.get(iface), ArrayList.class, i);
             }
         }
 
-        sb.append("    }\n\n");
+        classBuilder.addMethod(constructorBuilder.build());
     }
-    
-    private void generateGetIndexByType(StringBuilder sb) {
-        sb.append("    @Override\n");
-        sb.append("    public int getIndex(Class<?> type) {\n");
-        sb.append("        Integer idx = TYPE_INDICES.get(type);\n");
-        sb.append("        return idx != null ? idx : -1;\n");
-        sb.append("    }\n\n");
+
+    private void addGetIndexByType(TypeSpec.Builder classBuilder) {
+        MethodSpec getIndexByType = MethodSpec.methodBuilder("getIndex")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(int.class)
+                .addParameter(ClassName.get(Class.class), "type")
+                .addStatement("$T idx = TYPE_INDICES.get(type)", Integer.class)
+                .addStatement("return idx != null ? idx : -1")
+                .build();
+        classBuilder.addMethod(getIndexByType);
     }
-    
-    private void generateGetIndexByName(StringBuilder sb) {
-        sb.append("    @Override\n");
-        sb.append("    public int getIndex(String name) {\n");
-        sb.append("        Integer idx = NAME_INDICES.get(name);\n");
-        sb.append("        return idx != null ? idx : -1;\n");
-        sb.append("    }\n\n");
+
+    private void addGetIndexByName(TypeSpec.Builder classBuilder) {
+        MethodSpec getIndexByName = MethodSpec.methodBuilder("getIndex")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(int.class)
+                .addParameter(ClassName.get(String.class), "name")
+                .addStatement("$T idx = NAME_INDICES.get(name)", Integer.class)
+                .addStatement("return idx != null ? idx : -1")
+                .build();
+        classBuilder.addMethod(getIndexByName);
     }
-    
-    private void generateGetComponentCount(StringBuilder sb) {
-        sb.append("    @Override\n");
-        sb.append("    public int getComponentCount() {\n");
-        sb.append("        return ").append(components.size()).append(";\n");
-        sb.append("    }\n\n");
+
+    private void addGetComponentCount(TypeSpec.Builder classBuilder) {
+        MethodSpec getComponentCount = MethodSpec.methodBuilder("getComponentCount")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(int.class)
+                .addStatement("return $L", components.size())
+                .build();
+        classBuilder.addMethod(getComponentCount);
     }
-    
-    private void generateGetScope(StringBuilder sb) {
-        sb.append("    @Override\n");
-        sb.append("    public ScopeType getScope(int index) {\n");
-        sb.append("        return ScopeType.fromScopeId(SCOPES[index]);\n");
-        sb.append("    }\n\n");
+
+    private void addGetScope(TypeSpec.Builder classBuilder) {
+        MethodSpec getScope = MethodSpec.methodBuilder("getScope")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(ScopeType.class)
+                .addParameter(int.class, "index")
+                .addStatement("return $T.fromScopeId(SCOPES[index])", ScopeType.class)
+                .build();
+        classBuilder.addMethod(getScope);
     }
-    
-    private void generateIsLazy(StringBuilder sb) {
-        sb.append("    @Override\n");
-        sb.append("    public boolean isLazy(int index) {\n");
-        sb.append("        return LAZY_FLAGS[index];\n");
-        sb.append("    }\n\n");
+
+    private void addIsLazy(TypeSpec.Builder classBuilder) {
+        MethodSpec isLazy = MethodSpec.methodBuilder("isLazy")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(boolean.class)
+                .addParameter(int.class, "index")
+                .addStatement("return LAZY_FLAGS[index]")
+                .build();
+        classBuilder.addMethod(isLazy);
     }
-    
-    private void generateCreate(StringBuilder sb) {
-        sb.append("    @Override\n");
-        sb.append("    @SuppressWarnings(\"unchecked\")\n");
-        sb.append("    public <T> T create(int index) {\n");
-        sb.append("        return (T) factories[index].create();\n");
-        sb.append("    }\n\n");
+
+    private void addCreate(TypeSpec.Builder classBuilder) {
+        MethodSpec create = MethodSpec.methodBuilder("create")
+                .addAnnotation(Override.class)
+                .addAnnotation(AnnotationSpec.builder(SuppressWarnings.class)
+                        .addMember("value", "$S", "unchecked")
+                        .build())
+                .addTypeVariable(TypeVariableName.get("T"))
+                .addModifiers(Modifier.PUBLIC)
+                .returns(TypeVariableName.get("T"))
+                .addParameter(int.class, "index")
+                .addStatement("return ($T) factories[index].create()", TypeVariableName.get("T"))
+                .build();
+        classBuilder.addMethod(create);
     }
-    
-    private void generateGetIndicesForType(StringBuilder sb) {
-        sb.append("    @Override\n");
-        sb.append("    public int[] getIndicesForType(Class<?> type) {\n");
-        sb.append("        int[] indices = SUPERTYPE_INDICES.get(type);\n");
-        sb.append("        return indices != null ? indices : new int[0];\n");
-        sb.append("    }\n\n");
+
+    private void addGetIndicesForType(TypeSpec.Builder classBuilder) {
+        MethodSpec getIndicesForType = MethodSpec.methodBuilder("getIndicesForType")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(int[].class)
+                .addParameter(ClassName.get(Class.class), "type")
+                .addStatement("int[] indices = SUPERTYPE_INDICES.get(type)")
+                .addStatement("return indices != null ? indices : new int[0]")
+                .build();
+        classBuilder.addMethod(getIndicesForType);
     }
-    
-    private void generateInvokePostConstruct(StringBuilder sb) {
-        sb.append("    @Override\n");
-        sb.append("    @SuppressWarnings(\"unchecked\")\n");
-        sb.append("    public void invokePostConstruct(int index, Object instance) {\n");
-        sb.append("        ((ComponentFactory<Object>) factories[index]).invokePostConstruct(instance);\n");
-        sb.append("    }\n\n");
+
+    private void addInvokePostConstruct(TypeSpec.Builder classBuilder) {
+        MethodSpec invokePostConstruct = MethodSpec.methodBuilder("invokePostConstruct")
+                .addAnnotation(Override.class)
+                .addAnnotation(AnnotationSpec.builder(SuppressWarnings.class)
+                        .addMember("value", "$S", "unchecked")
+                        .build())
+                .addModifiers(Modifier.PUBLIC)
+                .returns(void.class)
+                .addParameter(int.class, "index")
+                .addParameter(ClassName.get(Object.class), "instance")
+                .addStatement("((ComponentFactory<Object>) factories[index]).invokePostConstruct(instance)")
+                .build();
+        classBuilder.addMethod(invokePostConstruct);
     }
-    
-    private void generateInvokePreDestroy(StringBuilder sb) {
-        sb.append("    @Override\n");
-        sb.append("    @SuppressWarnings(\"unchecked\")\n");
-        sb.append("    public void invokePreDestroy(int index, Object instance) {\n");
-        sb.append("        ((ComponentFactory<Object>) factories[index]).invokePreDestroy(instance);\n");
-        sb.append("    }\n\n");
+
+    private void addInvokePreDestroy(TypeSpec.Builder classBuilder) {
+        MethodSpec invokePreDestroy = MethodSpec.methodBuilder("invokePreDestroy")
+                .addAnnotation(Override.class)
+                .addAnnotation(AnnotationSpec.builder(SuppressWarnings.class)
+                        .addMember("value", "$S", "unchecked")
+                        .build())
+                .addModifiers(Modifier.PUBLIC)
+                .returns(void.class)
+                .addParameter(int.class, "index")
+                .addParameter(ClassName.get(Object.class), "instance")
+                .addStatement("((ComponentFactory<Object>) factories[index]).invokePreDestroy(instance)")
+                .build();
+        classBuilder.addMethod(invokePreDestroy);
     }
-    
-    private void generateGetAllFactories(StringBuilder sb) {
-        sb.append("    @Override\n");
-        sb.append("    public List<ComponentFactory<?>> getAllFactories() {\n");
-        sb.append("        return new ArrayList<>(Arrays.asList(factories));\n");
-        sb.append("    }\n\n");
+
+    private void addGetAllFactories(TypeSpec.Builder classBuilder) {
+        MethodSpec getAllFactories = MethodSpec.methodBuilder("getAllFactories")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(ParameterizedTypeName.get(ClassName.get(List.class),
+                        ParameterizedTypeName.get(ClassName.get(ComponentFactory.class), TypeVariableName.get("?"))))
+                .addStatement("return new $T<>($T.asList(factories))", ArrayList.class, Arrays.class)
+                .build();
+        classBuilder.addMethod(getAllFactories);
     }
-    
-    private void generateGetFactoryByType(StringBuilder sb) {
-        sb.append("    @Override\n");
-        sb.append("    @SuppressWarnings(\"unchecked\")\n");
-        sb.append("    public <T> ComponentFactory<T> getFactory(Class<T> type) {\n");
-        sb.append("        return (ComponentFactory<T>) factoriesByType.get(type);\n");
-        sb.append("    }\n\n");
+
+    private void addGetFactoryByType(TypeSpec.Builder classBuilder) {
+        MethodSpec getFactoryByType = MethodSpec.methodBuilder("getFactory")
+                .addAnnotation(Override.class)
+                .addAnnotation(AnnotationSpec.builder(SuppressWarnings.class)
+                        .addMember("value", "$S", "unchecked")
+                        .build())
+                .addTypeVariable(TypeVariableName.get("T"))
+                .addModifiers(Modifier.PUBLIC)
+                .returns(ParameterizedTypeName.get(ClassName.get(ComponentFactory.class), TypeVariableName.get("T")))
+                .addParameter(ParameterizedTypeName.get(ClassName.get(Class.class), TypeVariableName.get("T")), "type")
+                .addStatement("return ($T) factoriesByType.get(type)", ParameterizedTypeName.get(
+                        ClassName.get(ComponentFactory.class), TypeVariableName.get("T")))
+                .build();
+        classBuilder.addMethod(getFactoryByType);
     }
-    
-    private void generateGetFactoryByName(StringBuilder sb) {
-        sb.append("    @Override\n");
-        sb.append("    public ComponentFactory<?> getFactory(String name) {\n");
-        sb.append("        return factoriesByName.get(name);\n");
-        sb.append("    }\n\n");
+
+    private void addGetFactoryByName(TypeSpec.Builder classBuilder) {
+        MethodSpec getFactoryByName = MethodSpec.methodBuilder("getFactory")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(ParameterizedTypeName.get(ClassName.get(ComponentFactory.class), TypeVariableName.get("?")))
+                .addParameter(ClassName.get(String.class), "name")
+                .addStatement("return factoriesByName.get(name)")
+                .build();
+        classBuilder.addMethod(getFactoryByName);
     }
-    
-    private void generateGetFactoriesForType(StringBuilder sb) {
-        sb.append("    @Override\n");
-        sb.append("    @SuppressWarnings(\"unchecked\")\n");
-        sb.append("    public <T> List<ComponentFactory<? extends T>> getFactoriesForType(Class<T> type) {\n");
-        sb.append("        List<ComponentFactory<?>> list = factoriesBySupertype.get(type);\n");
-        sb.append("        if (list == null) {\n");
-        sb.append("            return Collections.emptyList();\n");
-        sb.append("        }\n");
-        sb.append("        return (List) new ArrayList<>(list);\n");
-        sb.append("    }\n\n");
+
+    private void addGetFactoriesForType(TypeSpec.Builder classBuilder) {
+        MethodSpec getFactoriesForType = MethodSpec.methodBuilder("getFactoriesForType")
+                .addAnnotation(Override.class)
+                .addAnnotation(AnnotationSpec.builder(SuppressWarnings.class)
+                        .addMember("value", "$S", "unchecked")
+                        .build())
+                .addTypeVariable(TypeVariableName.get("T"))
+                .addModifiers(Modifier.PUBLIC)
+                .returns(ParameterizedTypeName.get(ClassName.get(List.class),
+                        ParameterizedTypeName.get(ClassName.get(ComponentFactory.class),
+                                TypeVariableName.get("T"))))
+                .addParameter(ParameterizedTypeName.get(ClassName.get(Class.class), TypeVariableName.get("T")), "type")
+                .addStatement("$T<?> list = factoriesBySupertype.get(type)", List.class)
+                .beginControlFlow("if (list == null)")
+                .addStatement("return $T.emptyList()", java.util.Collections.class)
+                .endControlFlow()
+                .addStatement("return ($T) new $T<>(list)", ParameterizedTypeName.get(
+                        ClassName.get(List.class), ParameterizedTypeName.get(
+                                ClassName.get(ComponentFactory.class), TypeVariableName.get("T"))), ArrayList.class)
+                .build();
+        classBuilder.addMethod(getFactoriesForType);
+    }
+
+    private AnnotationSpec createSuppressWarningsAnnotation() {
+        return AnnotationSpec.builder(SuppressWarnings.class)
+                .addMember("value", "$S", "unchecked")
+                .addMember("value", "$S", "rawtypes")
+                .build();
     }
 
     /**
@@ -300,7 +469,7 @@ public final class RegistrySourceGenerator {
     private String toSourceName(String binaryName) {
         return binaryName.replace('$', '.');
     }
-    
+
     /**
      * Extracts the package name from a fully qualified class name.
      * Factory names have format: io.github.pkg.Class$$VeldFactory$H<hash>

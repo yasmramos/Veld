@@ -1,6 +1,21 @@
 package io.github.yasmramos.veld.processor;
 
+import com.squareup.javapoet.AnnotationSpec;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.TypeVariableName;
+import io.github.yasmramos.veld.Veld;
 import io.github.yasmramos.veld.annotation.ScopeType;
+import io.github.yasmramos.veld.runtime.ComponentFactory;
+
+import javax.annotation.processing.SuppressWarnings;
+import javax.lang.model.element.Modifier;
 import java.util.List;
 
 /**
@@ -28,177 +43,234 @@ public final class BeanFactorySourceGenerator {
         return beanMethod.getReturnType() + "$$VeldBeanFactory$" + beanIndex;
     }
 
-    public String generate() {
-        StringBuilder sb = new StringBuilder();
-
+    public JavaFile generate() {
         String packageName = getPackageName(beanMethod.getReturnType());
         String returnTypeSimple = getSimpleName(beanMethod.getReturnType());
         String factorySimpleName = returnTypeSimple + "$$VeldBeanFactory$" + beanIndex;
         String factoryClassName = beanMethod.getReturnType() + "$$VeldBeanFactory$" + beanIndex;
-        String factoryInternalName = beanMethod.getReturnType().replace('.', '/') + "$$VeldBeanFactory$" + beanIndex;
+        TypeName beanType = ClassName.get(beanMethod.getReturnType());
+        TypeName factoryClassType = ClassName.get(factory.getFactoryClassName());
 
-        // Package declaration
-        if (packageName != null && !packageName.isEmpty()) {
-            sb.append("package ").append(packageName).append(";\n\n");
-        }
+        // Build class declaration with Javadoc
+        TypeSpec.Builder classBuilder = TypeSpec.classBuilder(factorySimpleName)
+                .superclass(ParameterizedTypeName.get(
+                        ClassName.get(ComponentFactory.class),
+                        TypeVariableName.get(beanMethod.getReturnType())))
+                .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+                .addJavadoc(
+                        "Generated factory for @Bean method: $1S\n" +
+                        "Factory class: $2S\n" +
+                        "Bean type: $3S\n",
+                        beanMethod.getMethodName(),
+                        factory.getFactoryClassName(),
+                        beanMethod.getReturnType())
+                .addAnnotation(createSuppressWarningsAnnotation());
 
-        // Imports
-        sb.append("import io.github.yasmramos.veld.Veld;\n");
-        sb.append("import io.github.yasmramos.veld.runtime.ComponentFactory;\n");
-        sb.append("import io.github.yasmramos.veld.annotation.ScopeType;\n");
-        sb.append("import java.util.List;\n");
-        sb.append("import java.util.Arrays;\n\n");
+        // Add factory instance field (singleton pattern)
+        FieldSpec factoryField = FieldSpec.builder(factoryClassType, "factoryInstance")
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.VOLATILE)
+                .build();
+        classBuilder.addField(factoryField);
 
-        // Class declaration
-        sb.append("/**\n");
-        sb.append(" * Generated factory for @Bean method: ").append(beanMethod.getMethodName()).append("\n");
-        sb.append(" * Factory class: ").append(factory.getFactoryClassName()).append("\n");
-        sb.append(" * Bean type: ").append(beanMethod.getReturnType()).append("\n");
-        sb.append(" */\n");
-        sb.append("@SuppressWarnings({\"unchecked\", \"rawtypes\"})\n");
-        sb.append("public final class ").append(factorySimpleName);
-        sb.append(" implements ComponentFactory<").append(beanMethod.getReturnType()).append("> {\n\n");
+        // Add constructor
+        MethodSpec constructor = MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PUBLIC)
+                .build();
+        classBuilder.addMethod(constructor);
 
-        // Factory instance reference (singleton pattern for the factory class itself)
-        sb.append("    // Factory class singleton for invoking @Bean method\n");
-        sb.append("    private static volatile ").append(factory.getFactoryClassName()).append(" factoryInstance;\n\n");
+        // Add getFactoryClass() method
+        MethodSpec getFactoryClassMethod = MethodSpec.methodBuilder("getFactoryClass")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(Class.class)
+                .addStatement("return $T.class", factory.getFactoryClassName())
+                .build();
+        classBuilder.addMethod(getFactoryClassMethod);
 
-        // Constructor
-        sb.append("    public ").append(factorySimpleName).append("() {}\n\n");
+        // Add getBeanMethodName() method
+        MethodSpec getBeanMethodNameMethod = MethodSpec.methodBuilder("getBeanMethodName")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(String.class)
+                .addStatement("return $S", beanMethod.getMethodName())
+                .build();
+        classBuilder.addMethod(getBeanMethodNameMethod);
 
-        // getFactoryClass() - returns the factory class that contains this @Bean method
-        sb.append("    @Override\n");
-        sb.append("    public Class<?> getFactoryClass() {\n");
-        sb.append("        return ").append(factory.getFactoryClassName()).append(".class;\n");
-        sb.append("    }\n\n");
+        // Add create() method
+        MethodSpec createMethod = generateCreateMethod(factorySimpleName, factoryClassName, beanType);
+        classBuilder.addMethod(createMethod);
 
-        // getBeanMethodName() - returns the name of the @Bean method
-        sb.append("    @Override\n");
-        sb.append("    public String getBeanMethodName() {\n");
-        sb.append("        return \"").append(beanMethod.getMethodName()).append("\";\n");
-        sb.append("    }\n\n");
+        // Add getComponentType() method
+        MethodSpec getComponentTypeMethod = MethodSpec.methodBuilder("getComponentType")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(ParameterizedTypeName.get(ClassName.get(Class.class), TypeVariableName.get(beanMethod.getReturnType())))
+                .addStatement("return $T.class", beanMethod.getReturnType())
+                .build();
+        classBuilder.addMethod(getComponentTypeMethod);
 
-        // create() method - invokes the @Bean method
-        generateCreateMethod(sb, factorySimpleName, factoryClassName);
+        // Add getComponentName() method
+        MethodSpec getComponentNameMethod = MethodSpec.methodBuilder("getComponentName")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(String.class)
+                .addStatement("return $S", beanMethod.getBeanName())
+                .build();
+        classBuilder.addMethod(getComponentNameMethod);
 
-        // getComponentType()
-        sb.append("    @Override\n");
-        sb.append("    public Class<").append(beanMethod.getReturnType()).append("> getComponentType() {\n");
-        sb.append("        return ").append(beanMethod.getReturnType()).append(".class;\n");
-        sb.append("    }\n\n");
-
-        // getComponentName()
-        sb.append("    @Override\n");
-        sb.append("    public String getComponentName() {\n");
-        sb.append("        return \"").append(beanMethod.getBeanName()).append("\";\n");
-        sb.append("    }\n\n");
-
-        // getScope() - uses the scope from @Bean annotation
-        sb.append("    @Override\n");
-        sb.append("    public ScopeType getScope() {\n");
+        // Add getScope() method
         String scopeName = beanMethod.getScope() == ScopeType.PROTOTYPE ? "PROTOTYPE" : "SINGLETON";
-        sb.append("        return ScopeType.").append(scopeName).append(";\n");
-        sb.append("    }\n\n");
+        MethodSpec getScopeMethod = MethodSpec.methodBuilder("getScope")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(ScopeType.class)
+                .addStatement("return $T.$N", ScopeType.class, scopeName)
+                .build();
+        classBuilder.addMethod(getScopeMethod);
 
-        // getQualifier() - returns the qualifier name if present
+        // Add getQualifier() method if present
         if (beanMethod.hasQualifier()) {
-            sb.append("    @Override\n");
-            sb.append("    public String getQualifier() {\n");
-            sb.append("        return \"").append(beanMethod.getQualifier()).append("\";\n");
-            sb.append("    }\n\n");
+            MethodSpec getQualifierMethod = MethodSpec.methodBuilder("getQualifier")
+                    .addAnnotation(Override.class)
+                    .addModifiers(Modifier.PUBLIC)
+                    .returns(String.class)
+                    .addStatement("return $S", beanMethod.getQualifier())
+                    .build();
+            classBuilder.addMethod(getQualifierMethod);
         }
 
-        // isLazy()
-        sb.append("    @Override\n");
-        sb.append("    public boolean isLazy() {\n");
-        sb.append("        return false;\n");
-        sb.append("    }\n\n");
+        // Add isLazy() method
+        MethodSpec isLazyMethod = MethodSpec.methodBuilder("isLazy")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(boolean.class)
+                .addStatement("return false")
+                .build();
+        classBuilder.addMethod(isLazyMethod);
 
-        // isPrimary()
+        // Add isPrimary() method if primary
         if (beanMethod.isPrimary()) {
-            sb.append("    @Override\n");
-            sb.append("    public boolean isPrimary() {\n");
-            sb.append("        return true;\n");
-            sb.append("    }\n\n");
+            MethodSpec isPrimaryMethod = MethodSpec.methodBuilder("isPrimary")
+                    .addAnnotation(Override.class)
+                    .addModifiers(Modifier.PUBLIC)
+                    .returns(boolean.class)
+                    .addStatement("return true")
+                    .build();
+            classBuilder.addMethod(isPrimaryMethod);
         }
 
-        // getFactoryMethodParameters() - returns parameter types for dependency resolution
-        sb.append("    @Override\n");
-        sb.append("    public List<Class<?>> getFactoryMethodParameters() {\n");
-        if (beanMethod.getParameterTypes().isEmpty()) {
-            sb.append("        return List.of();\n");
-        } else {
-            sb.append("        return Arrays.asList(\n");
-            for (int i = 0; i < beanMethod.getParameterTypes().size(); i++) {
-                sb.append("            ").append(beanMethod.getParameterTypes().get(i)).append(".class");
-                if (i < beanMethod.getParameterTypes().size() - 1) {
-                    sb.append(",");
-                }
-                sb.append("\n");
-            }
-            sb.append("        );\n");
-        }
-        sb.append("    }\n\n");
+        // Add getFactoryMethodParameters() method
+        MethodSpec getFactoryMethodParametersMethod = generateGetFactoryMethodParametersMethod();
+        classBuilder.addMethod(getFactoryMethodParametersMethod);
 
-        // invokePostConstruct() - lifecycle callback after bean creation
-        sb.append("    @Override\n");
-        sb.append("    public void invokePostConstruct(").append(beanMethod.getReturnType()).append(" instance) {\n");
-        if (beanMethod.hasPostConstruct()) {
-            sb.append("        instance.").append(beanMethod.getPostConstructMethodName()).append("();\n");
-        }
-        sb.append("    }\n\n");
+        // Add invokePostConstruct() method
+        MethodSpec invokePostConstructMethod = generateInvokePostConstructMethod(beanType);
+        classBuilder.addMethod(invokePostConstructMethod);
 
-        // invokePreDestroy() - lifecycle callback before bean destruction
-        sb.append("    @Override\n");
-        sb.append("    public void invokePreDestroy(").append(beanMethod.getReturnType()).append(" instance) {\n");
-        if (beanMethod.hasPreDestroy()) {
-            sb.append("        instance.").append(beanMethod.getPreDestroyMethodName()).append("();\n");
-        }
-        sb.append("    }\n\n");
+        // Add invokePreDestroy() method
+        MethodSpec invokePreDestroyMethod = generateInvokePreDestroyMethod(beanType);
+        classBuilder.addMethod(invokePreDestroyMethod);
 
-        // Close class
-        sb.append("}\n");
+        // Build JavaFile
+        JavaFile.Builder javaFileBuilder = JavaFile.builder(packageName != null ? packageName : "", classBuilder.build());
 
-        return sb.toString();
+        return javaFileBuilder.build();
     }
 
-    private void generateCreateMethod(StringBuilder sb, String factorySimpleName, String factoryClassName) {
-        sb.append("    @Override\n");
-        sb.append("    public ").append(beanMethod.getReturnType()).append(" create() {\n");
+    private MethodSpec generateCreateMethod(String factorySimpleName, String factoryClassName, TypeName beanType) {
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("create")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(beanType);
 
         // Get or create factory instance (singleton pattern)
-        sb.append("        // Get or create the factory class instance\n");
-        sb.append("        if (factoryInstance == null) {\n");
-        sb.append("            synchronized (").append(factorySimpleName).append(".class) {\n");
-        sb.append("                if (factoryInstance == null) {\n");
-        sb.append("                    factoryInstance = new ").append(factoryClassName).append("();\n");
-        sb.append("                    // Inject dependencies into the factory instance\n");
-        sb.append("                    Veld.inject(factoryInstance);\n");
-        sb.append("                }\n");
-        sb.append("            }\n");
-        sb.append("        }\n\n");
+        methodBuilder.addComment("Get or create the factory class instance");
+        methodBuilder.beginControlFlow("if (factoryInstance == null)");
+        methodBuilder.beginControlFlow("synchronized ($L.class)", factorySimpleName);
+        methodBuilder.beginControlFlow("if (factoryInstance == null)");
+        methodBuilder.addStatement("factoryInstance = new $T()", ClassName.get(factory.getFactoryClassName()));
+        methodBuilder.addComment("Inject dependencies into the factory instance");
+        methodBuilder.addStatement("$T.inject(factoryInstance)", Veld.class);
+        methodBuilder.endControlFlow();
+        methodBuilder.endControlFlow();
+        methodBuilder.endControlFlow();
 
         // Invoke the @Bean method
-        sb.append("        // Invoke the @Bean method to produce the bean\n");
-        sb.append("        return factoryInstance.").append(beanMethod.getMethodName()).append("(");
+        methodBuilder.addComment("Invoke the @Bean method to produce the bean");
+        methodBuilder.add("return factoryInstance.$N(", beanMethod.getMethodName());
 
-        // Pass resolved dependencies as parameters
         List<String> paramTypes = beanMethod.getParameterTypes();
         if (paramTypes.isEmpty()) {
-            sb.append(");\n");
+            methodBuilder.addStatement(")");
         } else {
-            sb.append("\n");
+            methodBuilder.addCode("\n");
             for (int i = 0; i < paramTypes.size(); i++) {
                 String paramType = paramTypes.get(i);
-                sb.append("            Veld.get(").append(paramType).append(".class)");
-                if (i < paramTypes.size() - 1) {
-                    sb.append(",\n");
-                }
+                methodBuilder.addStatement("$T.get($T.class)$L",
+                        Veld.class,
+                        ClassName.get(paramType),
+                        i < paramTypes.size() - 1 ? "," : "");
             }
-            sb.append("\n        );\n");
+            methodBuilder.addStatement(")");
         }
 
-        sb.append("    }\n\n");
+        return methodBuilder.build();
+    }
+
+    private MethodSpec generateGetFactoryMethodParametersMethod() {
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("getFactoryMethodParameters")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(ParameterizedTypeName.get(ClassName.get(List.class), ClassName.get(Class.class)));
+
+        if (beanMethod.getParameterTypes().isEmpty()) {
+            methodBuilder.addStatement("return $T.of()", List.class);
+        } else {
+            methodBuilder.addStatement("return $T.asList(", Arrays.class);
+            for (int i = 0; i < beanMethod.getParameterTypes().size(); i++) {
+                String paramType = beanMethod.getParameterTypes().get(i);
+                methodBuilder.addStatement("    $T.class$L", ClassName.get(paramType),
+                        i < beanMethod.getParameterTypes().size() - 1 ? "," : "");
+            }
+            methodBuilder.addStatement(")");
+        }
+
+        return methodBuilder.build();
+    }
+
+    private MethodSpec generateInvokePostConstructMethod(TypeName beanType) {
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("invokePostConstruct")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(ParameterSpec.builder(beanType, "instance").build())
+                .returns(void.class);
+
+        if (beanMethod.hasPostConstruct()) {
+            methodBuilder.addStatement("instance.$N()", beanMethod.getPostConstructMethodName());
+        }
+
+        return methodBuilder.build();
+    }
+
+    private MethodSpec generateInvokePreDestroyMethod(TypeName beanType) {
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("invokePreDestroy")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(ParameterSpec.builder(beanType, "instance").build())
+                .returns(void.class);
+
+        if (beanMethod.hasPreDestroy()) {
+            methodBuilder.addStatement("instance.$N()", beanMethod.getPreDestroyMethodName());
+        }
+
+        return methodBuilder.build();
+    }
+
+    private AnnotationSpec createSuppressWarningsAnnotation() {
+        return AnnotationSpec.builder(SuppressWarnings.class)
+                .addMember("value", "$S", "unchecked")
+                .addMember("value", "$S", "rawtypes")
+                .build();
     }
 
     private String getPackageName(String fullClassName) {

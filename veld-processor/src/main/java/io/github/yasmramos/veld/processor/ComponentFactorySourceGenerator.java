@@ -1,144 +1,155 @@
 package io.github.yasmramos.veld.processor;
 
+import com.squareup.javapoet.AnnotationSpec;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.TypeVariableName;
+import io.github.yasmramos.veld.Veld;
 import io.github.yasmramos.veld.annotation.ScopeType;
+import io.github.yasmramos.veld.runtime.ComponentFactory;
+
+import javax.annotation.processing.SuppressWarnings;
+import javax.lang.model.element.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Generates ComponentFactory source code instead of bytecode.
  */
 public final class ComponentFactorySourceGenerator {
-    
+
     private final ComponentInfo component;
     private final int componentIndex;
-    
+
     public ComponentFactorySourceGenerator(ComponentInfo component) {
         this(component, -1);
     }
-    
+
     public ComponentFactorySourceGenerator(ComponentInfo component, int componentIndex) {
         this.component = component;
         this.componentIndex = componentIndex;
     }
-    
+
     public String getFactoryClassName() {
         return component.getFactoryClassName();
     }
-    
-    public String generate() {
-        StringBuilder sb = new StringBuilder();
 
+    public JavaFile generate() {
         // Factory is generated in .veld subpackage of the original component's package
         String packageName = component.getPackageName();
         String factoryPackageName = packageName.isEmpty() ? "veld" : packageName + ".veld";
         String factoryClassName = component.getFactoryClassName();
-        // Extract simple name: com.example.veld.Component$$VeldFactory -> Component$$VeldFactory
-        String factorySimpleName = factoryClassName.substring(factoryClassName.lastIndexOf('.') + 1);
+        TypeName componentType = ClassName.get(component.getClassName());
 
-        // Package declaration
-        sb.append("package ").append(factoryPackageName).append(";\n\n");
+        // Build class declaration with Javadoc
+        TypeSpec.Builder classBuilder = TypeSpec.classBuilder(getSimpleName(factoryClassName))
+                .superclass(ParameterizedTypeName.get(
+                        ClassName.get(ComponentFactory.class),
+                        TypeVariableName.get(component.getClassName())))
+                .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+                .addJavadoc("Generated factory for $T.\n", ClassName.get(component.getClassName()))
+                .addAnnotation(createSuppressWarningsAnnotation());
 
-        // Imports
-        sb.append("import io.github.yasmramos.veld.Veld;\n");
-        sb.append("import io.github.yasmramos.veld.runtime.ComponentFactory;\n");
-        sb.append("import io.github.yasmramos.veld.annotation.ScopeType;\n");
-        sb.append("import java.util.List;\n");
-        sb.append("import java.util.Arrays;\n\n");
+        // Add constructor
+        MethodSpec constructor = MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PUBLIC)
+                .build();
+        classBuilder.addMethod(constructor);
 
-        // Class declaration
-        sb.append("/**\n");
-        sb.append(" * Generated factory for ").append(component.getClassName()).append(".\n");
-        sb.append(" */\n");
-        sb.append("@SuppressWarnings({\"unchecked\", \"rawtypes\"})\n");
-        sb.append("public final class ").append(factorySimpleName);
-        sb.append(" implements ComponentFactory<").append(component.getClassName()).append("> {\n\n");
+        // Add create() method
+        MethodSpec createMethod = generateCreateMethod(componentType);
+        classBuilder.addMethod(createMethod);
 
-        // Constructor
-        sb.append("    public ").append(factorySimpleName).append("() {}\n\n");
-        
-        // create() method
-        generateCreateMethod(sb);
-        
-        // getComponentType()
-        sb.append("    @Override\n");
-        sb.append("    public Class<").append(component.getClassName()).append("> getComponentType() {\n");
-        sb.append("        return ").append(component.getClassName()).append(".class;\n");
-        sb.append("    }\n\n");
-        
-        // getComponentName()
-        sb.append("    @Override\n");
-        sb.append("    public String getComponentName() {\n");
-        sb.append("        return \"").append(component.getComponentName()).append("\";\n");
-        sb.append("    }\n\n");
-        
-        // getScope()
-        sb.append("    @Override\n");
-        sb.append("    public ScopeType getScope() {\n");
+        // Add getComponentType() method
+        MethodSpec getComponentTypeMethod = MethodSpec.methodBuilder("getComponentType")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(ParameterizedTypeName.get(ClassName.get(Class.class), TypeVariableName.get(component.getClassName())))
+                .addStatement("return $T.class", component.getClassName())
+                .build();
+        classBuilder.addMethod(getComponentTypeMethod);
+
+        // Add getComponentName() method
+        MethodSpec getComponentNameMethod = MethodSpec.methodBuilder("getComponentName")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(String.class)
+                .addStatement("return $S", component.getComponentName())
+                .build();
+        classBuilder.addMethod(getComponentNameMethod);
+
+        // Add getScope() method
         String scopeName = component.getScope() == ScopeType.SINGLETON ? "SINGLETON" : "PROTOTYPE";
-        sb.append("        return ScopeType.").append(scopeName).append(";\n");
-        sb.append("    }\n\n");
-        
-        // getScopeId() - supports custom scopes
-        sb.append("    @Override\n");
-        sb.append("    public String getScopeId() {\n");
-        sb.append("        return \"").append(component.getScopeId()).append("\";\n");
-        sb.append("    }\n\n");
-        
-        // isLazy()
-        sb.append("    @Override\n");
-        sb.append("    public boolean isLazy() {\n");
-        sb.append("        return ").append(component.isLazy()).append(";\n");
-        sb.append("    }\n\n");
-        
-        // invokePostConstruct()
-        sb.append("    @Override\n");
-        sb.append("    public void invokePostConstruct(").append(component.getClassName()).append(" instance) {\n");
-        if (component.hasPostConstruct()) {
-            sb.append("        instance.").append(component.getPostConstructMethod()).append("();\n");
-        }
-        sb.append("    }\n\n");
-        
-        // invokePreDestroy()
-        sb.append("    @Override\n");
-        sb.append("    public void invokePreDestroy(").append(component.getClassName()).append(" instance) {\n");
-        if (component.hasPreDestroy()) {
-            sb.append("        instance.").append(component.getPreDestroyMethod()).append("();\n");
-        }
-        sb.append("    }\n\n");
-        
-        // getIndex() method - for ultra-fast array-based lookups
-        sb.append("    @Override\n");
-        sb.append("    public int getIndex() {\n");
-        sb.append("        return ").append(componentIndex).append(";\n");
-        sb.append("    }\n\n");
-        
-        // getDependencyTypes() - for dependency graph visualization
-        generateGetDependencyTypes(sb);
-        
-        // Close class
-        sb.append("}\n");
-        
-        return sb.toString();
+        MethodSpec getScopeMethod = MethodSpec.methodBuilder("getScope")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(ScopeType.class)
+                .addStatement("return $T.$N", ScopeType.class, scopeName)
+                .build();
+        classBuilder.addMethod(getScopeMethod);
+
+        // Add getScopeId() method - supports custom scopes
+        MethodSpec getScopeIdMethod = MethodSpec.methodBuilder("getScopeId")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(String.class)
+                .addStatement("return $S", component.getScopeId())
+                .build();
+        classBuilder.addMethod(getScopeIdMethod);
+
+        // Add isLazy() method
+        MethodSpec isLazyMethod = MethodSpec.methodBuilder("isLazy")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(boolean.class)
+                .addStatement("return $L", component.isLazy())
+                .build();
+        classBuilder.addMethod(isLazyMethod);
+
+        // Add invokePostConstruct() method
+        MethodSpec invokePostConstructMethod = generateInvokePostConstructMethod(componentType);
+        classBuilder.addMethod(invokePostConstructMethod);
+
+        // Add invokePreDestroy() method
+        MethodSpec invokePreDestroyMethod = generateInvokePreDestroyMethod(componentType);
+        classBuilder.addMethod(invokePreDestroyMethod);
+
+        // Add getIndex() method - for ultra-fast array-based lookups
+        MethodSpec getIndexMethod = MethodSpec.methodBuilder("getIndex")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(int.class)
+                .addStatement("return $L", componentIndex)
+                .build();
+        classBuilder.addMethod(getIndexMethod);
+
+        // Add getDependencyTypes() method - for dependency graph visualization
+        MethodSpec getDependencyTypesMethod = generateGetDependencyTypesMethod();
+        classBuilder.addMethod(getDependencyTypesMethod);
+
+        // Build JavaFile
+        JavaFile.Builder javaFileBuilder = JavaFile.builder(factoryPackageName, classBuilder.build());
+
+        return javaFileBuilder.build();
     }
-    
-    private void generateCreateMethod(StringBuilder sb) {
-        String componentType = component.getClassName();
-        
-        sb.append("    @Override\n");
-        sb.append("    public ").append(componentType).append(" create() {\n");
-        
+
+    private MethodSpec generateCreateMethod(TypeName componentType) {
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("create")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(componentType);
+
         // Create instance with constructor dependencies
-        sb.append("        ").append(componentType).append(" instance = new ").append(componentType).append("(");
-        
-        InjectionPoint ctor = component.getConstructorInjection();
-        if (ctor != null && !ctor.getDependencies().isEmpty()) {
-            boolean first = true;
-            for (InjectionPoint.Dependency dep : ctor.getDependencies()) {
-                if (!first) sb.append(", ");
-                first = false;
-                sb.append(generateDependencyGetExpression(dep));
-            }
-        }
-        sb.append(");\n");
-        
+        methodBuilder.addStatement("$T instance = new $T($L)",
+                componentType, componentType, generateConstructorArgs());
+
         // Field injections - use synthetic setters for private fields
         for (InjectionPoint field : component.getFieldInjections()) {
             if (!field.getDependencies().isEmpty()) {
@@ -147,71 +158,107 @@ public final class ComponentFactorySourceGenerator {
                     // @Value injection - skip for now
                     continue;
                 }
-                
+
                 String fieldName = field.getName();
+                String setterName;
                 if (field.getVisibility() == InjectionPoint.Visibility.PRIVATE) {
-                    // Use synthetic setter generated by weaver
-                    sb.append("        instance.__di_set_").append(fieldName).append("(");
+                    setterName = "__di_set_" + fieldName;
                 } else {
-                    // Use normal setter
-                    sb.append("        instance.set").append(capitalize(fieldName)).append("(");
+                    setterName = "set" + capitalize(fieldName);
                 }
-                sb.append(generateDependencyGetExpression(dep)).append(");\n");
+                methodBuilder.addStatement("instance.$N($L)", setterName, generateDependencyGetExpression(dep));
             }
         }
-        
+
         // Method injections
         for (InjectionPoint method : component.getMethodInjections()) {
-            sb.append("        instance.").append(method.getName()).append("(");
-            boolean first = true;
+            List<String> args = new ArrayList<>();
             for (InjectionPoint.Dependency dep : method.getDependencies()) {
-                if (!first) sb.append(", ");
-                first = false;
-                sb.append(generateDependencyGetExpression(dep));
+                args.add(generateDependencyGetExpression(dep));
             }
-            sb.append(");\n");
+            methodBuilder.addStatement("instance.$N($L)", method.getName(), String.join(", ", args));
         }
-        
-        sb.append("        return instance;\n");
-        sb.append("    }\n\n");
+
+        methodBuilder.addStatement("return instance");
+
+        return methodBuilder.build();
     }
-    
+
+    private String generateConstructorArgs() {
+        InjectionPoint ctor = component.getConstructorInjection();
+        if (ctor == null || ctor.getDependencies().isEmpty()) {
+            return "";
+        }
+
+        List<String> args = new ArrayList<>();
+        for (InjectionPoint.Dependency dep : ctor.getDependencies()) {
+            args.add(generateDependencyGetExpression(dep));
+        }
+        return String.join(", ", args);
+    }
+
     /**
      * Generates the appropriate Veld.get() expression for a dependency.
      * Handles Provider<T> and Optional<T> types correctly.
      */
     private String generateDependencyGetExpression(InjectionPoint.Dependency dep) {
+        TypeName depType = ClassName.get(dep.getTypeName());
         if (dep.isProvider()) {
             // Provider<T> injection - use Veld.getProvider()
-            return "Veld.getProvider(" + dep.getActualTypeName() + ".class)";
+            return "$T.getProvider(" + dep.getActualTypeName() + ".class)";
         } else if (dep.isOptionalWrapper()) {
             // Optional<T> injection - use Veld.getOptional()
-            return "Veld.getOptional(" + dep.getActualTypeName() + ".class)";
+            return "$T.getOptional(" + dep.getActualTypeName() + ".class)";
         } else {
             // Regular injection
-            return "Veld.get(" + dep.getTypeName() + ".class)";
+            return "$T.get(" + dep.getTypeName() + ".class)";
         }
     }
-    
-    private void generateGetDependencyTypes(StringBuilder sb) {
-        sb.append("    @Override\n");
-        sb.append("    public List<String> getDependencyTypes() {\n");
-        
-        // Collect all dependencies
-        sb.append("        return Arrays.asList(\n");
-        
-        boolean first = true;
-        
+
+    private MethodSpec generateInvokePostConstructMethod(TypeName componentType) {
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("invokePostConstruct")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(ParameterSpec.builder(componentType, "instance").build())
+                .returns(void.class);
+
+        if (component.hasPostConstruct()) {
+            methodBuilder.addStatement("instance.$N()", component.getPostConstructMethod());
+        }
+
+        return methodBuilder.build();
+    }
+
+    private MethodSpec generateInvokePreDestroyMethod(TypeName componentType) {
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("invokePreDestroy")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(ParameterSpec.builder(componentType, "instance").build())
+                .returns(void.class);
+
+        if (component.hasPreDestroy()) {
+            methodBuilder.addStatement("instance.$N()", component.getPreDestroyMethod());
+        }
+
+        return methodBuilder.build();
+    }
+
+    private MethodSpec generateGetDependencyTypesMethod() {
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("getDependencyTypes")
+                .addAnnotation(Override.class)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(ParameterizedTypeName.get(ClassName.get(List.class), ClassName.get(String.class)));
+
+        List<String> dependencies = new ArrayList<>();
+
         // Constructor dependencies
         InjectionPoint ctor = component.getConstructorInjection();
         if (ctor != null) {
             for (InjectionPoint.Dependency dep : ctor.getDependencies()) {
-                if (!first) sb.append(",\n            ");
-                first = false;
-                sb.append("\"").append(dep.getActualTypeName()).append("\"");
+                dependencies.add("\"" + dep.getActualTypeName() + "\"");
             }
         }
-        
+
         // Field dependencies
         for (InjectionPoint field : component.getFieldInjections()) {
             if (!field.getDependencies().isEmpty()) {
@@ -219,25 +266,37 @@ public final class ComponentFactorySourceGenerator {
                 if (dep.isValueInjection()) {
                     continue;
                 }
-                if (!first) sb.append(",\n            ");
-                first = false;
-                sb.append("\"").append(dep.getActualTypeName()).append("\"");
+                dependencies.add("\"" + dep.getActualTypeName() + "\"");
             }
         }
-        
+
         // Method dependencies
         for (InjectionPoint method : component.getMethodInjections()) {
             for (InjectionPoint.Dependency dep : method.getDependencies()) {
-                if (!first) sb.append(",\n            ");
-                first = false;
-                sb.append("\"").append(dep.getActualTypeName()).append("\"");
+                dependencies.add("\"" + dep.getActualTypeName() + "\"");
             }
         }
-        
-        sb.append("\n        );\n");
-        sb.append("    }\n\n");
+
+        if (dependencies.isEmpty()) {
+            methodBuilder.addStatement("return $T.of()", List.class);
+        } else {
+            methodBuilder.addStatement("return $T.asList($L)", Arrays.class, String.join(", ", dependencies));
+        }
+
+        return methodBuilder.build();
     }
-    
+
+    private AnnotationSpec createSuppressWarningsAnnotation() {
+        return AnnotationSpec.builder(SuppressWarnings.class)
+                .addMember("value", "$S", "unchecked")
+                .addMember("value", "$S", "rawtypes")
+                .build();
+    }
+
+    private String getSimpleName(String fullClassName) {
+        return fullClassName.substring(fullClassName.lastIndexOf('.') + 1);
+    }
+
     private String capitalize(String name) {
         if (name == null || name.isEmpty()) return name;
         return Character.toUpperCase(name.charAt(0)) + name.substring(1);
