@@ -45,6 +45,7 @@ public final class VeldSourceGenerator {
         sb.append("import io.github.yasmramos.veld.runtime.ConditionalRegistry;\n");
         sb.append("import io.github.yasmramos.veld.runtime.event.EventBus;\n");
         sb.append("import io.github.yasmramos.veld.runtime.ComponentFactory;\n");
+        sb.append("import io.github.yasmramos.veld.runtime.value.ValueResolver;\n");
         sb.append("import java.util.Map;\n");
         sb.append("import java.util.HashMap;\n");
         sb.append("import java.util.concurrent.ConcurrentHashMap;\n");
@@ -159,6 +160,17 @@ public final class VeldSourceGenerator {
         sb.append("                }\n");
         sb.append("            }\n");
         sb.append("        }\n");
+        sb.append("    }\n\n");
+
+        // resolveValue method
+        sb.append("    /**\n");
+        sb.append("     * Resolves a value expression using the ValueResolver.\n");
+        sb.append("     *\n");
+        sb.append("     * @param expression the value expression to resolve\n");
+        sb.append("     * @return the resolved value as a String\n");
+        sb.append("     */\n");
+        sb.append("    public static String resolveValue(String expression) {\n");
+        sb.append("        return ValueResolver.getInstance().resolve(expression);\n");
         sb.append("    }\n\n");
 
         // Profile management methods
