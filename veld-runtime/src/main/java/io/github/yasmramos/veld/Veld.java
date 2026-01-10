@@ -89,7 +89,18 @@ public class Veld {
     public static void shutdown() {
         throw new VeldException("Stub - use generated Veld class");
     }
-    
+
+    /**
+     * Injects dependencies into an instance using the Veld registry.
+     * This method is used by generated factories to inject dependencies
+     * into factory class instances.
+     *
+     * @param instance the instance to inject dependencies into
+     */
+    public static void inject(Object instance) {
+        throw new VeldException("Stub - use generated Veld class");
+    }
+
     // ==================== Dependency Graph Export ====================
     
     /**
