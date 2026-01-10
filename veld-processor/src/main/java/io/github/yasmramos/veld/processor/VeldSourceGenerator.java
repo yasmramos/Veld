@@ -122,6 +122,45 @@ public final class VeldSourceGenerator {
         sb.append("        _lifecycle.destroy();\n");
         sb.append("    }\n\n");
 
+        // Inject dependencies into an instance
+        sb.append("    /**\n");
+        sb.append("     * Injects dependencies into an instance using field injection.\n");
+        sb.append("     * Used by generated factories to inject dependencies into factory class instances.\n");
+        sb.append("     *\n");
+        sb.append("     * @param instance the instance to inject dependencies into\n");
+        sb.append("     */\n");
+        sb.append("    public static void inject(Object instance) {\n");
+        sb.append("        if (instance == null) return;\n");
+        sb.append("        // Use reflection to inject fields - this is only called for factory instances\n");
+        sb.append("        // which are created by the generated factory classes themselves\n");
+        sb.append("        Class<?> clazz = instance.getClass();\n");
+        sb.append("        for (java.lang.reflect.Field field : clazz.getDeclaredFields()) {\n");
+        sb.append("            if (!java.lang.reflect.Modifier.isStatic(field.getModifiers()) &&\n");
+        sb.append("                !java.lang.reflect.Modifier.isFinal(field.getModifiers())) {\n");
+        sb.append("                io.github.yasmramos.veld.annotation.Inject injectAnn = field.getAnnotation(io.github.yasmramos.veld.annotation.Inject.class);\n");
+        sb.append("                io.github.yasmramos.veld.annotation.Value valueAnn = field.getAnnotation(io.github.yasmramos.veld.annotation.Value.class);\n");
+        sb.append("                if (injectAnn != null) {\n");
+        sb.append("                    try {\n");
+        sb.append("                        field.setAccessible(true);\n");
+        sb.append("                        Class<?> fieldType = field.getType();\n");
+        sb.append("                        Object value = get(fieldType);\n");
+        sb.append("                        field.set(instance, value);\n");
+        sb.append("                    } catch (Exception e) {\n");
+        sb.append("                        throw new VeldException(\"Failed to inject field: \" + field.getName(), e);\n");
+        sb.append("                    }\n");
+        sb.append("                } else if (valueAnn != null) {\n");
+        sb.append("                    try {\n");
+        sb.append("                        field.setAccessible(true);\n");
+        sb.append("                        Object value = resolveValue(valueAnn.value());\n");
+        sb.append("                        field.set(instance, value);\n");
+        sb.append("                    } catch (Exception e) {\n");
+        sb.append("                        throw new VeldException(\"Failed to inject @Value field: \" + field.getName(), e);\n");
+        sb.append("                    }\n");
+        sb.append("                }\n");
+        sb.append("            }\n");
+        sb.append("        }\n");
+        sb.append("    }\n\n");
+
         // Profile management methods
         sb.append("    // === PROFILE MANAGEMENT ===\n\n");
         sb.append("    public static void setActiveProfiles(String... profiles) {\n");
