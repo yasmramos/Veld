@@ -255,7 +255,7 @@ class BeanFactorySourceGeneratorTest {
         }
 
         @Test
-        @DisplayName("Should generate create method with Veld parameter")
+        @DisplayName("Should generate create method with no parameters")
         void shouldGenerateCreateMethodWithVeld() {
             FactoryInfo factory = createTestFactory();
             FactoryInfo.BeanMethod beanMethod = createTestBeanMethod("MyService", "createService");
@@ -264,8 +264,8 @@ class BeanFactorySourceGeneratorTest {
             BeanFactorySourceGenerator generator = new BeanFactorySourceGenerator(factory, beanMethod, 0);
             String code = generator.generate();
 
-            assertTrue(code.contains("public MyService create(Veld veld)"),
-                "Should generate create method with Veld parameter");
+            assertTrue(code.contains("public MyService create()"),
+                "Should generate create method without parameters");
             assertTrue(code.contains("factoryInstance.createService()"),
                 "Should invoke the bean method on the factory instance");
         }

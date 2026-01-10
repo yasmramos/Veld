@@ -164,7 +164,7 @@ public final class BeanFactorySourceGenerator {
 
     private void generateCreateMethod(StringBuilder sb, String factorySimpleName, String factoryClassName) {
         sb.append("    @Override\n");
-        sb.append("    public ").append(beanMethod.getReturnType()).append(" create(Veld veld) {\n");
+        sb.append("    public ").append(beanMethod.getReturnType()).append(" create() {\n");
 
         // Get or create factory instance (singleton pattern)
         sb.append("        // Get or create the factory class instance\n");
@@ -173,7 +173,7 @@ public final class BeanFactorySourceGenerator {
         sb.append("                if (factoryInstance == null) {\n");
         sb.append("                    factoryInstance = new ").append(factoryClassName).append("();\n");
         sb.append("                    // Inject dependencies into the factory instance\n");
-        sb.append("                    veld.inject(factoryInstance);\n");
+        sb.append("                    Veld.inject(factoryInstance);\n");
         sb.append("                }\n");
         sb.append("            }\n");
         sb.append("        }\n\n");
@@ -190,8 +190,7 @@ public final class BeanFactorySourceGenerator {
             sb.append("\n");
             for (int i = 0; i < paramTypes.size(); i++) {
                 String paramType = paramTypes.get(i);
-                String paramName = "param" + i;
-                sb.append("            veld.getBean(").append(paramType).append(".class)");
+                sb.append("            Veld.get(").append(paramType).append(".class)");
                 if (i < paramTypes.size() - 1) {
                     sb.append(",\n");
                 }
