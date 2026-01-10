@@ -94,6 +94,7 @@
                         <arg>--add-opens</arg>
                         <arg>java.base/java.util=ALL-UNNAMED</arg>
                     </compilerArgs>
+                    <!-- Note: annotationProcessorPaths NOT configured here to allow veld-maven-plugin to handle compilation -->
                 </configuration>
             </plugin>
             <!-- Generate Javadoc JAR -->

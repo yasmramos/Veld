@@ -45,17 +45,11 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Clean Cache
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.m2
-          ~/.cache
-          target
-        key: ${{ runner.os }}-clean-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-maven-${{ github.sha }}
-          ${{ runner.os }}-maven-
+    - name: Clean Maven Cache
+      run: |
+        echo "=== Cleaning Maven Cache ==="
+        rm -rf ~/.m2/repository
+        echo "✅ Maven cache cleaned"
 
     - name: Clean Build Artifacts
       run: |
@@ -178,18 +172,37 @@ jobs:
         echo ""
         echo "Contents of target/classes/:"
         ls -la target/classes/ 2>/dev/null || echo "No target/classes/ directory"
+        echo ""
+
+        # Build complete classpath including Veld framework dependencies
+        # Run from veld-benchmark directory to get correct dependencies
+        echo "=== Building classpath with Veld dependencies ==="
+        VELD_CLASSPATH=$(mvn dependency:build-classpath -Dmdep.outputFile=/dev/stdout 2>&1 | tail -1)
+        echo "VELD_CLASSPATH length: ${#VELD_CLASSPATH}"
+        echo "VELD_CLASSPATH: $VELD_CLASSPATH"
+
+        # Validate classpath is not empty
+        if [ -z "$VELD_CLASSPATH" ] || [ "$VELD_CLASSPATH" = "null" ]; then
+          echo "WARNING: VELD_CLASSPATH is empty, using fallback classpath"
+          # Fallback: construct classpath manually from installed jars
+          VELD_CLASSPATH="$HOME/.m2/repository/io/github/yasmramos/veld/veld-runtime/1.0.3/veld-runtime-1.0.3.jar:$HOME/.m2/repository/io/github/yasmramos/veld/veld-annotations/1.0.3/veld-annotations-1.0.3.jar:$HOME/.m2/repository/io/github/yasmramos/veld/veld-aop/1.0.3/veld-aop-1.0.3.jar:$HOME/.m2/repository/io/github/yasmramos/veld/veld-weaver/1.0.3/veld-weaver-1.0.3.jar"
+          echo "Fallback VELD_CLASSPATH: $VELD_CLASSPATH"
+        fi
+
+        BENCHMARK_CLASSPATH="target/classes:$VELD_CLASSPATH"
 
         echo ""
         echo "=== Running regression test ==="
 
-        # Compile and run regression test with explicit classpath
-        echo "Compiling regression test..."
-        javac -cp "target/veld-benchmark.jar:target/classes" \
+        # Compile and run regression test with complete classpath
+        echo "Compiling regression test with classpath..."
+        javac -cp "$BENCHMARK_CLASSPATH" \
           src/main/java/io/github/yasmramos/veld/benchmark/regression/PerformanceRegressionTest.java \
+          -d target/classes/regression \
           || { echo "ERROR: Failed to compile regression test"; exit 1; }
 
         echo "Running regression test..."
-        java -cp "target/veld-benchmark.jar:target/classes:src/main/java" \
+        java -cp "$BENCHMARK_CLASSPATH:target/classes/regression" \
           io.github.yasmramos.veld.benchmark.regression.PerformanceRegressionTest \
           --run-benchmarks \
           || { echo "ERROR: Regression test failed"; exit 1; }

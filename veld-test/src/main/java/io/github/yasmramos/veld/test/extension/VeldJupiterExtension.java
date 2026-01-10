@@ -322,6 +322,8 @@ public class VeldJupiterExtension implements
      * Exception for extension initialization errors.
      */
     public static class ExtensionInitializationException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+        
         public ExtensionInitializationException(String message) {
             super(message);
         }
