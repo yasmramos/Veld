@@ -55,6 +55,17 @@ public interface ComponentRegistry {
      * @return list of matching factories
      */
     <T> List<ComponentFactory<? extends T>> getFactoriesForType(Class<T> type);
+
+    /**
+     * Returns the singleton instance for the given component type.
+     * For singleton-scoped components, returns the cached instance.
+     * For prototype-scoped components, creates and returns a new instance.
+     *
+     * @param type the component type
+     * @param <T> the component type
+     * @return the singleton instance, or null if not found
+     */
+    <T> T getSingleton(Class<T> type);
     
     /**
      * Returns the primary factory for the given type.

@@ -14,8 +14,9 @@ import io.github.yasmramos.veld.Veld;
 import io.github.yasmramos.veld.annotation.ScopeType;
 import io.github.yasmramos.veld.runtime.ComponentFactory;
 
-import javax.annotation.processing.SuppressWarnings;
+import java.lang.SuppressWarnings;
 import javax.lang.model.element.Modifier;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -48,14 +49,14 @@ public final class BeanFactorySourceGenerator {
         String returnTypeSimple = getSimpleName(beanMethod.getReturnType());
         String factorySimpleName = returnTypeSimple + "$$VeldBeanFactory$" + beanIndex;
         String factoryClassName = beanMethod.getReturnType() + "$$VeldBeanFactory$" + beanIndex;
-        TypeName beanType = ClassName.get(beanMethod.getReturnType());
-        TypeName factoryClassType = ClassName.get(factory.getFactoryClassName());
+        TypeName beanType = getClassName(beanMethod.getReturnType());
+        TypeName factoryClassType = getClassName(factory.getFactoryClassName());
 
         // Build class declaration with Javadoc
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(factorySimpleName)
-                .superclass(ParameterizedTypeName.get(
+                .addSuperinterface(ParameterizedTypeName.get(
                         ClassName.get(ComponentFactory.class),
-                        TypeVariableName.get(beanMethod.getReturnType())))
+                        beanType))
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                 .addJavadoc(
                         "Generated factory for @Bean method: $1S\n" +
@@ -83,7 +84,7 @@ public final class BeanFactorySourceGenerator {
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC)
                 .returns(Class.class)
-                .addStatement("return $T.class", factory.getFactoryClassName())
+                .addStatement("return $T.class", ClassName.bestGuess(factory.getFactoryClassName()))
                 .build();
         classBuilder.addMethod(getFactoryClassMethod);
 
@@ -104,8 +105,8 @@ public final class BeanFactorySourceGenerator {
         MethodSpec getComponentTypeMethod = MethodSpec.methodBuilder("getComponentType")
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC)
-                .returns(ParameterizedTypeName.get(ClassName.get(Class.class), TypeVariableName.get(beanMethod.getReturnType())))
-                .addStatement("return $T.class", beanMethod.getReturnType())
+                .returns(ParameterizedTypeName.get(ClassName.get(Class.class), beanType))
+                .addStatement("return $T.class", ClassName.bestGuess(beanMethod.getReturnType()))
                 .build();
         classBuilder.addMethod(getComponentTypeMethod);
 
@@ -188,7 +189,7 @@ public final class BeanFactorySourceGenerator {
         methodBuilder.beginControlFlow("if (factoryInstance == null)");
         methodBuilder.beginControlFlow("synchronized ($L.class)", factorySimpleName);
         methodBuilder.beginControlFlow("if (factoryInstance == null)");
-        methodBuilder.addStatement("factoryInstance = new $T()", ClassName.get(factory.getFactoryClassName()));
+        methodBuilder.addStatement("factoryInstance = new $T()", ClassName.bestGuess(factory.getFactoryClassName()));
         methodBuilder.addComment("Inject dependencies into the factory instance");
         methodBuilder.addStatement("$T.inject(factoryInstance)", Veld.class);
         methodBuilder.endControlFlow();
@@ -197,7 +198,7 @@ public final class BeanFactorySourceGenerator {
 
         // Invoke the @Bean method
         methodBuilder.addComment("Invoke the @Bean method to produce the bean");
-        methodBuilder.add("return factoryInstance.$N(", beanMethod.getMethodName());
+        methodBuilder.addCode("return factoryInstance.$N(", beanMethod.getMethodName());
 
         List<String> paramTypes = beanMethod.getParameterTypes();
         if (paramTypes.isEmpty()) {
@@ -208,7 +209,7 @@ public final class BeanFactorySourceGenerator {
                 String paramType = paramTypes.get(i);
                 methodBuilder.addStatement("$T.get($T.class)$L",
                         Veld.class,
-                        ClassName.get(paramType),
+                        ClassName.bestGuess(paramType),
                         i < paramTypes.size() - 1 ? "," : "");
             }
             methodBuilder.addStatement(")");
@@ -226,11 +227,10 @@ public final class BeanFactorySourceGenerator {
         if (beanMethod.getParameterTypes().isEmpty()) {
             methodBuilder.addStatement("return $T.of()", List.class);
         } else {
-            methodBuilder.addStatement("return $T.asList(", Arrays.class);
-            for (int i = 0; i < beanMethod.getParameterTypes().size(); i++) {
+            methodBuilder.addStatement("return $T.asList($T.class", Arrays.class, ClassName.bestGuess(beanMethod.getParameterTypes().get(0)));
+            for (int i = 1; i < beanMethod.getParameterTypes().size(); i++) {
                 String paramType = beanMethod.getParameterTypes().get(i);
-                methodBuilder.addStatement("    $T.class$L", ClassName.get(paramType),
-                        i < beanMethod.getParameterTypes().size() - 1 ? "," : "");
+                methodBuilder.addStatement("    , $T.class", ClassName.bestGuess(paramType));
             }
             methodBuilder.addStatement(")");
         }
@@ -295,5 +295,21 @@ public final class BeanFactorySourceGenerator {
         // For regular classes, get the class name after the last dot
         int lastDot = fullClassName.lastIndexOf('.');
         return lastDot > 0 ? fullClassName.substring(lastDot + 1) : fullClassName;
+    }
+
+    /**
+     * Creates a ClassName from a fully qualified class name string.
+     * This method doesn't require the class to exist on the classpath.
+     *
+     * @param fullClassName the fully qualified class name (e.g., "com.example.MyClass" or "com.example.Outer$Inner")
+     * @return a ClassName representing the class
+     */
+    private ClassName getClassName(String fullClassName) {
+        String packageName = getPackageName(fullClassName);
+        String simpleName = getSimpleName(fullClassName);
+        if (packageName == null || packageName.isEmpty()) {
+            return ClassName.bestGuess(simpleName);
+        }
+        return ClassName.get(packageName, simpleName);
     }
 }

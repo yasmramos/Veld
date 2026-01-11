@@ -266,4 +266,39 @@ public final class ConditionalRegistry implements ComponentRegistry {
         }
         return activeProfiles.contains(profile.trim());
     }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T> T getSingleton(Class<T> type) {
+        ComponentFactory<T> factory = getFactory(type);
+        if (factory == null) {
+            return null;
+        }
+
+        // For singleton scope, use the cache
+        if (factory.getScope() == io.github.yasmramos.veld.annotation.ScopeType.SINGLETON) {
+            // We need to maintain a separate singleton cache for ConditionalRegistry
+            // since the original registry's cache may contain excluded components
+            return getOrCreateSingleton(type, factory);
+        } else {
+            // For prototype scope, create new instance
+            return factory.create();
+        }
+    }
+
+    // Separate cache for ConditionalRegistry singletons
+    private final Map<Class<?>, Object> singletonCache = new ConcurrentHashMap<>();
+
+    @SuppressWarnings("unchecked")
+    private <T> T getOrCreateSingleton(Class<T> type, ComponentFactory<T> factory) {
+        synchronized (singletonCache) {
+            Object cached = singletonCache.get(type);
+            if (cached != null) {
+                return (T) cached;
+            }
+            T instance = factory.create();
+            singletonCache.put(type, instance);
+            return instance;
+        }
+    }
 }

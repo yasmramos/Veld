@@ -1,5 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
+import com.squareup.javapoet.JavaFile;
 import io.github.yasmramos.veld.annotation.*;
 import io.github.yasmramos.veld.processor.AnnotationHelper.InjectSource;
 import io.github.yasmramos.veld.processor.InjectionPoint.Dependency;
@@ -419,11 +420,11 @@ public class VeldProcessor extends AbstractProcessor {
                         factory, beanMethod, globalBeanIndex);
 
                     // Generate the source code
-                    String sourceCode = generator.generate();
+                    JavaFile javaFile = generator.generate();
                     String factoryClassName = generator.getFactoryClassName();
 
                     // Write the generated source file
-                    writeJavaSource(factoryClassName, sourceCode);
+                    writeJavaSource(javaFile);
 
                     note("Generated BeanFactory for @Bean method: " + beanMethod.getMethodName() +
                          " (index: " + globalBeanIndex + ")");
@@ -1741,9 +1742,9 @@ public class VeldProcessor extends AbstractProcessor {
             
             // Generate source code for the factory class (instead of bytecode)
             ComponentFactorySourceGenerator generator = new ComponentFactorySourceGenerator(info, componentIndex);
-            String sourceCode = generator.generate();
-            
-            writeJavaSource(generator.getFactoryClassName(), sourceCode);
+            JavaFile javaFile = generator.generate();
+
+            writeJavaSource(javaFile);
             note("  -> Factory index: " + componentIndex);
         } catch (IOException e) {
             error(null, "Failed to generate factory for " + info.getClassName() + ": " + e.getMessage());
@@ -1880,8 +1881,8 @@ public class VeldProcessor extends AbstractProcessor {
 
             // Generate VeldRegistry.java source (only source generation, no bytecode)
             RegistrySourceGenerator registrySourceGen = new RegistrySourceGenerator(discoveredComponents, discoveredFactories);
-            String registrySource = registrySourceGen.generate();
-            writeJavaSource(registrySourceGen.getClassName(), registrySource);
+            JavaFile registrySource = registrySourceGen.generate();
+            writeJavaSource(registrySource);
             note("Generated VeldRegistry.java source with " + discoveredComponents.size() + " components and " +
                  discoveredFactories.size() + " factories");
 
@@ -1893,8 +1894,8 @@ public class VeldProcessor extends AbstractProcessor {
 
             // Generate Veld.java source code (passing AOP class map for wrapper instantiation)
             VeldSourceGenerator veldGen = new VeldSourceGenerator(discoveredComponents, aopClassMap);
-            String veldSource = veldGen.generate();
-            writeJavaSource(veldGen.getClassName(), veldSource);
+            JavaFile veldSource = veldGen.generate();
+            writeJavaSource(veldSource);
             note("Generated Veld.java with " + discoveredComponents.size() + " components");
 
             // Write component metadata for weaver
@@ -1922,8 +1923,8 @@ public class VeldProcessor extends AbstractProcessor {
 
         try {
             EventRegistryGenerator generator = new EventRegistryGenerator(eventSubscriptions);
-            String sourceCode = generator.generate();
-            writeJavaSource(generator.getClassName(), sourceCode);
+            JavaFile javaFile = generator.generate();
+            writeJavaSource(javaFile);
             note("Generated EventRegistry with " + eventSubscriptions.size() + " event handlers");
         } catch (IOException e) {
             error(null, "Failed to generate EventRegistry: " + e.getMessage());
@@ -2062,6 +2063,15 @@ public class VeldProcessor extends AbstractProcessor {
         } catch (javax.annotation.processing.FilerException e) {
             // File already exists (e.g., manual Veld.java for benchmarks) - skip
             note("Skipping " + className + " generation - file already exists");
+        }
+    }
+
+    private void writeJavaSource(JavaFile javaFile) throws IOException {
+        try {
+            javaFile.writeTo(filer);
+        } catch (javax.annotation.processing.FilerException e) {
+            // File already exists - skip
+            note("Skipping " + javaFile.typeSpec.name + " generation - file already exists");
         }
     }
     

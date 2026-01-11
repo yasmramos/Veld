@@ -293,6 +293,16 @@ class ComponentRegistryTest {
             }
             return result;
         }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public <T> T getSingleton(Class<T> type) {
+            ComponentFactory<T> factory = getFactory(type);
+            if (factory == null) {
+                return null;
+            }
+            return factory.create();
+        }
     }
 
     static class TestFactory<T> implements ComponentFactory<T> {

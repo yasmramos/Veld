@@ -40,6 +40,13 @@
             <artifactId>veld-annotations</artifactId>
         </dependency>
 
+        <!-- JavaPoet for code generation (required by processor) -->
+        <dependency>
+            <groupId>com.squareup</groupId>
+            <artifactId>javapoet</artifactId>
+            <version>1.13.0</version>
+        </dependency>
+
         <!-- ASM for bytecode manipulation -->
         <dependency>
             <groupId>org.ow2.asm</groupId>
