@@ -129,7 +129,7 @@
         <!-- Maven Plugin API versions -->
         <maven-plugin-api.version>3.9.6</maven-plugin-api.version>
         <maven-plugin-annotations.version>3.15.2</maven-plugin-annotations.version>
-        <maven-core.version>3.9.6</maven-core.version>
+        <maven-core.version>3.9.12</maven-core.version>
 
         <!-- Release properties -->
         <maven.compiler.release>17</maven.compiler.release>
