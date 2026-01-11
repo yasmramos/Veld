@@ -44,6 +44,14 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- JavaPoet (required by processor at compile time) -->
+        <dependency>
+            <groupId>com.squareup</groupId>
+            <artifactId>javapoet</artifactId>
+            <version>1.13.0</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Testing Dependencies -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>

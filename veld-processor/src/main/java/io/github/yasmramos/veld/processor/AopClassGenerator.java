@@ -234,12 +234,6 @@ public class AopClassGenerator {
                     .build();
             classBuilder.addField(field);
         }
-
-        if (!interceptorTypes.isEmpty()) {
-            classBuilder.addField(FieldSpec.builder(TypeName.VOID, "_dummy") // Placeholder for newline
-                    .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
-                    .build());
-        }
     }
 
     /**
@@ -411,9 +405,15 @@ public class AopClassGenerator {
             String initialDelay = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.Scheduled", "initialDelay", "0");
             String zone = getAnnotationValue(method, "io.github.yasmramos.veld.annotation.Scheduled", "zone", "");
 
-            // Generate Runnable
-            methodBuilder.addStatement("$T task_$N = () -> {\n            try {\n                this.$N();\n            } catch ($T e) {\n                $T.err.println(\"[Veld] Scheduled task failed: $N - \" + e.getMessage());\n            }\n        }",
-                    Runnable.class, methodName, methodName, Exception.class, System.class, methodName);
+            // Generate Runnable with explicit control flow
+            methodBuilder.addStatement("$T task_$N = () -> {", Runnable.class, methodName);
+            methodBuilder.beginControlFlow("try");
+            methodBuilder.addStatement("this.$N()", methodName);
+            methodBuilder.endControlFlow();
+            methodBuilder.beginControlFlow("catch ($T e)", Exception.class);
+            methodBuilder.addStatement("$T.err.println(\"[Veld] Scheduled task failed: $N - \" + e.getMessage())", System.class, methodName);
+            methodBuilder.endControlFlow();
+            methodBuilder.addStatement("};");
 
             if (!cron.isEmpty()) {
                 // Cron-based scheduling
@@ -544,27 +544,41 @@ public class AopClassGenerator {
         }
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
+                .addModifiers(Modifier.PUBLIC)
                 .addParameters(params)
                 .addAnnotation(Override.class)
                 .returns(ClassName.get(returnType));
 
         if (isVoid) {
             // Fire and forget with optimized executor
-            methodBuilder.addStatement("$T.runAsync(() -> {\n            try {\n                super.$N($L);\n            } catch ($T e) {\n                $T.err.println(\"[Veld] Async method failed: $N - \" + e.getMessage());\n            }\n        }, $L)",
-                    CompletableFuture.class, methodName, String.join(", ", args), Exception.class, System.class, methodName, executorAccess);
+            methodBuilder.addStatement("$T.runAsync(() -> {", CompletableFuture.class);
+            methodBuilder.beginControlFlow("try");
+            methodBuilder.addStatement("super.$N($L)", methodName, String.join(", ", args));
+            methodBuilder.endControlFlow();
+            methodBuilder.beginControlFlow("catch ($T e)", Exception.class);
+            methodBuilder.addStatement("$T.err.println(\"[Veld] Async method failed: $N - \" + e.getMessage())", System.class, methodName);
+            methodBuilder.endControlFlow();
+            methodBuilder.addStatement("}, $L)", executorAccess);
         } else if (isCompletableFuture) {
             // Return CompletableFuture with optimized executor
-            methodBuilder.addStatement("return $T.supplyAsync(() -> {\n            try {\n                return super.$N($L).join();\n            } catch ($T e) {\n                throw new $T(e);\n            }\n        }, $L)",
-                    CompletableFuture.class, methodName, String.join(", ", args), Exception.class, CompletionException.class, executorAccess);
+            methodBuilder.addStatement("return $T.supplyAsync(() -> {", CompletableFuture.class);
+            methodBuilder.beginControlFlow("try");
+            methodBuilder.addStatement("return super.$N($L).join()", methodName, String.join(", ", args));
+            methodBuilder.endControlFlow();
+            methodBuilder.beginControlFlow("catch ($T e)", Exception.class);
+            methodBuilder.addStatement("throw new $T(e)", CompletionException.class);
+            methodBuilder.endControlFlow();
+            methodBuilder.addStatement("}, $L)", executorAccess);
         } else {
             // Other return types - wrap in CompletableFuture and block
-            methodBuilder.beginControlFlow("try")
-                    .addStatement("return $T.supplyAsync(() -> {\n                try {\n                    return super.$N($L);\n                } catch ($T e) {\n                    throw new $T(e);\n                }\n            }, $L).get()",
-                    CompletableFuture.class, methodName, String.join(", ", args), Exception.class, CompletionException.class, executorAccess)
-                    .endControlFlow()
-                    .beginControlFlow("catch ($T e)", Exception.class)
-                    .addStatement("throw new $T(e)", RuntimeException.class)
-                    .endControlFlow();
+            methodBuilder.addStatement("return $T.supplyAsync(() -> {", CompletableFuture.class);
+            methodBuilder.beginControlFlow("try");
+            methodBuilder.addStatement("return super.$N($L)", methodName, String.join(", ", args));
+            methodBuilder.endControlFlow();
+            methodBuilder.beginControlFlow("catch ($T e)", Exception.class);
+            methodBuilder.addStatement("throw new $T(e)", CompletionException.class);
+            methodBuilder.endControlFlow();
+            methodBuilder.addStatement("}, $L).get()", executorAccess);
         }
 
         classBuilder.addMethod(methodBuilder.build());
@@ -604,6 +618,7 @@ public class AopClassGenerator {
         }
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
+                .addModifiers(Modifier.PUBLIC)
                 .addParameters(params)
                 .addAnnotation(Override.class)
                 .returns(TypeName.get(returnType));
@@ -614,27 +629,36 @@ public class AopClassGenerator {
             }
         }
 
-        methodBuilder
-                .addStatement("int __maxAttempts__ = $L", maxAttempts)
-                .addStatement("long __delay__ = $LL", delay)
-                .addStatement("double __multiplier__ = $L", multiplier)
-                .addStatement("long __maxDelay__ = $LL", maxDelay)
-                .addStatement("$T __lastException__ = null", Throwable.class)
-                .beginControlFlow("for (int __attempt__ = 1; __attempt__ <= __maxAttempts__; __attempt__++)")
-                .beginControlFlow("try")
-                .addStatement(isVoid ? "super.$N($L); return;" : "return super.$N($L)", methodName, String.join(", ", args))
-                .endControlFlow()
-                .beginControlFlow("catch ($T __ex__)", Throwable.class)
-                .addStatement("__lastException__ = __ex__")
-                .beginControlFlow("if (__attempt__ < __maxAttempts__)")
-                .addStatement("$T.err.println(\"[Veld] Retry \" + __attempt__ + \"/\" + __maxAttempts__ + \" for $N: \" + __ex__.getMessage())", System.class, methodName)
-                .addStatement("try { $T.sleep(__delay__); } catch ($T ie) { $T.currentThread().interrupt(); }", Thread.class, InterruptedException.class, Thread.class)
-                .addStatement("__delay__ = $T.min((long)(__delay__ * __multiplier__), __maxDelay__)", Math.class)
-                .endControlFlow()
-                .endControlFlow()
-                .endControlFlow()
-                .addStatement("if (__lastException__ instanceof $T) throw ($T) __lastException__", RuntimeException.class, RuntimeException.class)
-                .addStatement("throw new $T(\"Retry exhausted for $N\", __lastException__)", RuntimeException.class, methodName);
+        // Add retry variables
+        methodBuilder.addStatement("int __maxAttempts__ = $L", maxAttempts);
+        methodBuilder.addStatement("long __delay__ = $LL", delay);
+        methodBuilder.addStatement("double __multiplier__ = $L", multiplier);
+        methodBuilder.addStatement("long __maxDelay__ = $LL", maxDelay);
+        methodBuilder.addStatement("$T __lastException__ = null", Throwable.class);
+
+        // for loop with try-catch
+        methodBuilder.beginControlFlow("for (int __attempt__ = 1; __attempt__ <= __maxAttempts__; __attempt__++)");
+        methodBuilder.beginControlFlow("try");
+        methodBuilder.addStatement(isVoid ? "super.$N($L);" : "return super.$N($L)", methodName, String.join(", ", args));
+        methodBuilder.endControlFlow();
+        methodBuilder.beginControlFlow("catch ($T __ex__)", Throwable.class);
+        methodBuilder.addStatement("__lastException__ = __ex__");
+        methodBuilder.beginControlFlow("if (__attempt__ < __maxAttempts__)");
+        methodBuilder.addStatement("$T.err.println(\"[Veld] Retry \" + __attempt__ + \"/\" + __maxAttempts__ + \" for $N: \" + __ex__.getMessage())", System.class, methodName);
+        methodBuilder.beginControlFlow("try");
+        methodBuilder.addStatement("$T.sleep(__delay__)", Thread.class);
+        methodBuilder.endControlFlow();
+        methodBuilder.beginControlFlow("catch ($T ie)", InterruptedException.class);
+        methodBuilder.addStatement("$T.currentThread().interrupt()", Thread.class);
+        methodBuilder.endControlFlow();
+        methodBuilder.addStatement("__delay__ = $T.min((long)(__delay__ * __multiplier__), __maxDelay__)", Math.class);
+        methodBuilder.endControlFlow();
+        methodBuilder.endControlFlow();
+        methodBuilder.endControlFlow();
+
+        // Final throw
+        methodBuilder.addStatement("if (__lastException__ instanceof $T) throw ($T) __lastException__", RuntimeException.class, RuntimeException.class);
+        methodBuilder.addStatement("throw new $T(\"Retry exhausted for $N\", __lastException__)", RuntimeException.class, methodName);
 
         classBuilder.addMethod(methodBuilder.build());
     }
@@ -678,6 +702,7 @@ public class AopClassGenerator {
         ClassName rateLimiterServiceClass = ClassName.bestGuess("io.github.yasmramos.veld.runtime.ratelimit.RateLimiterService");
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
+                .addModifiers(Modifier.PUBLIC)
                 .addParameters(params)
                 .addAnnotation(Override.class)
                 .returns(TypeName.get(returnType));
@@ -740,6 +765,7 @@ public class AopClassGenerator {
         }
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
+                .addModifiers(Modifier.PUBLIC)
                 .addParameters(params)
                 .addAnnotation(Override.class)
                 .returns(TypeName.get(returnType));

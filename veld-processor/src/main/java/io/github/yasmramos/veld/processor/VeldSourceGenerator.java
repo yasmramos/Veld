@@ -158,7 +158,7 @@ public final class VeldSourceGenerator {
                 .addStatement("_activeProfiles = initialProfiles.toArray(new String[0])")
                 .addStatement("_lifecycle = new $T()", LifecycleProcessor.class)
                 .addStatement("_lifecycle.setEventBus(_eventBus)")
-                .addStatement("_conditionalRegistry = new $_(_registry, initialProfiles)", ConditionalRegistry.class)
+                .addStatement("_conditionalRegistry = new $T(_registry, initialProfiles)", ConditionalRegistry.class)
                 .build();
 
         classBuilder.addStaticBlock(staticInitCode);
@@ -168,7 +168,7 @@ public final class VeldSourceGenerator {
         MethodSpec computeProfiles = MethodSpec.methodBuilder("computeActiveProfiles")
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
                 .returns(ParameterizedTypeName.get(ClassName.get(Set.class), ClassName.get(String.class)))
-                .addStatement("$T profiles = $T.getProperty(\"veld.profiles.active\", \n            $T.getenv().getOrDefault(\"VELD_PROFILES_ACTIVE\", \"\"))",
+                .addStatement("$T profiles = $T.getProperty(\"veld.profiles.active\", $T.getenv().getOrDefault(\"VELD_PROFILES_ACTIVE\", \"\"))",
                         String.class, System.class, System.class)
                 .beginControlFlow("if (profiles.isEmpty())")
                 .addStatement("return $T.of()", Set.class)
@@ -225,14 +225,14 @@ public final class VeldSourceGenerator {
                 if (comp.canUseHolderPattern()) {
                     // Simple singleton - use holder pattern (lock-free, direct instantiation)
                     String holderName = getHolderClassName(comp);
-                    methodBuilder.addStatement("$N.INSTANCE", holderName);
+                    methodBuilder.addStatement("return $N.INSTANCE", holderName);
                 } else {
                     // Complex singleton - use factory (supports DI, lifecycle, conditions, AOP)
-                    methodBuilder.addStatement("($T) _registry.getFactory($T.class).create()", returnType, ClassName.bestGuess(comp.getClassName()));
+                    methodBuilder.addStatement("return ($T) _registry.getFactory($T.class).create()", returnType, ClassName.bestGuess(comp.getClassName()));
                 }
             } else {
                 // Prototype - always create new via factory
-                methodBuilder.addStatement("($T) _registry.getFactory($T.class).create()", returnType, ClassName.bestGuess(comp.getClassName()));
+                methodBuilder.addStatement("return ($T) _registry.getFactory($T.class).create()", returnType, ClassName.bestGuess(comp.getClassName()));
             }
 
             classBuilder.addMethod(methodBuilder.build());
@@ -343,7 +343,7 @@ public final class VeldSourceGenerator {
                 .beginControlFlow("if (factory != null)")
                 .addStatement("return () -> ($T) factory.create()", TypeVariableName.get("T"))
                 .endControlFlow()
-                .addStatement("return () -> { throw new $T(\"No component registered for type: \" + type.getName()); };", VeldException.class)
+                .addStatement("return () -> { throw new $T(\"No component registered for type: \" + type.getName()); }", VeldException.class)
                 .build();
         classBuilder.addMethod(getProvider);
 
@@ -427,26 +427,30 @@ public final class VeldSourceGenerator {
                 .addComment("which are created by the generated factory classes themselves")
                 .addStatement("$T<?> clazz = instance.getClass()", Class.class)
                 .beginControlFlow("for ($T field : clazz.getDeclaredFields())", java.lang.reflect.Field.class)
-                .addStatement("if (!$T.isStatic(field.getModifiers()) && !$T.isFinal(field.getModifiers()))",
+                .beginControlFlow("if (!$T.isStatic(field.getModifiers()) && !$T.isFinal(field.getModifiers()))",
                         java.lang.reflect.Modifier.class, java.lang.reflect.Modifier.class)
                 .addStatement("$T injectAnn = field.getAnnotation($T.class)", Inject.class, Inject.class)
                 .addStatement("$T valueAnn = field.getAnnotation($T.class)", Value.class, Value.class)
                 .beginControlFlow("if (injectAnn != null)")
-                .addStatement("try")
+                .beginControlFlow("try")
                 .addStatement("field.setAccessible(true)")
                 .addStatement("$T<?> fieldType = field.getType()", Class.class)
                 .addStatement("$T value = get(fieldType)", Object.class)
                 .addStatement("field.set(instance, value)")
-                .addStatement("catch ($T e)", Exception.class)
+                .endControlFlow()
+                .beginControlFlow("catch ($T e)", Exception.class)
                 .addStatement("throw new $T(\"Failed to inject field: \" + field.getName(), e)", VeldException.class)
                 .endControlFlow()
+                .endControlFlow()
                 .beginControlFlow("else if (valueAnn != null)")
-                .addStatement("try")
+                .beginControlFlow("try")
                 .addStatement("field.setAccessible(true)")
                 .addStatement("$T value = resolveValue(valueAnn.value())", Object.class)
                 .addStatement("field.set(instance, value)")
-                .addStatement("catch ($T e)", Exception.class)
+                .endControlFlow()
+                .beginControlFlow("catch ($T e)", Exception.class)
                 .addStatement("throw new $T(\"Failed to inject @Value field: \" + field.getName(), e)", VeldException.class)
+                .endControlFlow()
                 .endControlFlow()
                 .endControlFlow()
                 .endControlFlow();
@@ -469,7 +473,7 @@ public final class VeldSourceGenerator {
 
         MethodSpec setActiveProfiles = MethodSpec.methodBuilder("setActiveProfiles")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                .addParameter(ParameterSpec.builder(String[].class, "profiles").build())
+                .addParameter(String[].class, "profiles")
                 .addStatement("_activeProfiles = profiles != null ? profiles : new $T[0]", String.class)
                 .build();
         classBuilder.addMethod(setActiveProfiles);
@@ -498,9 +502,8 @@ public final class VeldSourceGenerator {
         MethodSpec sortByOrder = MethodSpec.methodBuilder("sortByOrder")
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
                 .returns(ParameterizedTypeName.get(ClassName.get(List.class), ClassName.get(ComponentFactory.class)))
-                .addParameter(ParameterSpec.builder(ParameterizedTypeName.get(ClassName.get(List.class), ClassName.get(ComponentFactory.class)), "factories").build())
-                .addStatement("return factories.stream()\n            .sorted($T.comparingInt($T::getOrder))\n            .collect($T.toList())",
-                        Comparator.class, ComponentFactory.class, Collectors.class)
+                .addParameter(ParameterizedTypeName.get(ClassName.get(List.class), ClassName.get(ComponentFactory.class)), "factories")
+                .addStatement("return factories.stream().sorted($T.comparingInt($T::getOrder)).collect($T.toList())", Comparator.class, ComponentFactory.class, Collectors.class)
                 .build();
         classBuilder.addMethod(sortByOrder);
     }
@@ -513,12 +516,20 @@ public final class VeldSourceGenerator {
     }
 
     private String getHolderClassName(ComponentInfo comp) {
-        return "Holder_" + getSimpleName(comp);
+        // Use package name hash + simple name to avoid collisions when different packages have classes with the same simple name
+        String packageName = comp.getPackageName();
+        String simpleName = getSimpleName(comp);
+        // Use a hash of the package name to avoid long names with special characters
+        int packageHash = packageName.hashCode();
+        return "Holder_" + Math.abs(packageHash) + "_" + simpleName;
     }
 
     private String getGetterMethodName(ComponentInfo comp) {
         String simpleName = getSimpleName(comp);
-        return decapitalize(simpleName);
+        String packageName = comp.getPackageName();
+        // Use package hash to avoid conflicts when different packages have classes with the same simple name
+        int packageHash = Math.abs(packageName.hashCode());
+        return decapitalize(simpleName) + "_" + packageHash;
     }
 
     private String decapitalize(String name) {
