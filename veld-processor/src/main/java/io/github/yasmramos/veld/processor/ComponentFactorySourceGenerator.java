@@ -50,9 +50,9 @@ public final class ComponentFactorySourceGenerator {
 
         // Build class declaration with Javadoc
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(getSimpleName(factoryClassName))
-                .superclass(ParameterizedTypeName.get(
+                .addSuperinterface(ParameterizedTypeName.get(
                         ClassName.get(ComponentFactory.class),
-                        TypeVariableName.get(component.getClassName())))
+                        ClassName.bestGuess(component.getClassName())))
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                 .addJavadoc("Generated factory for $T.\n", ClassName.bestGuess(component.getClassName()))
                 .addAnnotation(createSuppressWarningsAnnotation());
@@ -71,8 +71,8 @@ public final class ComponentFactorySourceGenerator {
         MethodSpec getComponentTypeMethod = MethodSpec.methodBuilder("getComponentType")
                 .addAnnotation(Override.class)
                 .addModifiers(Modifier.PUBLIC)
-                .returns(ParameterizedTypeName.get(ClassName.get(Class.class), TypeVariableName.get(component.getClassName())))
-                .addStatement("return $T.class", component.getClassName())
+                .returns(ParameterizedTypeName.get(ClassName.get(Class.class), ClassName.bestGuess(component.getClassName())))
+                .addStatement("return $T.class", ClassName.bestGuess(component.getClassName()))
                 .build();
         classBuilder.addMethod(getComponentTypeMethod);
 
@@ -198,20 +198,22 @@ public final class ComponentFactorySourceGenerator {
     }
 
     /**
-     * Generates the appropriate Veld.get() expression for a dependency.
-     * Handles Provider<T> and Optional<T> types correctly.
+     * Generates the appropriate expression for a dependency.
+     * Uses Veld.getRegistry() to get the factory and create the dependency.
      */
     private String generateDependencyGetExpression(InjectionPoint.Dependency dep) {
-        TypeName depType = ClassName.bestGuess(dep.getTypeName());
-        if (dep.isProvider()) {
-            // Provider<T> injection - use Veld.getProvider()
-            return "$T.getProvider(" + dep.getActualTypeName() + ".class)";
-        } else if (dep.isOptionalWrapper()) {
-            // Optional<T> injection - use Veld.getOptional()
-            return "$T.getOptional(" + dep.getActualTypeName() + ".class)";
+        if (dep.isOptionalWrapper()) {
+            // Optional<T> injection - check if factory exists, return Optional.of() or Optional.empty()
+            String actualType = dep.getActualTypeName();
+            return "io.github.yasmramos.veld.Veld.getRegistry().getFactory(" + actualType + ".class) != null ? " +
+                   "java.util.Optional.of((" + actualType + ") io.github.yasmramos.veld.Veld.getRegistry().getFactory(" + actualType + ".class).create()) : " +
+                   "java.util.Optional.empty()";
+        } else if (dep.isProvider()) {
+            // Provider<T> injection - return a Provider that gets from registry
+            return "() -> (" + dep.getActualTypeName() + ") io.github.yasmramos.veld.Veld.getRegistry().getFactory(" + dep.getActualTypeName() + ".class).create()";
         } else {
-            // Regular injection
-            return "$T.get(" + dep.getTypeName() + ".class)";
+            // Regular injection - get singleton from registry
+            return "(" + dep.getActualTypeName() + ") io.github.yasmramos.veld.Veld.getRegistry().getSingleton(" + dep.getActualTypeName() + ".class)";
         }
     }
 
