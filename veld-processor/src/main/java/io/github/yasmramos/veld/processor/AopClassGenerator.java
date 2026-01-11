@@ -544,6 +544,7 @@ public class AopClassGenerator {
         }
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
+                .addModifiers(Modifier.PUBLIC)
                 .addParameters(params)
                 .addAnnotation(Override.class)
                 .returns(ClassName.get(returnType));
@@ -617,6 +618,7 @@ public class AopClassGenerator {
         }
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
+                .addModifiers(Modifier.PUBLIC)
                 .addParameters(params)
                 .addAnnotation(Override.class)
                 .returns(TypeName.get(returnType));
@@ -700,6 +702,7 @@ public class AopClassGenerator {
         ClassName rateLimiterServiceClass = ClassName.bestGuess("io.github.yasmramos.veld.runtime.ratelimit.RateLimiterService");
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
+                .addModifiers(Modifier.PUBLIC)
                 .addParameters(params)
                 .addAnnotation(Override.class)
                 .returns(TypeName.get(returnType));
@@ -762,6 +765,7 @@ public class AopClassGenerator {
         }
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
+                .addModifiers(Modifier.PUBLIC)
                 .addParameters(params)
                 .addAnnotation(Override.class)
                 .returns(TypeName.get(returnType));

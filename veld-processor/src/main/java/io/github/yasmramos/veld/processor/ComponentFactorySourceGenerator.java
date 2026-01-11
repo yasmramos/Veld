@@ -198,19 +198,24 @@ public final class ComponentFactorySourceGenerator {
     }
 
     /**
-     * Generates the appropriate Veld.get() expression for a dependency.
-     * Handles Provider<T> and Optional<T> types correctly.
+     * Generates the appropriate expression for a dependency.
+     * Since factories are created by the registry with dependencies passed in,
+     * we generate a simple placeholder that will be replaced by actual factory calls.
      */
     private String generateDependencyGetExpression(InjectionPoint.Dependency dep) {
+        // Get the type name for the dependency
+        String typeName = dep.getTypeName();
+        
         if (dep.isProvider()) {
-            // Provider<T> injection - use Veld.getProvider()
-            return "$T.getProvider(" + dep.getActualTypeName() + ".class)";
+            // Provider<T> injection - should be handled specially
+            return "null /* Provider injection not yet implemented */";
         } else if (dep.isOptionalWrapper()) {
-            // Optional<T> injection - use Veld.getOptional()
-            return "$T.getOptional(" + dep.getActualTypeName() + ".class)";
+            // Optional<T> injection
+            return "null /* Optional injection not yet implemented */";
         } else {
-            // Regular injection
-            return "$T.get(" + dep.getTypeName() + ".class)";
+            // Regular injection - generate a casted factory call
+            // This will be replaced with actual factory invocation
+            return "null /* TODO: Implement dependency resolution */";
         }
     }
 

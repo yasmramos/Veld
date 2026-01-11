@@ -93,7 +93,7 @@ public class EventRegistryGenerator {
         // Build the class using JavaPoet
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(className)
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
-                .addSuperinterface(ClassName.get(packageName, "EventRegistrationSPI"))
+                .addSuperinterface(ClassName.get(EventRegistrationSPI.class))
                 .addJavadoc(
                         "Generated event registry for zero-reflection event registration.\n" +
                         "\n" +
@@ -116,8 +116,9 @@ public class EventRegistryGenerator {
                 .returns(void.class)
                 .addParameter(ClassName.get(EventBus.class), "bus")
                 .addParameter(ClassName.get(Object.class), "component")
-                .addStatement("if (component == null)")
-                .addStatement("return");
+                .beginControlFlow("if (component == null)")
+                .addStatement("return")
+                .endControlFlow();
 
         // Group subscriptions by component class
         Map<String, List<SubscriptionInfo>> byComponent = subscriptions.stream()

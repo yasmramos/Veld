@@ -343,7 +343,7 @@ public final class VeldSourceGenerator {
                 .beginControlFlow("if (factory != null)")
                 .addStatement("return () -> ($T) factory.create()", TypeVariableName.get("T"))
                 .endControlFlow()
-                .addStatement("return () -> { throw new $T(\"No component registered for type: \" + type.getName()); };", VeldException.class)
+                .addStatement("return () -> { throw new $T(\"No component registered for type: \" + type.getName()); }", VeldException.class)
                 .build();
         classBuilder.addMethod(getProvider);
 
@@ -473,7 +473,7 @@ public final class VeldSourceGenerator {
 
         MethodSpec setActiveProfiles = MethodSpec.methodBuilder("setActiveProfiles")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-                .addParameter(ParameterSpec.builder(String[].class, "profiles").build())
+                .addParameter(String[].class, "profiles")
                 .addStatement("_activeProfiles = profiles != null ? profiles : new $T[0]", String.class)
                 .build();
         classBuilder.addMethod(setActiveProfiles);

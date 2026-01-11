@@ -32,7 +32,7 @@ public class ComplexApplicationExample {
         System.setProperty("app.async.threads", "4");
         
         // Configurar perfil activo
-        Veld.setActiveProfiles("production", "database");
+        Veld.setActiveProfiles(new String[]{"production", "database"});
         
         // =============================================================================
         // 2. OBTENER COMPONENTES PRINCIPALES
