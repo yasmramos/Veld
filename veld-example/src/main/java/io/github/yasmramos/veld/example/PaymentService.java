@@ -15,9 +15,9 @@ public class PaymentService {
     private final EventBus eventBus;
     
     @Inject
-    public PaymentService(DatabaseService databaseService, EventBus eventBus) {
+    public PaymentService(DatabaseService databaseService) {
         this.databaseService = databaseService;
-        this.eventBus = eventBus;
+        this.eventBus = EventBus.getInstance();
     }
     
     public boolean validatePayment(double amount) {
