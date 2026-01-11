@@ -1,0 +1,56 @@
+{
+  "resources": {
+    "includes": [
+      {
+        "pattern": ".*\\.properties$"
+      },
+      {
+        "pattern": ".*\\.xml$"
+      },
+      {
+        "pattern": ".*\\.yml$"
+      },
+      {
+        "pattern": ".*\\.yaml$"
+      },
+      {
+        "pattern": "META-INF/MANIFEST.MF"
+      },
+      {
+        "pattern": "META-INF/services/.*"
+      }
+    ],
+    "excludes": [
+      {
+        "pattern": ".*\\.class$"
+      },
+      {
+        "pattern": ".*\\.jar$"
+      },
+      {
+        "pattern": ".*\\.so$"
+      },
+      {
+        "pattern": ".*\\.dll$"
+      },
+      {
+        "pattern": ".*\\.a$"
+      },
+      {
+        "pattern": ".*\\.lib$"
+      },
+      {
+        "pattern": ".*\\.obj$"
+      },
+      {
+        "pattern": ".*\\.exe$"
+      },
+      {
+        "pattern": ".*\\.dylib$"
+      },
+      {
+        "pattern": ".*\\.jnilib$"
+      }
+    ]
+  }
+}
