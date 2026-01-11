@@ -25,6 +25,10 @@
             <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-runtime</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.github.yasmramos</groupId>
+            <artifactId>veld-aop</artifactId>
+        </dependency>
 
         <!-- ASM for bytecode generation -->
         <dependency>

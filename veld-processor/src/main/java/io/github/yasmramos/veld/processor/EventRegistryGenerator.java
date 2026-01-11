@@ -93,7 +93,7 @@ public class EventRegistryGenerator {
         // Build the class using JavaPoet
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(className)
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
-                .addSuperinterface(ClassName.get(packageName, "EventRegistrationSPI"))
+                .addSuperinterface(ClassName.get(EventRegistrationSPI.class))
                 .addJavadoc(
                         "Generated event registry for zero-reflection event registration.\n" +
                         "\n" +
@@ -116,8 +116,9 @@ public class EventRegistryGenerator {
                 .returns(void.class)
                 .addParameter(ClassName.get(EventBus.class), "bus")
                 .addParameter(ClassName.get(Object.class), "component")
-                .addStatement("if (component == null)")
-                .addStatement("return");
+                .beginControlFlow("if (component == null)")
+                .addStatement("return")
+                .endControlFlow();
 
         // Group subscriptions by component class
         Map<String, List<SubscriptionInfo>> byComponent = subscriptions.stream()
@@ -130,9 +131,8 @@ public class EventRegistryGenerator {
             List<SubscriptionInfo> componentSubs = entry.getValue();
 
             registerEventsMethod.addComment("Subscriptions for $N", simpleName)
-                    .addStatement("if (component instanceof $T)", ClassName.get(componentClass))
-                    .addStatement("$T typed = ($T) component", ClassName.get(componentClass), ClassName.get(componentClass))
-                    .beginControlFlow("");
+                    .beginControlFlow("if (component instanceof $T)", ClassName.bestGuess(componentClass))
+                    .addStatement("$T typed = ($T) component", ClassName.bestGuess(componentClass), ClassName.bestGuess(componentClass));
 
             for (SubscriptionInfo sub : componentSubs) {
                 // Generate registration with typed event handler
@@ -150,7 +150,7 @@ public class EventRegistryGenerator {
                 } else {
                     registration.append(")");
                 }
-                registerEventsMethod.addStatement(registration.toString(), ClassName.get(sub.eventTypeName));
+                registerEventsMethod.addStatement(registration.toString(), ClassName.bestGuess(sub.eventTypeName));
             }
 
             registerEventsMethod.endControlFlow().addCode("\n");

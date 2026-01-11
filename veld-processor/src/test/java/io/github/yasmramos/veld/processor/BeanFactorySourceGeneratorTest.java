@@ -41,7 +41,7 @@ class BeanFactorySourceGeneratorTest {
             factory.addBeanMethod(beanMethod);
 
             BeanFactorySourceGenerator generator = new BeanFactorySourceGenerator(factory, beanMethod, 0);
-            String code = generator.generate();
+            String code = generator.generate().toString();
 
             assertTrue(code.contains("return ScopeType.SINGLETON;"),
                 "Generated code should return ScopeType.SINGLETON by default");
@@ -58,7 +58,7 @@ class BeanFactorySourceGeneratorTest {
             factory.addBeanMethod(beanMethod);
 
             BeanFactorySourceGenerator generator = new BeanFactorySourceGenerator(factory, beanMethod, 0);
-            String code = generator.generate();
+            String code = generator.generate().toString();
 
             assertTrue(code.contains("return ScopeType.PROTOTYPE;"),
                 "Generated code should return ScopeType.PROTOTYPE when specified");
@@ -78,7 +78,7 @@ class BeanFactorySourceGeneratorTest {
             factory.addBeanMethod(beanMethod);
 
             BeanFactorySourceGenerator generator = new BeanFactorySourceGenerator(factory, beanMethod, 0);
-            String code = generator.generate();
+            String code = generator.generate().toString();
 
             assertTrue(code.contains("public void invokePostConstruct"),
                 "Generated code should have invokePostConstruct method");
@@ -95,7 +95,7 @@ class BeanFactorySourceGeneratorTest {
             factory.addBeanMethod(beanMethod);
 
             BeanFactorySourceGenerator generator = new BeanFactorySourceGenerator(factory, beanMethod, 0);
-            String code = generator.generate();
+            String code = generator.generate().toString();
 
             assertTrue(code.contains("public void invokePreDestroy"),
                 "Generated code should have invokePreDestroy method");
@@ -112,7 +112,7 @@ class BeanFactorySourceGeneratorTest {
             factory.addBeanMethod(beanMethod);
 
             BeanFactorySourceGenerator generator = new BeanFactorySourceGenerator(factory, beanMethod, 0);
-            String code = generator.generate();
+            String code = generator.generate().toString();
 
             // Method should exist but be empty
             assertTrue(code.contains("public void invokePostConstruct"),
@@ -135,7 +135,7 @@ class BeanFactorySourceGeneratorTest {
             factory.addBeanMethod(beanMethod);
 
             BeanFactorySourceGenerator generator = new BeanFactorySourceGenerator(factory, beanMethod, 0);
-            String code = generator.generate();
+            String code = generator.generate().toString();
 
             assertTrue(code.contains("public String getQualifier()"),
                 "Generated code should have getQualifier method");
@@ -152,7 +152,7 @@ class BeanFactorySourceGeneratorTest {
             factory.addBeanMethod(beanMethod);
 
             BeanFactorySourceGenerator generator = new BeanFactorySourceGenerator(factory, beanMethod, 0);
-            String code = generator.generate();
+            String code = generator.generate().toString();
 
             assertFalse(code.contains("public String getQualifier()"),
                 "Generated code should not have getQualifier method when no qualifier is set");
@@ -191,7 +191,7 @@ class BeanFactorySourceGeneratorTest {
             factory.addBeanMethod(beanMethod);
 
             BeanFactorySourceGenerator generator = new BeanFactorySourceGenerator(factory, beanMethod, 0);
-            String code = generator.generate();
+            String code = generator.generate().toString();
 
             // Verify basic structure
             assertTrue(code.contains("package com.example;"),
@@ -212,7 +212,7 @@ class BeanFactorySourceGeneratorTest {
             factory.addBeanMethod(beanMethod);
 
             BeanFactorySourceGenerator generator = new BeanFactorySourceGenerator(factory, beanMethod, 0);
-            String code = generator.generate();
+            String code = generator.generate().toString();
 
             assertTrue(code.contains("import io.github.yasmramos.veld.Veld;"),
                 "Should import Veld");
@@ -230,7 +230,7 @@ class BeanFactorySourceGeneratorTest {
             factory.addBeanMethod(beanMethod);
 
             BeanFactorySourceGenerator generator = new BeanFactorySourceGenerator(factory, beanMethod, 0);
-            String code = generator.generate();
+            String code = generator.generate().toString();
 
             assertTrue(code.contains("public Class<MyService> getComponentType()"),
                 "Should generate getComponentType method");
@@ -246,7 +246,7 @@ class BeanFactorySourceGeneratorTest {
             factory.addBeanMethod(beanMethod);
 
             BeanFactorySourceGenerator generator = new BeanFactorySourceGenerator(factory, beanMethod, 0);
-            String code = generator.generate();
+            String code = generator.generate().toString();
 
             assertTrue(code.contains("public String getComponentName()"),
                 "Should generate getComponentName method");
@@ -262,7 +262,7 @@ class BeanFactorySourceGeneratorTest {
             factory.addBeanMethod(beanMethod);
 
             BeanFactorySourceGenerator generator = new BeanFactorySourceGenerator(factory, beanMethod, 0);
-            String code = generator.generate();
+            String code = generator.generate().toString();
 
             assertTrue(code.contains("public MyService create()"),
                 "Should generate create method without parameters");

@@ -127,6 +127,16 @@ class ConditionalRegistryTest {
         public <T> List<ComponentFactory<? extends T>> getFactoriesForType(Class<T> type) {
             return Collections.emptyList();
         }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public <T> T getSingleton(Class<T> type) {
+            ComponentFactory<T> factory = getFactory(type);
+            if (factory == null) {
+                return null;
+            }
+            return factory.create();
+        }
     }
 
     private TestRegistry originalRegistry;
