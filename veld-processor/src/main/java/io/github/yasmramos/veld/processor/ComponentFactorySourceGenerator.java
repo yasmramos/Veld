@@ -50,9 +50,9 @@ public final class ComponentFactorySourceGenerator {
 
         // Build class declaration with Javadoc
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(getSimpleName(factoryClassName))
-                .superclass(ParameterizedTypeName.get(
+                .addSuperinterface(ParameterizedTypeName.get(
                         ClassName.get(ComponentFactory.class),
-                        TypeVariableName.get(component.getClassName())))
+                        ClassName.bestGuess(component.getClassName())))
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                 .addJavadoc("Generated factory for $T.\n", ClassName.bestGuess(component.getClassName()))
                 .addAnnotation(createSuppressWarningsAnnotation());
