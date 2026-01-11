@@ -1,0 +1,70 @@
+[project]
+name = "workspace"
+version = "0.1.0"
+description = "Workspace"
+requires-python = "==3.12.5"
+
+dependencies = [
+ "aiohttp==3.11.16",
+ "pandas>=2.2.3",
+ "numpy>=1.26.4",
+ "matplotlib>=3.10.1",
+ "seaborn>=0.13.2",
+ "requests>=2.32.3",
+ "docstring-parser>=0.16",
+ "pyyaml>=6.0.2",
+ "httpx>=0.28.1",
+ "pydantic>=2.10.6",
+ "openpyxl>=3.1.5",
+ "python-docx>=1.1.2",
+ "python-pptx>=1.0.2",
+ # PDF处理
+ "pymupdf>=1.24.0",
+ "PyPDF2>=3.0.1",
+ "pdfplumber>=0.11.0",
+ # Excel处理
+ "xlrd>=2.0.1",
+ # 音频处理
+ "edge-tts>=6.1.12",
+ "librosa>=0.10.2",
+ "numba>=0.59.0",
+ "soundfile>=0.12.1",
+ # 图像处理
+ "opencv-python>=4.9.0.80",
+ "pillow>=10.2.0",
+ # 科学计算
+ "scipy>=1.12.0",
+ "statsmodels>=0.14.1",
+ "scikit-learn>=1.4.0",
+ # 自然语言处理
+ "nltk>=3.8.1",
+ "wordcloud>=1.9.3",
+ # 图论网络分析
+ "networkx>=3.2.1",
+ # 网络爬虫
+ "beautifulsoup4>=4.12.3",
+ "lxml>=5.1.0",
+ "html5lib>=1.1",
+ "wget>=3.2",
+ # 文档处理
+ "docx2txt>=0.8",
+ "reportlab>=4.0.9",
+ "playwright==1.52.0",
+ "mypy>=1.16.1",
+ # PDF处理
+ "weasyprint>=65.1",
+]
+
+[build-system]
+requires = ["hatchling>=1.18.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["code"]
+
+[[tool.uv.index]]
+url = "http://mirrors.cloud.aliyuncs.com/pypi/simple"
+default = true
