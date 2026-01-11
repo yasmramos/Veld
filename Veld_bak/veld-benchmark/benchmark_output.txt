@@ -1,3 +1,0 @@
-ERROR: org.openjdk.jmh.runner.RunnerException: ERROR: Another JMH instance might be running. Unable to acquire the JMH lock (/tmp/jmh.lock), exiting. Use -Djmh.ignoreLock=true to forcefully continue.
-	at org.openjdk.jmh.runner.Runner.run(Runner.java:210)
-	at org.openjdk.jmh.Main.main(Main.java:71)
