@@ -202,7 +202,6 @@ public final class ComponentFactorySourceGenerator {
      * Handles Provider<T> and Optional<T> types correctly.
      */
     private String generateDependencyGetExpression(InjectionPoint.Dependency dep) {
-        TypeName depType = ClassName.bestGuess(dep.getTypeName());
         if (dep.isProvider()) {
             // Provider<T> injection - use Veld.getProvider()
             return "$T.getProvider(" + dep.getActualTypeName() + ".class)";
