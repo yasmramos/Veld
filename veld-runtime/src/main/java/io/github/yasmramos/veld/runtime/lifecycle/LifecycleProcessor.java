@@ -23,6 +23,7 @@ import io.github.yasmramos.veld.runtime.lifecycle.event.*;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
