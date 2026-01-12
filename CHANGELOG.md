@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.3] - 2025-12-29
 
 ### Added
-- Complete test coverage with 543 passing tests across all modules
+- Complete test coverage with 212 passing tests across all modules
 - New dependency graph visualization capabilities
 - `DependencyGraph` class for building and analyzing component graphs
 - `DependencyNode` class with scope, profiles, and dependency tracking
@@ -45,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated README with complete Veld API documentation (component retrieval, inspection, value resolution, EventBus, profiles, graph export, shutdown)
 - Added real DOT and JSON output examples to documentation with actual format samples
 - Added missing modules to documentation (veld-benchmark, veld-example, veld-spring-boot-example, veld-test)
-- Added Testing Infrastructure section highlighting 543 passing tests
+- Added Testing Infrastructure section highlighting 212 passing tests
 - Added Dependency Graph Visualization section with complete usage examples
 - Updated veld-runtime description to include dependency graph visualization
 

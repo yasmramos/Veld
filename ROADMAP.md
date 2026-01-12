@@ -5,7 +5,7 @@
 Objetivo: Convertirse en el framework estándar para microservicios ultrarrápidos (<10ms startup) sin sacrificar la experiencia del desarrollador.
 
 > **Última actualización:** 2025-12-29
-> **Estado actual:** v1.0.3 - 543 tests pasando, dependency graph visualization completado
+> **Estado actual:** v1.0.3 - 212 tests pasando, dependency graph visualization completado
 
 ---
 
@@ -190,7 +190,7 @@ Distribución de tiempo del maintainer principal `@yasmramos`:
 
 ### v1.0.3 (Actual) - ✅ Completado
 
-- **543 tests pasando** en todos los módulos
+- **212 tests pasando** en todos los módulos
 - **Dependency Graph Visualization** completamente funcional
   - DependencyGraph class
   - DependencyNode class

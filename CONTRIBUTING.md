@@ -275,7 +275,7 @@ System.out.println("Hello");
 
 All contributions must maintain or improve our test coverage:
 
-- ✅ All 543+ existing tests must pass
+- ✅ All 212+ existing tests must pass
 - ✅ New features require corresponding unit tests
 - ✅ Bug fixes require regression tests
 - ✅ Performance changes require benchmark validation
