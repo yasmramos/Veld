@@ -898,6 +898,7 @@
 # Claude Agent SDK debug files
 **/.claude/debug/
 **/.claude/debug/**
+.claude
 
 # ==============================================================================
 # NESTED GIT REPOSITORIES
@@ -906,3 +907,5 @@
 # This allows outer git to track inner repo files while preserving inner git history
 **/.git_backup_by_agent
 **/.git_backup_by_agent/
+
+tools/
