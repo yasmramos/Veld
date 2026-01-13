@@ -99,8 +99,11 @@ jobs:
         # Update test badge
         sed -i "s/\[!\[Tests\](https:\/\/img.shields.io\/badge\/Tests-[0-9]*%20passed-green)\](https:\/\/github.com\/yasmramos\/Veld\/actions)/[![Tests](https:\/\/img.shields.io\/badge\/Tests-$TEST_COUNT%20passed-green)](https:\/\/github.com\/yasmramos\/Veld\/actions)/g" README.md
         
-        # Update coverage badge
-        sed -i "s/\[!\[Coverage\](https:\/\/codecov.io\/gh\/yasmramos\/Veld\/branch\/develop\/graph\/badge.svg)\](https:\/\/codecov.io\/gh\/yasmramos\/Veld)/[![Coverage](https:\/\/img.shields.io\/badge\/Coverage-$COVERAGE%25-green)](https:\/\/codecov.io\/gh\/yasmramos\/Veld)/g" README.md
+        # Update coverage badge (matches current img.shields.io format)
+        sed -i "s/\[!\[Coverage\](https:\/\/img.shields.io\/badge\/Coverage-[0-9]*%25-[a-z]*)\](https:\/\/codecov.io\/gh\/yasmramos\/Veld)/[![Coverage](https:\/\/img.shields.io\/badge\/Coverage-$COVERAGE%25-green)](https:\/\/codecov.io\/gh\/yasmramos\/Veld)/g" README.md
+        
+        # Alternative: Update coverage badge if it uses different URL format
+        sed -i "s/Coverage-[0-9]*%25-[a-z]*/Coverage-$COVERAGE%25-green/g" README.md
         
         # Update Latest Updates section with version
         CURRENT_VERSION=$(grep -o '<version>[^<]*</version>' pom.xml | head -1 | sed 's/<version>//g' | sed 's/<\/version>//g')
