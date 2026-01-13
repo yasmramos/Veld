@@ -1,0 +1,22 @@
+{
+  "reflection": [
+    {
+      "name": "java.lang.Object",
+      "allPublicMethods": true
+    },
+    {
+      "name": "java.lang.String",
+      "allPublicMethods": true
+    },
+    {
+      "name": "java.lang.System",
+      "allPublicMethods": true,
+      "fields": [
+        {
+          "name": "out",
+          "allowWrite": true
+        }
+      ]
+    }
+  ]
+}

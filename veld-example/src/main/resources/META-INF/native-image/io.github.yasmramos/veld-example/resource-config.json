@@ -1,0 +1,20 @@
+{
+  "resources": {
+    "includes": [
+      {
+        "pattern": ".*\\.class$"
+      },
+      {
+        "pattern": ".*\\.properties$"
+      },
+      {
+        "pattern": ".*\\.xml$"
+      }
+    ],
+    "excludes": [
+      {
+        "pattern": ".*\\$[^/]*\\.class$"
+      }
+    ]
+  }
+}
