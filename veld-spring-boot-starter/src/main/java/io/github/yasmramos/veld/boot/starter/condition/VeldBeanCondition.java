@@ -160,7 +160,7 @@ public class VeldBeanCondition implements Condition {
                 && veldAvailable) {
             try {
                 // Try getting bean by class name from Veld
-                Class<?> beanType = MethodHandles.lookup().loadClass(beanName);
+                Class<?> beanType = Class.forName(beanName);
                 if (veldService.contains(beanType)) {
                     logger.debug("Found Veld bean by name: {}", beanName);
                     return true;

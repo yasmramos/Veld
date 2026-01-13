@@ -112,7 +112,7 @@ public class VeldToSpringBridge {
         Map<Class<?>, Object> beans = new HashMap<>();
         
         try {
-            Class<?> veldClass = MethodHandles.lookup().loadClass(VELD_CLASS);
+            Class<?> veldClass = Class.forName(VELD_CLASS);
             
             // Get all component types
             Method getComponentsMethod = veldClass.getMethod("getComponents");

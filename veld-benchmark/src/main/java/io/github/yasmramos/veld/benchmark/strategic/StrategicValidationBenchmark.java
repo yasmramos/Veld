@@ -20,7 +20,6 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.io.File;
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
@@ -305,7 +304,7 @@ public class StrategicValidationBenchmark {
         for (int i = 0; i < 20; i++) {
             try {
                 // This would be real service classes in production
-                Class<?> dummyClass = MethodHandles.lookup().loadClass("java.lang.String" + i);
+                Class<?> dummyClass = Class.forName("java.lang.String" + i);
                 types.add(dummyClass);
             } catch (ClassNotFoundException e) {
                 // Fallback to existing types

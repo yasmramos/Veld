@@ -1,10 +1,11 @@
 package io.github.yasmramos.veld.runtime.condition;
 
-import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+
+import java.lang.invoke.MethodHandles;
 
 /**
  * Context object passed to conditions during evaluation.
@@ -134,7 +135,7 @@ public final class ConditionContext {
      */
     public boolean isClassPresent(String className) {
         try {
-            MethodHandles.lookup().loadClass(className, classLoader);
+            classLoader.loadClass(className);
             return true;
         } catch (ClassNotFoundException e) {
             return false;
