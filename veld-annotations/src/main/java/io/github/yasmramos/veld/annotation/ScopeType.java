@@ -123,6 +123,7 @@ public enum ScopeType {
             case "prototype" -> PROTOTYPE;
             case "request" -> REQUEST;
             case "session" -> SESSION;
+            default -> null;
         };
     }
     
