@@ -94,6 +94,16 @@ public final class ScopeRegistry {
         registerInternal(PrototypeScope.SCOPE_ID, PrototypeScope::new,
             new ScopeMetadata(PrototypeScope.SCOPE_ID, "Prototype",
                 "Creates new instance for each request"));
+        
+        // Request scope
+        registerInternal(RequestScope.SCOPE_ID, RequestScope::new,
+            new ScopeMetadata(RequestScope.SCOPE_ID, "Request",
+                "One instance per HTTP request - cleared at end of request"));
+        
+        // Session scope
+        registerInternal(SessionScope.SCOPE_ID, SessionScope::new,
+            new ScopeMetadata(SessionScope.SCOPE_ID, "Session",
+                "One instance per HTTP session - persists across requests"));
     }
     
     /**

@@ -50,7 +50,29 @@ public enum ScopeType {
      * from the container. The container does not track or manage these
      * instances.</p>
      */
-    PROTOTYPE("prototype");
+    PROTOTYPE("prototype"),
+    
+    /**
+     * Request scope - one instance per HTTP request.
+     * 
+     * <p>A new instance is created for each HTTP request and is shared
+     * across all injections within that request. The instance is
+     * automatically cleared at the end of the request.</p>
+     * 
+     * @see io.github.yasmramos.veld.annotation.RequestScoped
+     */
+    REQUEST("request"),
+    
+    /**
+     * Session scope - one instance per HTTP session.
+     * 
+     * <p>A new instance is created for each HTTP session and is shared
+     * across all requests within that session. The instance persists
+     * for the lifetime of the user's session.</p>
+     * 
+     * @see io.github.yasmramos.veld.annotation.SessionScoped
+     */
+    SESSION("session");
     
     /**
      * The scope identifier for this scope type.
@@ -97,6 +119,8 @@ public enum ScopeType {
         return switch (id.toLowerCase()) {
             case "singleton" -> SINGLETON;
             case "prototype" -> PROTOTYPE;
+            case "request" -> REQUEST;
+            case "session" -> SESSION;
             default -> null;
         };
     }
@@ -105,9 +129,18 @@ public enum ScopeType {
      * Checks if the given scope ID represents a built-in scope type.
      * 
      * @param id the scope identifier to check
-     * @return true if it's a built-in scope (singleton or prototype)
+     * @return true if it's a built-in scope (singleton, prototype, request, or session)
      */
     public static boolean isBuiltInScope(String id) {
         return fromScopeId(id) != null;
+    }
+    
+    /**
+     * Checks if this scope type represents a web-related scope (request or session).
+     * 
+     * @return true if this is a web scope
+     */
+    public boolean isWebScope() {
+        return this == REQUEST || this == SESSION;
     }
 }

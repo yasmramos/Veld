@@ -1013,6 +1013,7 @@ public class VeldProcessor extends AbstractProcessor {
     /**
      * Determines the scope of a component based on its annotations.
      * @Prototype takes precedence for prototype scope.
+     * @RequestScoped and @SessionScoped are recognized for web scopes.
      * All other scope annotations (Veld @Singleton, javax/jakarta @Singleton) result in SINGLETON.
      * Default is SINGLETON if no explicit scope is specified.
      */
@@ -1021,6 +1022,18 @@ public class VeldProcessor extends AbstractProcessor {
         if (typeElement.getAnnotation(Prototype.class) != null) {
             note("  -> Scope: PROTOTYPE");
             return ScopeType.PROTOTYPE;
+        }
+        
+        // Check for @RequestScoped
+        if (typeElement.getAnnotation(io.github.yasmramos.veld.annotation.RequestScoped.class) != null) {
+            note("  -> Scope: REQUEST");
+            return ScopeType.REQUEST;
+        }
+        
+        // Check for @SessionScoped
+        if (typeElement.getAnnotation(io.github.yasmramos.veld.annotation.SessionScoped.class) != null) {
+            note("  -> Scope: SESSION");
+            return ScopeType.SESSION;
         }
         
         // Check for explicit singleton annotations
