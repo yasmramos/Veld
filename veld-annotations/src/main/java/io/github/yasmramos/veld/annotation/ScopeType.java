@@ -24,6 +24,8 @@ package io.github.yasmramos.veld.annotation;
  * <ul>
  *   <li>{@link #SINGLETON} - One shared instance per container (default)</li>
  *   <li>{@link #PROTOTYPE} - New instance for each request</li>
+ *   <li>{@link #REQUEST} - One instance per HTTP request</li>
+ *   <li>{@link #SESSION} - One instance per HTTP session</li>
  * </ul>
  * 
  * <h2>Custom Scopes:</h2>
@@ -55,9 +57,9 @@ public enum ScopeType {
     /**
      * Request scope - one instance per HTTP request.
      * 
-     * <p>A new instance is created for each HTTP request and is shared
-     * across all injections within that request. The instance is
-     * automatically cleared at the end of the request.</p>
+     * <p>A single instance is created and shared throughout the duration
+     * of a single HTTP request. The instance is created on first access
+     * within the request and is automatically cleared at the end.</p>
      * 
      * @see io.github.yasmramos.veld.annotation.RequestScoped
      */
@@ -66,9 +68,9 @@ public enum ScopeType {
     /**
      * Session scope - one instance per HTTP session.
      * 
-     * <p>A new instance is created for each HTTP session and is shared
-     * across all requests within that session. The instance persists
-     * for the lifetime of the user's session.</p>
+     * <p>A single instance is created and shared throughout the duration
+     * of a user's HTTP session. The instance persists across multiple
+     * requests within the same session.</p>
      * 
      * @see io.github.yasmramos.veld.annotation.SessionScoped
      */
@@ -121,7 +123,6 @@ public enum ScopeType {
             case "prototype" -> PROTOTYPE;
             case "request" -> REQUEST;
             case "session" -> SESSION;
-            default -> null;
         };
     }
     

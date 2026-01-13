@@ -75,7 +75,7 @@ import java.util.function.Supplier;
  */
 public class SessionScope implements Scope {
     
-    private static final String SCOPE_ID = "session";
+    public static final String SCOPE_ID = "session";
     
     // Map from session ID to session beans
     // Each session gets its own map of beans
