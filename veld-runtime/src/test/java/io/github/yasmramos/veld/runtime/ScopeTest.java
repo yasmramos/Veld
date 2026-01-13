@@ -28,11 +28,23 @@ class ScopeTest {
         }
         
         @Test
+        @DisplayName("Should have REQUEST scope")
+        void shouldHaveRequestScope() {
+            assertNotNull(ScopeType.REQUEST);
+        }
+        
+        @Test
+        @DisplayName("Should have SESSION scope")
+        void shouldHaveSessionScope() {
+            assertNotNull(ScopeType.SESSION);
+        }
+        
+        @Test
         @DisplayName("Should have correct number of scopes")
         void shouldHaveCorrectNumberOfScopes() {
             ScopeType[] scopes = ScopeType.values();
             
-            assertEquals(2, scopes.length);
+            assertEquals(4, scopes.length);
         }
     }
     
@@ -45,6 +57,8 @@ class ScopeTest {
         void shouldGetScopeByName() {
             assertEquals(ScopeType.SINGLETON, ScopeType.valueOf("SINGLETON"));
             assertEquals(ScopeType.PROTOTYPE, ScopeType.valueOf("PROTOTYPE"));
+            assertEquals(ScopeType.REQUEST, ScopeType.valueOf("REQUEST"));
+            assertEquals(ScopeType.SESSION, ScopeType.valueOf("SESSION"));
         }
         
         @Test
@@ -64,6 +78,8 @@ class ScopeTest {
         void shouldReturnCorrectName() {
             assertEquals("SINGLETON", ScopeType.SINGLETON.name());
             assertEquals("PROTOTYPE", ScopeType.PROTOTYPE.name());
+            assertEquals("REQUEST", ScopeType.REQUEST.name());
+            assertEquals("SESSION", ScopeType.SESSION.name());
         }
     }
     
@@ -81,6 +97,18 @@ class ScopeTest {
         @DisplayName("PROTOTYPE should return 'prototype' scope ID")
         void prototypeShouldReturnPrototypeScopeId() {
             assertEquals("prototype", ScopeType.PROTOTYPE.getScopeId());
+        }
+        
+        @Test
+        @DisplayName("REQUEST should return 'request' scope ID")
+        void requestShouldReturnRequestScopeId() {
+            assertEquals("request", ScopeType.REQUEST.getScopeId());
+        }
+        
+        @Test
+        @DisplayName("SESSION should return 'session' scope ID")
+        void sessionShouldReturnSessionScopeId() {
+            assertEquals("session", ScopeType.SESSION.getScopeId());
         }
     }
     
@@ -101,6 +129,18 @@ class ScopeTest {
         }
         
         @Test
+        @DisplayName("Should return REQUEST for 'request'")
+        void shouldReturnRequestForRequest() {
+            assertEquals(ScopeType.REQUEST, ScopeType.fromScopeId("request"));
+        }
+        
+        @Test
+        @DisplayName("Should return SESSION for 'session'")
+        void shouldReturnSessionForSession() {
+            assertEquals(ScopeType.SESSION, ScopeType.fromScopeId("session"));
+        }
+        
+        @Test
         @DisplayName("Should return null for unknown scope ID")
         void shouldReturnNullForUnknownScopeId() {
             assertNull(ScopeType.fromScopeId("unknown"));
@@ -113,6 +153,10 @@ class ScopeTest {
             assertEquals(ScopeType.SINGLETON, ScopeType.fromScopeId("Singleton"));
             assertEquals(ScopeType.PROTOTYPE, ScopeType.fromScopeId("PROTOTYPE"));
             assertEquals(ScopeType.PROTOTYPE, ScopeType.fromScopeId("Prototype"));
+            assertEquals(ScopeType.REQUEST, ScopeType.fromScopeId("REQUEST"));
+            assertEquals(ScopeType.REQUEST, ScopeType.fromScopeId("Request"));
+            assertEquals(ScopeType.SESSION, ScopeType.fromScopeId("SESSION"));
+            assertEquals(ScopeType.SESSION, ScopeType.fromScopeId("Session"));
         }
         
         @Test
@@ -150,6 +194,18 @@ class ScopeTest {
         }
         
         @Test
+        @DisplayName("Should return true for 'request'")
+        void shouldReturnTrueForRequest() {
+            assertTrue(ScopeType.isBuiltInScope("request"));
+        }
+        
+        @Test
+        @DisplayName("Should return true for 'session'")
+        void shouldReturnTrueForSession() {
+            assertTrue(ScopeType.isBuiltInScope("session"));
+        }
+        
+        @Test
         @DisplayName("Should return false for unknown scope ID")
         void shouldReturnFalseForUnknownScopeId() {
             assertFalse(ScopeType.isBuiltInScope("unknown"));
@@ -159,6 +215,35 @@ class ScopeTest {
         @DisplayName("Should return false for null")
         void shouldReturnFalseForNull() {
             assertFalse(ScopeType.isBuiltInScope(null));
+        }
+    }
+    
+    @Nested
+    @DisplayName("Is Web Scope Tests")
+    class IsWebScopeTests {
+        
+        @Test
+        @DisplayName("REQUEST should be a web scope")
+        void requestShouldBeWebScope() {
+            assertTrue(ScopeType.REQUEST.isWebScope());
+        }
+        
+        @Test
+        @DisplayName("SESSION should be a web scope")
+        void sessionShouldBeWebScope() {
+            assertTrue(ScopeType.SESSION.isWebScope());
+        }
+        
+        @Test
+        @DisplayName("SINGLETON should not be a web scope")
+        void singletonShouldNotBeWebScope() {
+            assertFalse(ScopeType.SINGLETON.isWebScope());
+        }
+        
+        @Test
+        @DisplayName("PROTOTYPE should not be a web scope")
+        void prototypeShouldNotBeWebScope() {
+            assertFalse(ScopeType.PROTOTYPE.isWebScope());
         }
     }
 }
