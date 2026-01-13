@@ -18,7 +18,9 @@
 
 **Ultra-fast Dependency Injection for Java - Zero Reflection, Pure Code Generation**
 
-Veld is a compile-time Dependency Injection framework that generates pure Java code. Zero reflection at runtime means maximum performance - up to 100x faster than Spring for dependency resolution.
+Veld is a compile-time Dependency Injection framework that generates pure Java code. Zero reflection at runtime means maximum performance - up to 100x faster than Spring in dependency resolution benchmarks.
+
+Designed for developers who want maximum performance, full control, and zero runtime magic.
 
 ## Quick Start
 
@@ -102,7 +104,7 @@ public class Main {
 
 ## Performance Highlights
 
-- **100x faster** than Spring for dependency resolution
+- **Up to 100x faster** than Spring in dependency resolution benchmarks
 - **3ns** average injection latency
 - **0.003ms** startup time
 - Zero runtime reflection overhead

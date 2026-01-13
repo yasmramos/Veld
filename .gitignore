@@ -895,9 +895,6 @@
 # uploads/
 # downloads/
 
-# Shell output save directory
-shell_output_save/
-
 # Claude Agent SDK debug files
 **/.claude/debug/
 **/.claude/debug/**
