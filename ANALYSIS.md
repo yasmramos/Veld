@@ -8,7 +8,7 @@ This comprehensive analysis evaluates the Veld Framework, a compile-time Depende
 
 Veld represents a promising approach to dependency injection in the Java ecosystem, achieving significant performance gains through compile-time code generation using ASM bytecode manipulation. The framework's modular architecture demonstrates thoughtful separation of concerns across 16 distinct modules, covering core DI functionality, aspect-oriented programming, resilience patterns, caching, validation, security, transactions, and Spring Boot integration. The current version 1.0.3 indicates a production-ready state, though the analysis reveals substantial opportunities for enhancement in enterprise-grade features, developer experience tooling, and standards compliance.
 
-The framework's most significant strengths lie in its performance-oriented design philosophy, comprehensive annotation coverage spanning 64 distinct annotations, and ambitious roadmap targeting native image compilation and cloud-native scenarios. However, critical gaps exist in areas such as circular dependency detection, advanced qualifier support, request/session scope implementations, and comprehensive testing infrastructure. These gaps, while not immediately blocking adoption for greenfield projects, may present challenges for enterprise migrations from Spring.
+The framework's most significant strengths lie in its performance-oriented design philosophy, comprehensive annotation coverage spanning 64 distinct annotations, and ambitious roadmap targeting native image compilation and cloud-native scenarios. However, critical gaps exist in areas such as advanced qualifier support, request/session scope implementations, and comprehensive testing infrastructure. These gaps, while not immediately blocking adoption for greenfield projects, may present challenges for enterprise migrations from Spring.
 
 ### 1.2 Maturity Assessment
 
@@ -27,7 +27,7 @@ The framework's most significant strengths lie in its performance-oriented desig
 
 The following represents the prioritized recommendations based on impact and effort analysis. Critical priority items address fundamental gaps that affect production reliability and enterprise adoption. High priority items enhance the framework's competitiveness with established alternatives. Medium priority items improve developer experience and ecosystem integration.
 
-**Priority 0 (Critical):** Implement circular dependency detection and reporting, enhance error messages with actionable guidance, and complete request/session scope implementations for web application support. These items represent baseline requirements for enterprise production use.
+**Priority 0 (Critical):** Enhance error messages with actionable guidance, and complete request/session scope implementations for web application support. These items represent baseline requirements for enterprise production use.
 
 **Priority 1 (High):** Add Provider<T> injection support following JSR-330 compliance, implement @Named qualifier with EL support, and create comprehensive test infrastructure including @VeldTest annotation. These items significantly enhance developer experience and framework usability.
 
@@ -157,15 +157,7 @@ Veld's qualifier support includes @Named for string-based qualification and @Qua
 
 ## 4. Critical Gap Analysis
 
-### 4.1 Circular Dependency Detection
-
-Circular dependencies occur when bean A depends on bean B, which depends on bean A, creating a resolution loop. Spring provides sophisticated circular dependency detection that logs warnings or throws exceptions depending on configuration. Veld currently lacks explicit circular dependency detection, which can lead to infinite loops or stack overflow errors in scenarios with circular constructor dependencies.
-
-The roadmap indicates planned error message improvements with guidance such as "Circular dependency detected: A → B → A. Use @Lazy to break it," suggesting awareness of this limitation. However, this functionality remains unimplemented. The absence of circular dependency detection represents a critical gap for production reliability, as circular dependencies can cause subtle runtime failures that are difficult to diagnose.
-
-Implementation recommendation: Add compile-time circular dependency detection during annotation processing, leveraging the complete dependency graph knowledge available during factory generation. When circular dependencies are detected through constructor parameters, generate factories with lazy initialization wrappers (similar to Spring's ObjectFactory) that break the cycle by deferring bean creation until first access.
-
-### 4.2 Advanced Injection Patterns
+### 4.1 Advanced Injection Patterns
 
 Several advanced injection patterns common in enterprise applications are absent from Veld's implementation.
 
@@ -177,7 +169,7 @@ Several advanced injection patterns common in enterprise applications are absent
 
 **List/Array Injection:** Injecting all beans of a particular type as a list or array enables autowiring by type scenarios common in plugin systems. While Veld's ComponentRegistry interface supports getFactoriesForType, this capability does not appear exposed through standard @Inject patterns.
 
-### 4.3 Web Application Scopes
+### 4.2 Web Application Scopes
 
 Request scope and session scope are fundamental requirements for web applications. These scopes bind bean instances to the HTTP request lifecycle and user session respectively, enabling proper state management in multi-threaded server environments.
 
@@ -189,7 +181,7 @@ Request scope and session scope are fundamental requirements for web application
 
 The analysis revealed that while the infrastructure for custom scopes exists through @VeldScope and ScopeRegistry, the concrete implementations for these web scopes are not present. The Scope.java file expected at veld-annotations/src/main/java/io/github/yasmramos/veld/annotation/Scope.java was not found, suggesting incomplete implementation or documentation inconsistency.
 
-### 4.4 Standards Compliance
+### 4.3 Standards Compliance
 
 JSR-330 (Dependency Injection for Java) and Jakarta CDI represent the standard APIs for dependency injection in the Java ecosystem. Compliance with these standards ensures interoperability with third-party libraries and frameworks that expect standard injection patterns.
 
@@ -211,7 +203,7 @@ JSR-330 (Dependency Injection for Java) and Jakarta CDI represent the standard A
 
 The implementation of alternative annotations (@Bean instead of @Produces, @Subscribe instead of @Observes) demonstrates intentional design decisions but limits drop-in compatibility with CDI libraries.
 
-### 4.5 Testing Infrastructure
+### 4.4 Testing Infrastructure
 
 Enterprise adoption requires comprehensive testing support. The veld-test module exists as a placeholder without implementation, representing a significant gap in the developer experience.
 
@@ -283,7 +275,6 @@ The documentation structure is comprehensive, covering annotations, architecture
 
 The first phase focuses on foundational improvements required for production reliability and enterprise adoption.
 
-**Circular Dependency Detection:** Implement compile-time detection during annotation processing. When a circular constructor dependency is detected through the dependency graph analysis, generate factory code with lazy initialization wrappers that break the cycle. Include clear error messages that identify the circular path and suggest @Lazy usage to resolve.
 
 **Request and Session Scope Implementation:** Complete the web scope implementations required for servlet-based applications. The request scope should bind bean instances to the current thread using ThreadLocal, with cleanup in a request destruction callback. Session scope requires integration with the HTTP session mechanism, typically through a HttpSessionListener that manages bean lifecycle.
 
@@ -323,7 +314,7 @@ The fourth phase addresses advanced enterprise requirements.
 
 Veld Framework represents a promising approach to dependency injection in Java, offering significant performance advantages through compile-time code generation and zero-reflection architecture. The comprehensive annotation coverage and modular design demonstrate thoughtful architecture that addresses many enterprise Java patterns.
 
-However, the analysis reveals critical gaps that limit enterprise adoption. The absence of circular dependency detection, incomplete web scope implementations, and lack of testing infrastructure represent foundational gaps that must be addressed for production reliability. The absence of Provider<T> injection and optional dependency support limits JSR-330 compliance and interoperability with standard Java libraries.
+However, the analysis reveals critical gaps that limit enterprise adoption. The incomplete web scope implementations and lack of testing infrastructure represent foundational gaps that must be addressed for production reliability. The absence of Provider<T> injection and optional dependency support limits JSR-330 compliance and interoperability with standard Java libraries.
 
 The strategic recommendations prioritize foundational improvements in Phase 1, followed by standards compliance in Phase 2, developer experience in Phase 3, and advanced enterprise features in Phase 4. Following this roadmap would position Veld as a viable alternative to Spring for performance-conscious applications while maintaining compatibility with Java ecosystem standards.
 

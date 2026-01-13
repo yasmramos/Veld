@@ -107,6 +107,8 @@ public final class DotExporter implements GraphExporter {
         return switch (scope) {
             case SINGLETON -> "box";
             case PROTOTYPE -> "oval";
+            case REQUEST -> "diamond";
+            case SESSION -> "folder";
         };
     }
     

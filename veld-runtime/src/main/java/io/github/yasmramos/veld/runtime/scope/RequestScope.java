@@ -71,7 +71,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class RequestScope implements Scope {
     
-    private static final String SCOPE_ID = "request";
+    public static final String SCOPE_ID = "request";
     
     // ThreadLocal storage for request-scoped beans
     // Each thread (request) gets its own map of beans

@@ -24,6 +24,8 @@ package io.github.yasmramos.veld.annotation;
  * <ul>
  *   <li>{@link #SINGLETON} - One shared instance per container (default)</li>
  *   <li>{@link #PROTOTYPE} - New instance for each request</li>
+ *   <li>{@link #REQUEST} - One instance per HTTP request</li>
+ *   <li>{@link #SESSION} - One instance per HTTP session</li>
  * </ul>
  * 
  * <h2>Custom Scopes:</h2>
@@ -50,7 +52,29 @@ public enum ScopeType {
      * from the container. The container does not track or manage these
      * instances.</p>
      */
-    PROTOTYPE("prototype");
+    PROTOTYPE("prototype"),
+    
+    /**
+     * Request scope - one instance per HTTP request.
+     * 
+     * <p>A single instance is created and shared throughout the duration
+     * of a single HTTP request. The instance is created on first access
+     * within the request and is automatically cleared at the end.</p>
+     * 
+     * @see io.github.yasmramos.veld.annotation.RequestScoped
+     */
+    REQUEST("request"),
+    
+    /**
+     * Session scope - one instance per HTTP session.
+     * 
+     * <p>A single instance is created and shared throughout the duration
+     * of a user's HTTP session. The instance persists across multiple
+     * requests within the same session.</p>
+     * 
+     * @see io.github.yasmramos.veld.annotation.SessionScoped
+     */
+    SESSION("session");
     
     /**
      * The scope identifier for this scope type.
@@ -97,6 +121,8 @@ public enum ScopeType {
         return switch (id.toLowerCase()) {
             case "singleton" -> SINGLETON;
             case "prototype" -> PROTOTYPE;
+            case "request" -> REQUEST;
+            case "session" -> SESSION;
             default -> null;
         };
     }
@@ -105,9 +131,18 @@ public enum ScopeType {
      * Checks if the given scope ID represents a built-in scope type.
      * 
      * @param id the scope identifier to check
-     * @return true if it's a built-in scope (singleton or prototype)
+     * @return true if it's a built-in scope (singleton, prototype, request, or session)
      */
     public static boolean isBuiltInScope(String id) {
         return fromScopeId(id) != null;
+    }
+    
+    /**
+     * Checks if this scope type represents a web-related scope (request or session).
+     * 
+     * @return true if this is a web scope
+     */
+    public boolean isWebScope() {
+        return this == REQUEST || this == SESSION;
     }
 }
