@@ -24,17 +24,14 @@ class SessionScopeTest {
     @BeforeEach
     void setUp() {
         sessionScope = new SessionScope();
-        // Clear any previous state
-        SessionScope.clearCurrentSession();
-        SessionScope.clearSession("test-session");
-        SessionScope.clearSession("another-session");
+        // Destroy all previous state to ensure clean test environment
+        sessionScope.destroy();
     }
     
     @AfterEach
     void tearDown() {
-        SessionScope.clearCurrentSession();
-        SessionScope.clearSession("test-session");
-        SessionScope.clearSession("another-session");
+        // Clean up all session state
+        sessionScope.destroy();
     }
     
     @Nested
