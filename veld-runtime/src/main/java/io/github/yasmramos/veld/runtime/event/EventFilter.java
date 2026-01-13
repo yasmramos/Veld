@@ -15,7 +15,9 @@
  */
 package io.github.yasmramos.veld.runtime.event;
 
-import java.lang.reflect.Method;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
@@ -23,19 +25,22 @@ import java.util.regex.Pattern;
 
 /**
  * Evaluates filter expressions for event subscribers.
- *
- * <p>Supports a simple expression language for filtering events based
- * on their properties using zero-reflection API.
- *
- * <h2>Zero-Reflection Property Access</h2>
- * <p>For property access to work without reflection, events should implement
- * the {@link EventPropertyAccessor} interface or use the
- * {@link #registerPropertyAccessor} method to register accessors.</p>
+ * <p>
+ * This class is designed for zero-reflection mode, using pre-computed
+ * MethodHandles for property access instead of reflection.
+ * <p>
+ * For property access to work without reflection, events should:
+ * <ul>
+ *   <li>Implement the {@link EventPropertyAccessor} interface</li>
+ *   <li>Or have their MethodHandles pre-registered via {@link #registerPropertyGetter}</li>
+ * </ul>
  *
  * @author Veld Framework Team
  * @since 1.0.0
  */
 public class EventFilter {
+
+    private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
     /**
      * Interface for zero-reflection property access.
@@ -45,7 +50,21 @@ public class EventFilter {
         Class<?> getEventClass();
     }
 
+    /**
+     * Container for pre-computed property getter MethodHandles.
+     */
+    private static class PropertyGetter {
+        final MethodHandle getter;
+        final boolean isBoolean;
+
+        PropertyGetter(MethodHandle getter, boolean isBoolean) {
+            this.getter = getter;
+            this.isBoolean = isBoolean;
+        }
+    }
+
     private static final Map<Class<?>, EventPropertyAccessor> propertyAccessors = new ConcurrentHashMap<>();
+    private static final Map<String, PropertyGetter> methodHandleCache = new ConcurrentHashMap<>();
 
     /**
      * Registers a property accessor for a specific event class.
@@ -57,65 +76,80 @@ public class EventFilter {
     }
 
     /**
+     * Registers a pre-computed MethodHandle for a property getter.
+     * <p>
+     * This method is used by code generators to register property access
+     * without reflection, enabling zero-reflection mode for GraalVM Native Image.
+     *
+     * @param eventClass the event class
+     * @param propertyName the property name
+     * @param getter the pre-computed MethodHandle
+     * @param isBoolean true if the property is boolean (uses "is" getter)
+     */
+    public static void registerPropertyGetter(Class<?> eventClass, String propertyName,
+                                               MethodHandle getter, boolean isBoolean) {
+        String cacheKey = eventClass.getName() + "." + propertyName;
+        methodHandleCache.put(cacheKey, new PropertyGetter(getter, isBoolean));
+    }
+
+    /**
+     * Creates a MethodHandle for a property getter.
+     * <p>
+     * This method can be used by code generators to create MethodHandles
+     * for property access, eliminating the need for reflection.
+     *
+     * @param eventClass the event class
+     * @param propertyName the property name
+     * @param returnType the return type of the getter
+     * @param isBoolean true if the property is boolean (uses "is" getter)
+     * @return a MethodHandle for the property getter
+     * @throws NoSuchMethodException if the getter method doesn't exist
+     * @throws IllegalAccessException if the method is not accessible
+     */
+    public static MethodHandle createPropertyGetter(Class<?> eventClass, String propertyName,
+                                                    Class<?> returnType, boolean isBoolean)
+            throws NoSuchMethodException, IllegalAccessException {
+        String methodName = isBoolean ? "is" + capitalize(propertyName) : "get" + capitalize(propertyName);
+        return LOOKUP.findVirtual(eventClass, methodName, MethodType.methodType(returnType));
+    }
+
+    private static String capitalize(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+        return Character.toUpperCase(str.charAt(0)) + str.substring(1);
+    }
+
+    /**
      * Gets a property value from an event using zero-reflection accessor.
      */
     private static Object getPropertyValue(Event event, String propertyName) {
+        // Try registered property accessor first
         EventPropertyAccessor accessor = propertyAccessors.get(event.getClass());
         if (accessor != null) {
             return accessor.getProperty(propertyName);
         }
 
-        // Fallback to reflection for backward compatibility (deprecated)
-        return getPropertyValueReflection(event, propertyName);
-    }
-
-    /**
-     * Gets a property value from an event using reflection.
-     *
-     * @deprecated Use {@link #registerPropertyAccessor} instead for zero-reflection mode
-     */
-    @Deprecated
-    private static Object getPropertyValueReflection(Event event, String propertyName) {
-        try {
-            String getterName = "get" + Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
-            String cacheKey = event.getClass().getName() + "." + getterName;
-
-            Method getter = methodCache.computeIfAbsent(cacheKey, k -> {
-                try {
-                    Method m = event.getClass().getMethod(getterName);
-                    m.setAccessible(true);
-                    return m;
-                } catch (NoSuchMethodException e) {
-                    // Try isXxx for boolean
-                    try {
-                        String isName = "is" + Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
-                        Method m = event.getClass().getMethod(isName);
-                        m.setAccessible(true);
-                        return m;
-                    } catch (NoSuchMethodException e2) {
-                        return null;
-                    }
-                }
-            });
-
-            if (getter == null) {
-                System.err.println("[EventFilter] Property not found: " + propertyName);
+        // Try pre-registered MethodHandle
+        String cacheKey = event.getClass().getName() + "." + propertyName;
+        PropertyGetter propertyGetter = methodHandleCache.get(cacheKey);
+        if (propertyGetter != null) {
+            try {
+                return propertyGetter.getter.invoke(event);
+            } catch (Throwable e) {
+                System.err.println("[EventFilter] Error invoking MethodHandle for property '" +
+                        propertyName + "': " + e.getMessage());
                 return null;
             }
-
-            return getter.invoke(event);
-
-        } catch (Exception e) {
-            System.err.println("[EventFilter] Error getting property '" + propertyName + "': " + e.getMessage());
-            return null;
         }
+
+        System.err.println("[EventFilter] No property accessor found for: " + propertyName);
+        return null;
     }
 
     private static final Pattern EXPRESSION_PATTERN = Pattern.compile(
             "event\\.([a-zA-Z][a-zA-Z0-9]*)\\s*(==|!=|>=|<=|>|<)\\s*(.+)"
     );
-
-    private static final Map<String, Method> methodCache = new ConcurrentHashMap<>();
 
     /**
      * Private constructor to prevent instantiation.
@@ -249,5 +283,14 @@ public class EventFilter {
         } catch (NumberFormatException e) {
             return 0.0;
         }
+    }
+
+    /**
+     * Clears all registered property accessors and MethodHandles.
+     * Useful for testing.
+     */
+    public static void clearCache() {
+        propertyAccessors.clear();
+        methodHandleCache.clear();
     }
 }

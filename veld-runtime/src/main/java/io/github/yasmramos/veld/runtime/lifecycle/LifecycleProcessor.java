@@ -15,14 +15,15 @@
  */
 package io.github.yasmramos.veld.runtime.lifecycle;
 
-import io.github.yasmramos.veld.annotation.DependsOn;
 import io.github.yasmramos.veld.annotation.OnStart;
 import io.github.yasmramos.veld.annotation.OnStop;
 import io.github.yasmramos.veld.annotation.PostInitialize;
 import io.github.yasmramos.veld.runtime.event.EventBus;
 import io.github.yasmramos.veld.runtime.lifecycle.event.*;
 
-import java.lang.reflect.Method;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -34,51 +35,36 @@ import java.util.stream.Collectors;
 
 /**
  * Manages the lifecycle of beans in the container.
- *
- * <p>This processor handles:
+ * <p>
+ * This processor is designed for zero-reflection mode, using pre-computed
+ * MethodHandles for fast invocation without reflection overhead.
+ * <p>
+ * All lifecycle callbacks must be registered via the manual registration methods:
  * <ul>
- *   <li>Bean post-processing before and after initialization</li>
- *   <li>Lifecycle interface callbacks (start/stop)</li>
- *   <li>Annotation-based lifecycle callbacks (@OnStart, @OnStop, etc.)</li>
- *   <li>Publishing lifecycle events to EventBus</li>
- *   <li>Respecting initialization order (@DependsOn, phases)</li>
+ *   <li>{@link #registerPostInitialize(Object, String, MethodHandle)}</li>
+ *   <li>{@link #registerOnStart(Object, String, MethodHandle)}</li>
+ *   <li>{@link #registerOnStop(Object, String, MethodHandle)}</li>
  * </ul>
- *
- * <h2>Lifecycle Phases</h2>
- * <ol>
- *   <li><b>Initialization</b>: Beans are created and dependencies injected</li>
- *   <li><b>Post-Processing</b>: BeanPostProcessors modify beans</li>
- *   <li><b>Post-Initialize</b>: @PostInitialize callbacks after all beans ready</li>
- *   <li><b>Start</b>: Lifecycle beans and @OnStart methods invoked</li>
- *   <li><b>Running</b>: Application is operational</li>
- *   <li><b>Stop</b>: Lifecycle beans and @OnStop methods invoked</li>
- *   <li><b>Destroy</b>: DisposableBean and @PreDestroy callbacks</li>
- * </ol>
  *
  * @author Veld Framework
  * @since 1.0.0-alpha.6
  */
 public class LifecycleProcessor {
-    
-    /**
-     * Public constructor for instantiation by generated Veld class.
-     */
-    public LifecycleProcessor() {
-    }
-    
+
     private static final Logger LOGGER = Logger.getLogger(LifecycleProcessor.class.getName());
-    
+    private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
+
     private final List<BeanPostProcessor> postProcessors = new CopyOnWriteArrayList<>();
     private final Map<String, Object> managedBeans = new ConcurrentHashMap<>();
     private final Map<String, BeanLifecycleState> beanStates = new ConcurrentHashMap<>();
     private final List<LifecycleCallback> postInitializeCallbacks = new ArrayList<>();
     private final List<LifecycleCallback> onStartCallbacks = new ArrayList<>();
     private final List<LifecycleCallback> onStopCallbacks = new ArrayList<>();
-    
+
     private EventBus eventBus;
     private Instant startTime;
     private volatile boolean running = false;
-    
+
     /**
      * Bean lifecycle state tracking.
      */
@@ -90,128 +76,131 @@ public class LifecycleProcessor {
         STOPPED,
         DESTROYED
     }
-    
+
     /**
-     * Represents a lifecycle callback method.
+     * Represents a lifecycle callback method with pre-computed MethodHandle.
+     * <p>
+     * This class replaces reflection-based invocation with MethodHandle for
+     * zero-reflection compatibility with GraalVM Native Image.
      */
     private static class LifecycleCallback implements Comparable<LifecycleCallback> {
         final Object bean;
         final String beanName;
-        final Method method;
+        final MethodHandle methodHandle;
         final int order;
-        
-        LifecycleCallback(Object bean, String beanName, Method method, int order) {
+
+        LifecycleCallback(Object bean, String beanName, MethodHandle methodHandle, int order) {
             this.bean = bean;
             this.beanName = beanName;
-            this.method = method;
+            this.methodHandle = methodHandle;
             this.order = order;
         }
-        
-        void invoke() throws Exception {
-            method.setAccessible(true);
-            method.invoke(bean);
+
+        void invoke() throws Throwable {
+            methodHandle.invoke();
         }
-        
+
         @Override
         public int compareTo(LifecycleCallback other) {
             return Integer.compare(this.order, other.order);
         }
     }
-    
+
+    public LifecycleProcessor() {
+    }
+
     /**
-     * Sets the EventBus for publishing lifecycle events.
+     * Registers a PostInitialize callback (zero-reflection mode).
      *
-     * @param eventBus the event bus
+     * @param bean        the bean instance
+     * @param beanName    the bean name
+     * @param methodHandle pre-computed MethodHandle for the callback method
+     * @param order       the execution order
      */
+    public void registerPostInitialize(Object bean, String beanName, MethodHandle methodHandle, int order) {
+        postInitializeCallbacks.add(new LifecycleCallback(bean, beanName, methodHandle, order));
+    }
+
+    /**
+     * Registers an OnStart callback (zero-reflection mode).
+     *
+     * @param bean        the bean instance
+     * @param beanName    the bean name
+     * @param methodHandle pre-computed MethodHandle for the callback method
+     * @param order       the execution order
+     */
+    public void registerOnStart(Object bean, String beanName, MethodHandle methodHandle, int order) {
+        onStartCallbacks.add(new LifecycleCallback(bean, beanName, methodHandle, order));
+    }
+
+    /**
+     * Registers an OnStop callback (zero-reflection mode).
+     *
+     * @param bean        the bean instance
+     * @param beanName    the bean name
+     * @param methodHandle pre-computed MethodHandle for the callback method
+     * @param order       the execution order
+     */
+    public void registerOnStop(Object bean, String beanName, MethodHandle methodHandle, int order) {
+        onStopCallbacks.add(new LifecycleCallback(bean, beanName, methodHandle, order));
+    }
+
+    /**
+     * Creates a MethodHandle for a no-argument method.
+     * <p>
+     * This method is used by code generators to create MethodHandles
+     * for lifecycle callbacks, eliminating the need for reflection.
+     *
+     * @param target the bean instance
+     * @param methodName the name of the method to invoke
+     * @return a MethodHandle for the method
+     * @throws NoSuchMethodException if the method doesn't exist
+     * @throws IllegalAccessException if the method is not accessible
+     */
+    public static MethodHandle createMethodHandle(Object target, String methodName)
+            throws NoSuchMethodException, IllegalAccessException {
+        return LOOKUP.findVirtual(
+                target.getClass(),
+                methodName,
+                MethodType.methodType(void.class)
+        ).bindTo(target);
+    }
+
+    /**
+     * Creates a MethodHandle for a method with one parameter.
+     *
+     * @param target      the bean instance
+     * @param methodName  the name of the method to invoke
+     * @param paramClass  the class of the single parameter
+     * @return a MethodHandle for the method
+     * @throws NoSuchMethodException if the method doesn't exist
+     * @throws IllegalAccessException if the method is not accessible
+     */
+    public static MethodHandle createMethodHandle(Object target, String methodName, Class<?> paramClass)
+            throws NoSuchMethodException, IllegalAccessException {
+        return LOOKUP.findVirtual(
+                target.getClass(),
+                methodName,
+                MethodType.methodType(void.class, paramClass)
+        ).bindTo(target);
+    }
+
     public void setEventBus(EventBus eventBus) {
         this.eventBus = eventBus;
     }
-    
-    /**
-     * Registers a BeanPostProcessor.
-     *
-     * @param postProcessor the post processor to add
-     */
+
     public void addBeanPostProcessor(BeanPostProcessor postProcessor) {
         postProcessors.add(postProcessor);
         postProcessors.sort(Comparator.comparingInt(BeanPostProcessor::getOrder));
         LOGGER.fine("Registered BeanPostProcessor: " + postProcessor.getClass().getSimpleName());
     }
-    
-    /**
-     * Registers a bean for lifecycle management.
-     *
-     * @param beanName the bean name
-     * @param bean the bean instance
-     */
+
     public void registerBean(String beanName, Object bean) {
         managedBeans.put(beanName, bean);
         beanStates.put(beanName, BeanLifecycleState.CREATED);
-        
-        // Scan for lifecycle callbacks
-        scanLifecycleCallbacks(beanName, bean);
-        
         LOGGER.fine("Registered bean for lifecycle: " + beanName);
     }
-    
-    /**
-     * Scans a bean for lifecycle callback methods.
-     *
-     * @deprecated This method uses reflection and is not compatible with zero-reflection mode.
-     *             Please use registerPostInitialize(), registerOnStart(), or registerOnStop() instead.
-     */
-    @Deprecated
-    private void scanLifecycleCallbacks(String beanName, Object bean) {
-        // Reflection-based scanning disabled in zero-reflection mode
-        // Use manual registration methods instead:
-        // - registerPostInitialize(bean, beanName, method, order)
-        // - registerOnStart(bean, beanName, method, order)
-        // - registerOnStop(bean, beanName, method, order)
-    }
 
-    /**
-     * Registers a PostInitialize callback manually (zero-reflection).
-     *
-     * @param bean the bean instance
-     * @param beanName the bean name
-     * @param method the callback method
-     * @param order the execution order
-     */
-    public void registerPostInitialize(Object bean, String beanName, Method method, int order) {
-        postInitializeCallbacks.add(new LifecycleCallback(bean, beanName, method, order));
-    }
-
-    /**
-     * Registers an OnStart callback manually (zero-reflection).
-     *
-     * @param bean the bean instance
-     * @param beanName the bean name
-     * @param method the callback method
-     * @param order the execution order
-     */
-    public void registerOnStart(Object bean, String beanName, Method method, int order) {
-        onStartCallbacks.add(new LifecycleCallback(bean, beanName, method, order));
-    }
-
-    /**
-     * Registers an OnStop callback manually (zero-reflection).
-     *
-     * @param bean the bean instance
-     * @param beanName the bean name
-     * @param method the callback method
-     * @param order the execution order
-     */
-    public void registerOnStop(Object bean, String beanName, Method method, int order) {
-        onStopCallbacks.add(new LifecycleCallback(bean, beanName, method, order));
-    }
-    
-    /**
-     * Applies post-processing to a bean before initialization.
-     *
-     * @param bean the bean instance
-     * @param beanName the bean name
-     * @return the processed bean (may be wrapped)
-     */
     public Object postProcessBeforeInitialization(Object bean, String beanName) {
         Object result = bean;
         for (BeanPostProcessor processor : postProcessors) {
@@ -222,14 +211,7 @@ public class LifecycleProcessor {
         }
         return result;
     }
-    
-    /**
-     * Applies post-processing to a bean after initialization.
-     *
-     * @param bean the bean instance
-     * @param beanName the bean name
-     * @return the processed bean (may be wrapped/proxied)
-     */
+
     public Object postProcessAfterInitialization(Object bean, String beanName) {
         Object result = bean;
         for (BeanPostProcessor processor : postProcessors) {
@@ -241,13 +223,7 @@ public class LifecycleProcessor {
         beanStates.put(beanName, BeanLifecycleState.POST_PROCESSED);
         return result;
     }
-    
-    /**
-     * Initializes a bean implementing InitializingBean.
-     *
-     * @param bean the bean instance
-     * @param beanName the bean name
-     */
+
     public void initializeBean(Object bean, String beanName) {
         if (bean instanceof InitializingBean) {
             try {
@@ -259,68 +235,54 @@ public class LifecycleProcessor {
         }
         beanStates.put(beanName, BeanLifecycleState.INITIALIZED);
     }
-    
-    /**
-     * Called when container refresh is complete.
-     * Invokes all @PostInitialize methods and publishes ContextRefreshedEvent.
-     *
-     * @param initializationTimeMs time taken to initialize
-     */
+
     public void onRefresh(long initializationTimeMs) {
         startTime = Instant.now();
-        
-        // Sort and invoke @PostInitialize callbacks
+
         Collections.sort(postInitializeCallbacks);
         for (LifecycleCallback callback : postInitializeCallbacks) {
             try {
                 callback.invoke();
                 LOGGER.fine("Invoked @PostInitialize on: " + callback.beanName);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 LOGGER.log(Level.SEVERE, "Error in @PostInitialize: " + callback.beanName, e);
                 throw new RuntimeException("@PostInitialize failed for: " + callback.beanName, e);
             }
         }
-        
-        // Publish event
+
         if (eventBus != null) {
             eventBus.publish(new ContextRefreshedEvent(this, managedBeans.size(), initializationTimeMs));
         }
-        
-        LOGGER.info("Container refreshed with " + managedBeans.size() + " beans in " + 
+
+        LOGGER.info("Container refreshed with " + managedBeans.size() + " beans in " +
                 initializationTimeMs + "ms");
     }
-    
-    /**
-     * Starts all lifecycle beans.
-     * Invokes Lifecycle.start(), @OnStart methods, and publishes ContextStartedEvent.
-     */
+
     public void start() {
         if (running) {
             LOGGER.warning("Lifecycle already started");
             return;
         }
-        
+
         int lifecycleCount = 0;
-        
-        // Start SmartLifecycle beans in phase order
+
         List<Map.Entry<String, Object>> smartLifecycleBeans = managedBeans.entrySet().stream()
                 .filter(e -> e.getValue() instanceof SmartLifecycle)
                 .filter(e -> ((SmartLifecycle) e.getValue()).isAutoStartup())
                 .sorted(Comparator.comparingInt(e -> ((SmartLifecycle) e.getValue()).getPhase()))
                 .collect(Collectors.toList());
-        
+
         for (Map.Entry<String, Object> entry : smartLifecycleBeans) {
             SmartLifecycle lifecycle = (SmartLifecycle) entry.getValue();
             if (!lifecycle.isRunning()) {
                 lifecycle.start();
                 beanStates.put(entry.getKey(), BeanLifecycleState.STARTED);
                 lifecycleCount++;
-                LOGGER.fine("Started SmartLifecycle bean: " + entry.getKey() + 
+                LOGGER.fine("Started SmartLifecycle bean: " + entry.getKey() +
                         " (phase=" + lifecycle.getPhase() + ")");
             }
         }
-        
-        // Start regular Lifecycle beans
+
         for (Map.Entry<String, Object> entry : managedBeans.entrySet()) {
             Object bean = entry.getValue();
             if (bean instanceof Lifecycle && !(bean instanceof SmartLifecycle)) {
@@ -333,62 +295,54 @@ public class LifecycleProcessor {
                 }
             }
         }
-        
-        // Invoke @OnStart callbacks
+
         Collections.sort(onStartCallbacks);
         for (LifecycleCallback callback : onStartCallbacks) {
             try {
                 callback.invoke();
                 LOGGER.fine("Invoked @OnStart on: " + callback.beanName);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 LOGGER.log(Level.SEVERE, "Error in @OnStart: " + callback.beanName, e);
                 throw new RuntimeException("@OnStart failed for: " + callback.beanName, e);
             }
         }
-        
+
         running = true;
-        
-        // Publish event
+
         if (eventBus != null) {
             eventBus.publish(new ContextStartedEvent(this, lifecycleCount));
         }
-        
+
         LOGGER.info("Lifecycle started: " + lifecycleCount + " beans");
     }
-    
-    /**
-     * Stops all lifecycle beans.
-     * Invokes @OnStop methods, Lifecycle.stop(), and publishes ContextStoppedEvent.
-     */
+
     public void stop() {
         if (!running) {
             LOGGER.warning("Lifecycle not running");
             return;
         }
-        
+
         int lifecycleCount = 0;
-        
-        // Invoke @OnStop callbacks (reverse order)
+
         List<LifecycleCallback> reversedStopCallbacks = new ArrayList<>(onStopCallbacks);
         reversedStopCallbacks.sort(Comparator.comparingInt((LifecycleCallback c) -> c.order).reversed());
-        
+
         for (LifecycleCallback callback : reversedStopCallbacks) {
             try {
                 callback.invoke();
                 LOGGER.fine("Invoked @OnStop on: " + callback.beanName);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 LOGGER.log(Level.WARNING, "Error in @OnStop: " + callback.beanName, e);
             }
         }
-        
-        // Stop SmartLifecycle beans in reverse phase order
+
         List<Map.Entry<String, Object>> smartLifecycleBeans = managedBeans.entrySet().stream()
                 .filter(e -> e.getValue() instanceof SmartLifecycle)
                 .sorted(Comparator.comparingInt(
                         (Map.Entry<String, Object> e) -> ((SmartLifecycle) e.getValue()).getPhase()
                 ).reversed())
                 .collect(Collectors.toList());
-        
+
         for (Map.Entry<String, Object> entry : smartLifecycleBeans) {
             SmartLifecycle lifecycle = (SmartLifecycle) entry.getValue();
             if (lifecycle.isRunning()) {
@@ -398,8 +352,7 @@ public class LifecycleProcessor {
                 LOGGER.fine("Stopped SmartLifecycle bean: " + entry.getKey());
             }
         }
-        
-        // Stop regular Lifecycle beans
+
         for (Map.Entry<String, Object> entry : managedBeans.entrySet()) {
             Object bean = entry.getValue();
             if (bean instanceof Lifecycle && !(bean instanceof SmartLifecycle)) {
@@ -412,32 +365,26 @@ public class LifecycleProcessor {
                 }
             }
         }
-        
+
         running = false;
-        
-        // Publish event
+
         if (eventBus != null) {
             eventBus.publish(new ContextStoppedEvent(this, lifecycleCount));
         }
-        
+
         LOGGER.info("Lifecycle stopped: " + lifecycleCount + " beans");
     }
-    
-    /**
-     * Destroys all beans.
-     * Invokes DisposableBean.destroy() and publishes ContextClosedEvent.
-     */
+
     public void destroy() {
         if (running) {
             stop();
         }
-        
+
         int destroyedCount = 0;
-        
-        // Destroy beans in reverse order
+
         List<String> beanNames = new ArrayList<>(managedBeans.keySet());
         Collections.reverse(beanNames);
-        
+
         for (String beanName : beanNames) {
             Object bean = managedBeans.get(beanName);
             if (bean instanceof DisposableBean) {
@@ -451,61 +398,39 @@ public class LifecycleProcessor {
             }
             beanStates.put(beanName, BeanLifecycleState.DESTROYED);
         }
-        
+
         Duration uptime = startTime != null ? Duration.between(startTime, Instant.now()) : Duration.ZERO;
-        
-        // Publish event
+
         if (eventBus != null) {
             eventBus.publish(new ContextClosedEvent(this, uptime, destroyedCount));
         }
-        
+
         LOGGER.info("Container closed: " + destroyedCount + " beans destroyed, uptime: " + uptime);
-        
-        // Clear state
+
         managedBeans.clear();
         beanStates.clear();
         postInitializeCallbacks.clear();
         onStartCallbacks.clear();
         onStopCallbacks.clear();
     }
-    
-    /**
-     * Returns whether the lifecycle is running.
-     *
-     * @return {@code true} if running
-     */
+
     public boolean isRunning() {
         return running;
     }
-    
-    /**
-     * Returns the number of registered BeanPostProcessors.
-     *
-     * @return post processor count
-     */
+
     public int getPostProcessorCount() {
         return postProcessors.size();
     }
-    
-    /**
-     * Returns the number of managed beans.
-     *
-     * @return bean count
-     */
+
     public int getBeanCount() {
         return managedBeans.size();
     }
-    
-    /**
-     * Returns statistics about the lifecycle processor.
-     *
-     * @return statistics string
-     */
+
     public String getStatistics() {
         long startedCount = beanStates.values().stream()
                 .filter(s -> s == BeanLifecycleState.STARTED)
                 .count();
-        
+
         return String.format("LifecycleProcessor{beans=%d, postProcessors=%d, " +
                         "postInitCallbacks=%d, onStartCallbacks=%d, onStopCallbacks=%d, " +
                         "running=%s, startedBeans=%d}",

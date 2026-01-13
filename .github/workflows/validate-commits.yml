@@ -1,0 +1,68 @@
+name: Validate Commit Messages
+
+on:
+  push:
+    branches: [ develop, main ]
+  pull_request:
+    branches: [ develop, main ]
+
+jobs:
+  validate-commits:
+    name: Validate Commit Messages
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Validate commit messages
+      id: validation
+      run: |
+        echo "Validating commit messages..."
+
+        # Pattern for suspicious commits (Message XXXXXXXXXX - XXXXXXXXXX)
+        SUSPICIOUS_PATTERN='^Message [0-9]+ - [0-9]+$'
+
+        # Get commit messages
+        COMMITS=$(git log --format='%s' origin/develop..HEAD 2>/dev/null || git log --format='%s' -10)
+
+        echo "Checking recent commits..."
+
+        # Check each commit
+        VIOLATIONS=0
+        for msg in $COMMITS; do
+          if echo "$msg" | grep -qE "$SUSPICIOUS_PATTERN"; then
+            echo "❌ REJECTED: Suspicious commit message detected: '$msg'"
+            VIOLATIONS=$((VIOLATIONS + 1))
+          fi
+        done
+
+        if [ $VIOLATIONS -gt 0 ]; then
+          echo "❌ Validation failed: $VIOLATIONS suspicious commits found"
+          echo "These commits do not follow the conventional commits specification"
+          echo "https://www.conventionalcommits.org/"
+          exit 1
+        fi
+
+        echo "✅ All commit messages are valid"
+
+    - name: Report validation status
+      if: always()
+      run: |
+        if [ "${{ steps.validation.outcome }}" == "failure" ]; then
+          echo "## ❌ Commit Message Validation Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Suspicious commit messages detected." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please ensure all commits follow:" >> $GITHUB_STEP_SUMMARY
+          echo "- Conventional Commits format" >> $GITHUB_STEP_SUMMARY
+          echo "- Meaningful commit messages" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Examples of valid commits:" >> $GITHUB_STEP_SUMMARY
+          echo "- \`fix: Correct test count in documentation\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`docs: Update README badges\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`refactor: Simplify configuration logic\`" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
