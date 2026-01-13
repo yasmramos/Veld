@@ -80,7 +80,7 @@ public class VeldSpringBootService implements InitializingBean, DisposableBean, 
             }
 
             // Verify Veld class exists
-            Class.forName(VELD_CLASS);
+            MethodHandles.lookup().loadClass(VELD_CLASS);
             
             // Cache method handles
             cacheMethodHandles();
@@ -105,7 +105,7 @@ public class VeldSpringBootService implements InitializingBean, DisposableBean, 
     }
     
     private void cacheMethodHandles() throws Exception {
-        Class<?> veldClass = Class.forName(VELD_CLASS);
+        Class<?> veldClass = MethodHandles.lookup().loadClass(VELD_CLASS);
         MethodHandles.Lookup lookup = MethodHandles.publicLookup();
         
         getByClassHandle = lookup.findStatic(veldClass, "get", 

@@ -2,6 +2,7 @@ package io.github.yasmramos.veld.runtime;
 
 import io.github.yasmramos.veld.runtime.condition.ConditionContext;
 
+import java.lang.invoke.MethodHandles;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -153,7 +154,7 @@ public final class ConditionalRegistry implements ComponentRegistry {
         // Register implemented interfaces
         for (String interfaceName : factory.getImplementedInterfaces()) {
             try {
-                Class<?> interfaceClass = Class.forName(interfaceName, false, 
+                Class<?> interfaceClass = MethodHandles.lookup().loadClass(interfaceName, 
                         conditionContext.getClassLoader());
                 factoriesByType.put(interfaceClass, factory);
                 registerInSupertypeMap(interfaceClass, factory);

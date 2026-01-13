@@ -12,6 +12,7 @@ import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 
 import java.lang.annotation.Annotation;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -132,7 +133,7 @@ public class SpringToVeldBridge implements BeanFactoryPostProcessor {
         
         // Check for javax.inject annotations (compatible with Veld)
         try {
-            Class<?> injectClass = Class.forName("javax.inject.Inject");
+            Class<?> injectClass = MethodHandles.lookup().loadClass("javax.inject.Inject");
             boolean hasInject = false;
             
             // Check constructor
@@ -190,7 +191,7 @@ public class SpringToVeldBridge implements BeanFactoryPostProcessor {
      */
     private Class<?> findVeldClass() {
         try {
-            return Class.forName("io.github.yasmramos.veld.Veld");
+            return MethodHandles.lookup().loadClass("io.github.yasmramos.veld.Veld");
         } catch (ClassNotFoundException e) {
             logger.debug("Veld class not found on classpath");
             return null;
@@ -253,7 +254,7 @@ public class SpringToVeldBridge implements BeanFactoryPostProcessor {
      */
     private org.springframework.context.ApplicationContext getSpringContext() {
         try {
-            Class<?> contextClass = Class.forName("org.springframework.context.ApplicationContext");
+            Class<?> contextClass = MethodHandles.lookup().loadClass("org.springframework.context.ApplicationContext");
             Field contextField = io.github.yasmramos.veld.Veld.class.getDeclaredField("applicationContext");
             contextField.setAccessible(true);
             return (org.springframework.context.ApplicationContext) contextField.get(null);

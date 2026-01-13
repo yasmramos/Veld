@@ -13,6 +13,7 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.core.type.MethodMetadata;
 
 import java.lang.annotation.Annotation;
+import java.lang.invoke.MethodHandles;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -159,7 +160,7 @@ public class VeldBeanCondition implements Condition {
                 && veldAvailable) {
             try {
                 // Try getting bean by class name from Veld
-                Class<?> beanType = Class.forName(beanName);
+                Class<?> beanType = MethodHandles.lookup().loadClass(beanName);
                 if (veldService.contains(beanType)) {
                     logger.debug("Found Veld bean by name: {}", beanName);
                     return true;

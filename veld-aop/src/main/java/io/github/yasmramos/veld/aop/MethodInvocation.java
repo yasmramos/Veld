@@ -16,6 +16,7 @@
 package io.github.yasmramos.veld.aop;
 
 import java.lang.annotation.Annotation;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
@@ -300,17 +301,17 @@ public class MethodInvocation implements InvocationContext {
                 // For inner classes, try to find the enclosing class first
                 String outerClass = simpleName.substring(0, simpleName.indexOf('$'));
                 try {
-                    Class<?> enclosing = Class.forName(className);
+                    Class<?> enclosing = MethodHandles.lookup().loadClass(className);
                     return enclosing;
                 } catch (ClassNotFoundException e) {
                     // Fall through to try with package
                 }
             }
-            return Class.forName(className);
+            return MethodHandles.lookup().loadClass(className);
         } catch (ClassNotFoundException e) {
             // Last resort: assume it's a simple name in the same package
             try {
-                return Class.forName(className + "." + simpleName);
+                return MethodHandles.lookup().loadClass(className + "." + simpleName);
             } catch (ClassNotFoundException e2) {
                 throw new RuntimeException("Could not load class: " + simpleName, e2);
             }
@@ -343,7 +344,7 @@ public class MethodInvocation implements InvocationContext {
     @Override
     public Class<?> getDeclaringClass() {
         try {
-            return Class.forName(className);
+            return MethodHandles.lookup().loadClass(className);
         } catch (ClassNotFoundException e) {
             throw new RuntimeException("Class not found: " + className, e);
         }
@@ -439,7 +440,7 @@ public class MethodInvocation implements InvocationContext {
         // Load the annotation class and create an instance using the annotation
         // This is safe because we verified the annotation is present
         try {
-            Class<?> annotationType = Class.forName(annotationName);
+            Class<?> annotationType = MethodHandles.lookup().loadClass(annotationName);
             // Since we can't create annotations directly without reflection,
             // we need to use the legacy method for actual annotation retrieval
             // This is a limitation - the zero-reflection path only knows IF

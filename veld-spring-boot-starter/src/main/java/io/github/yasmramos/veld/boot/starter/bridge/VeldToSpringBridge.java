@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.SingletonBeanRegistry;
 import org.springframework.context.ApplicationContext;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -111,7 +112,7 @@ public class VeldToSpringBridge {
         Map<Class<?>, Object> beans = new HashMap<>();
         
         try {
-            Class<?> veldClass = Class.forName(VELD_CLASS);
+            Class<?> veldClass = MethodHandles.lookup().loadClass(VELD_CLASS);
             
             // Get all component types
             Method getComponentsMethod = veldClass.getMethod("getComponents");
