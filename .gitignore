@@ -895,6 +895,12 @@
 # uploads/
 # downloads/
 
+# Project files and directories
+workspace.json
+tmp/
+pyproject.toml
+browser/
+
 # Claude Agent SDK debug files
 **/.claude/debug/
 **/.claude/debug/**
