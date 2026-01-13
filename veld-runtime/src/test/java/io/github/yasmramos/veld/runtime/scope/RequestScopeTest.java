@@ -1,5 +1,6 @@
 package io.github.yasmramos.veld.runtime.scope;
 
+import io.github.yasmramos.veld.annotation.ScopeType;
 import io.github.yasmramos.veld.runtime.ComponentFactory;
 import org.junit.jupiter.api.*;
 
@@ -71,10 +72,7 @@ class RequestScopeTest {
             RequestScope.setRequestScope(new ConcurrentHashMap<>());
             
             AtomicInteger factoryCallCount = new AtomicInteger(0);
-            ComponentFactory<String> factory = () -> {
-                factoryCallCount.incrementAndGet();
-                return "test-bean";
-            };
+            ComponentFactory<String> factory = createFactory("test-bean", factoryCallCount);
             
             String bean = requestScope.get("testBean", factory);
             
@@ -88,7 +86,7 @@ class RequestScopeTest {
             // Set up request context
             RequestScope.setRequestScope(new ConcurrentHashMap<>());
             
-            ComponentFactory<String> factory = () -> "new-instance";
+            ComponentFactory<String> factory = createFactory("new-instance", null);
             
             String bean1 = requestScope.get("testBean", factory);
             String bean2 = requestScope.get("testBean", factory);
@@ -102,8 +100,8 @@ class RequestScopeTest {
             // Set up request context
             RequestScope.setRequestScope(new ConcurrentHashMap<>());
             
-            ComponentFactory<String> factory1 = () -> "bean1";
-            ComponentFactory<String> factory2 = () -> "bean2";
+            ComponentFactory<String> factory1 = createFactory("bean1", null);
+            ComponentFactory<String> factory2 = createFactory("bean2", null);
             
             String bean1 = requestScope.get("bean1", factory1);
             String bean2 = requestScope.get("bean2", factory2);
@@ -118,12 +116,12 @@ class RequestScopeTest {
         void shouldCreateDifferentInstancesInDifferentRequests() {
             // First request
             RequestScope.setRequestScope(new ConcurrentHashMap<>());
-            String bean1 = requestScope.get("bean", () -> "instance-1");
+            String bean1 = requestScope.get("bean", createFactory("instance-1", null));
             
             // Clear and start second request
             RequestScope.clearRequestScope();
             RequestScope.setRequestScope(new ConcurrentHashMap<>());
-            String bean2 = requestScope.get("bean", () -> "instance-2");
+            String bean2 = requestScope.get("bean", createFactory("instance-2", null));
             
             assertEquals("instance-1", bean1);
             assertEquals("instance-2", bean2);
@@ -141,7 +139,7 @@ class RequestScopeTest {
             // Set up request context
             RequestScope.setRequestScope(new ConcurrentHashMap<>());
             
-            ComponentFactory<String> factory = () -> "test-bean";
+            ComponentFactory<String> factory = createFactory("test-bean", null);
             
             String bean = requestScope.get("testBean", factory);
             assertEquals("test-bean", bean);
@@ -175,8 +173,8 @@ class RequestScopeTest {
             // Set up request context
             RequestScope.setRequestScope(new ConcurrentHashMap<>());
             
-            requestScope.get("bean1", () -> "1");
-            requestScope.get("bean2", () -> "2");
+            requestScope.get("bean1", createFactory("1", null));
+            requestScope.get("bean2", createFactory("2", null));
             
             assertEquals(2, RequestScope.getRequestBeanCount());
             
@@ -206,10 +204,8 @@ class RequestScopeTest {
             for (int i = 0; i < threadCount; i++) {
                 executor.submit(() -> {
                     try {
-                        String bean = requestScope.get("sharedBean", () -> {
-                            factoryCallCount.incrementAndGet();
-                            return "shared-instance";
-                        });
+                        ComponentFactory<String> factory = createFactory("shared-instance", factoryCallCount);
+                        String bean = requestScope.get("sharedBean", factory);
                         if ("shared-instance".equals(bean)) {
                             successCount.incrementAndGet();
                         }
@@ -240,7 +236,8 @@ class RequestScopeTest {
             // Thread 1 - Session 1
             new Thread(() -> {
                 RequestScope.setRequestScope(new ConcurrentHashMap<>());
-                String bean1 = requestScope.get("bean", () -> sessionId1);
+                ComponentFactory<String> factory1 = createFactory(sessionId1, null);
+                String bean1 = requestScope.get("bean", factory1);
                 if (sessionId1.equals(bean1)) {
                     successCount.incrementAndGet();
                 }
@@ -251,7 +248,8 @@ class RequestScopeTest {
             // Thread 2 - Session 2
             new Thread(() -> {
                 RequestScope.setRequestScope(new ConcurrentHashMap<>());
-                String bean2 = requestScope.get("bean", () -> sessionId2);
+                ComponentFactory<String> factory2 = createFactory(sessionId2, null);
+                String bean2 = requestScope.get("bean", factory2);
                 if (sessionId2.equals(bean2)) {
                     successCount.incrementAndGet();
                 }
@@ -289,10 +287,10 @@ class RequestScopeTest {
             
             RequestScope.setRequestScope(new ConcurrentHashMap<>());
             
-            requestScope.get("bean1", () -> "1");
+            requestScope.get("bean1", createFactory("1", null));
             assertEquals(1, RequestScope.getRequestBeanCount());
             
-            requestScope.get("bean2", () -> "2");
+            requestScope.get("bean2", createFactory("2", null));
             assertEquals(2, RequestScope.getRequestBeanCount());
         }
         
@@ -312,7 +310,7 @@ class RequestScopeTest {
         void shouldReturnAccurateDescription() {
             RequestScope.setRequestScope(new ConcurrentHashMap<>());
             
-            requestScope.get("bean1", () -> "1");
+            requestScope.get("bean1", createFactory("1", null));
             
             String description = requestScope.describe();
             
@@ -350,7 +348,7 @@ class RequestScopeTest {
         void shouldHandleEmptyBeanName() {
             RequestScope.setRequestScope(new ConcurrentHashMap<>());
             
-            String bean = requestScope.get("", () -> "empty-name-bean");
+            String bean = requestScope.get("", createFactory("empty-name-bean", null));
             
             assertEquals("empty-name-bean", bean);
         }
@@ -360,9 +358,44 @@ class RequestScopeTest {
         void shouldHandleSpecialCharactersInBeanName() {
             RequestScope.setRequestScope(new ConcurrentHashMap<>());
             
-            String bean = requestScope.get("bean-with-special-chars_123.test", () -> "special");
+            String bean = requestScope.get("bean-with-special-chars_123.test", createFactory("special", null));
             
             assertEquals("special", bean);
         }
+    }
+    
+    /**
+     * Helper method to create a ComponentFactory for testing.
+     */
+    private <T> ComponentFactory<T> createFactory(T instance, AtomicInteger callCount) {
+        return new ComponentFactory<T>() {
+            private final T value = instance;
+            private final AtomicInteger count = callCount;
+            
+            @Override
+            public T create() {
+                if (count != null) {
+                    count.incrementAndGet();
+                }
+                return value;
+            }
+            
+            @Override
+            public Class<T> getComponentType() {
+                @SuppressWarnings("unchecked")
+                Class<T> type = (Class<T>) value.getClass();
+                return type;
+            }
+            
+            @Override
+            public String getComponentName() {
+                return "test-component";
+            }
+            
+            @Override
+            public ScopeType getScope() {
+                return ScopeType.REQUEST;
+            }
+        };
     }
 }
