@@ -50,15 +50,18 @@ import java.util.concurrent.ConcurrentHashMap;
  * public class RequestScopeFilter implements Filter {
  *     private static final ThreadLocal<Map<String, Object>> REQUEST_SCOPE = 
  *         ThreadLocal.withInitial(ConcurrentHashMap::new);
+ *     private static final ThreadLocal<Boolean> REQUEST_ACTIVE = new ThreadLocal<>();
  *     
  *     @Override
  *     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) {
  *         try {
  *             // Initialize request scope
+ *             REQUEST_ACTIVE.set(true);
  *             RequestScope.setRequestScope(REQUEST_SCOPE.get());
  *             chain.doFilter(request, response);
  *         } finally {
  *             // Clear request scope
+ *             REQUEST_ACTIVE.remove();
  *             REQUEST_SCOPE.remove();
  *         }
  *     }
@@ -74,9 +77,15 @@ public class RequestScope implements Scope {
     public static final String SCOPE_ID = "request";
     
     // ThreadLocal storage for request-scoped beans
-    // Each thread (request) gets its own map of beans
-    private static final ThreadLocal<Map<String, Object>> requestBeans = 
-        ThreadLocal.withInitial(ConcurrentHashMap::new);
+    // Each thread (request) gets its own map of beans by default
+    private static final ThreadLocal<Map<String, Object>> requestBeans = new ThreadLocal<>();
+    
+    // Shared request scope map for testing and concurrent access scenarios
+    // When set, this map is used instead of the ThreadLocal map
+    private static volatile Map<String, Object> sharedRequestScope = null;
+    
+    // ThreadLocal flag to track if we're in an active request context
+    private static final ThreadLocal<Boolean> isRequestActive = new ThreadLocal<>();
     
     // Map from scope class to scope instance (for singleton scopes that hold request state)
     private static final Map<Class<?>, Scope> scopeInstances = new ConcurrentHashMap<>();
@@ -99,43 +108,59 @@ public class RequestScope implements Scope {
     }
     
     @Override
+    @SuppressWarnings("unchecked")
     public <T> T get(String name, ComponentFactory<T> factory) {
-        Map<String, Object> beans = requestBeans.get();
+        Map<String, Object> beans = getRequestBeanMap();
         
-        @SuppressWarnings("unchecked")
-        T instance = (T) beans.get(name);
-        
-        if (instance == null) {
-            instance = factory.create();
-            beans.put(name, instance);
+        return (T) beans.computeIfAbsent(name, k -> factory.create());
+    }
+    
+    /**
+     * Gets the request bean map, either from shared scope or ThreadLocal.
+     * 
+     * @return the bean map
+     */
+    private static Map<String, Object> getRequestBeanMap() {
+        if (sharedRequestScope != null) {
+            return sharedRequestScope;
         }
-        
-        return instance;
+        Map<String, Object> beans = requestBeans.get();
+        if (beans == null) {
+            beans = new ConcurrentHashMap<>();
+            requestBeans.set(beans);
+        }
+        return beans;
     }
     
     @Override
     public Object remove(String name) {
-        Map<String, Object> beans = requestBeans.get();
+        Map<String, Object> beans = getRequestBeanMap();
         return beans.remove(name);
     }
     
     @Override
     public void destroy() {
         // Clear all request-scoped beans
-        Map<String, Object> beans = requestBeans.get();
+        Map<String, Object> beans = getRequestBeanMap();
         beans.clear();
         requestBeans.remove();
+        isRequestActive.remove();
     }
     
     @Override
     public boolean isActive() {
-        // Scope is active if we're within a request context
-        return requestBeans.get() != null;
+        // Scope is active if we've explicitly set the request context
+        // or if there's a shared scope set
+        if (sharedRequestScope != null) {
+            return true;
+        }
+        Boolean active = isRequestActive.get();
+        return active != null && active;
     }
     
     @Override
     public String describe() {
-        int beanCount = requestBeans.get().size();
+        int beanCount = getRequestBeanMap().size();
         return "RequestScope[beans=" + beanCount + ", active=" + isActive() + "]";
     }
     
@@ -148,6 +173,7 @@ public class RequestScope implements Scope {
     public static void setRequestScope(Map<String, Object> scopeMap) {
         if (scopeMap != null) {
             requestBeans.set(scopeMap);
+            isRequestActive.set(true);
         }
     }
     
@@ -157,6 +183,7 @@ public class RequestScope implements Scope {
      */
     public static void clearRequestScope() {
         requestBeans.remove();
+        isRequestActive.remove();
     }
     
     /**
@@ -166,8 +193,7 @@ public class RequestScope implements Scope {
      * @return the bean count, or 0 if not in a request context
      */
     public static int getRequestBeanCount() {
-        Map<String, Object> beans = requestBeans.get();
-        return beans != null ? beans.size() : 0;
+        return getRequestBeanMap().size();
     }
     
     /**
@@ -176,6 +202,20 @@ public class RequestScope implements Scope {
      * @return true if within a request
      */
     public static boolean isInRequestContext() {
-        return requestBeans.get() != null;
+        if (sharedRequestScope != null) {
+            return true;
+        }
+        Boolean active = isRequestActive.get();
+        return active != null && active;
+    }
+    
+    /**
+     * Sets a shared request scope map that will be used by all threads.
+     * Useful for testing concurrent access scenarios.
+     * 
+     * @param scopeMap the shared scope map to use, or null to disable sharing
+     */
+    public static void setSharedRequestScope(Map<String, Object> scopeMap) {
+        sharedRequestScope = scopeMap;
     }
 }

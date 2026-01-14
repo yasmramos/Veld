@@ -4,6 +4,7 @@ import io.github.yasmramos.veld.annotation.ScopeType;
 import io.github.yasmramos.veld.runtime.ComponentFactory;
 import org.junit.jupiter.api.*;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -23,14 +24,16 @@ class RequestScopeTest {
     @BeforeEach
     void setUp() {
         requestScope = new RequestScope();
-        // Destroy all previous state to ensure clean test environment
-        requestScope.destroy();
+        // Clear any existing request context to ensure clean test environment
+        RequestScope.clearRequestScope();
     }
     
     @AfterEach
     void tearDown() {
         // Clean up all request state
         requestScope.destroy();
+        // Also clear any ThreadLocal state that might have been set by tests
+        RequestScope.clearRequestScope();
     }
     
     @Nested
@@ -149,8 +152,11 @@ class RequestScopeTest {
             assertEquals("test-bean", removed);
             
             // Verify new instance is created on next access
-            String newBean = requestScope.get("testBean", factory);
+            // Use a different factory with a different value to avoid String interning issues
+            ComponentFactory<String> factory2 = createFactory("new-bean-instance", null);
+            String newBean = requestScope.get("testBean", factory2);
             assertNotSame(bean, newBean);
+            assertEquals("new-bean-instance", newBean);
         }
         
         @Test
@@ -193,8 +199,9 @@ class RequestScopeTest {
         @Test
         @DisplayName("Should handle concurrent access from same request")
         void shouldHandleConcurrentAccessFromSameRequest() throws InterruptedException {
-            // Set up request context
-            RequestScope.setRequestScope(new ConcurrentHashMap<>());
+            // Set up shared request context that all threads will access
+            Map<String, Object> sharedScope = new ConcurrentHashMap<>();
+            RequestScope.setSharedRequestScope(sharedScope);
             
             int threadCount = 10;
             CountDownLatch latch = new CountDownLatch(threadCount);
@@ -218,6 +225,9 @@ class RequestScopeTest {
             
             latch.await();
             executor.shutdown();
+            
+            // Clear shared scope after test
+            RequestScope.setSharedRequestScope(null);
             
             // Factory should be called only once (singleton within request)
             assertEquals(1, factoryCallCount.get());

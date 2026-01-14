@@ -87,6 +87,10 @@ public class SessionScope implements Scope {
     // Current session ID holder (set by web framework integration)
     private static final ThreadLocal<String> CURRENT_SESSION_ID = new ThreadLocal<>();
     
+    // Shared session context for testing and concurrent access scenarios
+    // When set, this session ID is used instead of the ThreadLocal value
+    private static volatile String sharedCurrentSessionId = null;
+    
     /**
      * Creates a new SessionScope instance.
      */
@@ -105,6 +109,7 @@ public class SessionScope implements Scope {
     }
     
     @Override
+    @SuppressWarnings("unchecked")
     public <T> T get(String name, ComponentFactory<T> factory) {
         String sessionId = getCurrentSessionId();
         if (sessionId == null) {
@@ -116,18 +121,10 @@ public class SessionScope implements Scope {
         
         Map<String, Object> beans = getOrCreateSessionBeans(sessionId);
         
-        @SuppressWarnings("unchecked")
-        T instance = (T) beans.get(name);
+        // Track session access
+        trackSessionAccess(sessionId);
         
-        if (instance == null) {
-            instance = factory.create();
-            beans.put(name, instance);
-            
-            // Track session access
-            trackSessionAccess(sessionId);
-        }
-        
-        return instance;
+        return (T) beans.computeIfAbsent(name, k -> factory.create());
     }
     
     @Override
@@ -148,6 +145,7 @@ public class SessionScope implements Scope {
         SESSION_BEANS.clear();
         SESSION_METADATA.clear();
         CURRENT_SESSION_ID.remove();
+        sharedCurrentSessionId = null;
     }
     
     @Override
@@ -161,9 +159,13 @@ public class SessionScope implements Scope {
         if (sessionId == null) {
             return "SessionScope[inactive]";
         }
-        Map<String, Object> beans = SESSION_BEANS.get(sessionId);
-        int beanCount = beans != null ? beans.size() : 0;
-        return "SessionScope[session=" + sessionId.substring(0, 8) + "... beans=" + beanCount + "]";
+        int beanCount = getSessionBeanCount(sessionId);
+        boolean active = isActive();
+        // Safely truncate session ID to avoid issues with short IDs
+        String sessionDisplay = sessionId.length() > 8 
+            ? sessionId.substring(0, 8) + "..." 
+            : sessionId;
+        return "SessionScope[active=" + active + ", beans=" + beanCount + ", session=" + sessionDisplay + "]";
     }
     
     /**
@@ -178,12 +180,30 @@ public class SessionScope implements Scope {
     }
     
     /**
-     * Gets the current session ID from thread-local context.
+     * Gets the current session ID, either from shared context or ThreadLocal.
      * 
      * @return the current session ID, or null if not in a session context
      */
     public static String getCurrentSessionId() {
+        if (sharedCurrentSessionId != null) {
+            return sharedCurrentSessionId;
+        }
         return CURRENT_SESSION_ID.get();
+    }
+    
+    /**
+     * Gets the number of beans in the current session scope.
+     * Uses the current session context (shared or ThreadLocal).
+     * 
+     * @param sessionId the session ID to check
+     * @return the bean count for that session
+     */
+    public static int getSessionBeanCount(String sessionId) {
+        if (sessionId == null) {
+            return 0;
+        }
+        Map<String, Object> beans = SESSION_BEANS.get(sessionId);
+        return beans != null ? beans.size() : 0;
     }
     
     /**
@@ -193,6 +213,8 @@ public class SessionScope implements Scope {
      * @param sessionId the session ID to set
      */
     public static void setCurrentSession(String sessionId) {
+        // Clear shared context when setting a new session
+        sharedCurrentSessionId = null;
         if (sessionId != null) {
             CURRENT_SESSION_ID.set(sessionId);
         }
@@ -236,11 +258,7 @@ public class SessionScope implements Scope {
      */
     public static int getSessionBeanCount() {
         String sessionId = getCurrentSessionId();
-        if (sessionId == null) {
-            return 0;
-        }
-        Map<String, Object> beans = SESSION_BEANS.get(sessionId);
-        return beans != null ? beans.size() : 0;
+        return getSessionBeanCount(sessionId);
     }
     
     /**
@@ -250,6 +268,23 @@ public class SessionScope implements Scope {
      */
     public static boolean isInSessionContext() {
         return getCurrentSessionId() != null;
+    }
+    
+    /**
+     * Sets a shared session ID that will be used by all threads.
+     * Useful for testing concurrent access scenarios.
+     * 
+     * @param sessionId the session ID to use, or null to disable sharing
+     */
+    public static void setSharedCurrentSessionId(String sessionId) {
+        sharedCurrentSessionId = sessionId;
+    }
+    
+    /**
+     * Clears the shared session context.
+     */
+    public static void clearSharedCurrentSessionId() {
+        sharedCurrentSessionId = null;
     }
     
     /**

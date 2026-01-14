@@ -828,7 +828,6 @@
 **/public/storage
 **/storage/*.key
 **/bootstrap/cache/
-**/shell_output_save/
 
 # ==============================================================================
 # PACKAGE MANAGERS
