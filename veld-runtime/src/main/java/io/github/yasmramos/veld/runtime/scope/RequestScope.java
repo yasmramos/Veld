@@ -1,9 +1,8 @@
 package io.github.yasmramos.veld.runtime.scope;
 
-import io.github.yasmramos.veld.runtime.ComponentFactory;
-
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+
+import io.github.yasmramos.veld.runtime.ComponentFactory;
 
 /**
  * Scope implementation for request-scoped beans.
@@ -73,15 +72,15 @@ public class RequestScope implements Scope {
 
     public static final String SCOPE_ID = "request";
 
+    // Maximum number of beans per request to prevent memory leaks
+    private static final int MAX_BEANS_PER_REQUEST = 500;
+
     // Context holder for request-scoped beans (allows cross-thread access)
     private static final ContextHolder<Map<String, Object>> requestBeans = new ContextHolder<>();
 
     // Context holder for request active flag
     private static final ContextHolder<Boolean> requestActive = new ContextHolder<>();
 
-    // Map from scope class to scope instance (for singleton scopes that hold request state)
-    private static final Map<Class<?>, Scope> scopeInstances = new ConcurrentHashMap<>();
-    
     /**
      * Creates a new RequestScope instance.
      */
@@ -102,6 +101,13 @@ public class RequestScope implements Scope {
     @Override
     public <T> T get(String name, ComponentFactory<T> factory) {
         Map<String, Object> beans = requestBeans.get();
+
+        // Check bean limit to prevent memory leaks
+        if (beans != null && beans.size() >= MAX_BEANS_PER_REQUEST && !beans.containsKey(name)) {
+            throw new IllegalStateException(
+                "Request bean limit exceeded. Maximum " + MAX_BEANS_PER_REQUEST +
+                " beans per request. Current count: " + beans.size());
+        }
 
         // Use computeIfAbsent for thread-safe bean creation
         @SuppressWarnings("unchecked")
@@ -180,6 +186,15 @@ public class RequestScope implements Scope {
      */
     public static boolean isInRequestContext() {
         return Boolean.TRUE.equals(requestActive.get());
+    }
+
+    /**
+     * Gets the maximum number of beans allowed per request.
+     *
+     * @return maximum bean count
+     */
+    public static int getMaxBeansPerRequest() {
+        return MAX_BEANS_PER_REQUEST;
     }
 
     /**

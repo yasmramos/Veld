@@ -77,6 +77,15 @@ public class SessionScope implements Scope {
 
     public static final String SCOPE_ID = "session";
 
+    // Default session timeout in milliseconds (30 minutes)
+    private static final long DEFAULT_SESSION_TIMEOUT_MS = 30 * 60 * 1000L;
+
+    // Maximum number of beans per session to prevent memory leaks
+    private static final int MAX_BEANS_PER_SESSION = 1000;
+
+    // Maximum number of active sessions to prevent memory leaks
+    private static final int MAX_ACTIVE_SESSIONS = 10000;
+
     // Map from session ID to session beans
     // Each session gets its own map of beans
     private static final Map<String, Map<String, Object>> SESSION_BEANS = new ConcurrentHashMap<>();
@@ -86,6 +95,9 @@ public class SessionScope implements Scope {
 
     // Shared context holder for current session (allows cross-thread access)
     private static final ContextHolder<String> CURRENT_SESSION_ID = new ContextHolder<>();
+
+    // Session timeout in milliseconds
+    private static volatile long sessionTimeoutMs = DEFAULT_SESSION_TIMEOUT_MS;
     
     /**
      * Creates a new SessionScope instance.
@@ -114,7 +126,21 @@ public class SessionScope implements Scope {
                 "Web framework integration is required to use @SessionScoped beans.");
         }
 
+        // Check if session has expired
+        if (isSessionExpired(sessionId)) {
+            clearSession(sessionId);
+            throw new NoSessionContextException(
+                "Session has expired. Session ID: " + sessionId + ". " +
+                "Please restart your session.");
+        }
+
+        // Check bean limit
         Map<String, Object> beans = getOrCreateSessionBeans(sessionId);
+        if (beans.size() >= MAX_BEANS_PER_SESSION) {
+            throw new IllegalStateException(
+                "Session bean limit exceeded. Maximum " + MAX_BEANS_PER_SESSION +
+                " beans per session. Current count: " + beans.size());
+        }
 
         // Use computeIfAbsent for thread-safe bean creation
         @SuppressWarnings("unchecked")
@@ -254,13 +280,68 @@ public class SessionScope implements Scope {
     
     /**
      * Checks if the current thread is within a session context.
-     * 
+     *
      * @return true if within a session
      */
     public static boolean isInSessionContext() {
         return getCurrentSessionId() != null;
     }
-    
+
+    /**
+     * Checks if a session has expired based on last access time.
+     *
+     * @param sessionId the session ID to check
+     * @return true if the session has expired
+     */
+    private boolean isSessionExpired(String sessionId) {
+        SessionMetadata metadata = SESSION_METADATA.get(sessionId);
+        if (metadata == null) {
+            return false; // Session might be newly created
+        }
+        long now = System.currentTimeMillis();
+        return (now - metadata.getLastAccess()) > sessionTimeoutMs;
+    }
+
+    /**
+     * Sets the session timeout.
+     *
+     * @param timeoutMs timeout in milliseconds
+     * @throws IllegalArgumentException if timeout is negative or zero
+     */
+    public static void setSessionTimeout(long timeoutMs) {
+        if (timeoutMs <= 0) {
+            throw new IllegalArgumentException("Session timeout must be positive");
+        }
+        sessionTimeoutMs = timeoutMs;
+    }
+
+    /**
+     * Gets the current session timeout.
+     *
+     * @return timeout in milliseconds
+     */
+    public static long getSessionTimeout() {
+        return sessionTimeoutMs;
+    }
+
+    /**
+     * Gets the maximum number of beans allowed per session.
+     *
+     * @return maximum bean count
+     */
+    public static int getMaxBeansPerSession() {
+        return MAX_BEANS_PER_SESSION;
+    }
+
+    /**
+     * Gets the maximum number of active sessions allowed.
+     *
+     * @return maximum session count
+     */
+    public static int getMaxActiveSessions() {
+        return MAX_ACTIVE_SESSIONS;
+    }
+
     /**
      * Tracks session access for metadata.
      * 

@@ -1,11 +1,11 @@
 package io.github.yasmramos.veld.runtime.scope;
 
-import io.github.yasmramos.veld.VeldException;
-
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+
+import io.github.yasmramos.veld.VeldException;
 
 /**
  * Registry for managing scope instances.
@@ -252,12 +252,19 @@ public final class ScopeRegistry {
     /**
      * Checks if a scope is registered.
      *
+     * <p>This method does NOT trigger initialization. It only checks if the scope
+     * is already registered in either the instantiated scopes map or the factories map.
+     * Use this method to check the current state without triggering lazy initialization.</p>
+     *
+     * <p>Note: Built-in scopes (singleton, prototype, request, session) are only available
+     * after initialization has occurred (typically on first call to {@link #get(String)}).</p>
+     *
      * @param id the scope identifier
-     * @return true if the scope is registered
+     * @return true if the scope is registered, false otherwise
      */
     public static boolean contains(String id) {
-        // Only check if scope exists without re-initializing
-        // This ensures destroy() properly removes scopes
+        // Check both instantiated scopes and registered factories
+        // Does not trigger initialization to allow destroy() to work correctly
         return SCOPES.containsKey(id) || SCOPE_FACTORIES.containsKey(id);
     }
     
