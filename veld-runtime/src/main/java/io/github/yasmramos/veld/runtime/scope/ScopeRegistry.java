@@ -1,11 +1,11 @@
 package io.github.yasmramos.veld.runtime.scope;
 
-import io.github.yasmramos.veld.VeldException;
-
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+
+import io.github.yasmramos.veld.VeldException;
 
 /**
  * Registry for managing scope instances.
@@ -195,7 +195,7 @@ public final class ScopeRegistry {
     
     /**
      * Registers a custom scope with default display name and description.
-     * 
+     *
      * @param id the unique scope identifier
      * @param factory supplier that creates the scope instance
      */
@@ -224,45 +224,36 @@ public final class ScopeRegistry {
     
     /**
      * Gets or creates a scope by its ID.
-     * 
+     *
      * @param id the scope identifier
      * @return the scope instance
      * @throws NoSuchScopeException if no scope is registered with the given ID
      */
     public static Scope get(String id) {
-        // Ensure registry is initialized before getting scope
-        // But don't initialize if factories are empty and destroyed (prevents auto-init on contains)
-        if (!SCOPE_FACTORIES.isEmpty() || !destroyed) {
-            initialize();
+        initialize();
+
+        // Check if already instantiated (except for prototype scope which is always recreated)
+        if (!PrototypeScope.SCOPE_ID.equals(id)) {
+            Scope scope = SCOPES.get(id);
+            if (scope != null) {
+                return scope;
+            }
         }
-        
+
         // Get factory and create instance
         Supplier<Scope> factory = SCOPE_FACTORIES.get(id);
         if (factory == null) {
-            throw new NoSuchScopeException("No scope registered with ID: " + id + 
+            throw new NoSuchScopeException("No scope registered with ID: " + id +
                 ". Available scopes: " + getRegisteredScopeIds());
         }
-        
-        // For prototype scope, always create a new instance (never cache)
-        if (PrototypeScope.SCOPE_ID.equals(id)) {
-            return factory.get();
+
+        // Create the scope instance
+        Scope scope = factory.get();
+
+        // Cache non-prototype scopes
+        if (!PrototypeScope.SCOPE_ID.equals(id)) {
+            SCOPES.put(id, scope);
         }
-        
-        // Check if already instantiated (for singleton scopes)
-        Scope scope = SCOPES.get(id);
-        if (scope != null) {
-            return scope;
-        }
-        
-        // Create and cache the instance for non-prototype scopes
-        scope = factory.get();
-        SCOPES.put(id, scope);
-        
-        // Restore metadata if missing (e.g., after destroy and recreate)
-        if (SCOPE_METADATA.get(id) == null) {
-            SCOPE_METADATA.put(id, new ScopeMetadata(id, scope.getDisplayName(), "Cached scope"));
-        }
-        
         return scope;
     }
     
@@ -283,18 +274,20 @@ public final class ScopeRegistry {
     
     /**
      * Checks if a scope is registered.
-     * 
+     *
+     * <p>This method does NOT trigger initialization. It only checks if the scope
+     * is already registered in either the instantiated scopes map or the factories map.
+     * Use this method to check the current state without triggering lazy initialization.</p>
+     *
+     * <p>Note: Built-in scopes (singleton, prototype, request, session) are only available
+     * after initialization has occurred (typically on first call to {@link #get(String)}).</p>
+     *
      * @param id the scope identifier
-     * @return true if the scope is registered
+     * @return true if the scope is registered, false otherwise
      */
     public static boolean contains(String id) {
-        // If destroyed, only check instantiated scopes (not factories)
-        // This allows contains() to return false after destroy() while get() can recreate
-        if (destroyed) {
-            return SCOPES.containsKey(id);
-        }
-        
-        // Otherwise check both instantiated and factory-only scopes
+        // Check both instantiated scopes and registered factories
+        // Does not trigger initialization to allow destroy() to work correctly
         return SCOPES.containsKey(id) || SCOPE_FACTORIES.containsKey(id);
     }
     
@@ -360,17 +353,13 @@ public final class ScopeRegistry {
             }
         }
 
-        // Clear instantiated scopes
+        // Clear all maps
         SCOPES.clear();
         
         // Clear metadata
         SCOPE_METADATA.clear();
-        
-        // Do NOT clear SCOPE_FACTORIES - built-in scope factories should persist
-        // This allows scopes to be recreated after destroy() via get()
-        
-        // Mark as destroyed to trigger re-initialization on next access
-        destroyed = true;
+
+        // Reset initialization flag to allow re-initialization
         initialized = false;
     }
     
@@ -383,29 +372,28 @@ public final class ScopeRegistry {
      * This method is idempotent - it can be called multiple times safely.
      */
     static void reset() {
-        // Clear instantiated scopes
+        // Destroy all instantiated scopes
         for (Scope scope : SCOPES.values()) {
             try {
                 scope.destroy();
             } catch (Exception e) {
-                System.err.println("Error destroying scope '" + scope.getId() + "': " + e.getMessage());
+                // Ignore errors during reset
             }
         }
+
+        // Clear all maps completely
         SCOPES.clear();
-        
-        // Clear metadata
+        SCOPE_FACTORIES.clear();
         SCOPE_METADATA.clear();
-        
-        // Clear custom scope factories (those not in built-in scopes)
-        // Built-in scope IDs are: singleton, prototype, request, session
-        SCOPE_FACTORIES.entrySet().removeIf(entry -> 
-            !"singleton".equals(entry.getKey()) && 
-            !"prototype".equals(entry.getKey()) &&
-            !"request".equals(entry.getKey()) &&
-            !"session".equals(entry.getKey())
-        );
-        
+
+        // Reset initialization flag
+        initialized = false;
+
+        // Reset default scope
         defaultScopeId = SingletonScope.SCOPE_ID;
+
+        // Re-initialize to re-register built-in scopes
+        initialize();
     }
     
     /**

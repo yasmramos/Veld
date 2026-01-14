@@ -74,18 +74,30 @@ import java.util.function.Supplier;
  * @see io.github.yasmramos.veld.annotation.SessionScoped
  */
 public class SessionScope implements Scope {
-    
+
     public static final String SCOPE_ID = "session";
-    
+
+    // Default session timeout in milliseconds (30 minutes)
+    private static final long DEFAULT_SESSION_TIMEOUT_MS = 30 * 60 * 1000L;
+
+    // Maximum number of beans per session to prevent memory leaks
+    private static final int MAX_BEANS_PER_SESSION = 1000;
+
+    // Maximum number of active sessions to prevent memory leaks
+    private static final int MAX_ACTIVE_SESSIONS = 10000;
+
     // Map from session ID to session beans
     // Each session gets its own map of beans
     private static final Map<String, Map<String, Object>> SESSION_BEANS = new ConcurrentHashMap<>();
-    
+
     // Map from session ID to scope metadata
     private static final Map<String, SessionMetadata> SESSION_METADATA = new ConcurrentHashMap<>();
-    
-    // Current session ID holder (set by web framework integration)
-    private static final ThreadLocal<String> CURRENT_SESSION_ID = new ThreadLocal<>();
+
+    // Shared context holder for current session (allows cross-thread access)
+    private static final ContextHolder<String> CURRENT_SESSION_ID = new ContextHolder<>();
+
+    // Session timeout in milliseconds
+    private static volatile long sessionTimeoutMs = DEFAULT_SESSION_TIMEOUT_MS;
     
     // Shared session context for testing and concurrent access scenarios
     // When set, this session ID is used instead of the ThreadLocal value
@@ -118,13 +130,32 @@ public class SessionScope implements Scope {
                 "Ensure you are within a valid session (e.g., after HttpServletRequest.getSession()). " +
                 "Web framework integration is required to use @SessionScoped beans.");
         }
-        
+
+        // Check if session has expired
+        if (isSessionExpired(sessionId)) {
+            clearSession(sessionId);
+            throw new NoSessionContextException(
+                "Session has expired. Session ID: " + sessionId + ". " +
+                "Please restart your session.");
+        }
+
+        // Check bean limit
         Map<String, Object> beans = getOrCreateSessionBeans(sessionId);
-        
-        // Track session access
-        trackSessionAccess(sessionId);
-        
-        return (T) beans.computeIfAbsent(name, k -> factory.create());
+        if (beans.size() >= MAX_BEANS_PER_SESSION) {
+            throw new IllegalStateException(
+                "Session bean limit exceeded. Maximum " + MAX_BEANS_PER_SESSION +
+                " beans per session. Current count: " + beans.size());
+        }
+
+        // Use computeIfAbsent for thread-safe bean creation
+        @SuppressWarnings("unchecked")
+        T instance = (T) beans.computeIfAbsent(name, k -> {
+            // Track session access when creating new bean
+            trackSessionAccess(sessionId);
+            return factory.create();
+        });
+
+        return instance;
     }
     
     @Override
@@ -144,8 +175,7 @@ public class SessionScope implements Scope {
         // Clear all session data
         SESSION_BEANS.clear();
         SESSION_METADATA.clear();
-        CURRENT_SESSION_ID.remove();
-        sharedCurrentSessionId = null;
+        CURRENT_SESSION_ID.clear();
     }
     
     @Override
@@ -159,13 +189,11 @@ public class SessionScope implements Scope {
         if (sessionId == null) {
             return "SessionScope[inactive]";
         }
-        int beanCount = getSessionBeanCount(sessionId);
-        boolean active = isActive();
-        // Safely truncate session ID to avoid issues with short IDs
-        String sessionDisplay = sessionId.length() > 8 
-            ? sessionId.substring(0, 8) + "..." 
-            : sessionId;
-        return "SessionScope[active=" + active + ", beans=" + beanCount + ", session=" + sessionDisplay + "]";
+        Map<String, Object> beans = SESSION_BEANS.get(sessionId);
+        int beanCount = beans != null ? beans.size() : 0;
+        // Truncate long session IDs for readability
+        String displayId = sessionId.length() > 13 ? sessionId.substring(0, 13) + "..." : sessionId;
+        return "SessionScope[session=" + displayId + ", beans=" + beanCount + "]";
     }
     
     /**
@@ -180,8 +208,8 @@ public class SessionScope implements Scope {
     }
     
     /**
-     * Gets the current session ID, either from shared context or ThreadLocal.
-     * 
+     * Gets the current session ID from thread-local context.
+     *
      * @return the current session ID, or null if not in a session context
      */
     public static String getCurrentSessionId() {
@@ -190,7 +218,7 @@ public class SessionScope implements Scope {
         }
         return CURRENT_SESSION_ID.get();
     }
-    
+
     /**
      * Gets the number of beans in the current session scope.
      * Uses the current session context (shared or ThreadLocal).
@@ -209,7 +237,7 @@ public class SessionScope implements Scope {
     /**
      * Sets the current session ID for the calling thread.
      * Used by web framework integration code.
-     * 
+     *
      * @param sessionId the session ID to set
      */
     public static void setCurrentSession(String sessionId) {
@@ -219,25 +247,35 @@ public class SessionScope implements Scope {
             CURRENT_SESSION_ID.set(sessionId);
         }
     }
-    
+
     /**
      * Clears the current session context for the calling thread.
      * Called at the end of request processing.
      */
     public static void clearCurrentSession() {
-        CURRENT_SESSION_ID.remove();
+        CURRENT_SESSION_ID.clear();
     }
     
     /**
      * Clears all beans for a specific session.
      * Called when session expires or is invalidated.
-     * 
+     *
      * @param sessionId the session ID to clear
      * @return the removed beans map, or null if session didn't exist
      */
     public static Map<String, Object> clearSession(String sessionId) {
         SESSION_METADATA.remove(sessionId);
         return SESSION_BEANS.remove(sessionId);
+    }
+
+    /**
+     * Resets all session scope state.
+     * Used for testing purposes.
+     */
+    static void reset() {
+        SESSION_BEANS.clear();
+        SESSION_METADATA.clear();
+        CURRENT_SESSION_ID.clear();
     }
     
     /**
@@ -263,13 +301,68 @@ public class SessionScope implements Scope {
     
     /**
      * Checks if the current thread is within a session context.
-     * 
+     *
      * @return true if within a session
      */
     public static boolean isInSessionContext() {
         return getCurrentSessionId() != null;
     }
-    
+
+    /**
+     * Checks if a session has expired based on last access time.
+     *
+     * @param sessionId the session ID to check
+     * @return true if the session has expired
+     */
+    private boolean isSessionExpired(String sessionId) {
+        SessionMetadata metadata = SESSION_METADATA.get(sessionId);
+        if (metadata == null) {
+            return false; // Session might be newly created
+        }
+        long now = System.currentTimeMillis();
+        return (now - metadata.getLastAccess()) > sessionTimeoutMs;
+    }
+
+    /**
+     * Sets the session timeout.
+     *
+     * @param timeoutMs timeout in milliseconds
+     * @throws IllegalArgumentException if timeout is negative or zero
+     */
+    public static void setSessionTimeout(long timeoutMs) {
+        if (timeoutMs <= 0) {
+            throw new IllegalArgumentException("Session timeout must be positive");
+        }
+        sessionTimeoutMs = timeoutMs;
+    }
+
+    /**
+     * Gets the current session timeout.
+     *
+     * @return timeout in milliseconds
+     */
+    public static long getSessionTimeout() {
+        return sessionTimeoutMs;
+    }
+
+    /**
+     * Gets the maximum number of beans allowed per session.
+     *
+     * @return maximum bean count
+     */
+    public static int getMaxBeansPerSession() {
+        return MAX_BEANS_PER_SESSION;
+    }
+
+    /**
+     * Gets the maximum number of active sessions allowed.
+     *
+     * @return maximum session count
+     */
+    public static int getMaxActiveSessions() {
+        return MAX_ACTIVE_SESSIONS;
+    }
+
     /**
      * Sets a shared session ID that will be used by all threads.
      * Useful for testing concurrent access scenarios.
