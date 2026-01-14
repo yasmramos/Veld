@@ -116,4 +116,21 @@ public final class ContextHolder<T> {
         T v = value;
         return v != null ? v : defaultValue;
     }
+    
+    /**
+     * Atomically sets the value to the given new value if the current value 
+     * equals the expected value.
+     *
+     * @param expected the expected current value
+     * @param newValue the new value to set
+     * @return true if successful, false if the current value was not equal to expected
+     */
+    public boolean compareAndSet(T expected, T newValue) {
+        T current = this.value;
+        if (java.util.Objects.equals(current, expected)) {
+            this.value = newValue;
+            return true;
+        }
+        return false;
+    }
 }
