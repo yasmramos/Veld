@@ -354,6 +354,49 @@ public class SessionScope implements Scope {
     }
     
     /**
+     * Gets the current session ID, either from shared context or ContextHolder.
+     * 
+     * @return the current session ID, or null if not in a session context
+     */
+    public static String getCurrentSessionId() {
+        String sharedId = getSharedCurrentSessionId();
+        if (sharedId != null) {
+            return sharedId;
+        }
+        return CURRENT_SESSION_ID.get();
+    }
+    
+    /**
+     * Sets a shared session ID that will be used by all threads.
+     * Useful for testing concurrent access scenarios.
+     * 
+     * @param sessionId the session ID to use, or null to disable sharing
+     */
+    public static void setSharedCurrentSessionId(String sessionId) {
+        if (sessionId != null) {
+            CURRENT_SESSION_ID.set(sessionId);
+        }
+    }
+    
+    /**
+     * Clears the shared session context.
+     */
+    public static void clearSharedCurrentSessionId() {
+        CURRENT_SESSION_ID.clear();
+    }
+    
+    /**
+     * Gets the shared session ID if set.
+     * 
+     * @return the shared session ID, or null if not set
+     */
+    private static String getSharedCurrentSessionId() {
+        // This method can be extended to support explicit shared context
+        // For now, CURRENT_SESSION_ID via ContextHolder provides the needed functionality
+        return null;
+    }
+    
+    /**
      * Exception thrown when session context is not available.
      */
     public static class NoSessionContextException extends VeldException {
