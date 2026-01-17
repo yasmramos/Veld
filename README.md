@@ -159,7 +159,7 @@ To integrate Veld with Spring Boot applications, use the Spring Boot starter.
 </dependency>
 ```
 **Gradle:**
-``` gradel
+``` gradle
 implementation 'io.github.yasmramos:veld-spring-boot-starter:1.0.3'
 ```
 
