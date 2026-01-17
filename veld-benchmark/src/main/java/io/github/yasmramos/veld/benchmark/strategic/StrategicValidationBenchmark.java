@@ -52,19 +52,28 @@ public class StrategicValidationBenchmark {
 
     @State(Scope.Group)
     public static class ScalabilityState {
-        private final Random random = new Random(42);
-        private final Class<?>[] serviceTypes = {
-            VeldLogger.class,
-            VeldValidator.class, 
-            VeldRepository.class,
-            VeldSimpleService.class,
-            VeldComplexService.class,
-            io.github.yasmramos.veld.benchmark.common.Logger.class,
-            io.github.yasmramos.veld.benchmark.common.Service.class
-        };
+        // Pre-cached instances for static API
+        private final VeldLogger veldLogger = Veld.veldLogger();
+        private final VeldValidator veldValidator = Veld.veldValidator();
+        private final VeldRepository veldRepository = Veld.veldRepository();
+        private final VeldSimpleService veldSimpleService = Veld.veldSimpleService();
+        private final VeldComplexService veldComplexService = Veld.veldComplexService();
 
-        public Class<?> randomServiceType() {
-            return serviceTypes[random.nextInt(serviceTypes.length)];
+        private final Random random = new Random(42);
+        private final Object[] serviceInstances = new Object[7];
+
+        public ScalabilityState() {
+            serviceInstances[0] = veldLogger;
+            serviceInstances[1] = veldValidator;
+            serviceInstances[2] = veldRepository;
+            serviceInstances[3] = veldSimpleService;
+            serviceInstances[4] = veldComplexService;
+            serviceInstances[5] = veldLogger; // io.github.yasmramos.veld.benchmark.common.Logger
+            serviceInstances[6] = veldSimpleService; // io.github.yasmramos.veld.benchmark.common.Service
+        }
+
+        public Object randomServiceInstance() {
+            return serviceInstances[random.nextInt(serviceInstances.length)];
         }
     }
 
@@ -72,32 +81,25 @@ public class StrategicValidationBenchmark {
     @Group("concurrent")
     @GroupThreads(4)
     public Object concurrentLookup(ScalabilityState state) {
-        return Veld.get(state.randomServiceType()); // Random among 7 services
+        return state.randomServiceInstance(); // Random among 7 services
     }
 
-    @Benchmark  
+    @Benchmark
     @Group("single")
     @GroupThreads(1)
     public Object singleThreadLookup() {
-        return Veld.get(VeldSimpleService.class); // Always same (best case)
+        return Veld.veldSimpleService(); // Always same (best case)
     }
 
     // =============================================
     // 2. SPECIFIC CONTENTION BENCHMARKS
     // =============================================
 
-    @State(Scope.Group)
-    public static class LazyContentionState {
-        public ExpensiveLazyService getExpensiveService() {
-            return Veld.get(ExpensiveLazyService.class); // Never initialized
-        }
-    }
-
     @Benchmark
     @Group("lazyContention")
     @GroupThreads(8)  // Maximum contention
-    public Object getLazyService(LazyContentionState state) {
-        return state.getExpensiveService();
+    public Object getExpensiveLazyService() {
+        return Veld.expensiveLazyService(); // Never initialized
     }
 
     // =============================================
@@ -107,12 +109,13 @@ public class StrategicValidationBenchmark {
     @Benchmark
     public long memoryOverhead() {
         long before = Runtime.getRuntime().totalMemory();
-        
+
         // Simulate 100k lookups (typical production usage)
+        VeldLogger logger = Veld.veldLogger();
         for (int i = 0; i < 100_000; i++) {
-            Veld.get(VeldLogger.class);
+            Veld.veldLogger();
         }
-        
+
         long after = Runtime.getRuntime().totalMemory();
         return after - before;
     }
@@ -121,21 +124,21 @@ public class StrategicValidationBenchmark {
     public long threadLocalCacheBehavior() {
         // Test ThreadLocal cache growth pattern
         long before = Runtime.getRuntime().freeMemory();
-        
+
         // Force ThreadLocal cache to grow by accessing from multiple threads
         Thread[] threads = new Thread[10];
         AtomicInteger counter = new AtomicInteger(0);
-        
+
         for (int i = 0; i < threads.length; i++) {
             threads[i] = new Thread(() -> {
                 for (int j = 0; j < 1000; j++) {
-                    Veld.get(VeldLogger.class);
+                    Veld.veldLogger();
                     counter.incrementAndGet();
                 }
             });
             threads[i].start();
         }
-        
+
         // Wait for completion
         try {
             for (Thread thread : threads) {
@@ -144,7 +147,7 @@ public class StrategicValidationBenchmark {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        
+
         long after = Runtime.getRuntime().freeMemory();
         return before - after; // Memory used by cache
     }
@@ -158,21 +161,27 @@ public class StrategicValidationBenchmark {
      * Current implementation: O(n) array search
      * Danger: With 20+ services, clustering can degrade to O(n)
      */
+    private final VeldLogger collisionLogger = Veld.veldLogger();
+    private final VeldValidator collisionValidator = Veld.veldValidator();
+    private final VeldRepository collisionRepository = Veld.veldRepository();
+    private final VeldSimpleService collisionSimpleService = Veld.veldSimpleService();
+    private final VeldComplexService collisionComplexService = Veld.veldComplexService();
+
     @Benchmark
     @Group("hashCollision")
     @GroupThreads(4)
     public Object worstCaseHashCollision() {
         // Force worst-case: services that hash to similar values
         // This tests the linear probing in array search
-        Class<?>[] worstTypes = {
-            VeldLogger.class,
-            VeldValidator.class,
-            VeldRepository.class,
-            VeldSimpleService.class,
-            VeldComplexService.class
+        Object[] worstInstances = {
+            collisionLogger,
+            collisionValidator,
+            collisionRepository,
+            collisionSimpleService,
+            collisionComplexService
         };
-        
-        return Veld.get(worstTypes[(int)(Thread.currentThread().getId() % worstTypes.length)]);
+
+        return worstInstances[(int)(Thread.currentThread().getId() % worstInstances.length)];
     }
 
     // =============================================
@@ -188,11 +197,8 @@ public class StrategicValidationBenchmark {
     @Group("varhandle")
     @GroupThreads(8)
     public Object varHandleVsCasOverhead() {
-        // Test both scenarios:
-        // 1. Veld.get() - direct reference comparison (current implementation)
-        // 2. Future: VarHandle with acquire fence for lazy initialization
-        
-        return Veld.get(VeldSimpleService.class); // Direct field access
+        // Test using static method - direct field access
+        return Veld.veldSimpleService();
     }
 
     // =============================================
@@ -201,24 +207,30 @@ public class StrategicValidationBenchmark {
 
     @State(Scope.Benchmark)
     public static class ProbeLengthState {
-        private final List<Class<?>> testTypes = new ArrayList<>();
+        // Pre-cached instances for probe length testing
+        private final VeldLogger probeLogger = Veld.veldLogger();
+        private final VeldValidator probeValidator = Veld.veldValidator();
+        private final VeldRepository probeRepository = Veld.veldRepository();
+        private final VeldSimpleService probeSimpleService = Veld.veldSimpleService();
+        private final VeldComplexService probeComplexService = Veld.veldComplexService();
+
+        private final Object[] testInstances = new Object[5];
         private int probeCount = 0;
-        
+
         public ProbeLengthState() {
-            // Add enough types to test probe length
-            testTypes.add(VeldLogger.class);
-            testTypes.add(VeldValidator.class);
-            testTypes.add(VeldRepository.class);
-            testTypes.add(VeldSimpleService.class);
-            testTypes.add(VeldComplexService.class);
+            testInstances[0] = probeLogger;
+            testInstances[1] = probeValidator;
+            testInstances[2] = probeRepository;
+            testInstances[3] = probeSimpleService;
+            testInstances[4] = probeComplexService;
         }
-        
-        public Class<?> getNextType() {
-            Class<?> type = testTypes.get(probeCount % testTypes.size());
+
+        public Object getNextInstance() {
+            Object instance = testInstances[probeCount % testInstances.length];
             probeCount++;
-            return type;
+            return instance;
         }
-        
+
         public int getProbeCount() {
             return probeCount;
         }
@@ -226,7 +238,7 @@ public class StrategicValidationBenchmark {
 
     @Benchmark
     public int probeLengthValidation(ProbeLengthState state) {
-        Veld.get(state.getNextType());
+        state.getNextInstance();
         return state.getProbeCount();
     }
 
@@ -240,17 +252,26 @@ public class StrategicValidationBenchmark {
      */
     @State(Scope.Benchmark)
     public static class EfficiencyState {
-        private final Random random = new Random(42);
-        private final Class<?>[] serviceTypes = {
-            VeldLogger.class,
-            VeldValidator.class,
-            VeldRepository.class,
-            VeldSimpleService.class,
-            VeldComplexService.class
-        };
+        // Pre-cached instances
+        private final VeldLogger effLogger = Veld.veldLogger();
+        private final VeldValidator effValidator = Veld.veldValidator();
+        private final VeldRepository effRepository = Veld.veldRepository();
+        private final VeldSimpleService effSimpleService = Veld.veldSimpleService();
+        private final VeldComplexService effComplexService = Veld.veldComplexService();
 
-        public Class<?> randomServiceType() {
-            return serviceTypes[random.nextInt(serviceTypes.length)];
+        private final Random random = new Random(42);
+        private final Object[] serviceInstances = new Object[5];
+
+        public EfficiencyState() {
+            serviceInstances[0] = effLogger;
+            serviceInstances[1] = effValidator;
+            serviceInstances[2] = effRepository;
+            serviceInstances[3] = effSimpleService;
+            serviceInstances[4] = effComplexService;
+        }
+
+        public Object randomServiceInstance() {
+            return serviceInstances[random.nextInt(serviceInstances.length)];
         }
     }
 
@@ -258,14 +279,14 @@ public class StrategicValidationBenchmark {
     @Group("efficiency")
     @GroupThreads(4)
     public Object concurrentEfficiency(EfficiencyState state) {
-        return Veld.get(state.randomServiceType());
+        return state.randomServiceInstance();
     }
 
     @Benchmark
     @Group("efficiency")
     @GroupThreads(1)
     public Object singleEfficiency(EfficiencyState state) {
-        return Veld.get(state.randomServiceType());
+        return state.randomServiceInstance();
     }
 
     // =============================================

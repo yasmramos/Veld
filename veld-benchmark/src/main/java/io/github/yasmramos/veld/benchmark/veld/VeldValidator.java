@@ -9,6 +9,7 @@
  */
 package io.github.yasmramos.veld.benchmark.veld;
 
+import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.annotation.Singleton;
 import io.github.yasmramos.veld.benchmark.common.Validator;
 
@@ -16,6 +17,7 @@ import io.github.yasmramos.veld.benchmark.common.Validator;
  * Veld implementation of Validator.
  */
 @Singleton
+@Component
 public class VeldValidator implements Validator {
     
     @Override

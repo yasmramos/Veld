@@ -25,7 +25,7 @@ public class GeneratedAsyncBenchmark {
 
     @Setup
     public void setup() {
-        asyncService = Veld.get(BenchmarkAsyncService.class);
+        asyncService = Veld.benchmarkAsyncService();
         counter = new AtomicInteger(0);
     }
 

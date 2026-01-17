@@ -157,26 +157,25 @@ public final class ComponentInfo {
     }
     
     public String getFactoryClassName() {
-        // Generate factory in .veld subpackage of the original class's package
-        // This avoids conflicts when class name equals package name
-        // Example: com.example.Component -> com.example.veld.Component$$VeldFactory
-        // Example: com.example.Outer$Inner -> com.example.veld.Inner$$VeldFactory
+        // Generate factory in the same package as the original class
+        // Use componentName to ensure unique factory names when multiple classes have the same simple name
+        // Capitalize first letter of componentName for valid Java class name
+        // Example: com.example.UserService (mainUserService) -> com.example.MainUserService$VeldFactory
+        // Example: com.example.dependsOn.UserService (userService) -> com.example.dependsOn.UserService$VeldFactory
         String pkg = getPackageName();
-        String simpleName = getSimpleName();
+        String nameForFactory = capitalize(componentName);
 
-        // Always use the component's package (no special case for package/class name collisions)
-        // The .veld subpackage ensures generated factories don't conflict with user code
-        return pkg.isEmpty() ? "veld." + simpleName + "$$VeldFactory" : pkg + ".veld." + simpleName + "$$VeldFactory";
+        return pkg.isEmpty() ? nameForFactory + "$VeldFactory" : pkg + "." + nameForFactory + "$VeldFactory";
     }
 
     public String getFactoryInternalName() {
-        // Convert to internal format
-        // Example: com.example.Component -> com/example/veld/Component$$VeldFactory
+        // Convert to internal format - use capitalized componentName for uniqueness
+        // Generate in the same package as the original class
+        // Example: com.example.UserService (mainUserService) -> com/example/MainUserService$$VeldFactory
         String pkg = getPackageName();
-        String simpleName = getSimpleName();
+        String nameForFactory = capitalize(componentName);
 
-        // Always use the component's package (no special case for package/class name collisions)
-        return pkg.isEmpty() ? "veld/" + simpleName + "$$VeldFactory" : pkg.replace('.', '/') + "/veld/" + simpleName + "$$VeldFactory";
+        return pkg.isEmpty() ? nameForFactory + "$$VeldFactory" : pkg.replace('.', '/') + "/" + nameForFactory + "$$VeldFactory";
     }
     
     /**
@@ -507,6 +506,19 @@ public final class ComponentInfo {
     public List<String> getAopInterceptors() {
         return aopInterceptors;
     }
+
+    /**
+     * Whether this component has an AOP wrapper class.
+     */
+    private boolean hasAopWrapper = false;
+
+    public boolean hasAopWrapper() {
+        return hasAopWrapper;
+    }
+
+    public void setHasAopWrapper(boolean hasAopWrapper) {
+        this.hasAopWrapper = hasAopWrapper;
+    }
     
     /**
      * Gets the dependency types from constructor injection.
@@ -662,5 +674,19 @@ public final class ComponentInfo {
             return "has @Subscribe methods (holder pattern doesn't support event registration)";
         }
         return null; // No restrictions
+    }
+
+    /**
+     * Capitalizes the first letter of a string.
+     * Used for generating valid Java class names from component names.
+     *
+     * @param name the string to capitalize
+     * @return the capitalized string, or empty string if input is null/empty
+     */
+    private String capitalize(String name) {
+        if (name == null || name.isEmpty()) {
+            return name;
+        }
+        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
     }
 }

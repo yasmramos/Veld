@@ -152,7 +152,7 @@ public interface ComponentFactory<T> {
 
     /**
      * Returns the factory class that contains this bean method.
-     * Used by @Factory and @Bean processing.
+     * DEPRECATED: Factory/Bean model has been removed. Returns null.
      *
      * @return the factory class
      */
@@ -162,7 +162,7 @@ public interface ComponentFactory<T> {
 
     /**
      * Returns the name of the @Bean method.
-     * Used by @Factory and @Bean processing.
+     * DEPRECATED: Factory/Bean model has been removed. Returns null.
      *
      * @return the bean method name
      */
@@ -172,7 +172,7 @@ public interface ComponentFactory<T> {
 
     /**
      * Returns the parameter types of the factory method.
-     * Used for dependency resolution in @Bean methods.
+     * DEPRECATED: Factory/Bean model has been removed. Returns empty list.
      *
      * @return list of parameter types
      */

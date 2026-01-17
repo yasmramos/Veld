@@ -1,0 +1,13 @@
+# Service Provider Interface configuration for Veld Extensions
+#
+# This file is used by Java's ServiceLoader to discover implementations
+# of io.github.yasmramos.veld.spi.extension.VeldExtension interface.
+#
+# Format: One fully-qualified class name per line
+# Lines starting with # are comments and ignored
+# Empty lines are ignored
+#
+# Example:
+# com.example.myextension.MyExtension
+# com.example.anotherextension.AnotherExtension
+#

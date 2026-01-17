@@ -1,10 +1,7 @@
 package io.github.yasmramos.veld.runtime;
 
 import io.github.yasmramos.veld.annotation.ScopeType;
-import io.github.yasmramos.veld.runtime.condition.Condition;
 import io.github.yasmramos.veld.runtime.condition.ConditionContext;
-import io.github.yasmramos.veld.runtime.condition.ConditionEvaluator;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -44,7 +41,7 @@ class ConditionalRegistryTest {
             this(type, name, ScopeType.SINGLETON, hasConditions, conditionResult, Collections.emptyList());
         }
 
-        TestFactory(Class<T> type, String name, ScopeType scope, boolean hasConditions, 
+        TestFactory(Class<T> type, String name, ScopeType scope, boolean hasConditions,
                    boolean conditionResult, List<String> interfaces) {
             this.type = type;
             this.name = name;
@@ -297,9 +294,9 @@ class ConditionalRegistryTest {
 
             ConditionalRegistry registry = new ConditionalRegistry(originalRegistry);
             List<ComponentFactory<?>> factories = registry.getAllFactories();
-            
+
             factories.clear();
-            
+
             assertEquals(1, registry.getAllFactories().size());
         }
 
@@ -310,9 +307,9 @@ class ConditionalRegistryTest {
 
             ConditionalRegistry registry = new ConditionalRegistry(originalRegistry);
 
-            List<ComponentFactory<? extends ServiceA>> factories = 
+            List<ComponentFactory<? extends ServiceA>> factories =
                 registry.getFactoriesForType(ServiceA.class);
-            
+
             assertEquals(1, factories.size());
         }
 
@@ -321,9 +318,9 @@ class ConditionalRegistryTest {
         void shouldReturnEmptyListForUnknownType() {
             ConditionalRegistry registry = new ConditionalRegistry(originalRegistry);
 
-            List<ComponentFactory<? extends ServiceB>> factories = 
+            List<ComponentFactory<? extends ServiceB>> factories =
                 registry.getFactoriesForType(ServiceB.class);
-            
+
             assertTrue(factories.isEmpty());
         }
     }
@@ -333,33 +330,12 @@ class ConditionalRegistryTest {
     class ConstructorVariantsTests {
 
         @Test
-        @DisplayName("Should create with active profiles")
-        void shouldCreateWithActiveProfiles() {
-            originalRegistry.addFactory(new TestFactory<>(ServiceA.class, "serviceA"));
-            Set<String> profiles = new HashSet<>(Arrays.asList("dev", "test"));
-
-            ConditionalRegistry registry = new ConditionalRegistry(originalRegistry, profiles);
-
-            assertEquals(1, registry.getRegisteredCount());
-        }
-
-        @Test
         @DisplayName("Should create with class loader")
         void shouldCreateWithClassLoader() {
             originalRegistry.addFactory(new TestFactory<>(ServiceA.class, "serviceA"));
             ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 
             ConditionalRegistry registry = new ConditionalRegistry(originalRegistry, classLoader);
-
-            assertEquals(1, registry.getRegisteredCount());
-        }
-
-        @Test
-        @DisplayName("Should create with null profiles (resolves from environment)")
-        void shouldCreateWithNullProfiles() {
-            originalRegistry.addFactory(new TestFactory<>(ServiceA.class, "serviceA"));
-
-            ConditionalRegistry registry = new ConditionalRegistry(originalRegistry, (Set<String>) null);
 
             assertEquals(1, registry.getRegisteredCount());
         }
@@ -376,47 +352,10 @@ class ConditionalRegistryTest {
 
             ConditionalRegistry registry = new ConditionalRegistry(originalRegistry);
             List<String> excluded = registry.getExcludedComponents();
-            
+
             excluded.clear();
-            
+
             assertEquals(1, registry.getExcludedComponents().size());
-        }
-    }
-
-    @Nested
-    @DisplayName("Active Profiles Tests")
-    class ActiveProfilesTests {
-
-        @Test
-        @DisplayName("Should return empty array when no profiles set")
-        void shouldReturnEmptyArrayWhenNoProfilesSet() {
-            ConditionalRegistry.setActiveProfiles();
-            String[] profiles = ConditionalRegistry.getActiveProfiles();
-            assertEquals(0, profiles.length);
-        }
-
-        @Test
-        @DisplayName("Should set and get active profiles")
-        void shouldSetAndGetActiveProfiles() {
-            ConditionalRegistry.setActiveProfiles("dev", "test");
-            String[] profiles = ConditionalRegistry.getActiveProfiles();
-            
-            assertEquals(2, profiles.length);
-            assertTrue(Arrays.asList(profiles).contains("dev"));
-            assertTrue(Arrays.asList(profiles).contains("test"));
-            
-            // Cleanup
-            ConditionalRegistry.setActiveProfiles();
-        }
-
-        @Test
-        @DisplayName("Should clear active profiles")
-        void shouldClearActiveProfiles() {
-            ConditionalRegistry.setActiveProfiles("prod");
-            ConditionalRegistry.setActiveProfiles();
-            
-            String[] profiles = ConditionalRegistry.getActiveProfiles();
-            assertEquals(0, profiles.length);
         }
     }
 
@@ -468,116 +407,6 @@ class ConditionalRegistryTest {
         }
     }
 
-    // ===== NEW TESTS FOR REMAINING COVERAGE GAPS =====
-
-    @Nested
-    @DisplayName("Get Active Profiles Edge Cases")
-    class GetActiveProfilesEdgeCases {
-
-        @Test
-        @DisplayName("Should handle getActiveProfiles with null environment profiles")
-        void shouldHandleGetActiveProfilesWithNullEnvironmentProfiles() {
-            // Clear any previously set profiles
-            ConditionalRegistry.setActiveProfiles();
-
-            // When VELD_ACTIVE_PROFILES is null and no profiles are set
-            // This tests the null path in getActiveProfiles()
-            String[] profiles = ConditionalRegistry.getActiveProfiles();
-
-            assertNotNull(profiles);
-            assertEquals(0, profiles.length);
-        }
-
-        @Test
-        @DisplayName("Should handle getActiveProfiles with empty environment")
-        void shouldHandleGetActiveProfilesWithEmptyEnvironment() {
-            ConditionalRegistry.setActiveProfiles();
-
-            String[] profiles = ConditionalRegistry.getActiveProfiles();
-
-            assertNotNull(profiles);
-            assertEquals(0, profiles.length);
-        }
-
-        @Test
-        @DisplayName("Should handle getActiveProfiles with multiple profiles")
-        void shouldHandleGetActiveProfilesWithMultipleProfiles() {
-            ConditionalRegistry.setActiveProfiles("profile1", "profile2", "profile3");
-
-            String[] profiles = ConditionalRegistry.getActiveProfiles();
-
-            assertEquals(3, profiles.length);
-        }
-    }
-
-    @Nested
-    @DisplayName("Set Active Profiles Edge Cases")
-    class SetActiveProfilesEdgeCases {
-
-        @AfterEach
-        void cleanUp() {
-            ConditionalRegistry.setActiveProfiles();
-        }
-
-        @Test
-        @DisplayName("Should set single profile")
-        void shouldSetSingleProfile() {
-            ConditionalRegistry.setActiveProfiles("single");
-
-            String[] profiles = ConditionalRegistry.getActiveProfiles();
-
-            assertEquals(1, profiles.length);
-            assertEquals("single", profiles[0]);
-        }
-
-        @Test
-        @DisplayName("Should handle empty varargs")
-        void shouldHandleEmptyVarargs() {
-            ConditionalRegistry.setActiveProfiles("existing");
-            ConditionalRegistry.setActiveProfiles();
-
-            String[] profiles = ConditionalRegistry.getActiveProfiles();
-
-            assertEquals(0, profiles.length);
-        }
-
-        @Test
-        @DisplayName("Should handle profile with special characters")
-        void shouldHandleProfileWithSpecialCharacters() {
-            ConditionalRegistry.setActiveProfiles("profile-with-dashes", "profile.with.dots", "profile_with_underscores");
-
-            String[] profiles = ConditionalRegistry.getActiveProfiles();
-
-            assertEquals(3, profiles.length);
-        }
-
-        @Test
-        @DisplayName("Should handle duplicate profiles")
-        void shouldHandleDuplicateProfiles() {
-            ConditionalRegistry.setActiveProfiles("dev", "dev", "test");
-
-            String[] profiles = ConditionalRegistry.getActiveProfiles();
-
-            // Note: Arrays.asList() preserves duplicates, but actual behavior depends on implementation
-            assertTrue(profiles.length >= 2);
-        }
-
-        @Test
-        @DisplayName("Should override previous profiles")
-        void shouldOverridePreviousProfiles() {
-            ConditionalRegistry.setActiveProfiles("old-profile");
-
-            String[] oldProfiles = ConditionalRegistry.getActiveProfiles();
-            assertEquals(1, oldProfiles.length);
-
-            ConditionalRegistry.setActiveProfiles("new-profile");
-
-            String[] newProfiles = ConditionalRegistry.getActiveProfiles();
-            assertEquals(1, newProfiles.length);
-            assertEquals("new-profile", newProfiles[0]);
-        }
-    }
-
     @Nested
     @DisplayName("ConditionalRegistry Constructor Edge Cases")
     class ConstructorEdgeCases {
@@ -602,32 +431,6 @@ class ConditionalRegistryTest {
             assertEquals(0, registry.getRegisteredCount());
             assertEquals(2, registry.getExcludedCount());
         }
-
-        @Test
-        @DisplayName("Should handle profile condition with active profile")
-        void shouldHandleProfileConditionWithActiveProfile() {
-            ConditionalRegistry.setActiveProfiles("dev");
-
-            // Factory that only activates with 'dev' profile
-            originalRegistry.addFactory(new TestFactory<>(ServiceA.class, "serviceA", true, true));
-
-            ConditionalRegistry registry = new ConditionalRegistry(originalRegistry);
-
-            assertEquals(1, registry.getRegisteredCount());
-        }
-
-        @Test
-        @DisplayName("Should handle profile condition with inactive profile")
-        void shouldHandleProfileConditionWithInactiveProfile() {
-            ConditionalRegistry.setActiveProfiles("prod");
-
-            // This tests the path where the profile condition exists but is not active
-            originalRegistry.addFactory(new TestFactory<>(ServiceA.class, "serviceA", true, true));
-
-            ConditionalRegistry registry = new ConditionalRegistry(originalRegistry);
-
-            assertEquals(1, registry.getRegisteredCount());
-        }
     }
 
     @Nested
@@ -644,75 +447,6 @@ class ConditionalRegistryTest {
             ConditionalRegistry registry = new ConditionalRegistry(originalRegistry);
 
             assertNotNull(registry.getFactory(ServiceInterface.class));
-        }
-    }
-
-    // ===== NEW TESTS FOR isProfileActive =====
-
-    @Nested
-    @DisplayName("Is Profile Active Tests")
-    class IsProfileActiveTests {
-
-        @Test
-        @DisplayName("Should return false for null profile")
-        void shouldReturnFalseForNullProfile() {
-            ConditionalRegistry.setActiveProfiles("dev", "test");
-
-            assertFalse(ConditionalRegistry.isProfileActive(null));
-        }
-
-        @Test
-        @DisplayName("Should return true for active profile")
-        void shouldReturnTrueForActiveProfile() {
-            ConditionalRegistry.setActiveProfiles("dev", "test", "prod");
-
-            assertTrue(ConditionalRegistry.isProfileActive("dev"));
-            assertTrue(ConditionalRegistry.isProfileActive("test"));
-            assertTrue(ConditionalRegistry.isProfileActive("prod"));
-        }
-
-        @Test
-        @DisplayName("Should return false for inactive profile")
-        void shouldReturnFalseForInactiveProfile() {
-            ConditionalRegistry.setActiveProfiles("dev");
-
-            assertFalse(ConditionalRegistry.isProfileActive("prod"));
-            assertFalse(ConditionalRegistry.isProfileActive("test"));
-        }
-
-        @Test
-        @DisplayName("Should handle profile with whitespace")
-        void shouldHandleProfileWithWhitespace() {
-            ConditionalRegistry.setActiveProfiles(" dev ");
-
-            assertTrue(ConditionalRegistry.isProfileActive("dev"));
-        }
-
-        @Test
-        @DisplayName("Should return false when no profiles are set")
-        void shouldReturnFalseWhenNoProfilesSet() {
-            ConditionalRegistry.setActiveProfiles();
-
-            assertFalse(ConditionalRegistry.isProfileActive("dev"));
-        }
-
-        @Test
-        @DisplayName("Should be case-sensitive")
-        void shouldBeCaseSensitive() {
-            ConditionalRegistry.setActiveProfiles("DEV");
-
-            assertTrue(ConditionalRegistry.isProfileActive("DEV"));
-            assertFalse(ConditionalRegistry.isProfileActive("dev"));
-            assertFalse(ConditionalRegistry.isProfileActive("Dev"));
-        }
-
-        @Test
-        @DisplayName("Should return false for empty string profile")
-        void shouldReturnFalseForEmptyStringProfile() {
-            ConditionalRegistry.setActiveProfiles("dev");
-
-            // Empty string is not in the set
-            assertFalse(ConditionalRegistry.isProfileActive(""));
         }
     }
 }

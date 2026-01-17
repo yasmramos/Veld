@@ -420,3 +420,171 @@ public class DataService {
     }
 }
 ```
+
+## Component Scopes
+
+Veld supports different component scopes that control how instances are managed.
+
+### Singleton Scope (Default)
+
+Singleton components are instantiated once and shared across the entire application. The same instance is returned every time the component is requested.
+
+```java
+@Singleton  // Explicit singleton (default if no scope annotation)
+@Component
+public class ConfigurationService {
+    // One instance for the entire application lifetime
+}
+```
+
+### Prototype Scope
+
+Prototype components create a new instance each time they are requested. This is useful for stateful components, request-scoped beans, or components that should not be shared.
+
+```java
+@Prototype
+@Component
+public class RequestContext {
+    private String requestId;
+    private Map<String, Object> attributes;
+    
+    public RequestContext() {
+        this.requestId = UUID.randomUUID().toString();
+        this.attributes = new HashMap<>();
+    }
+}
+```
+
+### RequestContext: Comportamiento Especial
+
+`RequestContext` es un componente de alcance prototype con características específicas que debes conocer:
+
+**Características principales:**
+
+- **No se cachea**: Cada llamada a `Veld.requestContext()` o `requestContext()` crea una nueva instancia
+- **Alcance por-request**: Diseñado para ser creado una vez por cada solicitud HTTP o unidad de trabajo
+- **Uso típico**: Almacenar información contextual como ID de request, usuario autenticado, headers, etc.
+
+```java
+@Component
+public class RequestContext {
+    private String requestId;
+    private String userId;
+    private Map<String, String> headers;
+    
+    public RequestContext() {
+        this.requestId = UUID.randomUUID().toString();
+        this.headers = new HashMap<>();
+    }
+    
+    public String getRequestId() {
+        return requestId;
+    }
+    
+    public void setUser(String userId) {
+        this.userId = userId;
+    }
+    
+    public String getUser() {
+        return userId;
+    }
+}
+```
+
+**Uso correcto:**
+
+```java
+@Singleton
+@Component
+public class RequestLogger {
+    
+    @Inject
+    private RequestContext requestContext;  // Inyectado como singleton
+    
+    public void logRequest(String message) {
+        // ADVERTENCIA: requestContext aquí siempre será el mismo objeto
+        // Úsalo solo para obtener el factory method
+    }
+    
+    public void logPerRequest(String message) {
+        // CORRECTO: Obtén una nueva instancia por-request
+        RequestContext ctx = Veld.requestContext();
+        System.out.println("Request " + ctx.getRequestId() + ": " + message);
+    }
+}
+```
+
+**Patrón recomendado para componentes singleton:**
+
+```java
+@Singleton
+@Component
+public class UserService {
+    
+    @Inject
+    private Provider<RequestContext> contextProvider;
+    
+    public void processRequest() {
+        // Obtén una nueva instancia RequestContext por-request
+        RequestContext ctx = contextProvider.get();
+        String userId = ctx.getUser();
+        
+        // ... lógica del servicio
+    }
+}
+```
+
+**Diferencias entre singleton y prototype:**
+
+| Característica | Singleton | Prototype |
+|----------------|-----------|-----------|
+| Instancias | Una sola compartida | Nueva cada vez |
+| Caché | Sí | No |
+| Estado | Compartido | Aislado |
+| Uso típico | Servicios, repositorios | RequestContext, SessionData |
+
+### Request Scoped
+
+Componentes con alcance de solicitud que se crean una vez por cada petición HTTP y se descartan después.
+
+```java
+@RequestScoped
+@Component
+public class HttpRequestData {
+    private HttpServletRequest request;
+    private HttpServletResponse response;
+    
+    @Inject
+    public HttpRequestData(HttpServletRequest request) {
+        this.request = request;
+    }
+    
+    public String getHeader(String name) {
+        return request.getHeader(name);
+    }
+}
+```
+
+### Session Scoped
+
+Componentes con alcance de sesión que persisten durante toda la sesión de usuario.
+
+```java
+@SessionScoped
+@Component
+public class UserSession {
+    private String userId;
+    private List<String> roles;
+    private LocalDateTime loginTime;
+    
+    public void login(String userId, List<String> roles) {
+        this.userId = userId;
+        this.roles = roles;
+        this.loginTime = LocalDateTime.now();
+    }
+    
+    public boolean hasRole(String role) {
+        return roles != null && roles.contains(role);
+    }
+}
+```

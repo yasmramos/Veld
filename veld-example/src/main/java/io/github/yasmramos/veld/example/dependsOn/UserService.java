@@ -10,7 +10,7 @@ import io.github.yasmramos.veld.example.ConfigService;
  * Demuestra el uso de @DependsOn con múltiples dependencias.
  * Orden requerido: DatabaseService, ConfigService, EmailService
  */
-@Component("userService")
+@Component("dependsOnUserService")
 @DependsOn({"databaseService", "configService", "emailService"})
 public class UserService {
     

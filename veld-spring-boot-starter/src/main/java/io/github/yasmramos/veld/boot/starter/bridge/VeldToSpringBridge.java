@@ -1,6 +1,5 @@
 package io.github.yasmramos.veld.boot.starter.bridge;
 
-import io.github.yasmramos.veld.Veld;
 import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.boot.starter.config.VeldProperties;
 import io.github.yasmramos.veld.boot.starter.service.VeldSpringBootService;

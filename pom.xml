@@ -78,6 +78,7 @@
 
     <modules>
         <module>veld-annotations</module>
+        <module>veld-spi</module>
         <module>veld-runtime</module>
         <module>veld-aop</module>
         <module>veld-processor</module>
@@ -276,6 +277,11 @@
                 <artifactId>mockito-junit-jupiter</artifactId>
                 <version>${mockito.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.github.yasmramos</groupId>
+                <artifactId>veld-spi</artifactId>
+                <version>${project.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

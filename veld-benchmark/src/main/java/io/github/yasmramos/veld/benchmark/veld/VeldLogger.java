@@ -9,6 +9,7 @@
  */
 package io.github.yasmramos.veld.benchmark.veld;
 
+import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.annotation.Singleton;
 import io.github.yasmramos.veld.benchmark.common.Logger;
 
@@ -16,6 +17,7 @@ import io.github.yasmramos.veld.benchmark.common.Logger;
  * Veld implementation of Logger.
  */
 @Singleton
+@Component
 public class VeldLogger implements Logger {
     
     private volatile int logCount = 0;

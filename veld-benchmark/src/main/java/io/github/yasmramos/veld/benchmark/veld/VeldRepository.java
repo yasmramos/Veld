@@ -9,6 +9,7 @@
  */
 package io.github.yasmramos.veld.benchmark.veld;
 
+import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.annotation.Singleton;
 import io.github.yasmramos.veld.benchmark.common.Repository;
 
@@ -19,6 +20,7 @@ import java.util.Map;
  * Veld implementation of Repository.
  */
 @Singleton
+@Component
 public class VeldRepository implements Repository {
     
     private final Map<String, String> storage = new HashMap<>();

@@ -58,13 +58,13 @@ class ComponentInfoTest {
         @Test
         @DisplayName("Should generate correct factory class name")
         void shouldGenerateCorrectFactoryClassName() {
-            assertEquals("com.example.veld.MyService$$VeldFactory", componentInfo.getFactoryClassName());
+            assertEquals("com.example.MyService$VeldFactory", componentInfo.getFactoryClassName());
         }
 
         @Test
         @DisplayName("Should generate correct factory internal name")
         void shouldGenerateCorrectFactoryInternalName() {
-            assertEquals("com/example/veld/MyService$$VeldFactory", componentInfo.getFactoryInternalName());
+            assertEquals("com/example/MyService$$VeldFactory", componentInfo.getFactoryInternalName());
         }
     }
 
@@ -82,8 +82,8 @@ class ComponentInfoTest {
                 ScopeType.SINGLETON
             );
 
-            // Factory should be in the outer class's package (.veld subpackage)
-            assertEquals("com.example.veld.InnerClass$$VeldFactory", innerClassInfo.getFactoryClassName());
+            // Factory should be in the same package as the original class
+            assertEquals("com.example.InnerClass$VeldFactory", innerClassInfo.getFactoryClassName());
         }
 
         @Test
@@ -95,7 +95,7 @@ class ComponentInfoTest {
                 ScopeType.SINGLETON
             );
 
-            assertEquals("com/example/veld/InnerClass$$VeldFactory", innerClassInfo.getFactoryInternalName());
+            assertEquals("com/example/InnerClass$$VeldFactory", innerClassInfo.getFactoryInternalName());
         }
 
         @Test
@@ -129,14 +129,14 @@ class ComponentInfoTest {
         void shouldHandleDeeplyNestedInnerClass() {
             ComponentInfo deeplyNestedInfo = new ComponentInfo(
                 "com.example.OuterClass$MiddleClass$InnerClass",
-                "deeplyNested",
+                "innerClass",
                 ScopeType.SINGLETON
             );
 
             // Package should still be the outermost class's package
             assertEquals("com.example", deeplyNestedInfo.getPackageName());
             assertEquals("InnerClass", deeplyNestedInfo.getSimpleName());
-            assertEquals("com.example.veld.InnerClass$$VeldFactory", deeplyNestedInfo.getFactoryClassName());
+            assertEquals("com.example.InnerClass$VeldFactory", deeplyNestedInfo.getFactoryClassName());
         }
     }
     

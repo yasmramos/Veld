@@ -140,6 +140,17 @@
                             <artifactId>dagger-compiler</artifactId>
                             <version>${dagger.version}</version>
                         </path>
+                        <!-- Veld annotation processor dependencies -->
+                        <path>
+                            <groupId>io.github.yasmramos</groupId>
+                            <artifactId>veld-annotations</artifactId>
+                            <version>${project.version}</version>
+                        </path>
+                        <path>
+                            <groupId>io.github.yasmramos</groupId>
+                            <artifactId>veld-runtime</artifactId>
+                            <version>${project.version}</version>
+                        </path>
                         <!-- Veld annotation processor -->
                         <path>
                             <groupId>io.github.yasmramos</groupId>

@@ -46,8 +46,8 @@ public class EventBusBaselineBenchmark {
         eventBus.clear();
 
         // Get instances from Veld
-        simpleListener = Veld.get(SimpleListener.class);
-        multiMethodListener = Veld.get(MultiMethodListener.class);
+        simpleListener = Veld.simpleListener();
+        multiMethodListener = Veld.multiMethodListener();
 
         // Create test events
         simpleEvent = new SimpleEvent("test-data");

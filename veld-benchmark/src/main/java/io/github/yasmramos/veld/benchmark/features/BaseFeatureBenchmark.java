@@ -9,7 +9,6 @@
  */
 package io.github.yasmramos.veld.benchmark.features;
 
-import io.github.yasmramos.veld.Veld;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.concurrent.TimeUnit;

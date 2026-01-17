@@ -214,8 +214,8 @@ class BeanFactorySourceGeneratorTest {
             BeanFactorySourceGenerator generator = new BeanFactorySourceGenerator(factory, beanMethod, 0);
             String code = generator.generate().toString();
 
-            assertTrue(code.contains("import io.github.yasmramos.veld.Veld;"),
-                "Should import Veld");
+            // BeanFactorySourceGenerator uses static factory methods instead of Veld.get()
+            // So no Veld import is needed
             assertTrue(code.contains("import io.github.yasmramos.veld.runtime.ComponentFactory;"),
                 "Should import ComponentFactory");
             assertTrue(code.contains("import io.github.yasmramos.veld.annotation.ScopeType;"),
