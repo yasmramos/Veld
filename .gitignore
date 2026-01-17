@@ -913,3 +913,12 @@
 # Development tools (JDK, Maven distributions)
 tools/
 
+# Browser extensions and related files
+browser/
+
+# Python project files
+pyproject.toml
+
+# Temporary directories and files
+tmp/
+workspace.json
