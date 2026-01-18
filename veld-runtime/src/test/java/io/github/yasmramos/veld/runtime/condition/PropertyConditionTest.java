@@ -206,4 +206,55 @@ class PropertyConditionTest {
             assertFalse(description.contains("matchIfMissing"));
         }
     }
+
+    @Nested
+    @DisplayName("Failure Reason Tests")
+    class FailureReasonTests {
+
+        @Test
+        @DisplayName("Should explain when property is missing")
+        void shouldExplainMissingProperty() {
+            PropertyCondition condition = new PropertyCondition("missing.prop", "", false);
+
+            String reason = condition.getFailureReason(context);
+
+            assertTrue(reason.contains("missing.prop"));
+            assertTrue(reason.contains("not set"));
+            assertTrue(reason.contains("matchIfMissing=false"));
+        }
+
+        @Test
+        @DisplayName("Should explain value mismatch")
+        void shouldExplainValueMismatch() {
+            System.setProperty(TEST_PROPERTY, "actual");
+            PropertyCondition condition = new PropertyCondition(TEST_PROPERTY, "expected", false);
+
+            String reason = condition.getFailureReason(context);
+
+            assertTrue(reason.contains(TEST_PROPERTY));
+            assertTrue(reason.contains("actual"));
+            assertTrue(reason.contains("expected"));
+        }
+
+        @Test
+        @DisplayName("Should return empty string when condition passes")
+        void shouldReturnEmptyWhenPasses() {
+            System.setProperty(TEST_PROPERTY, "value");
+            PropertyCondition condition = new PropertyCondition(TEST_PROPERTY, "value", false);
+
+            String reason = condition.getFailureReason(context);
+
+            assertEquals("", reason);
+        }
+
+        @Test
+        @DisplayName("Should return empty when property missing but matchIfMissing is true")
+        void shouldReturnEmptyWhenMissingButMatchIfMissingTrue() {
+            PropertyCondition condition = new PropertyCondition("nonexistent.prop", "", true);
+
+            String reason = condition.getFailureReason(context);
+
+            assertEquals("", reason);
+        }
+    }
 }

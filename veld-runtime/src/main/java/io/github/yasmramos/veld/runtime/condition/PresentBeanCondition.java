@@ -1,5 +1,6 @@
 package io.github.yasmramos.veld.runtime.condition;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -192,7 +193,58 @@ public final class PresentBeanCondition implements Condition {
         sb.append(")");
         return sb.toString();
     }
-    
+
+    @Override
+    public String getFailureReason(ConditionContext context) {
+        List<String> missingTypes = new ArrayList<>();
+        List<String> missingNames = new ArrayList<>();
+
+        // Check which types are missing
+        for (String type : beanTypes) {
+            if (!context.containsBeanType(type)) {
+                missingTypes.add(type);
+            }
+        }
+
+        // Check which names are missing
+        for (String name : beanNames) {
+            if (!context.containsBeanName(name)) {
+                missingNames.add(name);
+            }
+        }
+
+        // If nothing is missing, condition passed
+        if (missingTypes.isEmpty() && missingNames.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+
+        if (strategy == MatchStrategy.ALL) {
+            sb.append("Required beans not found in container:\n");
+        } else {
+            sb.append("No matching beans found in container (strategy=ANY):\n");
+        }
+
+        // Add missing types
+        if (!missingTypes.isEmpty()) {
+            sb.append("  Missing bean types:\n");
+            for (String type : missingTypes) {
+                sb.append("    - ").append(type).append("\n");
+            }
+        }
+
+        // Add missing names
+        if (!missingNames.isEmpty()) {
+            sb.append("  Missing bean names:\n");
+            for (String name : missingNames) {
+                sb.append("    - \"").append(name).append("\"\n");
+            }
+        }
+
+        return sb.toString();
+    }
+
     @Override
     public String toString() {
         return "PresentBeanCondition{beanTypes=" + beanTypes + 

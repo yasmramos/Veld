@@ -195,4 +195,60 @@ class ProfileConditionTest {
             assertTrue(condition.matches(context));
         }
     }
+
+    @Nested
+    @DisplayName("Failure Reason Tests")
+    class FailureReasonTests {
+
+        @Test
+        @DisplayName("Should show active vs required profiles")
+        void shouldShowActiveVsRequired() {
+            ProfileCondition condition = new ProfileCondition("dev", "test");
+            ConditionContext context = createContextWithProfiles("prod", "secure");
+
+            String reason = condition.getFailureReason(context);
+
+            assertTrue(reason.contains("Profile condition not satisfied"));
+            assertTrue(reason.contains("Active profiles:"));
+            assertTrue(reason.contains("prod"));
+            assertTrue(reason.contains("Required profiles (ANY):"));
+            assertTrue(reason.contains("dev"));
+            assertTrue(reason.contains("test"));
+        }
+
+        @Test
+        @DisplayName("Should handle negated profiles in failure reason")
+        void shouldHandleNegatedProfiles() {
+            ProfileCondition condition = new ProfileCondition("!prod");
+            ConditionContext context = createContextWithProfiles("prod");
+
+            String reason = condition.getFailureReason(context);
+
+            assertTrue(reason.contains("Active profiles:"));
+            assertTrue(reason.contains("prod"));
+            assertTrue(reason.contains("NOT"));
+        }
+
+        @Test
+        @DisplayName("Should show no active profiles")
+        void shouldShowNoActiveProfiles() {
+            ProfileCondition condition = new ProfileCondition("dev");
+            ConditionContext context = new ConditionContext(null, new HashSet<>());
+
+            String reason = condition.getFailureReason(context);
+
+            assertTrue(reason.contains("[none]"));
+        }
+
+        @Test
+        @DisplayName("Should return empty when condition passes")
+        void shouldReturnEmptyWhenPasses() {
+            ProfileCondition condition = new ProfileCondition("dev");
+            ConditionContext context = createContextWithProfiles("dev");
+
+            String reason = condition.getFailureReason(context);
+
+            assertEquals("", reason);
+        }
+    }
 }

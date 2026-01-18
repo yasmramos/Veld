@@ -1,5 +1,6 @@
 package io.github.yasmramos.veld.runtime.condition;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -91,7 +92,53 @@ public final class MissingBeanCondition implements Condition {
         sb.append(")");
         return sb.toString();
     }
-    
+
+    @Override
+    public String getFailureReason(ConditionContext context) {
+        List<String> foundTypes = new ArrayList<>();
+        List<String> foundNames = new ArrayList<>();
+
+        // Check which types are actually present (shouldn't be)
+        for (String type : beanTypes) {
+            if (context.containsBeanType(type)) {
+                foundTypes.add(type);
+            }
+        }
+
+        // Check which names are actually present (shouldn't be)
+        for (String name : beanNames) {
+            if (context.containsBeanName(name)) {
+                foundNames.add(name);
+            }
+        }
+
+        // If nothing was found, condition passed
+        if (foundTypes.isEmpty() && foundNames.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Found beans that should be absent:\n");
+
+        // Add found types
+        if (!foundTypes.isEmpty()) {
+            sb.append("  Found bean types:\n");
+            for (String type : foundTypes) {
+                sb.append("    - ").append(type).append("\n");
+            }
+        }
+
+        // Add found names
+        if (!foundNames.isEmpty()) {
+            sb.append("  Found bean names:\n");
+            for (String name : foundNames) {
+                sb.append("    - \"").append(name).append("\"\n");
+            }
+        }
+
+        return sb.toString();
+    }
+
     public List<String> getBeanTypes() {
         return beanTypes;
     }

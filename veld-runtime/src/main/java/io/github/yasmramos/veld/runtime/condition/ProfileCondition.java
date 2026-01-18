@@ -1,7 +1,9 @@
 package io.github.yasmramos.veld.runtime.condition;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -184,7 +186,68 @@ public class ProfileCondition implements Condition {
         if (strategy != MatchStrategy.ALL) {
             sb.append(" strategy: ").append(strategy);
         }
-        
+
+        return sb.toString();
+    }
+
+    @Override
+    public String getFailureReason(ConditionContext context) {
+        Set<String> activeProfiles = context.getActiveProfiles();
+
+        // Check if the condition actually failed
+        if (matches(context)) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Profile condition not satisfied\n");
+
+        // Show active profiles
+        sb.append("  Active profiles: ");
+        if (activeProfiles.isEmpty()) {
+            sb.append("[none]");
+        } else {
+            sb.append(String.join(", ", activeProfiles));
+        }
+        sb.append("\n");
+
+        // Show required profiles
+        if (profiles != null && profiles.length > 0) {
+            sb.append("  Required profiles (ANY): ");
+            List<String> requiredList = new ArrayList<>();
+            List<String> negatedList = new ArrayList<>();
+
+            for (String profile : profiles) {
+                if (profile.startsWith("!")) {
+                    negatedList.add(profile.substring(1));
+                } else {
+                    requiredList.add(profile);
+                }
+            }
+
+            if (!requiredList.isEmpty()) {
+                sb.append(String.join(", ", requiredList));
+            }
+            if (!negatedList.isEmpty()) {
+                if (!requiredList.isEmpty()) {
+                    sb.append("; ");
+                }
+                sb.append("NOT (").append(String.join(", ", negatedList)).append(")");
+            }
+            sb.append("\n");
+        }
+
+        // Show expression if present
+        if (expression != null && !expression.isEmpty()) {
+            sb.append("  Expression: ").append(expression);
+            sb.append(" (evaluated to false)\n");
+        }
+
+        // Show strategy if not ALL
+        if (strategy != MatchStrategy.ALL) {
+            sb.append("  Strategy: ").append(strategy).append("\n");
+        }
+
         return sb.toString();
     }
     
