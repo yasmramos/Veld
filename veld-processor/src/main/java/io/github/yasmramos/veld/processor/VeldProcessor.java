@@ -246,15 +246,6 @@ public class VeldProcessor extends AbstractProcessor {
             }
         }
         
-        // PHASE 0: Pre-process conditionals to filter components at compile-time
-        // Process @ConditionalOnProperty, @ConditionalOnClass, @ConditionalOnMissingBean, @ConditionalOnBean
-        Set<? extends Element> conditionalElements = roundEnv.getElementsAnnotatedWithAny(
-            new io.github.yasmramos.veld.annotation.ConditionalOnProperty.class,
-            io.github.yasmramos.veld.annotation.ConditionalOnClass.class,
-            io.github.yasmramos.veld.annotation.ConditionalOnMissingBean.class,
-            io.github.yasmramos.veld.annotation.ConditionalOnBean.class
-        );
-        
         // PHASE 1: DISCOVERY - Analyze all components first without generating factories
         for (TypeElement typeElement : componentElements) {
             String className = typeElement.getQualifiedName().toString();
