@@ -218,6 +218,14 @@ public class VeldProcessor extends AbstractProcessor {
             }
         }
         
+        // Find classes annotated with @Eager (eager initialization, does NOT have @Component meta-annotation)
+        for (Element element : roundEnv.getElementsAnnotatedWith(Eager.class)) {
+            if (element.getKind() == ElementKind.CLASS) {
+                componentElements.add((TypeElement) element);
+                note("Found @Eager component: " + ((TypeElement) element).getQualifiedName());
+            }
+        }
+        
         // Find classes annotated with javax.inject.Singleton
         TypeElement javaxSingleton = elementUtils.getTypeElement("javax.inject.Singleton");
         if (javaxSingleton != null) {
@@ -246,15 +254,6 @@ public class VeldProcessor extends AbstractProcessor {
             io.github.yasmramos.veld.annotation.ConditionalOnMissingBean.class,
             io.github.yasmramos.veld.annotation.ConditionalOnBean.class
         );
-        
-        // Process @Eager for eager initialization
-        for (Element element : roundEnv.getElementsAnnotatedWith(Eager.class)) {
-            if (element.getKind() == ElementKind.CLASS) {
-                TypeElement typeElement = (TypeElement) element;
-                // Mark as eager in its ComponentInfo later during analysis
-                note("Found @Eager component: " + typeElement.getQualifiedName());
-            }
-        }
         
         // PHASE 1: DISCOVERY - Analyze all components first without generating factories
         for (TypeElement typeElement : componentElements) {
@@ -1072,6 +1071,46 @@ public class VeldProcessor extends AbstractProcessor {
                     note("  -> @Value(\"" + valueExpression + "\") for field: " + field.getSimpleName());
                 }
                 
+                info.addFieldInjection(new InjectionPoint(
+                        InjectionPoint.Type.FIELD,
+                        field.getSimpleName().toString(),
+                        descriptor,
+                        List.of(dep),
+                        visibility));
+                continue;
+            }
+            
+            // Check for @Lookup annotation (dynamic bean lookup)
+            Lookup lookupAnnotation = field.getAnnotation(Lookup.class);
+            if (lookupAnnotation != null) {
+                if (field.getModifiers().contains(Modifier.FINAL)) {
+                    throw new ProcessingException("@Lookup cannot be applied to final fields: " + field.getSimpleName());
+                }
+                if (field.getModifiers().contains(Modifier.STATIC)) {
+                    throw new ProcessingException("@Lookup cannot be applied to static fields: " + field.getSimpleName());
+                }
+                
+                String typeName = getTypeName(field.asType());
+                String descriptor = getTypeDescriptor(field.asType());
+                String lookupName = lookupAnnotation.value();
+                boolean byType = lookupAnnotation.byType();
+                boolean byName = lookupAnnotation.byName();
+                boolean byQualifiedName = lookupAnnotation.byQualifiedName();
+                boolean optional = lookupAnnotation.optional();
+                
+                // Determine lookup strategy
+                String lookupStrategy = "BY_TYPE";
+                if (byName) lookupStrategy = "BY_NAME";
+                else if (byQualifiedName) lookupStrategy = "BY_QUALIFIED_NAME";
+                else if (byType) lookupStrategy = "BY_TYPE";
+                
+                note("  -> @Lookup(" + lookupStrategy + (lookupName.isEmpty() ? "" : ", \"" + lookupName + "\"") + 
+                     (optional ? ", optional" : "") + ") for field: " + field.getSimpleName());
+                
+                // Create dependency with lookup information
+                Dependency dep = Dependency.forLookup(typeName, descriptor, lookupAnnotation);
+                
+                InjectionPoint.Visibility visibility = getFieldVisibility(field);
                 info.addFieldInjection(new InjectionPoint(
                         InjectionPoint.Type.FIELD,
                         field.getSimpleName().toString(),
