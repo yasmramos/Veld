@@ -176,44 +176,6 @@ public final class ComponentInfo {
         return lazy;
     }
     
-    public String getFactoryClassName() {
-        // Generate factory in the same package as the original class
-        // Use componentName to ensure unique factory names when multiple classes have the same simple name
-        // Capitalize first letter of componentName for valid Java class name
-        // Example: com.example.UserService (mainUserService) -> com.example.MainUserService$VeldFactory
-        // Example: com.example.dependsOn.UserService (userService) -> com.example.dependsOn.UserService$VeldFactory
-        String pkg = getPackageName();
-        String nameForFactory = capitalize(componentName);
-
-        return pkg.isEmpty() ? nameForFactory + "$VeldFactory" : pkg + "." + nameForFactory + "$VeldFactory";
-    }
-
-    public String getFactoryInternalName() {
-        // Convert to internal format - use capitalized componentName for uniqueness
-        // Generate in the same package as the original class
-        // Example: com.example.UserService (mainUserService) -> com/example/MainUserService$$VeldFactory
-        String pkg = getPackageName();
-        String nameForFactory = capitalize(componentName);
-
-        return pkg.isEmpty() ? nameForFactory + "$$VeldFactory" : pkg.replace('.', '/') + "/" + nameForFactory + "$$VeldFactory";
-    }
-    
-    /**
-     * Returns the outer class name for nested classes.
-     * For Outer$Inner, returns "Outer". For regular classes, returns null.
-     */
-    private String getOuterClassName() {
-        int dollarIndex = className.indexOf('$');
-        if (dollarIndex > 0) {
-            String outerPart = className.substring(0, dollarIndex);
-            int lastDot = outerPart.lastIndexOf('.');
-            return lastDot > 0 ? outerPart.substring(lastDot + 1) : outerPart;
-        }
-        // For non-nested classes, check if class name matches last package segment
-        int lastDot = className.lastIndexOf('.');
-        return lastDot > 0 ? className.substring(lastDot + 1) : className;
-    }
-    
     public InjectionPoint getConstructorInjection() {
         return constructorInjection;
     }
@@ -552,42 +514,9 @@ public final class ComponentInfo {
             .collect(Collectors.toList());
     }
     
-    // === UNRESOLVED INTERFACE DEPENDENCIES ===
-    // Dependencies that are interfaces without @Component implementations
-    
-    private final List<String> unresolvedInterfaceDependencies = new ArrayList<>();
-    
-    /**
-     * Adds an interface dependency that has no implementing component.
-     * These can be resolved at runtime via mock injection or other mechanisms.
-     * 
-     * @param interfaceName fully qualified interface name
-     */
-    public void addUnresolvedInterfaceDependency(String interfaceName) {
-        this.unresolvedInterfaceDependencies.add(interfaceName);
-    }
-    
-    /**
-     * Gets all interface dependencies that have no implementing component.
-     * 
-     * @return list of interface names that need external resolution
-     */
-    public List<String> getUnresolvedInterfaceDependencies() {
-        return unresolvedInterfaceDependencies;
-    }
-    
-    /**
-     * Checks if this component has any unresolved interface dependencies.
-     * 
-     * @return true if there are interfaces without implementations
-     */
-    public boolean hasUnresolvedInterfaceDependencies() {
-        return !unresolvedInterfaceDependencies.isEmpty();
-    }
-
     // === HOLD PATTERN SUPPORT ===
     // Determines if this component can use the simpler holder pattern
-    // instead of the full factory pattern
+    // for instantiation in the static dependency graph.
 
     /**
      * Checks if this component can use the holder pattern for instantiation.
@@ -696,6 +625,16 @@ public final class ComponentInfo {
         return null; // No restrictions
     }
 
+    /**
+     * Checks if this component needs a factory class.
+     * In static model, components don't need factory classes.
+     * 
+     * @return false (static model doesn't use factories)
+     */
+    public boolean needsFactory() {
+        return false;
+    }
+    
     /**
      * Capitalizes the first letter of a string.
      * Used for generating valid Java class names from component names.

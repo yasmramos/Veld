@@ -51,23 +51,21 @@ public final class ComponentResolver {
 
     /**
      * Resolves a dependency type to the component that provides it.
+     * Static compile-time model: Only explicit @Component(name) or @Named are allowed.
      * 
      * @param dependencyType the type name of the dependency (interface or class)
      * @param qualifier the @Named qualifier value, or null if none
      * @return the ComponentInfo that provides this dependency, or null if not found
      */
     public ComponentInfo resolveDependency(String dependencyType, String qualifier) {
-        // If a qualifier is specified, try to find by name first
+        // If a qualifier is specified, find by explicit bean name
         if (qualifier != null && !qualifier.isEmpty()) {
             ComponentInfo byName = nameToComponent.get(qualifier);
             if (byName != null) {
                 return byName;
             }
-            // Qualifier might be a class name, try that too
-            ComponentInfo byType = typeToComponent.get(qualifier);
-            if (byType != null) {
-                return byType;
-            }
+            // Qualifier not found - this is an error in static model
+            return null;
         }
 
         // Try direct type match first
@@ -81,21 +79,19 @@ public final class ComponentResolver {
     }
 
     /**
-     * Gets the factory class name for a dependency type.
-     * This is the main method used by ComponentFactorySourceGenerator.
+     * Gets the class name for a dependency type.
+     * In static compile-time model, we return the component class name directly.
      * 
      * @param dependencyType the type name of the dependency
      * @param qualifier the @Named qualifier value, or null if none
-     * @return the fully qualified factory class name
+     * @return the fully qualified component class name, or null if not found
      */
-    public String getFactoryClassName(String dependencyType, String qualifier) {
+    public String getClassName(String dependencyType, String qualifier) {
         ComponentInfo component = resolveDependency(dependencyType, qualifier);
         if (component != null) {
-            return component.getFactoryClassName();
+            return component.getClassName();
         }
-        // Fall back to generating factory for the dependency type directly
-        // This handles cases where the dependency is not a @Component
-        return generateFactoryClassNameFromType(dependencyType);
+        return null;
     }
 
     /**
@@ -106,44 +102,5 @@ public final class ComponentResolver {
      */
     public boolean hasImplementation(String dependencyType) {
         return resolveDependency(dependencyType, null) != null;
-    }
-
-    /**
-     * Generates a factory class name from a type name.
-     * This is the fallback when no component is registered for the type.
-     * 
-     * @param typeName the fully qualified type name
-     * @return the factory class name
-     */
-    private String generateFactoryClassNameFromType(String typeName) {
-        // Handle nested classes - find the last $ for nested class, or last . for package
-        int lastDollar = typeName.lastIndexOf('$');
-        int lastDot = typeName.lastIndexOf('.');
-
-        String packageName;
-        String simpleName;
-
-        if (lastDollar > lastDot) {
-            // Nested class like Outer$Inner
-            String outerClass = typeName.substring(0, lastDollar);
-            packageName = getPackageFromClassName(outerClass);
-            simpleName = typeName.substring(lastDollar + 1);
-        } else {
-            // Regular class
-            packageName = getPackageFromClassName(typeName);
-            simpleName = typeName.substring(lastDot + 1);
-        }
-
-        return packageName.isEmpty() 
-            ? "veld." + simpleName + "$VeldFactory" 
-            : packageName + ".veld." + simpleName + "$VeldFactory";
-    }
-
-    /**
-     * Gets the package name from a fully qualified class name.
-     */
-    private String getPackageFromClassName(String className) {
-        int lastDot = className.lastIndexOf('.');
-        return lastDot > 0 ? className.substring(0, lastDot) : "";
     }
 }

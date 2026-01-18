@@ -4,6 +4,8 @@ import com.squareup.javapoet.JavaFile;
 import io.github.yasmramos.veld.annotation.*;
 import io.github.yasmramos.veld.processor.AnnotationHelper.InjectSource;
 import io.github.yasmramos.veld.processor.InjectionPoint.Dependency;
+import io.github.yasmramos.veld.processor.analyzer.ConditionAnalyzer;
+import io.github.yasmramos.veld.processor.analyzer.LifecycleAnalyzer;
 import io.github.yasmramos.veld.processor.spi.SpiExtensionExecutor;
 import io.github.yasmramos.veld.spi.extension.VeldGraph;
 import io.github.yasmramos.veld.spi.extension.VeldProcessingContext;
@@ -78,6 +80,12 @@ import javax.tools.StandardLocation;
     "javax.inject.Singleton",
     "jakarta.inject.Singleton"
 })
+@SupportedOptions({
+    "veld.profile",
+    "veld.strict",
+    "veld.extensions.disabled",
+    "veld.debug"
+})
 @SupportedSourceVersion(SourceVersion.RELEASE_17)
 public class VeldProcessor extends AbstractProcessor {
     
@@ -88,9 +96,6 @@ public class VeldProcessor extends AbstractProcessor {
     
     private final List<ComponentInfo> discoveredComponents = new ArrayList<>();
     private final DependencyGraph dependencyGraph = new DependencyGraph();
-    
-    // External beans loaded from classpath (multi-module support)
-    private final List<BeanMetadataReader.ExternalBeanInfo> externalBeans = new ArrayList<>();
     
     // Maps interface -> list of implementing components (for conflict detection)
     private final Map<String, List<String>> interfaceImplementors = new HashMap<>();
@@ -112,10 +117,16 @@ public class VeldProcessor extends AbstractProcessor {
     private VeldGraph spiGraph;
     private VeldProcessingContext spiContext;
     
-
+    // Options manager for compile-time configuration
+    private VeldOptions options;
+    
     // Profile setting for compile-time class name generation
     private String profile = "prod";
-
+    
+    // Modular analyzers for component analysis
+    private ConditionAnalyzer conditionAnalyzer;
+    private LifecycleAnalyzer lifecycleAnalyzer;
+    
     public VeldProcessor() {
     }
     
@@ -127,15 +138,23 @@ public class VeldProcessor extends AbstractProcessor {
         this.elementUtils = processingEnv.getElementUtils();
         this.typeUtils = processingEnv.getTypeUtils();
         
-        // Read profile compiler option for compile-time class generation
-        // Usage: -Aveld.profile=dev | -Aveld.profile=test | -Aveld.profile=prod
-        Map<String, String> options = processingEnv.getOptions();
-        this.profile = options.getOrDefault("veld.profile", "prod").toLowerCase();
-        note("Veld profile: " + profile + " (compile-time class generation)");
+        // Initialize options manager
+        this.options = VeldOptions.create(processingEnv);
+        this.profile = options.getProfile();
+        
+        // Initialize modular analyzers
+        this.conditionAnalyzer = new ConditionAnalyzer(messager, elementUtils);
+        this.lifecycleAnalyzer = new LifecycleAnalyzer(messager);
+        
+        // Log Veld configuration
+        note("Veld " + options.getSummary());
+        
+        if (options.isStrictMode()) {
+            note("STRICT MODE ENABLED: All warnings will be treated as errors");
+        }
         
         // Initialize SPI Extension Executor
-        boolean extensionsEnabled = !options.containsKey("veld.extensions.disabled");
-        this.extensionExecutor = new SpiExtensionExecutor(extensionsEnabled);
+        this.extensionExecutor = new SpiExtensionExecutor(options.areExtensionsEnabled());
         
         if (extensionExecutor.hasExtensions()) {
             note("SPI Extensions loaded: " + extensionExecutor.getExtensionCount());
@@ -263,7 +282,6 @@ public class VeldProcessor extends AbstractProcessor {
         }
 
         // PHASE 2: GENERATION - Now that we have all components, identify unresolved dependencies
-        identifyUnresolvedInterfaceDependencies();
 
         return true;
     }
@@ -271,90 +289,10 @@ public class VeldProcessor extends AbstractProcessor {
      * Identifies dependencies that are interfaces without implementing components.
      * These are tracked for runtime resolution (e.g., via mocks in tests).
      */
-    private void identifyUnresolvedInterfaceDependencies() {
-        // Build a set of all concrete component class names
-        Set<String> componentClasses = new HashSet<>();
-        for (ComponentInfo comp : discoveredComponents) {
-            componentClasses.add(comp.getClassName());
-        }
-
-        // Check each component's dependencies
-        for (ComponentInfo comp : discoveredComponents) {
-            // Check constructor dependencies
-            if (comp.getConstructorInjection() != null) {
-                for (InjectionPoint.Dependency dep : comp.getConstructorInjection().getDependencies()) {
-                    checkAndAddUnresolvedDependency(comp, dep.getActualTypeName(), componentClasses);
-                }
-            }
-
-            // Check field dependencies
-            for (InjectionPoint field : comp.getFieldInjections()) {
-                for (InjectionPoint.Dependency dep : field.getDependencies()) {
-                    checkAndAddUnresolvedDependency(comp, dep.getActualTypeName(), componentClasses);
-                }
-            }
-
-            // Check method dependencies
-            for (InjectionPoint method : comp.getMethodInjections()) {
-                for (InjectionPoint.Dependency dep : method.getDependencies()) {
-                    checkAndAddUnresolvedDependency(comp, dep.getActualTypeName(), componentClasses);
-                }
-            }
-        }
-
-        // Report unresolved dependencies
-        int totalUnresolved = discoveredComponents.stream()
-            .mapToInt(c -> c.getUnresolvedInterfaceDependencies().size())
-            .sum();
-        if (totalUnresolved > 0) {
-            note("Found " + totalUnresolved + " unresolved interface dependencies (will be resolved at runtime)");
-        }
-    }
     /**
      * Checks if a dependency type is an interface without a component implementation,
      * and adds it to the unresolved list if so.
      */
-    private void checkAndAddUnresolvedDependency(ComponentInfo component, String dependencyType, 
-                                                  Set<String> componentClasses) {
-        // Skip if already in unresolved list
-        if (component.getUnresolvedInterfaceDependencies().contains(dependencyType)) {
-            return;
-        }
-
-        // Skip if this is the component itself (self-reference)
-        if (dependencyType.equals(component.getClassName())) {
-            return;
-        }
-
-        // Check if dependency type is an interface without an implementing component
-        TypeElement depElement = elementUtils.getTypeElement(dependencyType);
-        if (depElement != null && depElement.getKind() == ElementKind.INTERFACE) {
-            // It's an interface - check if any component implements it
-            boolean hasImplementation = false;
-            for (String compClass : componentClasses) {
-                TypeElement compElement = elementUtils.getTypeElement(compClass);
-                if (compElement != null) {
-                    // Check if this component implements the interface
-                    for (TypeMirror iface : compElement.getInterfaces()) {
-                        if (iface.toString().equals(dependencyType)) {
-                            hasImplementation = true;
-                            break;
-                        }
-                    }
-                    // Also check via type utilities for super interfaces
-                    if (!hasImplementation && typeUtils.isAssignable(compElement.asType(), depElement.asType())) {
-                        hasImplementation = true;
-                    }
-                }
-            }
-
-            if (!hasImplementation) {
-                component.addUnresolvedInterfaceDependency(dependencyType);
-                note("  -> Unresolved interface dependency: " + dependencyType + 
-                     " (for component: " + component.getClassName() + ")");
-            }
-        }
-    }
     
     
     
@@ -452,39 +390,241 @@ public class VeldProcessor extends AbstractProcessor {
     
     /**
      * Resolves a bean name to its corresponding type name.
+     * Supports multiple resolution strategies:
+     * 1. Explicit @Named value (highest priority)
+     * 2. @Component value (explicit name)
+     * 3. Decapitalized simple class name
+     * 4. Fully qualified class name
+     * 5. Aliases with kebab-case, snake_case variations
      * 
      * @param beanName the bean name to resolve
      * @return the fully qualified type name, or null if not found
      */
     private String resolveBeanNameToType(String beanName) {
-        // First try to find by component name (@Component value or @Named value)
+        if (beanName == null || beanName.isEmpty()) {
+            return null;
+        }
+        
+        // Strategy 1: Check if this is an explicit @Named value (highest priority)
+        for (ComponentInfo component : discoveredComponents) {
+            if (hasExplicitNamedValue(component, beanName)) {
+                debug("Resolved '" + beanName + "' -> " + component.getClassName() + " (@Named)");
+                return component.getClassName();
+            }
+        }
+        
+        // Strategy 2: Check explicit component name (@Component value)
         for (ComponentInfo component : discoveredComponents) {
             if (beanName.equals(component.getComponentName())) {
+                debug("Resolved '" + beanName + "' -> " + component.getClassName() + " (component name)");
                 return component.getClassName();
             }
         }
         
-        // Then try to find by simple class name (lowercase first letter)
-        String simpleClassName = decapitalize(beanName);
+        // Strategy 3: Decapitalized simple class name (JavaBeans convention)
+        String decapitalizedName = decapitalize(beanName);
         for (ComponentInfo component : discoveredComponents) {
-            String componentSimpleName = component.getClassName();
-            int lastDot = componentSimpleName.lastIndexOf('.');
-            if (lastDot >= 0) {
-                componentSimpleName = componentSimpleName.substring(lastDot + 1);
-            }
-            if (simpleClassName.equals(componentSimpleName)) {
+            String simpleName = getSimpleClassName(component.getClassName());
+            if (decapitalizedName.equals(simpleName) || decapitalizedName.equals(simpleName.toLowerCase())) {
+                debug("Resolved '" + beanName + "' -> " + component.getClassName() + " (simple name)");
                 return component.getClassName();
             }
         }
         
-        // Finally try to find by full qualified class name
+        // Strategy 4: Fully qualified class name
         for (ComponentInfo component : discoveredComponents) {
             if (beanName.equals(component.getClassName())) {
+                debug("Resolved '" + beanName + "' -> " + component.getClassName() + " (full name)");
                 return component.getClassName();
             }
         }
         
+        // Strategy 5: Try variations (kebab-case, snake_case)
+        String kebabName = toKebabCase(beanName);
+        String snakeName = toSnakeCase(beanName);
+        
+        for (ComponentInfo component : discoveredComponents) {
+            // Check component name variations
+            String compName = component.getComponentName();
+            if (compName.equalsIgnoreCase(beanName) || 
+                compName.equalsIgnoreCase(kebabName) || 
+                compName.equalsIgnoreCase(snakeName)) {
+                debug("Resolved '" + beanName + "' -> " + component.getClassName() + " (case-insensitive)");
+                return component.getClassName();
+            }
+            
+            // Check simple name variations
+            String simpleName = getSimpleClassName(component.getClassName());
+            if (simpleName.equalsIgnoreCase(beanName) || 
+                toKebabCase(simpleName).equalsIgnoreCase(kebabName) ||
+                toSnakeCase(simpleName).equalsIgnoreCase(snakeName)) {
+                debug("Resolved '" + beanName + "' -> " + component.getClassName() + " (variation)");
+                return component.getClassName();
+            }
+        }
+        
+        // Strategy 6: Fuzzy matching for typos (Levenshtein distance)
+        String bestMatch = findBestFuzzyMatch(beanName);
+        if (bestMatch != null) {
+            warning(null, "Bean name '" + beanName + "' not found. Did you mean '" + bestMatch + "'?");
+            return null;
+        }
+        
+        debug("Could not resolve bean name: " + beanName);
         return null;
+    }
+    
+    /**
+     * Checks if a component has an explicit @Named value that matches the given name.
+     */
+    private boolean hasExplicitNamedValue(ComponentInfo component, String name) {
+        TypeElement element = component.getTypeElement();
+        if (element == null) {
+            return false;
+        }
+        
+        // Check Veld @Named
+        io.github.yasmramos.veld.annotation.Named vNamed = 
+            element.getAnnotation(io.github.yasmramos.veld.annotation.Named.class);
+        if (vNamed != null && !vNamed.value().isEmpty() && vNamed.value().equals(name)) {
+            return true;
+        }
+        
+        // Check javax.inject.Named
+        try {
+            Class<?> javaxNamed = Class.forName("javax.inject.Named");
+            Object annotation = element.getAnnotation(javaxNamed.asSubclass(java.lang.annotation.Annotation.class));
+            if (annotation != null) {
+                java.lang.reflect.Method valueMethod = annotation.getClass().getMethod("value");
+                String value = (String) valueMethod.invoke(annotation);
+                if (name.equals(value)) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            // Annotation not available or not applicable
+        }
+        
+        // Check jakarta.inject.Named
+        try {
+            Class<?> jakartaNamed = Class.forName("jakarta.inject.Named");
+            Object annotation = element.getAnnotation(jakartaNamed.asSubclass(java.lang.annotation.Annotation.class));
+            if (annotation != null) {
+                java.lang.reflect.Method valueMethod = annotation.getClass().getMethod("value");
+                String value = (String) valueMethod.invoke(annotation);
+                if (name.equals(value)) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            // Annotation not available or not applicable
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Gets the simple class name from a fully qualified class name.
+     */
+    private String getSimpleClassName(String fullClassName) {
+        if (fullClassName == null) {
+            return "";
+        }
+        int lastDot = fullClassName.lastIndexOf('.');
+        return lastDot >= 0 ? fullClassName.substring(lastDot + 1) : fullClassName;
+    }
+    
+    /**
+     * Converts a name to kebab-case.
+     */
+    private String toKebabCase(String name) {
+        if (name == null || name.isEmpty()) {
+            return name;
+        }
+        return name.replaceAll("([a-z])([A-Z])", "$1-$2").toLowerCase();
+    }
+    
+    /**
+     * Converts a name to snake_case.
+     */
+    private String toSnakeCase(String name) {
+        if (name == null || name.isEmpty()) {
+            return name;
+        }
+        return name.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
+    }
+    
+    /**
+     * Finds the best fuzzy match for a bean name using Levenshtein distance.
+     * Returns the closest matching component name if similarity > 0.7.
+     */
+    private String findBestFuzzyMatch(String beanName) {
+        String bestMatch = null;
+        double bestSimilarity = 0.0;
+        
+        for (ComponentInfo component : discoveredComponents) {
+            String[] candidates = {
+                component.getComponentName(),
+                getSimpleClassName(component.getClassName())
+            };
+            
+            for (String candidate : candidates) {
+                double similarity = calculateSimilarity(beanName, candidate);
+                if (similarity > bestSimilarity && similarity > 0.7) {
+                    bestSimilarity = similarity;
+                    bestMatch = component.getComponentName();
+                }
+            }
+        }
+        
+        return bestMatch;
+    }
+    
+    /**
+     * Calculates similarity between two strings (0.0 to 1.0).
+     * Uses Levenshtein distance for calculation.
+     */
+    private double calculateSimilarity(String s1, String s2) {
+        if (s1 == null || s2 == null) {
+            return 0.0;
+        }
+        if (s1.equalsIgnoreCase(s2)) {
+            return 1.0;
+        }
+        
+        int maxLength = Math.max(s1.length(), s2.length());
+        if (maxLength == 0) {
+            return 1.0;
+        }
+        
+        int distance = levenshteinDistance(s1.toLowerCase(), s2.toLowerCase());
+        return 1.0 - (double) distance / maxLength;
+    }
+    
+    /**
+     * Calculates Levenshtein distance between two strings.
+     */
+    private int levenshteinDistance(String s1, String s2) {
+        int[][] dp = new int[s1.length() + 1][s2.length() + 1];
+        
+        for (int i = 0; i <= s1.length(); i++) {
+            dp[i][0] = i;
+        }
+        for (int j = 0; j <= s2.length(); j++) {
+            dp[0][j] = j;
+        }
+        
+        for (int i = 1; i <= s1.length(); i++) {
+            for (int j = 1; j <= s2.length(); j++) {
+                int cost = s1.charAt(i - 1) == s2.charAt(j - 1) ? 0 : 1;
+                dp[i][j] = Math.min(
+                    Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1),
+                    dp[i - 1][j - 1] + cost
+                );
+            }
+        }
+        
+        return dp[s1.length()][s2.length()];
     }
     
     /**
@@ -711,41 +851,104 @@ public class VeldProcessor extends AbstractProcessor {
     
     /**
      * Validates that there are no ambiguous interface implementations.
-     * Multiple implementations of the same interface require @Named to disambiguate.
+     * Multiple implementations of the same interface require @Named or @Primary to disambiguate.
+     * In strict mode, this method will report errors instead of warnings.
      * 
-     * @return true if validation passes (with possible warnings), false if critical errors
+     * @return true if validation passes (with possible warnings), false if strict mode errors found
      */
     private boolean validateInterfaceImplementations() {
         boolean hasConflicts = false;
+        boolean strictMode = options.isStrictMode();
         
         for (Map.Entry<String, List<String>> entry : interfaceImplementors.entrySet()) {
             String interfaceName = entry.getKey();
             List<String> implementors = entry.getValue();
             
             if (implementors.size() > 1) {
-                // Multiple implementations - warn the user
-                StringBuilder sb = new StringBuilder();
-                sb.append("Multiple implementations found for interface: ")
-                  .append(interfaceName)
-                  .append("\n  Implementations: ");
-                for (int i = 0; i < implementors.size(); i++) {
-                    if (i > 0) sb.append(", ");
-                    sb.append(implementors.get(i));
-                }
-                sb.append("\n  Use @Named to disambiguate when injecting this interface.");
-                sb.append("\n  Without @Named, the last registered implementation will be used: ")
-                  .append(implementors.get(implementors.size() - 1));
+                // Multiple implementations - check if they have @Named or @Primary
+                int withoutDisambiguation = 0;
+                StringBuilder implDetails = new StringBuilder();
                 
-                warning(null, sb.toString());
-                hasConflicts = true;
+                for (int i = 0; i < implementors.size(); i++) {
+                    String implClassName = implementors.get(i);
+                    implDetails.append("\n    ").append(i + 1).append(". ").append(implClassName);
+                    
+                    // Check if this implementation has @Primary or @Named
+                    boolean hasDisambiguator = hasDisambiguatorAnnotation(implClassName);
+                    if (!hasDisambiguator) {
+                        withoutDisambiguation++;
+                    }
+                }
+                
+                if (withoutDisambiguation > 0) {
+                    // Conflict: multiple implementations without proper disambiguation
+                    // STATIC MODEL: This is always an error, never a warning
+                    String message = "Multiple implementations found for interface: " + interfaceName +
+                        "\n  Implementations:" + implDetails +
+                        "\n  Multiple implementations of the same interface require @Primary or @Named to disambiguate." +
+                        "\n  Static compile-time model: Ambiguous dependencies are not allowed.";
+
+                    error(null, message + "\n  Fix: Add @Primary or @Named(\"uniqueName\") to exactly one implementation.");
+                    hasConflicts = true;
+                }
             }
         }
-        
+
         if (hasConflicts) {
-            note("Interface conflict detection complete. Use @Named for explicit selection.");
+            note("Interface conflict validation found errors.");
+        } else if (!interfaceImplementors.isEmpty()) {
+            note("Interface conflict detection complete. No conflicts found.");
+        }
+
+        return !hasConflicts;
+    }
+    
+    /**
+     * Checks if a class has @Primary or @Named annotation for disambiguation.
+     */
+    private boolean hasDisambiguatorAnnotation(String className) {
+        TypeElement element = elementUtils.getTypeElement(className);
+        if (element == null) {
+            return false;
         }
         
-        return true; // Warnings don't stop compilation
+        // Check for @Primary
+        if (element.getAnnotation(Primary.class) != null) {
+            return true;
+        }
+        
+        // Check for @Named (Veld)
+        if (element.getAnnotation(io.github.yasmramos.veld.annotation.Named.class) != null) {
+            return true;
+        }
+        
+        // Check javax.inject.Named using reflection - handle safely if not on classpath
+        try {
+            Class<?> javaxNamedClass = Class.forName("javax.inject.Named");
+            Object annotation = element.getAnnotation(javaxNamedClass.asSubclass(java.lang.annotation.Annotation.class));
+            if (annotation != null) {
+                return true;
+            }
+        } catch (ClassNotFoundException e) {
+            // javax.inject.Named not available on classpath
+        } catch (ClassCastException e) {
+            // Not an annotation
+        }
+        
+        // Check jakarta.inject.Named using reflection - handle safely if not on classpath
+        try {
+            Class<?> jakartaNamedClass = Class.forName("jakarta.inject.Named");
+            Object annotation = element.getAnnotation(jakartaNamedClass.asSubclass(java.lang.annotation.Annotation.class));
+            if (annotation != null) {
+                return true;
+            }
+        } catch (ClassNotFoundException e) {
+            // jakarta.inject.Named not available on classpath
+        } catch (ClassCastException e) {
+            // Not an annotation
+        }
+        
+        return false;
     }
     
     private void analyzeConstructors(TypeElement typeElement, ComponentInfo info) throws ProcessingException {
@@ -956,291 +1159,40 @@ public class VeldProcessor extends AbstractProcessor {
     }
     
     /**
-     * Analyzes conditional annotations on the component.
+     * Analyzes conditional annotations on the component using ConditionAnalyzer.
      * Supports @ConditionalOnProperty, @ConditionalOnClass, @ConditionalOnMissingBean,
      * @ConditionalOnBean, and @Profile.
      */
     private void analyzeConditions(TypeElement typeElement, ComponentInfo info) {
-        ConditionInfo conditionInfo = new ConditionInfo();
-        
-        try {
-            // Check for @ConditionalOnProperty
-            ConditionalOnProperty propertyCondition = typeElement.getAnnotation(ConditionalOnProperty.class);
-            if (propertyCondition != null) {
-                try {
-                    conditionInfo.addPropertyCondition(
-                        propertyCondition.name(),
-                        propertyCondition.havingValue(),
-                        propertyCondition.matchIfMissing()
-                    );
-                    note("  -> Conditional on property: " + propertyCondition.name());
-                } catch (Exception e) {
-                    warning(null, "Could not process @ConditionalOnProperty annotation: " + e.getMessage());
-                }
-            }
+        ConditionInfo conditionInfo = conditionAnalyzer.analyze(typeElement);
+        if (conditionInfo != null) {
+            info.setConditionInfo(conditionInfo);
             
-            // Check for @ConditionalOnClass
-            ConditionalOnClass classCondition = typeElement.getAnnotation(ConditionalOnClass.class);
-            if (classCondition != null) {
-                List<String> classNames = new ArrayList<>();
-                
-                try {
-                    // Get class names from 'name' attribute
-                    for (String name : classCondition.name()) {
-                        if (!name.isEmpty()) {
-                            classNames.add(name);
-                        }
+            // Track discovered profiles for compile-time class generation
+            if (conditionInfo.hasProfileConditions()) {
+                for (String profile : conditionInfo.getProfiles()) {
+                    // Normalize profile name (remove negation prefix)
+                    String normalized = profile.startsWith("!") ? profile.substring(1) : profile;
+                    if (!normalized.isEmpty()) {
+                        discoveredProfiles.add(normalized);
                     }
-                    
-                    // Get class names from 'value' attribute (Class[] types)
-                    // We need to handle this carefully due to MirroredTypeException
-                    for (Class<?> clazz : classCondition.value()) {
-                        classNames.add(clazz.getName());
-                    }
-                } catch (javax.lang.model.type.MirroredTypesException e) {
-                    for (TypeMirror mirror : e.getTypeMirrors()) {
-                        try {
-                            String typeName = getTypeName(mirror);
-                            if (typeName != null && !typeName.isEmpty()) {
-                                classNames.add(typeName);
-                            }
-                        } catch (Exception ex) {
-                            // Handle unresolved type mirrors gracefully
-                            warning(null, "Could not resolve type from conditional annotation: " + ex.getMessage());
-                        }
-                    }
-                } catch (Exception e) {
-                    warning(null, "Could not process @ConditionalOnClass annotation: " + e.getMessage());
-                }
-                
-                if (!classNames.isEmpty()) {
-                    conditionInfo.addClassCondition(classNames);
-                    note("  -> Conditional on class: " + String.join(", ", classNames));
                 }
             }
-            
-            // Check for @ConditionalOnMissingBean
-            ConditionalOnMissingBean missingBeanCondition = typeElement.getAnnotation(ConditionalOnMissingBean.class);
-            if (missingBeanCondition != null) {
-                List<String> beanTypes = new ArrayList<>();
-                List<String> beanNames = new ArrayList<>();
-                
-                try {
-                    // Get bean types
-                    for (Class<?> clazz : missingBeanCondition.value()) {
-                        beanTypes.add(clazz.getName());
-                    }
-                } catch (javax.lang.model.type.MirroredTypesException e) {
-                    for (TypeMirror mirror : e.getTypeMirrors()) {
-                        try {
-                            String typeName = getTypeName(mirror);
-                            if (typeName != null && !typeName.isEmpty()) {
-                                beanTypes.add(typeName);
-                            }
-                        } catch (Exception ex) {
-                            // Handle unresolved type mirrors gracefully
-                            warning(null, "Could not resolve type from conditional annotation: " + ex.getMessage());
-                        }
-                    }
-                } catch (Exception e) {
-                    warning(null, "Could not process @ConditionalOnMissingBean annotation types: " + e.getMessage());
-                }
-                
-                try {
-                    // Get bean names
-                    for (String name : missingBeanCondition.name()) {
-                        if (!name.isEmpty()) {
-                            beanNames.add(name);
-                        }
-                    }
-                } catch (Exception e) {
-                    warning(null, "Could not process @ConditionalOnMissingBean annotation names: " + e.getMessage());
-                }
-                
-                if (!beanTypes.isEmpty()) {
-                    conditionInfo.addMissingBeanTypeCondition(beanTypes);
-                    note("  -> Conditional on missing bean types: " + String.join(", ", beanTypes));
-                }
-                if (!beanNames.isEmpty()) {
-                    conditionInfo.addMissingBeanNameCondition(beanNames);
-                    note("  -> Conditional on missing bean names: " + String.join(", ", beanNames));
-                }
-            }
-            
-            // Check for @ConditionalOnBean
-            ConditionalOnBean presentBeanCondition = typeElement.getAnnotation(ConditionalOnBean.class);
-            if (presentBeanCondition != null) {
-                List<String> presentBeanTypes = new ArrayList<>();
-                List<String> presentBeanNames = new ArrayList<>();
-                boolean matchAll = presentBeanCondition.strategy() == ConditionalOnBean.Strategy.ALL;
-                
-                try {
-                    // Get bean types
-                    for (Class<?> clazz : presentBeanCondition.value()) {
-                        presentBeanTypes.add(clazz.getName());
-                    }
-                } catch (javax.lang.model.type.MirroredTypesException e) {
-                    for (TypeMirror mirror : e.getTypeMirrors()) {
-                        try {
-                            String typeName = getTypeName(mirror);
-                            if (typeName != null && !typeName.isEmpty()) {
-                                presentBeanTypes.add(typeName);
-                            }
-                        } catch (Exception ex) {
-                            warning(null, "Could not resolve type from @ConditionalOnBean: " + ex.getMessage());
-                        }
-                    }
-                } catch (Exception e) {
-                    warning(null, "Could not process @ConditionalOnBean annotation types: " + e.getMessage());
-                }
-                
-                try {
-                    // Get bean names
-                    for (String name : presentBeanCondition.name()) {
-                        if (!name.isEmpty()) {
-                            presentBeanNames.add(name);
-                        }
-                    }
-                } catch (Exception e) {
-                    warning(null, "Could not process @ConditionalOnBean annotation names: " + e.getMessage());
-                }
-                
-                if (!presentBeanTypes.isEmpty() || !presentBeanNames.isEmpty()) {
-                    conditionInfo.addPresentBeanCondition(presentBeanTypes, presentBeanNames, matchAll);
-                    String strategy = matchAll ? "ALL" : "ANY";
-                    note("  -> Conditional on present beans (strategy=" + strategy + "): " + 
-                         String.join(", ", presentBeanTypes.isEmpty() ? presentBeanNames : presentBeanTypes));
-                }
-            }
-            
-            // Check for @Profile
-            Profile profileAnnotation = typeElement.getAnnotation(Profile.class);
-            if (profileAnnotation != null) {
-                try {
-                    List<String> profiles = new ArrayList<>();
-                    for (String profile : profileAnnotation.value()) {
-                        if (!profile.isEmpty()) {
-                            profiles.add(profile);
-                        }
-                    }
-                    
-                    // Also check 'name' attribute as alias
-                    if (profiles.isEmpty()) {
-                        String nameValue = profileAnnotation.name();
-                        if (!nameValue.isEmpty() && !nameValue.isEmpty()) {
-                            profiles.add(nameValue);
-                        }
-                    }
-                    
-                    // Get expression and strategy
-                    String expression = profileAnnotation.expression();
-                    Profile.MatchStrategy strategy = profileAnnotation.strategy();
-                    
-                    if (!profiles.isEmpty() || !expression.isEmpty()) {
-                        conditionInfo.addProfileCondition(profiles, expression, strategy);
-                        
-                        // Track discovered profiles for compile-time class generation
-                        for (String profile : profiles) {
-                            // Normalize profile name (remove negation prefix)
-                            String normalized = profile.startsWith("!") ? profile.substring(1) : profile;
-                            if (!normalized.isEmpty()) {
-                                discoveredProfiles.add(normalized);
-                            }
-                        }
-                        
-                        StringBuilder profileNote = new StringBuilder("  -> Profile: ");
-                        if (!profiles.isEmpty()) {
-                            profileNote.append(String.join(", ", profiles));
-                        }
-                        if (!expression.isEmpty()) {
-                            profileNote.append(" [expression: ").append(expression).append("]");
-                        }
-                        if (strategy != Profile.MatchStrategy.ALL) {
-                            profileNote.append(" [strategy: ").append(strategy).append("]");
-                        }
-                        note(profileNote.toString());
-                    }
-                } catch (Exception e) {
-                    warning(null, "Could not process @Profile annotation: " + e.getMessage());
-                }
-            }
-            
-            if (conditionInfo.hasConditions()) {
-                info.setConditionInfo(conditionInfo);
-            }
-        } catch (Exception e) {
-            // Catch any unexpected errors in conditional annotation processing
-            warning(null, "Error processing conditional annotations: " + e.getMessage());
         }
     }
     
     /**
-     * Analyzes @DependsOn annotation for explicit initialization and destruction dependencies.
-     * 
-     * @param typeElement the component type element
-     * @param info the component info to update
+     * Analyzes lifecycle methods and explicit dependencies using LifecycleAnalyzer.
+     */
+    private void analyzeLifecycle(TypeElement typeElement, ComponentInfo info) {
+        lifecycleAnalyzer.analyzeLifecycle(typeElement, info);
+    }
+    
+    /**
+     * Analyzes @DependsOn annotation for explicit initialization dependencies.
      */
     private void analyzeDependsOn(TypeElement typeElement, ComponentInfo info) {
-        DependsOn dependsOn = typeElement.getAnnotation(DependsOn.class);
-        if (dependsOn != null) {
-            // Parse initialization dependencies
-            String[] dependencies = dependsOn.value();
-            if (dependencies.length > 0) {
-                for (String dependency : dependencies) {
-                    if (dependency != null && !dependency.trim().isEmpty()) {
-                        info.addExplicitDependency(dependency.trim());
-                        note("  -> Depends on bean: " + dependency.trim());
-                    }
-                }
-                note("  -> Explicit dependencies: " + String.join(", ", dependencies));
-            }
-            
-            // Parse destruction dependencies
-            String[] destroyOrder = dependsOn.destroyOrder();
-            if (destroyOrder.length > 0) {
-                for (String dependency : destroyOrder) {
-                    if (dependency != null && !dependency.trim().isEmpty()) {
-                        info.addExplicitDestructionDependency(dependency.trim());
-                        note("  -> Must outlive bean: " + dependency.trim());
-                    }
-                }
-                note("  -> Destruction order dependencies: " + String.join(", ", destroyOrder));
-            }
-            
-            // Parse destruction order value
-            int destroyOrderValue = dependsOn.destroyOrderValue();
-            if (destroyOrderValue != 0) {
-                info.setDestroyOrderValue(destroyOrderValue);
-                note("  -> Destruction order value: " + destroyOrderValue);
-            }
-        }
-    }
-    
-    private void analyzeLifecycle(TypeElement typeElement, ComponentInfo info) throws ProcessingException {
-        for (Element enclosed : typeElement.getEnclosedElements()) {
-            if (enclosed.getKind() != ElementKind.METHOD) continue;
-            
-            ExecutableElement method = (ExecutableElement) enclosed;
-            
-            if (method.getAnnotation(PostConstruct.class) != null) {
-                validateLifecycleMethod(method, "@PostConstruct");
-                info.setPostConstruct(method.getSimpleName().toString(), getMethodDescriptor(method));
-            }
-            
-            if (method.getAnnotation(PreDestroy.class) != null) {
-                validateLifecycleMethod(method, "@PreDestroy");
-                info.setPreDestroy(method.getSimpleName().toString(), getMethodDescriptor(method));
-            }
-        }
-    }
-    
-    private void validateLifecycleMethod(ExecutableElement method, String annotation) throws ProcessingException {
-        if (!method.getParameters().isEmpty()) {
-            throw new ProcessingException(annotation + " methods must have no parameters: " + method.getSimpleName());
-        }
-        if (method.getModifiers().contains(Modifier.STATIC)) {
-            throw new ProcessingException(annotation + " cannot be applied to static methods: " + method.getSimpleName());
-        }
+        lifecycleAnalyzer.analyzeDependsOn(typeElement, info);
     }
     
     private Dependency createDependency(VariableElement element) {
@@ -1413,89 +1365,15 @@ public class VeldProcessor extends AbstractProcessor {
      * to properly resolve interface dependencies to their concrete implementations.
      * This is called after the discovery phase is complete.
      */
-    private void generateAllFactories() {
-        // Factory generation removed - using static dependency injection model
-    }
     /**
      * Gets a unique module identifier for metadata file naming.
      * Uses groupId:artifactId format if available, otherwise uses package name.
      */
-    private String getModuleId() {
-        // Try to get module info from processing environment
-        // This is a best-effort attempt to create a unique module identifier
-        try {
-            // Check if we can get the source file to determine the module
-            // For now, use a combination of package and a hash
-            String moduleName = System.getProperty("veld.module.name", "");
-            if (!moduleName.isEmpty()) {
-                return moduleName;
-            }
-            
-            // Fallback: use a hash based on discovered components/factories
-            if (!discoveredComponents.isEmpty()) {
-                String firstPackage = discoveredComponents.get(0).getClassName();
-                int lastDot = firstPackage.lastIndexOf('.');
-                String basePackage = lastDot >= 0 ? firstPackage.substring(0, lastDot) : firstPackage;
-                return basePackage;
-            }
-            
-
-            
-            return "veld-module";
-        } catch (Exception e) {
-            return "veld-module";
-        }
-    }
     
     /**
      * Exports bean metadata for multi-module support.
      * Writes metadata to META-INF/veld/ for consumption by dependent modules.
      */
-    private void exportBeanMetadata() throws IOException {
-        String moduleId = getModuleId();
-        List<BeanMetadata> beansToExport = new ArrayList<>();
-
-        // Export @Component beans
-        for (ComponentInfo component : discoveredComponents) {
-            BeanMetadata bean = new BeanMetadata(
-                moduleId,
-                component.getComponentName(),
-                component.getClassName()
-            );
-            
-            // Get factory class name
-            String factoryClassName = component.getFactoryClassName();
-            if (factoryClassName != null && !factoryClassName.isEmpty()) {
-                // Extract method name from class name
-                String simpleName = factoryClassName.substring(factoryClassName.lastIndexOf('.') + 1);
-                String methodName = "create" + simpleName.replace("Factory", "");
-                bean = bean.withFactory(factoryClassName, methodName, "()V");
-            }
-            
-            bean = bean.withScope(component.getScope());
-            if (component.isPrimary()) {
-                bean = bean.asPrimary();
-            }
-            
-            // Add dependencies
-            if (component.getConstructorInjection() != null) {
-                for (InjectionPoint.Dependency dep : component.getConstructorInjection().getDependencies()) {
-                    bean.addDependency(dep.getActualTypeName());
-                }
-            }
-            
-            beansToExport.add(bean);
-        }
-
-
-
-        // Write metadata file
-        int exportedCount = BeanMetadataWriter.writeMetadata(moduleId, beansToExport, filer, this::note);
-        
-        if (exportedCount > 0) {
-            note("Exported " + exportedCount + " bean(s) for multi-module support");
-        }
-    }
     
     /**
      * Checks if a component has any @Value injections.
@@ -1575,7 +1453,6 @@ public class VeldProcessor extends AbstractProcessor {
             // Generate EventRegistry for zero-reflection event registration
             generateEventRegistry();
             // Export bean metadata for multi-module support
-            exportBeanMetadata();
         } catch (IOException e) {
             error(null, "Failed to generate Veld sources: " + e.getMessage());
         }
@@ -2228,13 +2105,28 @@ public class VeldProcessor extends AbstractProcessor {
     private void error(Element element, String message) {
         messager.printMessage(Diagnostic.Kind.ERROR, "[Veld] " + message, element);
     }
-    
+
+    /**
+     * Reports a warning, or an error if strict mode is enabled.
+     * In strict mode, all warnings are treated as compilation errors.
+     */
     private void warning(Element element, String message) {
-        messager.printMessage(Diagnostic.Kind.WARNING, "[Veld] " + message, element);
+        Diagnostic.Kind kind = options.isStrictMode() ? Diagnostic.Kind.ERROR : Diagnostic.Kind.WARNING;
+        String prefix = options.isStrictMode() ? "[Veld STRICT]" : "[Veld]";
+        messager.printMessage(kind, prefix + " " + message, element);
     }
-    
+
     private void note(String message) {
         messager.printMessage(Diagnostic.Kind.NOTE, "[Veld] " + message);
+    }
+    
+    /**
+     * Logs a debug message. Only shown when debug mode is enabled (-Aveld.debug=true).
+     */
+    private void debug(String message) {
+        if (options.isDebugEnabled()) {
+            messager.printMessage(Diagnostic.Kind.NOTE, "[Veld DEBUG] " + message);
+        }
     }
     
     /**
