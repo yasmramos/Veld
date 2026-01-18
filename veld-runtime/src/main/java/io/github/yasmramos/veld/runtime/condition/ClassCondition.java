@@ -1,5 +1,6 @@
 package io.github.yasmramos.veld.runtime.condition;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -51,7 +52,37 @@ public final class ClassCondition implements Condition {
         sb.append("})");
         return sb.toString();
     }
-    
+
+    @Override
+    public String getFailureReason(ConditionContext context) {
+        List<String> missingClasses = new ArrayList<>();
+
+        for (String className : requiredClasses) {
+            if (!context.isClassPresent(className)) {
+                missingClasses.add(className);
+            }
+        }
+
+        if (missingClasses.isEmpty()) {
+            return ""; // All classes present, not a failure
+        }
+
+        StringBuilder sb = new StringBuilder();
+        if (missingClasses.size() == 1) {
+            sb.append("Required class not found on classpath: ");
+            sb.append(missingClasses.get(0));
+        } else {
+            sb.append("Required classes not found on classpath (");
+            sb.append(missingClasses.size()).append(" of ");
+            sb.append(requiredClasses.size()).append("):\n");
+            for (String className : missingClasses) {
+                sb.append("    - ").append(className).append("\n");
+            }
+        }
+
+        return sb.toString();
+    }
+
     public List<String> getRequiredClasses() {
         return requiredClasses;
     }

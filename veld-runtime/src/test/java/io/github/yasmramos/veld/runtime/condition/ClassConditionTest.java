@@ -203,4 +203,65 @@ class ClassConditionTest {
             assertTrue(condition.matches(context));
         }
     }
+
+    @Nested
+    @DisplayName("Failure Reason Tests")
+    class FailureReasonTests {
+
+        @Test
+        @DisplayName("Should provide detailed reason when single class is missing")
+        void shouldProvideReasonForSingleMissingClass() {
+            ClassCondition condition = new ClassCondition("com.nonexistent.FakeClass");
+
+            String reason = condition.getFailureReason(context);
+
+            assertTrue(reason.contains("Required class not found"));
+            assertTrue(reason.contains("com.nonexistent.FakeClass"));
+        }
+
+        @Test
+        @DisplayName("Should provide detailed reason when multiple classes are missing")
+        void shouldProvideReasonForMultipleMissingClasses() {
+            ClassCondition condition = new ClassCondition(
+                "com.fake.ClassA",
+                "java.lang.String",
+                "com.fake.ClassB"
+            );
+
+            String reason = condition.getFailureReason(context);
+
+            assertTrue(reason.contains("Required classes not found"));
+            assertTrue(reason.contains("2 of 3"));
+            assertTrue(reason.contains("com.fake.ClassA"));
+            assertTrue(reason.contains("com.fake.ClassB"));
+            assertFalse(reason.contains("java.lang.String")); // This one exists
+        }
+
+        @Test
+        @DisplayName("Should return empty string when all classes are present")
+        void shouldReturnEmptyWhenClassesPresent() {
+            ClassCondition condition = new ClassCondition("java.lang.String");
+
+            String reason = condition.getFailureReason(context);
+
+            assertEquals("", reason);
+        }
+
+        @Test
+        @DisplayName("Should list all missing classes individually")
+        void shouldListAllMissingClasses() {
+            ClassCondition condition = new ClassCondition(
+                "com.fake.A",
+                "com.fake.B",
+                "com.fake.C"
+            );
+
+            String reason = condition.getFailureReason(context);
+
+            assertTrue(reason.contains("com.fake.A"));
+            assertTrue(reason.contains("com.fake.B"));
+            assertTrue(reason.contains("com.fake.C"));
+            assertTrue(reason.contains("3 of 3"));
+        }
+    }
 }
