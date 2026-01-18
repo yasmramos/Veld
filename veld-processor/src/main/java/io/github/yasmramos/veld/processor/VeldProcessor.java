@@ -71,13 +71,25 @@ import javax.tools.StandardLocation;
     "io.github.yasmramos.veld.annotation.Singleton",
     "io.github.yasmramos.veld.annotation.Prototype",
     "io.github.yasmramos.veld.annotation.Lazy",
+    "io.github.yasmramos.veld.annotation.Eager",
     "io.github.yasmramos.veld.annotation.DependsOn",
     "io.github.yasmramos.veld.annotation.Primary",
     "io.github.yasmramos.veld.annotation.Order",
     "io.github.yasmramos.veld.annotation.Qualifier",
     "io.github.yasmramos.veld.annotation.Lookup",
     "io.github.yasmramos.veld.annotation.Profile",
+    "io.github.yasmramos.veld.annotation.Value",
+    "io.github.yasmramos.veld.annotation.ConditionalOnProperty",
+    "io.github.yasmramos.veld.annotation.ConditionalOnClass",
+    "io.github.yasmramos.veld.annotation.ConditionalOnMissingBean",
+    "io.github.yasmramos.veld.annotation.ConditionalOnBean",
+    "io.github.yasmramos.veld.annotation.PostConstruct",
+    "io.github.yasmramos.veld.annotation.PreDestroy",
+    "io.github.yasmramos.veld.annotation.Optional",
+    "io.github.yasmramos.veld.annotation.Scope",
+    "javax.inject.Inject",
     "javax.inject.Singleton",
+    "jakarta.inject.Inject",
     "jakarta.inject.Singleton"
 })
 @SupportedOptions({
@@ -223,6 +235,24 @@ public class VeldProcessor extends AbstractProcessor {
                 if (element.getKind() == ElementKind.CLASS) {
                     componentElements.add((TypeElement) element);
                 }
+            }
+        }
+        
+        // PHASE 0: Pre-process conditionals to filter components at compile-time
+        // Process @ConditionalOnProperty, @ConditionalOnClass, @ConditionalOnMissingBean, @ConditionalOnBean
+        Set<? extends Element> conditionalElements = roundEnv.getElementsAnnotatedWithAny(
+            new io.github.yasmramos.veld.annotation.ConditionalOnProperty.class,
+            io.github.yasmramos.veld.annotation.ConditionalOnClass.class,
+            io.github.yasmramos.veld.annotation.ConditionalOnMissingBean.class,
+            io.github.yasmramos.veld.annotation.ConditionalOnBean.class
+        );
+        
+        // Process @Eager for eager initialization
+        for (Element element : roundEnv.getElementsAnnotatedWith(Eager.class)) {
+            if (element.getKind() == ElementKind.CLASS) {
+                TypeElement typeElement = (TypeElement) element;
+                // Mark as eager in its ComponentInfo later during analysis
+                note("Found @Eager component: " + typeElement.getQualifiedName());
             }
         }
         
@@ -700,6 +730,11 @@ public class VeldProcessor extends AbstractProcessor {
         // Determine scope and check for @Lazy
         String scope = determineScope(typeElement);
         boolean isLazy = typeElement.getAnnotation(Lazy.class) != null;
+        boolean isEager = typeElement.getAnnotation(Eager.class) != null;
+        
+        if (isEager) {
+            note("  -> Scope: singleton (from @Eager)");
+        }
         
         // Check for @Primary annotation
         boolean isPrimary = typeElement.getAnnotation(Primary.class) != null;
@@ -707,7 +742,7 @@ public class VeldProcessor extends AbstractProcessor {
             note("  -> Primary bean selected");
         }
         
-        ComponentInfo info = new ComponentInfo(className, componentName, scope, null, isLazy, isPrimary);
+        ComponentInfo info = new ComponentInfo(className, componentName, scope, null, isLazy, isEager, isPrimary);
         
         // Check for @Order annotation (must be after info is created)
         Order orderAnnotation = typeElement.getAnnotation(Order.class);
