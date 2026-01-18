@@ -20,7 +20,7 @@
 
         <!-- Competing frameworks -->
         <spring.version>5.3.39</spring.version>
-        <guice.version>5.1.0</guice.version>
+        <guice.version>7.0.0</guice.version>
         <dagger.version>2.58</dagger.version>
 
         <!-- Benchmark configuration -->
