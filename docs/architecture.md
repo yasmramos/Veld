@@ -27,7 +27,7 @@ Veld uses a three-phase build process that transforms your annotated classes int
 ┌─────────────────────────────────────────────────────────────┐
 │                      RUNTIME                                 │
 ├─────────────────────────────────────────────────────────────┤
-│  Veld.get(MyService.class)                                  │
+│  Veld.myService()                                             │
 │    └── Returns pre-created singleton (static field access) │
 │    └── Or calls factory method for prototype                │
 │    └── Zero reflection, zero proxy, maximum speed           │
@@ -62,7 +62,7 @@ The `veld-maven-plugin` generates the `Veld.class` registry:
 
 ## Runtime Performance
 
-At runtime, `Veld.get(MyService.class)` performs:
+At runtime, `Veld.myService()` performs:
 
 1. **Direct Field Access**: Returns singleton from static field (3-5 CPU cycles)
 2. **Factory Invocation**: Calls factory method for prototype (10-20 CPU cycles)

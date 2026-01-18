@@ -60,7 +60,7 @@ import java.util.function.Supplier;
  *         SessionScope.setCurrentSession(sessionId);
  *         
  *         try {
- *             UserSession session = Veld.get(UserSession.class);
+ *             UserSession session = Veld.userSession();
  *             // Use the session-scoped bean
  *         } finally {
  *             SessionScope.clearCurrentSession();

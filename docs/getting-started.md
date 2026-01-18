@@ -111,7 +111,7 @@ import io.github.yasmramos.veld.Veld;
 public class Application {
     public static void main(String[] args) {
         // Get a component
-        GreeterService greeter = Veld.get(GreeterService.class);
+        GreeterService greeter = Veld.greeterService();
         
         // Use the component
         String greeting = greeter.greet("World");

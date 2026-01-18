@@ -144,7 +144,7 @@ public class ServiceB {
 }
 
 // Use Veld
-ServiceB serviceB = Veld.get(ServiceB.class);
+ServiceB serviceB = Veld.serviceB();
 ```
 
 ### Constructor Injection

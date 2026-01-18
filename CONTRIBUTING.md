@@ -316,7 +316,7 @@ public class TestService {
 class TestServiceTest {
     @Test
     void shouldInjectDependencies() {
-        TestService service = Veld.get(TestService.class);
+        TestService service = Veld.testService();
         assertNotNull(service.getDependency());
     }
 }
