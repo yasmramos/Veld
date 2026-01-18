@@ -685,7 +685,10 @@ public final class VeldSourceGenerator {
     }
     
     private void addSingletonAccessor(TypeSpec.Builder classBuilder, VeldNode node) {
-        ClassName returnType = ClassName.bestGuess(node.getActualClassName());
+        // CRITICAL: Use getClassName() for the public API return type, NOT getActualClassName()
+        // The wrapper type ($$Aop) must never escape to the public API
+        // The wrapper extends/implements the original type, so polymorphism makes this safe
+        ClassName returnType = ClassName.bestGuess(node.getClassName());
         String methodName = node.getVeldName();
         
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
@@ -705,7 +708,11 @@ public final class VeldSourceGenerator {
     }
     
     private void addPrototypeComponent(TypeSpec.Builder classBuilder, VeldNode node) {
-        ClassName returnType = ClassName.bestGuess(node.getActualClassName());
+        // CRITICAL: Use getClassName() for the public API return type, NOT getActualClassName()
+        // The wrapper type ($$Aop) must never escape to the public API
+        ClassName returnType = ClassName.bestGuess(node.getClassName());
+        // Use actual class name (wrapper) for instantiation
+        ClassName implType = ClassName.bestGuess(node.getActualClassName());
         String methodName = node.getVeldName();
         String instanceVar = methodName + "Instance";
 
@@ -713,8 +720,8 @@ public final class VeldSourceGenerator {
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .returns(returnType);
 
-        // Declare local variable for the instance
-        methodBuilder.addStatement("$T $N = $L", returnType, instanceVar, buildInstantiationCode(node));
+        // Declare local variable using wrapper type for instantiation
+        methodBuilder.addStatement("$T $N = $L", implType, instanceVar, buildInstantiationCode(node));
 
         // Add field injections using accessor if needed
         CodeBlock fieldInjectionCode = buildFieldInjectionCode(node, instanceVar, false);
