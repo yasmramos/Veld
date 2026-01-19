@@ -144,13 +144,13 @@ class VeldProcessorTest {
         }
 
         @Test
-        @DisplayName("should support exactly 12 component annotations")
-        void shouldSupportExactlyTwelveComponentAnnotations() {
+        @DisplayName("should support exactly 24 component annotations")
+        void shouldSupportExactlyTwentyFourComponentAnnotations() {
             SupportedAnnotationTypes annotation = VeldProcessor.class.getAnnotation(SupportedAnnotationTypes.class);
             assertNotNull(annotation);
             
-            assertEquals(12, annotation.value().length,
-                "Should support exactly 12 component annotations");
+            assertEquals(24, annotation.value().length,
+                "Should support exactly 24 component annotations");
         }
     }
 

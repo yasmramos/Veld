@@ -883,15 +883,15 @@ public class VeldProcessor extends AbstractProcessor {
      */
     private boolean validateInterfaceImplementations() {
         boolean hasConflicts = false;
-        boolean strictMode = options.isStrictMode();
         
         for (Map.Entry<String, List<String>> entry : interfaceImplementors.entrySet()) {
             String interfaceName = entry.getKey();
             List<String> implementors = entry.getValue();
             
             if (implementors.size() > 1) {
-                // Multiple implementations - check if they have @Named or @Primary
-                int withoutDisambiguation = 0;
+                // Multiple implementations - check if at least one has @Primary or @Named
+                int withDisambiguation = 0;
+                int withProfile = 0;
                 StringBuilder implDetails = new StringBuilder();
                 
                 for (int i = 0; i < implementors.size(); i++) {
@@ -899,13 +899,24 @@ public class VeldProcessor extends AbstractProcessor {
                     implDetails.append("\n    ").append(i + 1).append(". ").append(implClassName);
                     
                     // Check if this implementation has @Primary or @Named
-                    boolean hasDisambiguator = hasDisambiguatorAnnotation(implClassName);
-                    if (!hasDisambiguator) {
-                        withoutDisambiguation++;
+                    boolean hasPrimary = hasPrimaryAnnotation(implClassName);
+                    boolean hasNamed = hasNamedAnnotation(implClassName);
+                    boolean hasProfile = hasProfileAnnotation(implClassName);
+                    
+                    if (hasPrimary || hasNamed) {
+                        withDisambiguation++;
+                    }
+                    if (hasProfile) {
+                        withProfile++;
                     }
                 }
                 
-                if (withoutDisambiguation > 0) {
+                // Validation passes if:
+                // 1. At least one implementation has @Primary or @Named, OR
+                // 2. All implementations have @Profile (they're conditionally registered)
+                boolean validationPassed = (withDisambiguation > 0) || (withProfile == implementors.size());
+                
+                if (!validationPassed) {
                     // Conflict: multiple implementations without proper disambiguation
                     // STATIC MODEL: This is always an error, never a warning
                     String message = "Multiple implementations found for interface: " + interfaceName +
@@ -929,17 +940,20 @@ public class VeldProcessor extends AbstractProcessor {
     }
     
     /**
-     * Checks if a class has @Primary or @Named annotation for disambiguation.
+     * Checks if a class has @Primary annotation.
      */
-    private boolean hasDisambiguatorAnnotation(String className) {
+    private boolean hasPrimaryAnnotation(String className) {
+        TypeElement element = elementUtils.getTypeElement(className);
+        return element != null && element.getAnnotation(Primary.class) != null;
+    }
+    
+    /**
+     * Checks if a class has @Named annotation (any variant).
+     */
+    private boolean hasNamedAnnotation(String className) {
         TypeElement element = elementUtils.getTypeElement(className);
         if (element == null) {
             return false;
-        }
-        
-        // Check for @Primary
-        if (element.getAnnotation(Primary.class) != null) {
-            return true;
         }
         
         // Check for @Named (Veld)
@@ -974,6 +988,24 @@ public class VeldProcessor extends AbstractProcessor {
         }
         
         return false;
+    }
+    
+    /**
+     * Checks if a class has @Profile annotation.
+     * Profile-annotated components are conditionally registered.
+     */
+    private boolean hasProfileAnnotation(String className) {
+        TypeElement element = elementUtils.getTypeElement(className);
+        return element != null && element.getAnnotation(io.github.yasmramos.veld.annotation.Profile.class) != null;
+    }
+    
+    /**
+     * Checks if a class has @Primary, @Named, or @Profile annotation for disambiguation.
+     * Profile-annotated components are conditionally registered and don't conflict
+     * with other implementations at runtime when different profiles are active.
+     */
+    private boolean hasDisambiguatorAnnotation(String className) {
+        return hasPrimaryAnnotation(className) || hasNamedAnnotation(className) || hasProfileAnnotation(className);
     }
     
     private void analyzeConstructors(TypeElement typeElement, ComponentInfo info) throws ProcessingException {

@@ -16,12 +16,12 @@ import java.io.PrintWriter;
 import java.util.Set;
 
 /**
- * Implementación de {@link VeldProcessingContext} para el processor de Veld.
- * 
- * <p>Esta clase proporciona acceso a las herramientas del processor y utilities
- * adicionales para las extensiones, incluyendo gestión de errores, generación de código
- * y acceso a los utilities de Javac.</p>
- * 
+ * Implementation of {@link VeldProcessingContext} for the Veld processor.
+ *
+ * <p>This class provides access to processor tools and additional utilities
+ * for extensions, including error management, code generation,
+ * and access to Javac utilities.</p>
+ *
  * @author Veld Team
  * @version 1.0.0
  */
@@ -111,7 +111,7 @@ final class SpiVeldProcessingContext implements VeldProcessingContext {
     }
     
     /**
-     * Implementación de CodeBuilder para generación de código.
+     * CodeBuilder implementation for code generation.
      */
     private static final class SpiCodeBuilder implements CodeBuilder {
         private final JavaFileObject sourceFile;

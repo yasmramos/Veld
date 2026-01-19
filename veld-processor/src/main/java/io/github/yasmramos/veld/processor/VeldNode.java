@@ -333,6 +333,13 @@ public final class VeldNode {
     }
 
     /**
+     * Gets the Element for use with Messager.
+     */
+    public javax.lang.model.element.Element getElement() {
+        return typeElement;
+    }
+
+    /**
      * Sets the TypeElement.
      */
     public void setTypeElement(TypeElement typeElement) {

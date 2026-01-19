@@ -18,24 +18,24 @@ import java.io.PrintWriter;
 import java.util.*;
 
 /**
- * Ejecutor de extensiones de Veld que orquesta la ejecución en las fases correctas.
- * 
- * <p>Esta clase es responsable de:</p>
+ * Veld extension executor that orchestrates execution in the correct phases.
+ *
+ * <p>This class is responsible for:</p>
  * <ul>
- *   <li>Construir el grafo de dependencias desde los componentes descubiertos</li>
- *   <li>Ejecutar las extensiones en el orden correcto según su fase</li>
- *   <li>Manejar errores de manera que no afecten el procesamiento del núcleo</li>
- *   <li>Proveer el contexto de procesamiento a cada extensión</li>
+ *   <li>Building the dependency graph from discovered components</li>
+ *   <li>Executing extensions in the correct order according to their phase</li>
+ *   <li>Handling errors so they don't affect core processing</li>
+ *   <li>Providing the processing context to each extension</li>
  * </ul>
- * 
- * <p>El flujo de ejecución sigue el patrón:</p>
+ *
+ * <p>The execution flow follows the pattern:</p>
  * <ol>
- *   <li>INIT: Extensions pueden inicializar recursos</li>
- *   <li>VALIDATION: Extensions pueden validar el grafo</li>
- *   <li>ANALYSIS: Extensions pueden analizar el grafo</li>
- *   <li>GENERATION: Extensions pueden generar código adicional</li>
+ *   <li>INIT: Extensions can initialize resources</li>
+ *   <li>VALIDATION: Extensions can validate the graph</li>
+ *   <li>ANALYSIS: Extensions can analyze the graph</li>
+ *   <li>GENERATION: Extensions can generate additional code</li>
  * </ol>
- * 
+ *
  * @author Veld Team
  * @version 1.0.0
  */
@@ -46,9 +46,9 @@ public final class SpiExtensionExecutor {
     private final List<String> executionErrors;
     
     /**
-     * Crea un nuevo ejecutor de extensiones.
-     * 
-     * @param enabled si las extensiones están habilitadas
+     * Creates a new extension executor.
+     *
+     * @param enabled whether extensions are enabled
      */
     public SpiExtensionExecutor(boolean enabled) {
         this.enabled = enabled;
@@ -57,11 +57,11 @@ public final class SpiExtensionExecutor {
     }
     
     /**
-     * Construye el grafo de dependencias desde los componentes descubiertos.
-     * 
-     * @param components lista de componentes descubiertos
-     * @param typeUtils utilitario de tipos
-     * @return el grafo construido, o null si no hay componentes
+     * Builds the dependency graph from discovered components.
+     *
+     * @param components list of discovered components
+     * @param typeUtils types utility
+     * @return the built graph, or null if there are no components
      */
     public VeldGraph buildGraph(List<ComponentInfo> components, Types typeUtils) {
         if (components == null || components.isEmpty()) {
@@ -124,10 +124,10 @@ public final class SpiExtensionExecutor {
     }
     
     /**
-     * Ejecuta las extensiones en la fase INIT.
-     * 
-     * @param graph el grafo de dependencias
-     * @param context el contexto de procesamiento
+     * Executes extensions in the INIT phase.
+     *
+     * @param graph the dependency graph
+     * @param context the processing context
      */
     public void executeInitPhase(VeldGraph graph, VeldProcessingContext context) {
         if (!enabled || graph == null) return;
@@ -135,10 +135,10 @@ public final class SpiExtensionExecutor {
     }
     
     /**
-     * Ejecuta las extensiones en la fase VALIDATION.
-     * 
-     * @param graph el grafo de dependencias
-     * @param context el contexto de procesamiento
+     * Executes extensions in the VALIDATION phase.
+     *
+     * @param graph the dependency graph
+     * @param context the processing context
      */
     public void executeValidationPhase(VeldGraph graph, VeldProcessingContext context) {
         if (!enabled || graph == null) return;
@@ -146,10 +146,10 @@ public final class SpiExtensionExecutor {
     }
     
     /**
-     * Ejecuta las extensiones en la fase ANALYSIS.
-     * 
-     * @param graph el grafo de dependencias
-     * @param context el contexto de procesamiento
+     * Executes extensions in the ANALYSIS phase.
+     *
+     * @param graph the dependency graph
+     * @param context the processing context
      */
     public void executeAnalysisPhase(VeldGraph graph, VeldProcessingContext context) {
         if (!enabled || graph == null) return;
@@ -157,10 +157,10 @@ public final class SpiExtensionExecutor {
     }
     
     /**
-     * Ejecuta las extensiones en la fase GENERATION.
-     * 
-     * @param graph el grafo de dependencias
-     * @param context el contexto de procesamiento
+     * Executes extensions in the GENERATION phase.
+     *
+     * @param graph the dependency graph
+     * @param context the processing context
      */
     public void executeGenerationPhase(VeldGraph graph, VeldProcessingContext context) {
         if (!enabled || graph == null) return;
@@ -196,27 +196,27 @@ public final class SpiExtensionExecutor {
     }
     
     /**
-     * Verifica si hay extensiones cargadas.
-     * 
-     * @return true si hay extensiones disponibles
+     * Checks if extensions are loaded.
+     *
+     * @return true if extensions are available
      */
     public boolean hasExtensions() {
         return enabled && extensionLoader != null && extensionLoader.hasExtensions();
     }
     
     /**
-     * Returns el número de extensiones cargadas.
-     * 
-     * @return cantidad de extensiones
+     * Returns the number of loaded extensions.
+     *
+     * @return number of extensions
      */
     public int getExtensionCount() {
         return enabled && extensionLoader != null ? extensionLoader.getExtensionCount() : 0;
     }
     
     /**
-     * Returns información sobre las extensiones cargadas.
-     * 
-     * @return string con información de extensiones
+     * Returns information about loaded extensions.
+     *
+     * @return string with extension information
      */
     public String getExtensionsInfo() {
         if (!enabled || extensionLoader == null) {
@@ -226,36 +226,36 @@ public final class SpiExtensionExecutor {
     }
     
     /**
-     * Returns los errores de ejecución de extensiones.
-     * 
-     * @return lista de errores
+     * Returns extension execution errors.
+     *
+     * @return list of errors
      */
     public List<String> getExecutionErrors() {
         return Collections.unmodifiableList(executionErrors);
     }
     
     /**
-     * Verifica si hubo errores durante la ejecución.
-     * 
-     * @return true si hubo errores
+     * Checks if there were errors during execution.
+     *
+     * @return true if there were errors
      */
     public boolean hasExecutionErrors() {
         return !executionErrors.isEmpty();
     }
     
     /**
-     * Verifica si hubo errores durante la carga de extensiones.
-     * 
-     * @return true si hubo errores de carga
+     * Checks if there were errors during extension loading.
+     *
+     * @return true if there were load errors
      */
     public boolean hasLoadErrors() {
         return enabled && extensionLoader != null && extensionLoader.hasErrors();
     }
     
     /**
-     * Returns los errores de carga de extensiones.
-     * 
-     * @return lista de errores de carga
+     * Returns extension loading errors.
+     *
+     * @return list of loading errors
      */
     public List<String> getLoadErrors() {
         return enabled && extensionLoader != null ? 
@@ -263,16 +263,16 @@ public final class SpiExtensionExecutor {
     }
     
     /**
-     * Crea un contexto de procesamiento para las extensiones.
-     * 
-     * @param messager el messager del processor
-     * @param elementUtils el Elements utility
-     * @param typeUtils el Types utility
-     * @param roundEnv el RoundEnvironment
-     * @param filer el filer del processor
-     * @param supportedOptions las opciones de procesamiento soportadas
-     * @param debugEnabled si el modo debug está habilitado
-     * @return el contexto de procesamiento
+     * Creates a processing context for extensions.
+     *
+     * @param messager the processor messager
+     * @param elementUtils the Elements utility
+     * @param typeUtils the Types utility
+     * @param roundEnv the RoundEnvironment
+     * @param filer the processor filer
+     * @param supportedOptions supported processing options
+     * @param debugEnabled whether debug mode is enabled
+     * @return the processing context
      */
     public static VeldProcessingContext createContext(
             Messager messager, Elements elementUtils, Types typeUtils,

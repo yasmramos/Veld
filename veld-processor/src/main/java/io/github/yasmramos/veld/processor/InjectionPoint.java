@@ -1,5 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
+import io.github.yasmramos.veld.annotation.Lookup;
 import java.util.List;
 
 /**

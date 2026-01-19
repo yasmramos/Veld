@@ -10,6 +10,7 @@
 package io.github.yasmramos.veld.benchmark.veld;
 
 import io.github.yasmramos.veld.annotation.Inject;
+import io.github.yasmramos.veld.annotation.Primary;
 import io.github.yasmramos.veld.annotation.Singleton;
 import io.github.yasmramos.veld.benchmark.common.Service;
 
@@ -17,6 +18,7 @@ import io.github.yasmramos.veld.benchmark.common.Service;
  * Veld implementation of SimpleService.
  */
 @Singleton
+@Primary
 public class VeldSimpleService implements Service {
 
     private final VeldLogger logger;

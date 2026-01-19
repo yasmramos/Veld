@@ -2,6 +2,7 @@ package io.github.yasmramos.veld.example;
 
 import io.github.yasmramos.veld.annotation.PostConstruct;
 import io.github.yasmramos.veld.annotation.PreDestroy;
+import io.github.yasmramos.veld.annotation.Primary;
 import io.github.yasmramos.veld.annotation.Profile;
 import io.github.yasmramos.veld.annotation.Singleton;
 
@@ -12,6 +13,7 @@ import io.github.yasmramos.veld.annotation.Singleton;
  * <p>Uses PostgreSQL for production deployments.
  */
 @Singleton
+@Primary
 @Profile("prod")
 public class ProdDataSource implements DataSource {
     

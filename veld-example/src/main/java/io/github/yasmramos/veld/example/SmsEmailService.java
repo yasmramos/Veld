@@ -1,6 +1,7 @@
 package io.github.yasmramos.veld.example;
 
 import io.github.yasmramos.veld.annotation.Component;
+import io.github.yasmramos.veld.annotation.Primary;
 import io.github.yasmramos.veld.annotation.Singleton;
 import io.github.yasmramos.veld.annotation.Value;
 
@@ -8,6 +9,7 @@ import io.github.yasmramos.veld.annotation.Value;
  * Servicio de SMS.
  */
 @Singleton
+@Primary
 @Component
 public class SmsEmailService implements EmailService {
     @Value("${app.sms.provider:twilio}")

@@ -1,22 +1,33 @@
 package io.github.yasmramos.veld.processor;
+
 import com.squareup.javapoet.*;
+import io.github.yasmramos.veld.processor.condition.*;
 import javax.annotation.processing.Messager;
-import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 import java.util.*;
 import java.util.stream.Collectors;
+
 /**
- * Generates Veld.java with revolutionary static dependency graph.
+ * Generates Veld.java with a revolutionary static dependency graph.
  *
  * <p>This generator creates a pure static DI container with lifecycle support:</p>
  * <ul>
  *   <li>No if statements for dependency resolution</li>
- *   <li>No null values (all dependencies resolved at compile-time)</li>
+ *   <li>No null values (all dependencies resolved at compile time)</li>
  *   <li>No runtime reflection for component resolution</li>
  *   <li>@PostConstruct invoked immediately after singleton initialization</li>
  *   <li>@PreDestroy invoked in shutdown() method (reverse dependency order)</li>
+ *   <li>Conditions evaluated once during static initialization - deterministic decisions</li>
+ * </ul>
+ *
+ * <p><b>Conditional Architecture:</b></p>
+ * <ul>
+ *   <li>Existence flags generated: <code>private static boolean HAS_BEAN_BeanName;</code></li>
+ *   <li>Static block evaluates conditions and sets flags</li>
+ *   <li>Conditional beans wrapped in <code>if (HAS_BEAN_Other) { ... }</code></li>
+ *   <li>Dependencies injected as ternary expressions: <code>HAS_BEAN_Other ? other : null</code></li>
  * </ul>
  */
 public final class VeldSourceGenerator {
@@ -70,7 +81,22 @@ public final class VeldSourceGenerator {
         return map;
     }
     
+    /**
+     * Generates the complete Veld.java file with full condition support.
+     *
+     * <p>Generation flow:</p>
+     * <ol>
+     *   <li>Validate dependencies and build bean graph</li>
+     *   <li>Resolve graph to determine bean existence</li>
+     *   <li>Create generation context</li>
+     *   <li>Generate existence flag fields</li>
+     *   <li>Generate static block with condition evaluation</li>
+     *   <li>Generate bean fields and conditional initialization</li>
+     *   <li>Generate accessor and factory methods</li>
+     * </ol>
+     */
     public JavaFile generate(String packageName) {
+        // Basic dependency validation
         List<DependencyError> errors = validateDependencies();
         if (!errors.isEmpty()) {
             for (DependencyError error : errors) {
@@ -79,9 +105,11 @@ public final class VeldSourceGenerator {
             return null;
         }
         
+        // Basic topological sorting
         List<VeldNode> sortedNodes = topologicalSort();
         Map<String, Integer> dependencyLevels = calculateDependencyLevels(sortedNodes);
         
+        // Separate singletons and prototypes
         List<VeldNode> singletons = new ArrayList<>();
         List<VeldNode> prototypes = new ArrayList<>();
         for (VeldNode node : sortedNodes) {
@@ -92,6 +120,35 @@ public final class VeldSourceGenerator {
             }
         }
         
+        // ===== BEAN EXISTENCE GRAPH CONSTRUCTION =====
+        BeanExistenceGraph.Builder graphBuilder = BeanExistenceGraph.builder();
+        
+        // Add all nodes to the graph
+        for (VeldNode node : singletons) {
+            graphBuilder.addNode(node.getClassName(), node);
+            
+            // Convert ConditionInfo to ConditionExpression
+            if (node.getConditionInfo() != null) {
+                ConditionExpression condition = convertToConditionExpression(node.getConditionInfo());
+                if (condition != null) {
+                    graphBuilder.addCondition(node.getClassName(), condition);
+                }
+            }
+        }
+        
+        BeanExistenceGraph graph = graphBuilder.build();
+        
+        // Resolve the graph
+        BeanExistenceGraph.ResolutionResult resolutionResult = graph.resolve();
+        
+        // Validate the condition graph
+        ConditionalValidator validator = new ConditionalValidator(messager);
+        validator.validate(graph);
+        
+        // Create generation context from the result
+        GenerationContext context = GenerationContext.fromResolutionResult(resolutionResult);
+        
+        // ===== CLASS CONSTRUCTION =====
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(veldClassName)
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                 .addJavadoc(buildClassJavadoc(singletons, prototypes))
@@ -99,19 +156,17 @@ public final class VeldSourceGenerator {
                 .addField(createLifecycleStateField())
                 .addMethod(createPrivateConstructor());
         
-        // Add lifecycle tracking field
+        // Lifecycle tracking field
         classBuilder.addField(FieldSpec.builder(
             ClassName.get("java.lang", "String"), "lifecycleComment")
             .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
-            .initializer("$S", "Lifecycle tracking: PostConstruct invoked during initialization, PreDestroy via shutdown()")
+            .initializer("$S", "Lifecycle tracking: PostConstruct invoked during static initialization, PreDestroy via shutdown()")
             .build());
         
-        // ===== CONDITION FLAGS =====
-        // Generate boolean flags for bean existence conditions
-        addConditionFlagFields(classBuilder, sortedNodes);
+        // ===== SECTION 1: EXISTENCE FLAG FIELDS =====
+        addExistenceFlagFields(classBuilder, graph, resolutionResult);
         
-        // ===== PROPERTY LOADER =====
-        // Generate property loading field if needed
+        // ===== SECTION 2: PROPERTIES FIELD (if property conditions exist) =====
         boolean hasPropertyConditions = sortedNodes.stream()
             .anyMatch(node -> node.getConditionInfo() != null && 
                 !node.getConditionInfo().getPropertyConditions().isEmpty());
@@ -119,431 +174,248 @@ public final class VeldSourceGenerator {
             addPropertyLoaderField(classBuilder);
         }
         
-        // Accumulate all initialization code in a single static block for cleaner output
+        // ===== SECTION 3: STATIC INITIALIZATION BLOCK =====
         CodeBlock.Builder staticInitBuilder = CodeBlock.builder();
         
-        // Generate property loading in static block
+        // Load properties if needed
         if (hasPropertyConditions) {
-            addPropertyLoadingCode(staticInitBuilder, sortedNodes);
+            addPropertyLoadingCode(staticInitBuilder);
         }
         
-        // Generate condition flag initialization (bean existence checks)
-        addConditionFlagInitialization(staticInitBuilder, sortedNodes);
+        // Generate condition evaluation and flag setup
+        addConditionEvaluationAndFlagSetup(staticInitBuilder, graph, resolutionResult, context);
         
-        // Generate fields and accumulate initialization code
-        for (VeldNode node : sortedNodes) {
-            if (node.isSingleton()) {
-                addSingletonFieldWithLifecycle(classBuilder, node, staticInitBuilder);
-            }
+        // ===== SECTION 4: BEAN FIELDS AND INITIALIZATION =====
+        for (VeldNode node : singletons) {
+            addSingletonFieldWithLifecycle(classBuilder, node, staticInitBuilder, graph, resolutionResult, context);
         }
         
-        // Add the single static initialization block
+        // Add the single static block
         classBuilder.addStaticBlock(staticInitBuilder.build());
         
-        // Generate accessor methods
+        // ===== SECTION 5: ACCESSOR METHODS =====
         for (VeldNode node : singletons) {
-            addSingletonAccessor(classBuilder, node);
+            addSingletonAccessor(classBuilder, node, resolutionResult);
         }
         
-        // Generate prototype methods
+        // ===== SECTION 6: FACTORY METHODS FOR PROTOTYPES =====
         for (VeldNode node : prototypes) {
-            addPrototypeComponent(classBuilder, node);
+            addPrototypeComponent(classBuilder, node, graph, resolutionResult, context);
         }
         
-        // Generate shutdown method
+        // ===== SECTION 7: SHUTDOWN METHOD =====
         addShutdownMethod(classBuilder, singletons);
         
-        // Generate lifecycle state getter
+        // ===== SECTION 8: LIFECYCLE STATE GETTER =====
         addLifecycleStateGetter(classBuilder);
         
         return JavaFile.builder(packageName, classBuilder.build()).build();
     }
 
     /**
-     * Generates all accessor classes needed for private field/method injection.
-     * Each accessor class is placed in the same package as its target component.
+     * Converts ConditionInfo to ConditionExpression.
      */
-    public Map<String, JavaFile> generateAccessorClasses() {
-        Map<String, JavaFile> accessorFiles = new LinkedHashMap<>();
-
-        for (VeldNode node : nodes) {
-            if (!node.needsAccessorClass()) {
-                continue;
-            }
-
-            JavaFile accessorFile = generateAccessorClass(node);
-            if (accessorFile != null) {
-                accessorFiles.put(node.getAccessorClassName(), accessorFile);
-            }
+    private ConditionExpression convertToConditionExpression(ConditionInfo info) {
+        if (info == null) {
+            return null;
         }
-
-        return accessorFiles;
-    }
-
-    /**
-     * Generates an accessor class for a single component.
-     * The accessor class is public so Veld can access from different package.
-     * Generates accessors for all non-public fields (private and package-private).
-     */
-    private JavaFile generateAccessorClass(VeldNode node) {
-        TypeSpec.Builder accessorBuilder = TypeSpec.classBuilder(node.getAccessorSimpleName())
-                .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
-                .addJavadoc(buildAccessorJavadoc(node))
-                .addAnnotation(createGeneratedAnnotation());
-
-        // Collect all non-public field injections (private and package-private)
-        List<VeldNode.FieldInjection> nonPublicFieldInjections = new ArrayList<>();
-        for (VeldNode.FieldInjection field : node.getFieldInjections()) {
-            if (!field.isPublic() && !field.isValueInjection()) {
-                nonPublicFieldInjections.add(field);
+        
+        List<ConditionExpression> conditions = new ArrayList<>();
+        
+        // Property conditions
+        for (ConditionInfo.PropertyConditionInfo propCond : info.getPropertyConditions()) {
+            conditions.add(new PropertyCondition(propCond.name(), propCond.havingValue(), propCond.matchIfMissing()));
+        }
+        
+        // Class conditions (always true if it compiles)
+        for (ConditionInfo.ClassConditionInfo classCond : info.getClassConditions()) {
+            for (String className : classCond.classNames()) {
+                conditions.add(ClassCondition.of(className));
             }
         }
-
-        // Generate consolidated inject() method for all non-public fields
-        if (!nonPublicFieldInjections.isEmpty()) {
-            addConsolidatedInjectMethod(accessorBuilder, node, nonPublicFieldInjections);
-        }
-
-        // Generate individual field injection methods (for flexibility)
-        for (VeldNode.FieldInjection field : node.getFieldInjections()) {
-            if (!field.isPublic() && !field.isValueInjection()) {
-                addFieldInjectionMethod(accessorBuilder, node, field);
+        
+        // Present bean conditions
+        for (ConditionInfo.PresentBeanConditionInfo beanCond : info.getPresentBeanConditions()) {
+            Set<String> types = new LinkedHashSet<>(beanCond.beanTypes());
+            Set<String> names = new LinkedHashSet<>(beanCond.beanNames());
+            if (!types.isEmpty() || !names.isEmpty()) {
+                conditions.add(new BeanPresenceCondition(types, names, true));
             }
         }
-
-        // Generate method injection methods for private methods
-        for (VeldNode.MethodInjection method : node.getMethodInjections()) {
-            if (method.isPrivate()) {
-                addMethodInjectionMethod(accessorBuilder, node, method);
+        
+        // Missing bean conditions
+        for (ConditionInfo.MissingBeanConditionInfo beanCond : info.getMissingBeanConditions()) {
+            Set<String> types = new LinkedHashSet<>(beanCond.beanTypes());
+            Set<String> names = new LinkedHashSet<>(beanCond.beanNames());
+            if (!types.isEmpty() || !names.isEmpty()) {
+                conditions.add(new BeanPresenceCondition(types, names, false));
             }
         }
-
-        // Generate postConstruct method if needed
-        if (node.hasPostConstruct()) {
-            addPostConstructMethod(accessorBuilder, node);
+        
+        if (conditions.isEmpty()) {
+            return null;
         }
-
-        // Generate preDestroy method if needed
-        if (node.hasPreDestroy()) {
-            addPreDestroyMethod(accessorBuilder, node);
-        }
-
-        return JavaFile.builder(node.getPackageName(), accessorBuilder.build()).build();
+        
+        return CompositeCondition.andAll(conditions);
     }
 
     /**
-     * Adds a consolidated inject() method that injects all non-public fields at once using reflection.
-     * Non-public includes private and package-private fields.
+     * Generates all bean existence flag fields.
+     * Format: private static boolean HAS_BEAN_BeanName;
      */
-    private void addConsolidatedInjectMethod(TypeSpec.Builder accessorBuilder, VeldNode node,
-                                              List<VeldNode.FieldInjection> nonPublicFields) {
-        ClassName componentType = ClassName.bestGuess(node.getClassName());
-        ClassName fieldClass = ClassName.get("java.lang.reflect", "Field");
-        ClassName methodClass = ClassName.get("java.lang.reflect", "Method");
-
-        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("inject")
-                .addModifiers(Modifier.STATIC, Modifier.PUBLIC)
-                .addParameter(componentType, "instance");
-
-        // Add parameters for each non-public field injection
-        for (VeldNode.FieldInjection field : nonPublicFields) {
-            TypeName fieldType = getTypeName(field.getActualTypeName());
-            String fieldName = field.getFieldName();
-            methodBuilder.addParameter(fieldType, fieldName);
+    private void addExistenceFlagFields(TypeSpec.Builder classBuilder, 
+                                          BeanExistenceGraph graph,
+                                          BeanExistenceGraph.ResolutionResult result) {
+        for (String beanClassName : result.getEvaluatedBeans()) {
+            String flagName = graph.getExistenceFlagName(beanClassName);
+            
+            classBuilder.addField(FieldSpec.builder(
+                TypeName.get(boolean.class), flagName)
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
+                .addJavadoc("Existence flag for: $L\n", beanClassName)
+                .build());
         }
-
-        // Generate reflection-based field injection code
-        methodBuilder.addCode("// Inject non-public fields using reflection\n");
-        for (VeldNode.FieldInjection field : nonPublicFields) {
-            String fieldName = field.getFieldName();
-            methodBuilder.addCode("try {\n");
-            methodBuilder.addCode("    $T $NField = $N.class.getDeclaredField(\"$N\");\n",
-                    fieldClass, fieldName, componentType.simpleName(), fieldName);
-            methodBuilder.addCode("    $NField.setAccessible(true);\n", fieldName);
-            methodBuilder.addCode("    $NField.set($N, $N);\n", fieldName, "instance", fieldName);
-            methodBuilder.addCode("} catch ($T e) {\n", ClassName.get("java.lang", "Exception"));
-            methodBuilder.addCode("    throw new $T(\"Failed to inject field: $N\", e);\n",
-                    ClassName.get("java.lang", "RuntimeException"), fieldName);
-            methodBuilder.addCode("}\n");
-        }
-
-        methodBuilder.addJavadoc("Injects all non-public fields into $N using reflection.\n", node.getSimpleName());
-
-        accessorBuilder.addMethod(methodBuilder.build());
+        
+        note("Generated " + result.getEvaluatedBeans().size() + " bean existence flags");
     }
-
+    
     /**
-     * Adds a postConstruct method to invoke @PostConstruct lifecycle method using reflection.
+     * Generates condition evaluation code in the static block.
      */
-    private void addPostConstructMethod(TypeSpec.Builder accessorBuilder, VeldNode node) {
-        ClassName componentType = ClassName.bestGuess(node.getClassName());
-        ClassName methodClass = ClassName.get("java.lang.reflect", "Method");
-
-        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("postConstruct")
-                .addModifiers(Modifier.STATIC, Modifier.PUBLIC)
-                .addParameter(componentType, "instance")
-                .addCode("try {\n")
-                .addCode("    $T postConstructMethod = $N.class.getDeclaredMethod(\"$N\");\n",
-                        methodClass, componentType.simpleName(), node.getPostConstructMethod())
-                .addCode("    postConstructMethod.setAccessible(true);\n")
-                .addCode("    postConstructMethod.invoke($N);\n", "instance")
-                .addCode("} catch ($T e) {\n", ClassName.get("java.lang", "Exception"))
-                .addCode("    throw new $T(\"Failed to invoke @PostConstruct method: $N\", e);\n",
-                        ClassName.get("java.lang", "RuntimeException"), node.getPostConstructMethod())
-                .addCode("}\n");
-
-        methodBuilder.addJavadoc("Invokes @PostConstruct method $N on $N using reflection.\n",
-                node.getPostConstructMethod(), node.getSimpleName());
-
-        accessorBuilder.addMethod(methodBuilder.build());
-    }
-
-    /**
-     * Adds a preDestroy method to invoke @PreDestroy lifecycle method using reflection.
-     */
-    private void addPreDestroyMethod(TypeSpec.Builder accessorBuilder, VeldNode node) {
-        ClassName componentType = ClassName.bestGuess(node.getClassName());
-        ClassName methodClass = ClassName.get("java.lang.reflect", "Method");
-
-        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("preDestroy")
-                .addModifiers(Modifier.STATIC, Modifier.PUBLIC)
-                .addParameter(componentType, "instance")
-                .addCode("try {\n")
-                .addCode("    $T preDestroyMethod = $N.class.getDeclaredMethod(\"$N\");\n",
-                        methodClass, componentType.simpleName(), node.getPreDestroyMethod())
-                .addCode("    preDestroyMethod.setAccessible(true);\n")
-                .addCode("    preDestroyMethod.invoke($N);\n", "instance")
-                .addCode("} catch ($T e) {\n", ClassName.get("java.lang", "Exception"))
-                .addCode("    throw new $T(\"Failed to invoke @PreDestroy method: $N\", e);\n",
-                        ClassName.get("java.lang", "RuntimeException"), node.getPreDestroyMethod())
-                .addCode("}\n");
-
-        methodBuilder.addJavadoc("Invokes @PreDestroy method $N on $N using reflection.\n",
-                node.getPreDestroyMethod(), node.getSimpleName());
-
-        accessorBuilder.addMethod(methodBuilder.build());
-    }
-
-    /**
-     * Adds a static method to inject a private field using reflection.
-     * Format: injectFieldName(Component instance, Dependency value)
-     */
-    private void addFieldInjectionMethod(TypeSpec.Builder accessorBuilder, VeldNode node, VeldNode.FieldInjection field) {
-        ClassName componentType = ClassName.bestGuess(node.getClassName());
-        TypeName dependencyType = getTypeName(field.getActualTypeName());
-        ClassName fieldClass = ClassName.get("java.lang.reflect", "Field");
-
-        String methodName = "inject" + capitalize(field.getFieldName());
-
-        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
-                .addModifiers(Modifier.STATIC, Modifier.PUBLIC)
-                .addParameter(componentType, "instance")
-                .addParameter(dependencyType, "value")
-                .addCode("try {\n")
-                .addCode("    $T field = $N.class.getDeclaredField(\"$N\");\n",
-                        fieldClass, componentType.simpleName(), field.getFieldName())
-                .addCode("    field.setAccessible(true);\n")
-                .addCode("    field.set($N, $N);\n", "instance", "value")
-                .addCode("} catch ($T e) {\n", ClassName.get("java.lang", "Exception"))
-                .addCode("    throw new $T(\"Failed to inject field: $N\", e);\n",
-                        ClassName.get("java.lang", "RuntimeException"), field.getFieldName())
-                .addCode("}\n");
-
-        // Add javadoc
-        methodBuilder.addJavadoc("Injects the private field $N into $N using reflection.\n",
-                field.getFieldName(), node.getSimpleName());
-
-        accessorBuilder.addMethod(methodBuilder.build());
-    }
-
-    /**
-     * Adds a static method to invoke a private method with parameters using reflection.
-     */
-    private void addMethodInjectionMethod(TypeSpec.Builder accessorBuilder, VeldNode node, VeldNode.MethodInjection method) {
-        ClassName componentType = ClassName.bestGuess(node.getClassName());
-        ClassName methodClass = ClassName.get("java.lang.reflect", "Method");
-        ClassName objectClass = ClassName.get("java.lang", "Object");
-
-        String methodName = "call" + capitalize(method.getMethodName());
-
-        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
-                .addModifiers(Modifier.STATIC, Modifier.PUBLIC)
-                .addParameter(componentType, "instance");
-
-        // Build parameter types array for getDeclaredMethod
-        methodBuilder.addCode("try {\n");
-        methodBuilder.addCode("    $T[] paramTypes = new $T[] { ", objectClass, objectClass);
-        for (int i = 0; i < method.getParameters().size(); i++) {
-            if (i > 0) methodBuilder.addCode(", ");
-            VeldNode.ParameterInfo param = method.getParameters().get(i);
-            methodBuilder.addCode("$T.class", getTypeName(param.getActualTypeName()));
-        }
-        methodBuilder.addCode(" };\n");
-        methodBuilder.addCode("    $T injectionMethod = $N.class.getDeclaredMethod(\"$N\", paramTypes);\n",
-                methodClass, componentType.simpleName(), method.getMethodName());
-        methodBuilder.addCode("    injectionMethod.setAccessible(true);\n");
-
-        // Build invoke statement
-        methodBuilder.addCode("    injectionMethod.invoke($N", "instance");
-        for (VeldNode.ParameterInfo param : method.getParameters()) {
-            String paramName = param.getParameterName();
-            if (param.isOptionalWrapper()) {
-                methodBuilder.addCode(", $T.ofNullable($N).orElse(null)",
-                        ClassName.get("java.util", "Optional"), paramName);
-            } else if (param.isProvider()) {
-                methodBuilder.addCode(", $N", paramName);
+    private void addConditionEvaluationAndFlagSetup(CodeBlock.Builder staticInitBuilder, 
+                                                      BeanExistenceGraph graph,
+                                                      BeanExistenceGraph.ResolutionResult result,
+                                                      GenerationContext context) {
+        staticInitBuilder.add("// ===== CONDITION EVALUATION AND FLAG SETUP =====\n");
+        staticInitBuilder.add("// This block deterministically sets up the bean existence graph\n");
+        staticInitBuilder.add("// Flags determine which beans are created and which are omitted\n\n");
+        
+        // Generate for all evaluated beans
+        for (String beanClassName : result.getCreationOrder()) {
+            VeldNode node = graph.getNode(beanClassName);
+            if (node == null) continue;
+            
+            String flagName = graph.getExistenceFlagName(beanClassName);
+            
+            // Section comment if needed
+            String sectionComment = getSectionForNode(node);
+            if (!sectionComment.equals(lastSectionComment)) {
+                staticInitBuilder.add("\n$L\n", sectionComment);
+                lastSectionComment = sectionComment;
+            }
+            
+            // Generate the flag for this bean
+            staticInitBuilder.add("// Bean: $N\n", node.getVeldName());
+            
+            ConditionExpression condition = result.getCondition(beanClassName);
+            if (condition != null) {
+                // Conditional bean - evaluate conditions
+                String conditionCode = condition.toJavaCode(context);
+                staticInitBuilder.add("$N = $L;\n", flagName, conditionCode);
             } else {
-                methodBuilder.addCode(", $N", paramName);
+                // Unconditional bean - always exists
+                staticInitBuilder.add("$N = true; // Unconditional bean\n", flagName);
             }
+            
+            staticInitBuilder.add("\n");
         }
-        methodBuilder.addCode(");\n");
-        methodBuilder.addCode("} catch ($T e) {\n", ClassName.get("java.lang", "Exception"));
-        methodBuilder.addCode("    throw new $T(\"Failed to invoke method: $N\", e);\n",
-                ClassName.get("java.lang", "RuntimeException"), method.getMethodName());
-        methodBuilder.addCode("}\n");
-
-        // Add parameters to method signature
-        for (VeldNode.ParameterInfo param : method.getParameters()) {
-            TypeName paramType = getTypeName(param.getActualTypeName());
-            String paramName = param.getParameterName();
-            methodBuilder.addParameter(paramType, paramName);
-        }
-
-        methodBuilder.addJavadoc("Invokes the private method $N on $N using reflection.\n",
-                method.getMethodName(), node.getSimpleName());
-
-        accessorBuilder.addMethod(methodBuilder.build());
-    }
-
-    private CodeBlock buildAccessorJavadoc(VeldNode node) {
-        return CodeBlock.builder()
-                .add("Accessor class for $N.\n\n", node.getSimpleName())
-                .add("<p>This class provides package-private access to private members\n")
-                .add("of $N for dependency injection purposes.</p>\n\n", node.getClassName())
-                .add("<p><b>Generated by:</b> Veld annotation processor</p>\n")
-                .build();
-    }
-
-    /**
-     * Capitalizes the first letter of a string.
-     */
-    private String capitalize(String str) {
-        if (str == null || str.isEmpty()) {
-            return str;
-        }
-        return str.substring(0, 1).toUpperCase() + str.substring(1);
+        
+        staticInitBuilder.add("// ===== END OF CONDITION EVALUATION =====\n\n");
     }
     
     /**
-     * Creates the @Generated annotation for the generated class.
+     * Adds the property loader field if property conditions exist.
      */
-    private AnnotationSpec createGeneratedAnnotation() {
-        return AnnotationSpec.builder(ClassName.get("javax.annotation.processing", "Generated"))
-                .addMember("value", "$S", "io.github.yasmramos.veld.processor.VeldProcessor")
-                .addMember("date", "$S", java.time.Instant.now().toString())
-                .build();
+    private void addPropertyLoaderField(TypeSpec.Builder classBuilder) {
+        classBuilder.addField(FieldSpec.builder(
+            ClassName.get("io.github.yasmramos.veld", "VeldProperties"), "properties")
+            .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
+            .addJavadoc("Property loader for @ConditionalOnProperty evaluation\n")
+            .build());
+    }
+    
+    /**
+     * Generates code to load properties in the static initialization block.
+     */
+    private void addPropertyLoadingCode(CodeBlock.Builder staticInitBuilder) {
+        staticInitBuilder.add("// Load properties for @ConditionalOnProperty evaluation\n");
+        staticInitBuilder.add("properties = new $T();\n", 
+            ClassName.get("io.github.yasmramos.veld", "VeldProperties"));
+        staticInitBuilder.add("\n");
     }
 
     /**
-     * Converts a type name to a TypeName, handling primitive types.
-     * JavaPoet's ClassName.bestGuess() doesn't work with primitive types,
-     * so we need to handle them separately using TypeName.get().
+     * Adds a singleton field with lifecycle support and conditional initialization.
      */
-    private TypeName getTypeName(String typeName) {
-        switch (typeName) {
-            case "int":
-                return TypeName.get(int.class);
-            case "boolean":
-                return TypeName.get(boolean.class);
-            case "long":
-                return TypeName.get(long.class);
-            case "double":
-                return TypeName.get(double.class);
-            case "float":
-                return TypeName.get(float.class);
-            case "char":
-                return TypeName.get(char.class);
-            case "byte":
-                return TypeName.get(byte.class);
-            case "short":
-                return TypeName.get(short.class);
-            default:
-                return ClassName.bestGuess(typeName);
-        }
-    }
-    
-    private FieldSpec createLifecycleStateField() {
-        return FieldSpec.builder(ClassName.get("java.util.concurrent.atomic", "AtomicBoolean"), "shutdownInitiated")
-                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
-                .initializer("new $T(false)", ClassName.get("java.util.concurrent.atomic", "AtomicBoolean"))
-                .build();
-    }
-    
     private void addSingletonFieldWithLifecycle(TypeSpec.Builder classBuilder, VeldNode node, 
-                                                  CodeBlock.Builder staticInitBuilder) {
+                                                  CodeBlock.Builder staticInitBuilder,
+                                                  BeanExistenceGraph graph,
+                                                  BeanExistenceGraph.ResolutionResult result,
+                                                  GenerationContext context) {
         String actualClassName = node.getActualClassName();
         ClassName type = ClassName.bestGuess(actualClassName);
         String fieldName = node.getVeldName();
-        boolean hasConditions = hasRuntimeConditions(node);
+        String flagName = graph.getExistenceFlagName(node.getClassName());
+        boolean exists = result.exists(node.getClassName());
+        boolean isConditional = result.isConditional(node.getClassName());
         
-        CodeBlock initialization = buildInstantiationCode(node);
-
-        // Build field injection code using accessors for non-public fields
-        CodeBlock fieldInjectionCode = buildFieldInjectionCode(node, fieldName, true);
-
-        // Build method injection code using accessors for private methods
-        CodeBlock methodInjectionCode = buildMethodInjectionCode(node, fieldName, true);
-
+        // Build instantiation code
+        CodeBlock initialization = buildInstantiationCode(node, context);
+        
+        // Build field injection code using accessors
+        CodeBlock fieldInjectionCode = buildFieldInjectionCode(node, fieldName, context);
+        
+        // Build method injection code using accessors
+        CodeBlock methodInjectionCode = buildMethodInjectionCode(node, fieldName, context);
+        
         // Build lifecycle code
         CodeBlock lifecycleCode = buildPostConstructInvocation(node, fieldName);
-
-        // Add the field declaration
-        // If has conditions, field must be nullable (not final)
+        
+        // Add field declaration
         FieldSpec.Builder fieldBuilder = FieldSpec.builder(type, fieldName)
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC);
         
-        if (!hasConditions) {
-            fieldBuilder.addModifier(Modifier.FINAL);
-        } else {
+        if (isConditional) {
+            // Conditional bean - start as null
             fieldBuilder.initializer("null");
             staticInitBuilder.add("// Conditional bean: $N\n", fieldName);
+        } else {
+            // Unconditional bean - final
+            fieldBuilder.addModifiers(Modifier.FINAL);
         }
         
         classBuilder.addField(fieldBuilder.build());
-
+        
         // Accumulate initialization code in the shared static block
-        // Add section comment if this is a new section
         String sectionComment = getSectionForNode(node);
         if (!sectionComment.equals(lastSectionComment)) {
             staticInitBuilder.add("\n$L\n", sectionComment);
             lastSectionComment = sectionComment;
         }
         
-        // Comment header for this component
-        staticInitBuilder.add("// --- $N ---\n", fieldName);
-
-        // If has conditions, wrap initialization in if statement
-        if (hasConditions) {
-            CodeBlock conditionExpr = generateConditionExpression(node);
-            staticInitBuilder.add("if ($L) {\n", conditionExpr);
+        // Header comment for this component
+        staticInitBuilder.add("// --- $N ($N) ---\n", fieldName, actualClassName);
+        
+        if (isConditional) {
+            // Conditional bean - wrap instantiation in if
+            staticInitBuilder.add("if ($N) {\n", flagName);
             staticInitBuilder.indent();
             
             // First assign the field
             staticInitBuilder.addStatement("$N = $L", fieldName, initialization);
-
-            // Add field injections using accessor for non-public fields
+            
+            // Add field injections using accessor
             if (!fieldInjectionCode.isEmpty()) {
                 staticInitBuilder.add(fieldInjectionCode);
             }
-
+            
             // Add method injections
             if (!methodInjectionCode.isEmpty()) {
                 staticInitBuilder.add(methodInjectionCode);
             }
-
+            
             // Add PostConstruct call
             if (node.hasPostConstruct()) {
-                // Use accessor for private lifecycle, direct call for public
                 if (node.hasPrivateFieldInjections() || node.hasPrivateMethodInjections()) {
                     ClassName accessorClass = ClassName.bestGuess(node.getAccessorClassName());
                     staticInitBuilder.addStatement("$T.postConstruct($N)", accessorClass, fieldName);
@@ -555,22 +427,21 @@ public final class VeldSourceGenerator {
             staticInitBuilder.unindent();
             staticInitBuilder.add("}\n");
         } else {
-            // Original logic for unconditional beans
+            // Unconditional bean - direct instantiation
             staticInitBuilder.addStatement("$N = $L", fieldName, initialization);
-
-            // Add field injections using accessor for non-public fields
+            
+            // Add field injections
             if (!fieldInjectionCode.isEmpty()) {
                 staticInitBuilder.add(fieldInjectionCode);
             }
-
+            
             // Add method injections
             if (!methodInjectionCode.isEmpty()) {
                 staticInitBuilder.add(methodInjectionCode);
             }
-
+            
             // Add PostConstruct call
             if (node.hasPostConstruct()) {
-                // Use accessor for private lifecycle, direct call for public
                 if (node.hasPrivateFieldInjections() || node.hasPrivateMethodInjections()) {
                     ClassName accessorClass = ClassName.bestGuess(node.getAccessorClassName());
                     staticInitBuilder.addStatement("$T.postConstruct($N)", accessorClass, fieldName);
@@ -590,22 +461,18 @@ public final class VeldSourceGenerator {
 
     /**
      * Builds code for field injections.
-     * Uses accessor class for private and package-private fields (anything not public).
-     * Public fields can be accessed directly from Veld.java.
-     * Skips @Value injections as they are handled by the weaver.
      */
-    private CodeBlock buildFieldInjectionCode(VeldNode node, String fieldName, boolean isSingleton) {
+    private CodeBlock buildFieldInjectionCode(VeldNode node, String fieldName,
+                                                GenerationContext context) {
         if (!node.hasFieldInjections()) {
             return CodeBlock.of("");
         }
 
-        // Collect field injections by visibility
         List<VeldNode.FieldInjection> privateFields = new ArrayList<>();
         List<VeldNode.FieldInjection> packagePrivateFields = new ArrayList<>();
         List<VeldNode.FieldInjection> publicFields = new ArrayList<>();
 
         for (VeldNode.FieldInjection field : node.getFieldInjections()) {
-            // Skip @Value injections - they are handled by the weaver
             if (field.isValueInjection()) {
                 continue;
             }
@@ -615,48 +482,41 @@ public final class VeldSourceGenerator {
             } else if (field.isPublic()) {
                 publicFields.add(field);
             } else {
-                // Package-private fields also need accessor since Veld is in different package
                 packagePrivateFields.add(field);
             }
         }
 
         CodeBlock.Builder builder = CodeBlock.builder();
-        String instanceName = fieldName;
-
-        // Generate individual injection calls for each non-public field
-        // This respects topological order better than consolidated inject()
         ClassName accessorClass = ClassName.bestGuess(node.getAccessorClassName());
         
         for (VeldNode.FieldInjection field : privateFields) {
-            String depAccess = getVeldAccessExpression(field.getActualTypeName());
+            String depAccess = getVeldAccessExpression(field.getActualTypeName(), context);
             if (depAccess != null) {
                 builder.addStatement("$T.inject$N($N, $N)", accessorClass, 
-                    capitalize(field.getFieldName()), instanceName, depAccess);
+                    capitalize(field.getFieldName()), fieldName, depAccess);
             } else {
                 builder.addStatement("$T.inject$N($N, null)", accessorClass, 
-                    capitalize(field.getFieldName()), instanceName);
+                    capitalize(field.getFieldName()), fieldName);
             }
         }
         
         for (VeldNode.FieldInjection field : packagePrivateFields) {
-            String depAccess = getVeldAccessExpression(field.getActualTypeName());
+            String depAccess = getVeldAccessExpression(field.getActualTypeName(), context);
             if (depAccess != null) {
                 builder.addStatement("$T.inject$N($N, $N)", accessorClass, 
-                    capitalize(field.getFieldName()), instanceName, depAccess);
+                    capitalize(field.getFieldName()), fieldName, depAccess);
             } else {
                 builder.addStatement("$T.inject$N($N, null)", accessorClass, 
-                    capitalize(field.getFieldName()), instanceName);
+                    capitalize(field.getFieldName()), fieldName);
             }
         }
 
-        // Direct assignment only for truly public fields
-        // Use normalized access expression for beans
         for (VeldNode.FieldInjection field : publicFields) {
-            String depAccess = getVeldAccessExpression(field.getActualTypeName());
+            String depAccess = getVeldAccessExpression(field.getActualTypeName(), context);
             if (depAccess != null) {
-                builder.addStatement("$N.$N = $N", instanceName, field.getFieldName(), depAccess);
+                builder.addStatement("$N.$N = $N", fieldName, field.getFieldName(), depAccess);
             } else {
-                builder.addStatement("$N.$N = null", instanceName, field.getFieldName());
+                builder.addStatement("$N.$N = null", fieldName, field.getFieldName());
             }
         }
 
@@ -665,9 +525,9 @@ public final class VeldSourceGenerator {
 
     /**
      * Builds code for method injections.
-     * Uses accessor class for private methods, direct invocation for package-private/public methods.
      */
-    private CodeBlock buildMethodInjectionCode(VeldNode node, String instanceName, boolean isSingleton) {
+    private CodeBlock buildMethodInjectionCode(VeldNode node, String instanceName,
+                                                  GenerationContext context) {
         if (!node.hasMethodInjections()) {
             return CodeBlock.of("");
         }
@@ -676,33 +536,24 @@ public final class VeldSourceGenerator {
 
         for (VeldNode.MethodInjection method : node.getMethodInjections()) {
             if (method.isPrivate()) {
-                // Use accessor class for private methods
                 ClassName accessorClass = ClassName.bestGuess(node.getAccessorClassName());
                 String accessorMethod = "call" + capitalize(method.getMethodName());
 
                 if (method.getParameters().isEmpty()) {
                     builder.addStatement("$T.$N($N)", accessorClass, accessorMethod, instanceName);
                 } else {
-                    // Build parameter list
                     List<String> paramNames = method.getParameters().stream()
-                            .map(p -> {
-                                String name = getVeldNameForParameter(p);
-                                return name != null ? name : "null";
-                            })
+                            .map(p -> getVeldNameForParameter(p, context))
                             .collect(Collectors.toList());
                     builder.addStatement("$T.$N($N, $L)", accessorClass, accessorMethod, instanceName,
                             String.join(", ", paramNames));
                 }
             } else {
-                // Direct invocation for package-private/public methods
                 if (method.getParameters().isEmpty()) {
                     builder.addStatement("$N.$N()", instanceName, method.getMethodName());
                 } else {
                     List<String> paramNames = method.getParameters().stream()
-                            .map(p -> {
-                                String name = getVeldNameForParameter(p);
-                                return name != null ? name : "null";
-                            })
+                            .map(p -> getVeldNameForParameter(p, context))
                             .collect(Collectors.toList());
                     builder.addStatement("$N.$N($L)", instanceName, method.getMethodName(),
                             String.join(", ", paramNames));
@@ -725,17 +576,16 @@ public final class VeldSourceGenerator {
         MethodSpec.Builder shutdownBuilder = MethodSpec.methodBuilder("shutdown")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .addJavadoc("Shuts down the Veld container and invokes @PreDestroy methods.\n\n" +
-                            "<p>PreDestroy methods are called in reverse dependency order,\n" +
-                            "ensuring that dependents are destroyed before their dependencies.</p>\n")
+                            "<p>@PreDestroy methods are called in reverse dependency order,\n" +
+                            "ensuring dependents are destroyed before their dependencies.</p>\n")
                 .addStatement("$N.set(true)", "shutdownInitiated");
         
         if (preDestroyNodes.isEmpty()) {
             shutdownBuilder.addStatement("// No @PreDestroy methods to invoke");
         } else {
-            shutdownBuilder.addStatement("// Invoke @PreDestroy methods in reverse dependency order");
+            shutdownBuilder.addStatement("// Invoke @PreDestroy methods in reverse order");
             for (VeldNode node : preDestroyNodes) {
                 shutdownBuilder.addStatement("// $S", node.getClassName());
-                // Use accessor for private lifecycle, direct call for public
                 if (node.hasPrivateFieldInjections() || node.hasPrivateMethodInjections()) {
                     ClassName accessorClass = ClassName.bestGuess(node.getAccessorClassName());
                     shutdownBuilder.addStatement("$T.preDestroy($N)", accessorClass, node.getVeldName());
@@ -756,80 +606,82 @@ public final class VeldSourceGenerator {
                 .build());
     }
     
-    private void addSingletonAccessor(TypeSpec.Builder classBuilder, VeldNode node) {
+    /**
+     * Adds accessor method for singleton.
+     */
+    private void addSingletonAccessor(TypeSpec.Builder classBuilder, VeldNode node,
+                                        BeanExistenceGraph.ResolutionResult result) {
         ClassName returnType = ClassName.bestGuess(node.getActualClassName());
         String methodName = node.getVeldName();
-        boolean hasConditions = hasRuntimeConditions(node);
+        boolean isConditional = result.isConditional(node.getClassName());
         
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .returns(returnType);
         
-        // If has conditions, add null check at the start of the method
-        if (hasConditions) {
+        if (isConditional) {
             methodBuilder.addStatement("if ($N == null) return null", methodName);
         }
         
         methodBuilder.addStatement("return $N", methodName);
         
-        StringBuilder javadoc = new StringBuilder("Returns the $N singleton instance.\n");
+        StringBuilder javadoc = new StringBuilder("Returns the singleton instance of $N.\n");
         if (node.hasPostConstruct()) {
             javadoc.append("\n<p><b>Lifecycle:</b> @PostConstruct has been invoked.</p>\n");
         }
         if (node.hasPreDestroy()) {
             javadoc.append("<p><b>Lifecycle:</b> @PreDestroy will be invoked on shutdown().</p>\n");
         }
-        if (hasConditions) {
+        if (isConditional) {
             javadoc.append("\n<p><b>Conditional:</b> May return null if condition is not met.</p>\n");
         }
         
         classBuilder.addMethod(methodBuilder.build());
     }
     
-    private void addPrototypeComponent(TypeSpec.Builder classBuilder, VeldNode node) {
+    /**
+     * Adds prototype component (factory method).
+     */
+    private void addPrototypeComponent(TypeSpec.Builder classBuilder, VeldNode node,
+                                         BeanExistenceGraph graph,
+                                         BeanExistenceGraph.ResolutionResult result,
+                                         GenerationContext context) {
         ClassName returnType = ClassName.bestGuess(node.getActualClassName());
         String methodName = node.getVeldName();
         String instanceVar = methodName + "Instance";
-        boolean hasConditions = hasRuntimeConditions(node);
+        boolean isConditional = result.isConditional(node.getClassName());
 
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .returns(returnType);
 
-        // Add section comment if this is a new section
         String sectionComment = getSectionForNode(node);
         if (!sectionComment.equals(lastSectionComment)) {
-            staticInitBuilder.add("\n$L\n", sectionComment);
+            methodBuilder.addCode("\n$L\n", sectionComment);
             lastSectionComment = sectionComment;
         }
         
-        // Add component comment
-        staticInitBuilder.add("// --- Factory: $N ---\n", methodName);
+        methodBuilder.addCode("// Factory: $N\n", methodName);
 
-        // If has conditions, add condition check at the start
-        if (hasConditions) {
-            CodeBlock conditionExpr = generateConditionExpression(node);
-            methodBuilder.beginControlFlow("if ($L)", conditionExpr);
+        if (isConditional) {
+            String flagName = graph.getExistenceFlagName(node.getClassName());
+            methodBuilder.beginControlFlow("if ($N)", flagName);
         }
 
-        // Declare local variable for the instance
-        methodBuilder.addStatement("$T $N = $L", returnType, instanceVar, buildInstantiationCode(node));
+        methodBuilder.addStatement("$T $N = $L", returnType, instanceVar, 
+            buildInstantiationCode(node, context));
 
-        // Add field injections using accessor if needed
-        CodeBlock fieldInjectionCode = buildFieldInjectionCode(node, instanceVar, false);
+        CodeBlock fieldInjectionCode = buildFieldInjectionCode(node, instanceVar, context);
         if (!fieldInjectionCode.isEmpty()) {
             methodBuilder.addCode(fieldInjectionCode);
         }
 
-        // Add method injections using accessor if needed
-        CodeBlock methodInjectionCode = buildMethodInjectionCode(node, instanceVar, false);
+        CodeBlock methodInjectionCode = buildMethodInjectionCode(node, instanceVar, context);
         if (!methodInjectionCode.isEmpty()) {
             methodBuilder.addCode(methodInjectionCode);
         }
 
-        // Add @PostConstruct call
         if (node.hasPostConstruct()) {
-            // Use accessor for private lifecycle, direct call for public
             if (node.hasPrivateFieldInjections() || node.hasPrivateMethodInjections()) {
                 ClassName accessorClass = ClassName.bestGuess(node.getAccessorClassName());
                 methodBuilder.addStatement("$T.postConstruct($N)", accessorClass, instanceVar);
@@ -838,11 +690,9 @@ public final class VeldSourceGenerator {
             }
         }
 
-        // Return the instance
         methodBuilder.addStatement("return $N", instanceVar);
 
-        // Close the if block if has conditions
-        if (hasConditions) {
+        if (isConditional) {
             methodBuilder.nextControlFlow("else");
             methodBuilder.addStatement("return null");
             methodBuilder.endControlFlow();
@@ -851,7 +701,10 @@ public final class VeldSourceGenerator {
         classBuilder.addMethod(methodBuilder.build());
     }
     
-    private CodeBlock buildInstantiationCode(VeldNode node) {
+    /**
+     * Builds instantiation code for a node.
+     */
+    private CodeBlock buildInstantiationCode(VeldNode node, GenerationContext context) {
         ClassName type = ClassName.bestGuess(node.getActualClassName());
 
         if (!node.hasConstructorInjection()) {
@@ -866,20 +719,24 @@ public final class VeldSourceGenerator {
             if (i > 0) {
                 argsBuilder.add(", ");
             }
-            argsBuilder.add("$L", buildDependencyExpression(params.get(i)));
+            argsBuilder.add("$L", buildDependencyExpression(params.get(i), context));
         }
 
         return CodeBlock.of("new $T($L)", type, argsBuilder.build());
     }
     
-    private CodeBlock buildDependencyExpression(VeldNode.ParameterInfo param) {
+    /**
+     * Builds dependency expression for a parameter.
+     */
+    private CodeBlock buildDependencyExpression(VeldNode.ParameterInfo param, GenerationContext context) {
         if (param.isValueInjection()) {
             return CodeBlock.of("null /* @Value */");
         }
         if (param.isOptionalWrapper()) {
             VeldNode depNode = nodeMap.get(param.getActualTypeName());
             if (depNode != null) {
-                return CodeBlock.of("$T.ofNullable($N)", ClassName.get("java.util", "Optional"), depNode.getVeldName());
+                return CodeBlock.of("$T.ofNullable($N)", 
+                    ClassName.get("java.util", "Optional"), depNode.getVeldName());
             }
             return CodeBlock.of("$T.empty()", ClassName.get("java.util", "Optional"));
         }
@@ -887,10 +744,6 @@ public final class VeldSourceGenerator {
             VeldNode depNode = nodeMap.get(param.getActualTypeName());
             if (depNode != null) {
                 if (depNode.isPrototype()) {
-                    // For prototype beans, instantiate directly in the lambda
-                    String simpleClassName = depNode.getVeldName();
-                    // Capitalize first letter to get class name
-                    String className = simpleClassName.substring(0, 1).toUpperCase() + simpleClassName.substring(1);
                     return CodeBlock.of("() -> new $T()", ClassName.bestGuess(param.getActualTypeName()));
                 }
                 return CodeBlock.of("() -> $N", depNode.getVeldName());
@@ -900,79 +753,64 @@ public final class VeldSourceGenerator {
         
         VeldNode depNode = nodeMap.get(param.getActualTypeName());
         if (depNode != null) {
-            return CodeBlock.of("$N", depNode.getVeldName());
+            String flagName = GenerationContext.getExistenceFlagName(depNode.getClassName());
+            return CodeBlock.of("($N ? $N : null)", flagName, depNode.getVeldName());
         }
         return CodeBlock.of("null /* UNRESOLVED */");
     }
     
-    private TypeElement getTypeElement(String typeName) {
-        return null;
-    }
-    
     /**
      * Gets the Veld access expression for a given type.
-     * Returns the correct expression based on bean scope:
-     * - Singleton: field reference (e.g., "cacheService")
-     * - Prototype: factory method call (e.g., "cache()")
-     * Returns null if the bean is not available (e.g., filtered by profile).
      */
-    private String getVeldAccessExpression(String typeName) {
+    private String getVeldAccessExpression(String typeName, GenerationContext context) {
         VeldNode depNode = nodeMap.get(typeName);
         if (depNode != null) {
             if (depNode.isSingleton()) {
-                // Singleton: use field reference
                 return depNode.getVeldName();
             } else {
-                // Prototype: use factory method call
                 return depNode.getVeldName() + "()";
             }
         }
-        // Bean not available - return null to generate null reference
-        return null;
-    }
-    
-    /**
-     * Gets the Veld name for a given type by looking it up in the node map.
-     * Returns the veldName (e.g., "userService") for the given type class name.
-     * Returns null if the bean is not available (e.g., filtered by profile).
-     * @deprecated Use getVeldAccessExpression() for proper normalization
-     */
-    private String getVeldNameForType(String typeName) {
-        VeldNode depNode = nodeMap.get(typeName);
-        if (depNode != null) {
-            return depNode.getVeldName();
-        }
-        // Bean not available - return null to generate null reference
         return null;
     }
     
     /**
      * Gets the Veld name for a parameter.
-     * Uses the parameter's veld name if available, otherwise returns null.
      */
-    private String getVeldNameForParameter(VeldNode.ParameterInfo param) {
-        // Try to find the node for this parameter's type
+    private String getVeldNameForParameter(VeldNode.ParameterInfo param, GenerationContext context) {
         VeldNode depNode = nodeMap.get(param.getActualTypeName());
         if (depNode != null) {
-            return depNode.getVeldName();
+            String flagName = GenerationContext.getExistenceFlagName(depNode.getClassName());
+            return "(" + flagName + " ? " + depNode.getVeldName() + " : null)";
         }
-        // Parameter bean not available - return null
         return null;
     }
 
     /**
-     * Decapitalizes the first letter of a string (same as java.beans.Introspector.decapitalize).
+     * Capitalizes the first letter of a string.
      */
-    private String decapitalize(String name) {
-        if (name == null || name.isEmpty()) {
-            return name;
+    private String capitalize(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
         }
-        if (name.length() > 1 && Character.isUpperCase(name.charAt(1))) {
-            return name;
-        }
-        char[] chars = name.toCharArray();
-        chars[0] = Character.toLowerCase(chars[0]);
-        return new String(chars);
+        return str.substring(0, 1).toUpperCase() + str.substring(1);
+    }
+    
+    /**
+     * Creates the @Generated annotation for the generated class.
+     */
+    private AnnotationSpec createGeneratedAnnotation() {
+        return AnnotationSpec.builder(ClassName.get("javax.annotation.processing", "Generated"))
+                .addMember("value", "$S", "io.github.yasmramos.veld.processor.VeldProcessor")
+                .addMember("date", "$S", java.time.Instant.now().toString())
+                .build();
+    }
+    
+    private FieldSpec createLifecycleStateField() {
+        return FieldSpec.builder(ClassName.get("java.util.concurrent.atomic", "AtomicBoolean"), "shutdownInitiated")
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                .initializer("new $T(false)", ClassName.get("java.util.concurrent.atomic", "AtomicBoolean"))
+                .build();
     }
     
     private List<VeldNode> topologicalSort() {
@@ -997,7 +835,6 @@ public final class VeldSourceGenerator {
         
         visiting.add(node.getClassName());
         
-        // Visit constructor injection dependencies
         if (node.hasConstructorInjection()) {
             for (VeldNode.ParameterInfo param : node.getConstructorInfo().getParameters()) {
                 VeldNode depNode = nodeMap.get(param.getActualTypeName());
@@ -1007,10 +844,9 @@ public final class VeldSourceGenerator {
             }
         }
         
-        // Visit field injection dependencies (for ordering)
         if (node.hasFieldInjections()) {
             for (VeldNode.FieldInjection field : node.getFieldInjections()) {
-                if (field.isValueInjection()) continue; // Skip @Value injections
+                if (field.isValueInjection()) continue;
                 VeldNode depNode = nodeMap.get(field.getActualTypeName());
                 if (depNode != null) {
                     visit(depNode, visited, visiting, sorted);
@@ -1018,12 +854,11 @@ public final class VeldSourceGenerator {
             }
         }
         
-        // Visit method injection dependencies (for ordering)
         if (node.hasMethodInjections()) {
             for (VeldNode.MethodInjection method : node.getMethodInjections()) {
                 for (VeldNode.ParameterInfo param : method.getParameters()) {
                     if (param.isValueInjection() || param.isOptionalWrapper() || param.isProvider()) {
-                        continue; // Skip @Value, Optional, Provider
+                        continue;
                     }
                     VeldNode depNode = nodeMap.get(param.getActualTypeName());
                     if (depNode != null) {
@@ -1078,28 +913,15 @@ public final class VeldSourceGenerator {
         return "// ===== Default =====";
     }
     
-    private void addSingletonFieldJavadoc(FieldSpec.Builder fieldBuilder, VeldNode node) {
-        int level = getDependencyLevel(node);
-        StringBuilder javadoc = new StringBuilder();
-        javadoc.append("Level: ").append(level).append("\n");
-        javadoc.append("Type: ").append(node.getClassName());
-        if (node.hasPostConstruct()) {
-            javadoc.append("\n@PostConstruct: ").append(node.getPostConstructMethod());
-        }
-        if (node.hasPreDestroy()) {
-            javadoc.append("\n@PreDestroy: ").append(node.getPreDestroyMethod());
-        }
-        fieldBuilder.addJavadoc("$L\n", javadoc.toString());
-    }
-    
     private CodeBlock buildClassJavadoc(List<VeldNode> singletons, List<VeldNode> prototypes) {
         return CodeBlock.builder()
-                .add("Veld Static Dependency Injection Container.\n\n")
-                .add("<p>Generated by Veld annotation processor.</p>\n\n")
-                .add("<p><b>Components:</b></p>\n")
+                .add("Static Veld Dependency Injection Container.\n\n")
+                .add("<p>Generated by the Veld annotation processor.</p>\n\n")
+                .add("<p><b>Features:</b></p>\n")
                 .add("<ul>\n")
                 .add("<li>Singletons: $L static fields</li>\n", singletons.size())
                 .add("<li>Prototypes: $L factory methods</li>\n", prototypes.size())
+                .add("<li>Conditions evaluated at static initialization (deterministic)</li>\n")
                 .add("</ul>\n\n")
                 .add("<p><b>Lifecycle:</b></p>\n")
                 .add("<ul>\n")
@@ -1107,10 +929,6 @@ public final class VeldSourceGenerator {
                 .add("<li>@PreDestroy: invoked in shutdown() method (reverse order)</li>\n")
                 .add("</ul>\n")
                 .build();
-    }
-    
-    private int getDependencyLevel(VeldNode node) {
-        return levelCache.getOrDefault(node.getClassName(), 0);
     }
     
     private MethodSpec createPrivateConstructor() {
@@ -1139,246 +957,6 @@ public final class VeldSourceGenerator {
             }
         }
         return errors;
-    }
-    
-    // ===== CONDITION CODE GENERATION =====
-    
-    /**
-     * Generates boolean flag fields for bean existence conditions.
-     * These flags are set during static initialization and used to evaluate conditions.
-     */
-    private void addConditionFlagFields(TypeSpec.Builder classBuilder, List<VeldNode> sortedNodes) {
-        // Collect all bean types/names that are referenced in conditions
-        Set<String> referencedBeans = new LinkedHashSet<>();
-        
-        for (VeldNode node : sortedNodes) {
-            if (node.getConditionInfo() != null) {
-                ConditionInfo info = node.getConditionInfo();
-                
-                // Present bean conditions
-                for (ConditionInfo.PresentBeanConditionInfo beanCond : info.getPresentBeanConditions()) {
-                    for (String type : beanCond.beanTypes()) {
-                        referencedBeans.add(type);
-                    }
-                    for (String name : beanCond.beanNames()) {
-                        referencedBeans.add("bean:" + name);
-                    }
-                }
-                
-                // Missing bean conditions
-                for (ConditionInfo.MissingBeanConditionInfo beanCond : info.getMissingBeanConditions()) {
-                    for (String type : beanCond.beanTypes()) {
-                        referencedBeans.add(type);
-                    }
-                    for (String name : beanCond.beanNames()) {
-                        referencedBeans.add("bean:" + name);
-                    }
-                }
-            }
-        }
-        
-        // Generate flag field for each referenced bean
-        for (String bean : referencedBeans) {
-            String flagName = toValidFieldName(bean);
-            classBuilder.addField(FieldSpec.builder(
-                ClassName.get("boolean"), flagName)
-                .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
-                .addJavadoc("Condition flag for bean existence: $L\n", bean)
-                .build());
-        }
-    }
-    
-    /**
-     * Adds a field for property loading if property conditions exist.
-     */
-    private void addPropertyLoaderField(TypeSpec.Builder classBuilder) {
-        classBuilder.addField(FieldSpec.builder(
-            ClassName.get("io.github.yasmramos.veld", "VeldProperties"), "properties")
-            .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
-            .addJavadoc("Property loader for @ConditionalOnProperty evaluation\n")
-            .build());
-    }
-    
-    /**
-     * Generates code to load properties in the static initialization block.
-     */
-    private void addPropertyLoadingCode(CodeBlock.Builder staticInitBuilder, List<VeldNode> sortedNodes) {
-        staticInitBuilder.add("// Load properties for @ConditionalOnProperty evaluation\n");
-        staticInitBuilder.add("this.properties = new $T();\n", 
-            ClassName.get("io.github.yasmramos.veld", "VeldProperties"));
-        staticInitBuilder.add("\n");
-    }
-    
-    /**
-     * Generates code to initialize condition flags (bean existence checks).
-     * This must run AFTER all singleton holders are created but BEFORE condition evaluation.
-     */
-    private void addConditionFlagInitialization(CodeBlock.Builder staticInitBuilder, List<VeldNode> sortedNodes) {
-        staticInitBuilder.add("// Initialize condition flags (bean existence checks)\n");
-        
-        // Build a map of className -> veldName for quick lookup
-        Map<String, String> classToVeldName = new LinkedHashMap<>();
-        for (VeldNode node : sortedNodes) {
-            classToVeldName.put(node.getClassName(), node.getVeldName());
-        }
-        
-        // Generate flag initialization for each bean
-        for (VeldNode node : sortedNodes) {
-            if (node.getConditionInfo() != null && node.getConditionInfo().hasBeanConditions()) {
-                String veldName = node.getVeldName();
-                String flagName = toValidFieldName(node.getClassName());
-                
-                staticInitBuilder.add("hasBean_$N = true;\n", flagName);
-            }
-        }
-        
-        staticInitBuilder.add("\n");
-    }
-    
-    /**
-     * Converts a bean type or name to a valid Java field name.
-     */
-    private String toValidFieldName(String bean) {
-        // Handle special prefixes
-        if (bean.startsWith("bean:")) {
-            bean = bean.substring(5);
-        }
-        
-        // Convert fully qualified class name to field name
-        // e.g., "com.example.DataSource" -> "com_example_DataSource"
-        StringBuilder result = new StringBuilder();
-        for (int i = 0; i < bean.length(); i++) {
-            char c = bean.charAt(i);
-            if (Character.isJavaIdentifierPart(c)) {
-                result.append(c == '.' ? '_' : c);
-            }
-        }
-        
-        // Ensure it starts with a letter
-        if (result.length() > 0 && !Character.isJavaLetter(result.charAt(0))) {
-            result.insert(0, "bean_");
-        }
-        
-        return result.toString();
-    }
-    
-    /**
-     * Generates the condition evaluation expression for a node.
-     * Returns CodeBlock that evaluates all conditions.
-     */
-    private CodeBlock generateConditionExpression(VeldNode node) {
-        CodeBlock.Builder builder = CodeBlock.builder();
-        ConditionInfo info = node.getConditionInfo();
-        
-        if (info == null || !info.hasConditions()) {
-            builder.add("true");
-            return builder.build();
-        }
-        
-        List<CodeBlock> conditions = new ArrayList<>();
-        
-        // Property conditions
-        for (ConditionInfo.PropertyConditionInfo propCond : info.getPropertyConditions()) {
-            String propName = propCond.name();
-            String havingValue = propCond.havingValue();
-            boolean matchIfMissing = propCond.matchIfMissing();
-            
-            if (havingValue.isEmpty()) {
-                // Just check if property exists
-                conditions.add(CodeBlock.of("properties.hasProperty($S)", propName));
-            } else {
-                // Check if property has specific value
-                conditions.add(CodeBlock.of("properties.getProperty($S, $S)", propName, havingValue));
-            }
-        }
-        
-        // Class conditions - always true in compile-time model (class is in classpath)
-        for (ConditionInfo.ClassConditionInfo classCond : info.getClassConditions()) {
-            for (String className : classCond.classNames()) {
-                // In static model, if class is referenced, it must be available
-                conditions.add(CodeBlock.of("true // @ConditionalOnClass: $S", className));
-            }
-        }
-        
-        // Present bean conditions
-        for (ConditionInfo.PresentBeanConditionInfo beanCond : info.getPresentBeanConditions()) {
-            List<CodeBlock> beanChecks = new ArrayList<>();
-            
-            for (String type : beanCond.beanTypes()) {
-                String flagName = toValidFieldName(type);
-                beanChecks.add(CodeBlock.of("hasBean_$N", flagName));
-            }
-            
-            for (String name : beanCond.beanNames()) {
-                String flagName = toValidFieldName("bean:" + name);
-                beanChecks.add(CodeBlock.of("hasBean_$N", flagName));
-            }
-            
-            if (!beanChecks.isEmpty()) {
-                if (beanCond.matchAll()) {
-                    // AND logic - all must be present
-                    CodeBlock andBlock = beanChecks.stream()
-                        .reduce((a, b) -> CodeBlock.of("$N && $N", a, b))
-                        .orElse(CodeBlock.of("true"));
-                    conditions.add(andBlock);
-                } else {
-                    // OR logic - any can be present
-                    CodeBlock orBlock = beanChecks.stream()
-                        .reduce((a, b) -> CodeBlock.of("$N || $N", a, b))
-                        .orElse(CodeBlock.of("true"));
-                    conditions.add(orBlock);
-                }
-            }
-        }
-        
-        // Missing bean conditions
-        for (ConditionInfo.MissingBeanConditionInfo beanCond : info.getMissingBeanConditions()) {
-            List<CodeBlock> beanChecks = new ArrayList<>();
-            
-            for (String type : beanCond.beanTypes()) {
-                String flagName = toValidFieldName(type);
-                beanChecks.add(CodeBlock.of("!hasBean_$N", flagName));
-            }
-            
-            for (String name : beanCond.beanNames()) {
-                String flagName = toValidFieldName("bean:" + name);
-                beanChecks.add(CodeBlock.of("!hasBean_$N", flagName));
-            }
-            
-            if (!beanChecks.isEmpty()) {
-                // All must be missing (AND logic)
-                CodeBlock andBlock = beanChecks.stream()
-                    .reduce((a, b) -> CodeBlock.of("$N && $N", a, b))
-                    .orElse(CodeBlock.of("true"));
-                conditions.add(andBlock);
-            }
-        }
-        
-        // Combine all conditions with AND
-        if (conditions.isEmpty()) {
-            builder.add("true");
-        } else {
-            CodeBlock combined = conditions.stream()
-                .reduce((a, b) -> CodeBlock.of("$N && $N", a, b))
-                .orElse(CodeBlock.of("true"));
-            builder.add(combined);
-        }
-        
-        return builder.build();
-    }
-    
-    /**
-     * Checks if a node has any runtime-evaluable conditions.
-     */
-    private boolean hasRuntimeConditions(VeldNode node) {
-        if (node.getConditionInfo() == null) {
-            return false;
-        }
-        
-        ConditionInfo info = node.getConditionInfo();
-        return !info.getPropertyConditions().isEmpty() ||
-               !info.getPresentBeanConditions().isEmpty() ||
-               !info.getMissingBeanConditions().isEmpty();
     }
     
     private void note(String message) {
@@ -1414,8 +992,263 @@ public final class VeldSourceGenerator {
                 "Compilation failed.\n\nUnresolved dependency:\n" +
                 "- Component: %s\n" +
                 "- Parameter #%d: %s (%s)\n\n" +
-                "Fix: Add @Component for %s or use @Named",
+                "Solution: Add @Component for %s or use @Named",
                 componentName, paramPosition + 1, paramType, actualType, actualType);
+        }
+    }
+    
+    // ===== ACCESSOR CLASS GENERATION METHODS =====
+    
+    public Map<String, JavaFile> generateAccessorClasses() {
+        Map<String, JavaFile> accessorFiles = new LinkedHashMap<>();
+
+        for (VeldNode node : nodes) {
+            if (!node.needsAccessorClass()) {
+                continue;
+            }
+
+            JavaFile accessorFile = generateAccessorClass(node);
+            if (accessorFile != null) {
+                accessorFiles.put(node.getAccessorClassName(), accessorFile);
+            }
+        }
+
+        return accessorFiles;
+    }
+
+    private JavaFile generateAccessorClass(VeldNode node) {
+        TypeSpec.Builder accessorBuilder = TypeSpec.classBuilder(node.getAccessorSimpleName())
+                .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+                .addJavadoc(buildAccessorJavadoc(node))
+                .addAnnotation(createGeneratedAnnotation());
+
+        List<VeldNode.FieldInjection> nonPublicFieldInjections = new ArrayList<>();
+        for (VeldNode.FieldInjection field : node.getFieldInjections()) {
+            if (!field.isPublic() && !field.isValueInjection()) {
+                nonPublicFieldInjections.add(field);
+            }
+        }
+
+        if (!nonPublicFieldInjections.isEmpty()) {
+            addConsolidatedInjectMethod(accessorBuilder, node, nonPublicFieldInjections);
+        }
+
+        for (VeldNode.FieldInjection field : node.getFieldInjections()) {
+            if (!field.isPublic() && !field.isValueInjection()) {
+                addFieldInjectionMethod(accessorBuilder, node, field);
+            }
+        }
+
+        for (VeldNode.MethodInjection method : node.getMethodInjections()) {
+            if (method.isPrivate()) {
+                addMethodInjectionMethod(accessorBuilder, node, method);
+            }
+        }
+
+        if (node.hasPostConstruct()) {
+            addPostConstructMethod(accessorBuilder, node);
+        }
+
+        if (node.hasPreDestroy()) {
+            addPreDestroyMethod(accessorBuilder, node);
+        }
+
+        return JavaFile.builder(node.getPackageName(), accessorBuilder.build()).build();
+    }
+
+    private void addConsolidatedInjectMethod(TypeSpec.Builder accessorBuilder, VeldNode node,
+                                              List<VeldNode.FieldInjection> nonPublicFields) {
+        ClassName componentType = ClassName.bestGuess(node.getClassName());
+        ClassName fieldClass = ClassName.get("java.lang.reflect", "Field");
+        ClassName methodClass = ClassName.get("java.lang.reflect", "Method");
+
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("inject")
+                .addModifiers(Modifier.STATIC, Modifier.PUBLIC)
+                .addParameter(componentType, "instance");
+
+        for (VeldNode.FieldInjection field : nonPublicFields) {
+            TypeName fieldType = getTypeName(field.getActualTypeName());
+            String fieldName = field.getFieldName();
+            methodBuilder.addParameter(fieldType, fieldName);
+        }
+
+        methodBuilder.addCode("// Inject non-public fields using reflection\n");
+        for (VeldNode.FieldInjection field : nonPublicFields) {
+            String fieldName = field.getFieldName();
+            methodBuilder.addCode("try {\n");
+            methodBuilder.addCode("    $T $NField = $N.class.getDeclaredField(\"$N\");\n",
+                    fieldClass, fieldName, componentType.simpleName(), fieldName);
+            methodBuilder.addCode("    $NField.setAccessible(true);\n", fieldName);
+            methodBuilder.addCode("    $NField.set($N, $N);\n", fieldName, "instance", fieldName);
+            methodBuilder.addCode("} catch ($T e) {\n", ClassName.get("java.lang", "Exception"));
+            methodBuilder.addCode("    throw new $T(\"Failed to inject field: $N\", e);\n",
+                    ClassName.get("java.lang", "RuntimeException"), fieldName);
+            methodBuilder.addCode("}\n");
+        }
+
+        methodBuilder.addJavadoc("Injects all non-public fields into $N using reflection.\n", node.getSimpleName());
+
+        accessorBuilder.addMethod(methodBuilder.build());
+    }
+
+    private void addPostConstructMethod(TypeSpec.Builder accessorBuilder, VeldNode node) {
+        ClassName componentType = ClassName.bestGuess(node.getClassName());
+        ClassName methodClass = ClassName.get("java.lang.reflect", "Method");
+
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("postConstruct")
+                .addModifiers(Modifier.STATIC, Modifier.PUBLIC)
+                .addParameter(componentType, "instance")
+                .addCode("try {\n")
+                .addCode("    $T postConstructMethod = $N.class.getDeclaredMethod(\"$N\");\n",
+                        methodClass, componentType.simpleName(), node.getPostConstructMethod())
+                .addCode("    postConstructMethod.setAccessible(true);\n")
+                .addCode("    postConstructMethod.invoke($N);\n", "instance")
+                .addCode("} catch ($T e) {\n", ClassName.get("java.lang", "Exception"))
+                .addCode("    throw new $T(\"Fallo al invocar método @PostConstruct: $N\", e);\n",
+                        ClassName.get("java.lang", "RuntimeException"), node.getPostConstructMethod())
+                .addCode("}\n");
+
+        methodBuilder.addJavadoc("Invokes the @PostConstruct method $N on $N using reflection.\n",
+                node.getPostConstructMethod(), node.getSimpleName());
+
+        accessorBuilder.addMethod(methodBuilder.build());
+    }
+
+    private void addPreDestroyMethod(TypeSpec.Builder accessorBuilder, VeldNode node) {
+        ClassName componentType = ClassName.bestGuess(node.getClassName());
+        ClassName methodClass = ClassName.get("java.lang.reflect", "Method");
+
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("preDestroy")
+                .addModifiers(Modifier.STATIC, Modifier.PUBLIC)
+                .addParameter(componentType, "instance")
+                .addCode("try {\n")
+                .addCode("    $T preDestroyMethod = $N.class.getDeclaredMethod(\"$N\");\n",
+                        methodClass, componentType.simpleName(), node.getPreDestroyMethod())
+                .addCode("    preDestroyMethod.setAccessible(true);\n")
+                .addCode("    preDestroyMethod.invoke($N);\n", "instance")
+                .addCode("} catch ($T e) {\n", ClassName.get("java.lang", "Exception"))
+                .addCode("    throw new $T(\"Fallo al invocar método @PreDestroy: $N\", e);\n",
+                        ClassName.get("java.lang", "RuntimeException"), node.getPreDestroyMethod())
+                .addCode("}\n");
+
+        methodBuilder.addJavadoc("Invoca el método @PreDestroy $N en $N usando reflexión.\n",
+                node.getPreDestroyMethod(), node.getSimpleName());
+
+        accessorBuilder.addMethod(methodBuilder.build());
+    }
+
+    private void addFieldInjectionMethod(TypeSpec.Builder accessorBuilder, VeldNode node, VeldNode.FieldInjection field) {
+        ClassName componentType = ClassName.bestGuess(node.getClassName());
+        TypeName dependencyType = getTypeName(field.getActualTypeName());
+        ClassName fieldClass = ClassName.get("java.lang.reflect", "Field");
+
+        String methodName = "inject" + capitalize(field.getFieldName());
+
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
+                .addModifiers(Modifier.STATIC, Modifier.PUBLIC)
+                .addParameter(componentType, "instance")
+                .addParameter(dependencyType, "value")
+                .addCode("try {\n")
+                .addCode("    $T field = $N.class.getDeclaredField(\"$N\");\n",
+                        fieldClass, componentType.simpleName(), field.getFieldName())
+                .addCode("    field.setAccessible(true);\n")
+                .addCode("    field.set($N, $N);\n", "instance", "value")
+                .addCode("} catch ($T e) {\n", ClassName.get("java.lang", "Exception"))
+                .addCode("    throw new $T(\"Failed to inject field: $N\", e);\n",
+                        ClassName.get("java.lang", "RuntimeException"), field.getFieldName())
+                .addCode("}\n");
+
+        methodBuilder.addJavadoc("Injects the private field $N into $N using reflection.\n",
+                field.getFieldName(), node.getSimpleName());
+
+        accessorBuilder.addMethod(methodBuilder.build());
+    }
+
+    private void addMethodInjectionMethod(TypeSpec.Builder accessorBuilder, VeldNode node, VeldNode.MethodInjection method) {
+        ClassName componentType = ClassName.bestGuess(node.getClassName());
+        ClassName methodClass = ClassName.get("java.lang.reflect", "Method");
+        ClassName objectClass = ClassName.get("java.lang", "Object");
+
+        String methodName = "call" + capitalize(method.getMethodName());
+
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
+                .addModifiers(Modifier.STATIC, Modifier.PUBLIC)
+                .addParameter(componentType, "instance");
+
+        methodBuilder.addCode("try {\n");
+        methodBuilder.addCode("    $T[] paramTypes = new $T[] { ", objectClass, objectClass);
+        for (int i = 0; i < method.getParameters().size(); i++) {
+            if (i > 0) methodBuilder.addCode(", ");
+            VeldNode.ParameterInfo param = method.getParameters().get(i);
+            methodBuilder.addCode("$T.class", getTypeName(param.getActualTypeName()));
+        }
+        methodBuilder.addCode(" };\n");
+        methodBuilder.addCode("    $T injectionMethod = $N.class.getDeclaredMethod(\"$N\", paramTypes);\n",
+                methodClass, componentType.simpleName(), method.getMethodName());
+        methodBuilder.addCode("    injectionMethod.setAccessible(true);\n");
+
+        methodBuilder.addCode("    injectionMethod.invoke($N", "instance");
+        for (VeldNode.ParameterInfo param : method.getParameters()) {
+            String paramName = param.getParameterName();
+            if (param.isOptionalWrapper()) {
+                methodBuilder.addCode(", $T.ofNullable($N).orElse(null)",
+                        ClassName.get("java.util", "Optional"), paramName);
+            } else if (param.isProvider()) {
+                methodBuilder.addCode(", $N", paramName);
+            } else {
+                methodBuilder.addCode(", $N", paramName);
+            }
+        }
+        methodBuilder.addCode(");\n");
+        methodBuilder.addCode("} catch ($T e) {\n", ClassName.get("java.lang", "Exception"));
+        methodBuilder.addCode("    throw new $T(\"Failed to invoke method: $N\", e);\n",
+                ClassName.get("java.lang", "RuntimeException"), method.getMethodName());
+        methodBuilder.addCode("}\n");
+
+        for (VeldNode.ParameterInfo param : method.getParameters()) {
+            TypeName paramType = getTypeName(param.getActualTypeName());
+            String paramName = param.getParameterName();
+            methodBuilder.addParameter(paramType, paramName);
+        }
+
+        methodBuilder.addJavadoc("Invokes the private method $N on $N using reflection.\n",
+                method.getMethodName(), node.getSimpleName());
+
+        accessorBuilder.addMethod(methodBuilder.build());
+    }
+
+    private CodeBlock buildAccessorJavadoc(VeldNode node) {
+        return CodeBlock.builder()
+                .add("Accessor class for $N.\n\n", node.getSimpleName())
+                .add("<p>This class provides package-private access to private members\n")
+                .add("of $N for dependency injection purposes.</p>\n\n", node.getClassName())
+                .add("<p><b>Generated by:</b> Veld annotation processor</p>\n")
+                .build();
+    }
+    
+    /**
+     * Converts a type name to TypeName, handling primitive types.
+     */
+    private TypeName getTypeName(String typeName) {
+        switch (typeName) {
+            case "int":
+                return TypeName.get(int.class);
+            case "boolean":
+                return TypeName.get(boolean.class);
+            case "long":
+                return TypeName.get(long.class);
+            case "double":
+                return TypeName.get(double.class);
+            case "float":
+                return TypeName.get(float.class);
+            case "char":
+                return TypeName.get(char.class);
+            case "byte":
+                return TypeName.get(byte.class);
+            case "short":
+                return TypeName.get(short.class);
+            default:
+                return ClassName.bestGuess(typeName);
         }
     }
 }
