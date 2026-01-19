@@ -163,6 +163,9 @@ public final class VeldSourceGenerator {
             .initializer("$S", "Lifecycle tracking: PostConstruct invoked during static initialization, PreDestroy via shutdown()")
             .build());
         
+        // Add dependency validation helper method
+        addDependencyValidatorMethod(classBuilder);
+        
         // ===== SECTION 1: EXISTENCE FLAG FIELDS =====
         addExistenceFlagFields(classBuilder, graph, resolutionResult);
         
@@ -204,7 +207,7 @@ public final class VeldSourceGenerator {
         }
         
         // ===== SECTION 7: SHUTDOWN METHOD =====
-        addShutdownMethod(classBuilder, singletons);
+        addShutdownMethod(classBuilder, singletons, graph);
         
         // ===== SECTION 8: LIFECYCLE STATE GETTER =====
         addLifecycleStateGetter(classBuilder);
@@ -375,13 +378,13 @@ public final class VeldSourceGenerator {
         FieldSpec.Builder fieldBuilder = FieldSpec.builder(type, fieldName)
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC);
         
+        // Initialize all fields to null to ensure definite assignment
+        // All beans are now wrapped in existence flag checks, so we can't use 'final'
+        // The fields are still effectively immutable (assigned once in static block)
+        fieldBuilder.initializer("null");
+        
         if (isConditional) {
-            // Conditional bean - start as null
-            fieldBuilder.initializer("null");
             staticInitBuilder.add("// Conditional bean: $N\n", fieldName);
-        } else {
-            // Unconditional bean - final
-            fieldBuilder.addModifiers(Modifier.FINAL);
         }
         
         classBuilder.addField(fieldBuilder.build());
@@ -396,60 +399,36 @@ public final class VeldSourceGenerator {
         // Header comment for this component
         staticInitBuilder.add("// --- $N ($N) ---\n", fieldName, actualClassName);
         
-        if (isConditional) {
-            // Conditional bean - wrap instantiation in if
-            staticInitBuilder.add("if ($N) {\n", flagName);
-            staticInitBuilder.indent();
-            
-            // First assign the field
-            staticInitBuilder.addStatement("$N = $L", fieldName, initialization);
-            
-            // Add field injections using accessor
-            if (!fieldInjectionCode.isEmpty()) {
-                staticInitBuilder.add(fieldInjectionCode);
-            }
-            
-            // Add method injections
-            if (!methodInjectionCode.isEmpty()) {
-                staticInitBuilder.add(methodInjectionCode);
-            }
-            
-            // Add PostConstruct call
-            if (node.hasPostConstruct()) {
-                if (node.hasPrivateFieldInjections() || node.hasPrivateMethodInjections()) {
-                    ClassName accessorClass = ClassName.bestGuess(node.getAccessorClassName());
-                    staticInitBuilder.addStatement("$T.postConstruct($N)", accessorClass, fieldName);
-                } else {
-                    staticInitBuilder.addStatement("$N.$N()", fieldName, node.getPostConstructMethod());
-                }
-            }
-            
-            staticInitBuilder.unindent();
-            staticInitBuilder.add("}\n");
-        } else {
-            // Unconditional bean - direct instantiation
-            staticInitBuilder.addStatement("$N = $L", fieldName, initialization);
-            
-            // Add field injections
-            if (!fieldInjectionCode.isEmpty()) {
-                staticInitBuilder.add(fieldInjectionCode);
-            }
-            
-            // Add method injections
-            if (!methodInjectionCode.isEmpty()) {
-                staticInitBuilder.add(methodInjectionCode);
-            }
-            
-            // Add PostConstruct call
-            if (node.hasPostConstruct()) {
-                if (node.hasPrivateFieldInjections() || node.hasPrivateMethodInjections()) {
-                    ClassName accessorClass = ClassName.bestGuess(node.getAccessorClassName());
-                    staticInitBuilder.addStatement("$T.postConstruct($N)", accessorClass, fieldName);
-                } else {
-                    staticInitBuilder.addStatement("$N.$N()", fieldName, node.getPostConstructMethod());
-                }
+        // Always wrap instantiation, injection, and PostConstruct in existence flag check
+        // This ensures consistent behavior and proper lifecycle management
+        staticInitBuilder.add("if ($N) {\n", flagName);
+        staticInitBuilder.indent();
+        
+        // First assign the field
+        staticInitBuilder.addStatement("$N = $L", fieldName, initialization);
+        
+        // Add field injections using accessor
+        if (!fieldInjectionCode.isEmpty()) {
+            staticInitBuilder.add(fieldInjectionCode);
+        }
+        
+        // Add method injections
+        if (!methodInjectionCode.isEmpty()) {
+            staticInitBuilder.add(methodInjectionCode);
+        }
+        
+        // Add PostConstruct call
+        if (node.hasPostConstruct()) {
+            if (node.hasPrivateFieldInjections() || node.hasPrivateMethodInjections()) {
+                ClassName accessorClass = ClassName.bestGuess(node.getAccessorClassName());
+                staticInitBuilder.addStatement("$T.postConstruct($N)", accessorClass, fieldName);
+            } else {
+                staticInitBuilder.addStatement("$N.$N()", fieldName, node.getPostConstructMethod());
             }
         }
+        
+        staticInitBuilder.unindent();
+        staticInitBuilder.add("}\n");
     }
     
     private CodeBlock buildPostConstructInvocation(VeldNode node, String fieldName) {
@@ -490,34 +469,20 @@ public final class VeldSourceGenerator {
         ClassName accessorClass = ClassName.bestGuess(node.getAccessorClassName());
         
         for (VeldNode.FieldInjection field : privateFields) {
-            String depAccess = getVeldAccessExpression(field.getActualTypeName(), context);
-            if (depAccess != null) {
-                builder.addStatement("$T.inject$N($N, $N)", accessorClass, 
-                    capitalize(field.getFieldName()), fieldName, depAccess);
-            } else {
-                builder.addStatement("$T.inject$N($N, null)", accessorClass, 
-                    capitalize(field.getFieldName()), fieldName);
-            }
+            String depAccess = getVeldAccessExpression(field.getActualTypeName(), node, context);
+            builder.addStatement("$T.inject$N($N, $L)", accessorClass, 
+                capitalize(field.getFieldName()), fieldName, depAccess);
         }
         
         for (VeldNode.FieldInjection field : packagePrivateFields) {
-            String depAccess = getVeldAccessExpression(field.getActualTypeName(), context);
-            if (depAccess != null) {
-                builder.addStatement("$T.inject$N($N, $N)", accessorClass, 
-                    capitalize(field.getFieldName()), fieldName, depAccess);
-            } else {
-                builder.addStatement("$T.inject$N($N, null)", accessorClass, 
-                    capitalize(field.getFieldName()), fieldName);
-            }
+            String depAccess = getVeldAccessExpression(field.getActualTypeName(), node, context);
+            builder.addStatement("$T.inject$N($N, $L)", accessorClass, 
+                capitalize(field.getFieldName()), fieldName, depAccess);
         }
 
         for (VeldNode.FieldInjection field : publicFields) {
-            String depAccess = getVeldAccessExpression(field.getActualTypeName(), context);
-            if (depAccess != null) {
-                builder.addStatement("$N.$N = $N", fieldName, field.getFieldName(), depAccess);
-            } else {
-                builder.addStatement("$N.$N = null", fieldName, field.getFieldName());
-            }
+            String depAccess = getVeldAccessExpression(field.getActualTypeName(), node, context);
+            builder.addStatement("$N.$N = $L", fieldName, field.getFieldName(), depAccess);
         }
 
         return builder.build();
@@ -543,7 +508,7 @@ public final class VeldSourceGenerator {
                     builder.addStatement("$T.$N($N)", accessorClass, accessorMethod, instanceName);
                 } else {
                     List<String> paramNames = method.getParameters().stream()
-                            .map(p -> getVeldNameForParameter(p, context))
+                            .map(p -> getVeldNameForParameter(p, node, context))
                             .collect(Collectors.toList());
                     builder.addStatement("$T.$N($N, $L)", accessorClass, accessorMethod, instanceName,
                             String.join(", ", paramNames));
@@ -553,7 +518,7 @@ public final class VeldSourceGenerator {
                     builder.addStatement("$N.$N()", instanceName, method.getMethodName());
                 } else {
                     List<String> paramNames = method.getParameters().stream()
-                            .map(p -> getVeldNameForParameter(p, context))
+                            .map(p -> getVeldNameForParameter(p, node, context))
                             .collect(Collectors.toList());
                     builder.addStatement("$N.$N($L)", instanceName, method.getMethodName(),
                             String.join(", ", paramNames));
@@ -564,7 +529,41 @@ public final class VeldSourceGenerator {
         return builder.build();
     }
     
-    private void addShutdownMethod(TypeSpec.Builder classBuilder, List<VeldNode> singletons) {
+    /**
+     * Generates code to get a dependency or throw an exception if not available.
+     * This replaces silent null injection with explicit error throwing.
+     * 
+     * @param beanClassName The class name of the bean that needs the dependency
+     * @param fieldName The field name in the bean
+     * @param dependencyType The type of the dependency
+     * @param flagName The existence flag for the dependency
+     * @param depFieldName The field name of the dependency
+     * @return CodeBlock that gets the dependency or throws an exception
+     */
+    private CodeBlock getDependencyOrThrow(String beanClassName, String fieldName, 
+                                           String dependencyType, String flagName, String depFieldName) {
+        String beanSimpleName = beanClassName.substring(beanClassName.lastIndexOf('.') + 1);
+        String depSimpleName = dependencyType.substring(dependencyType.lastIndexOf('.') + 1);
+        
+        String message = "Required dependency '" + depSimpleName + "' not available for '" + beanSimpleName + "'";
+        return CodeBlock.of("requireDependency($N ? $N : null, $S)", 
+            flagName, depFieldName, message);
+    }
+    
+    /**
+     * Generates code to get a dependency or throw an exception if not available.
+     * This is used for unresolved dependencies (not found in the graph).
+     */
+    private CodeBlock getDependencyOrThrowUnresolved(String beanClassName, String dependencyType) {
+        String beanSimpleName = beanClassName.substring(beanClassName.lastIndexOf('.') + 1);
+        String depSimpleName = dependencyType.substring(dependencyType.lastIndexOf('.') + 1);
+        
+        String message = "Required dependency '" + depSimpleName + "' not found for '" + beanSimpleName 
+            + "' - ensure it is registered as a @Component or condition is met";
+        return CodeBlock.of("requireDependency(null, $S)", message);
+    }
+    
+    private void addShutdownMethod(TypeSpec.Builder classBuilder, List<VeldNode> singletons, BeanExistenceGraph graph) {
         List<VeldNode> preDestroyNodes = new ArrayList<>();
         for (int i = singletons.size() - 1; i >= 0; i--) {
             VeldNode node = singletons.get(i);
@@ -576,22 +575,37 @@ public final class VeldSourceGenerator {
         MethodSpec.Builder shutdownBuilder = MethodSpec.methodBuilder("shutdown")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .addJavadoc("Shuts down the Veld container and invokes @PreDestroy methods.\n\n" +
+                            "<p>This method is <b>idempotent</b>: calling it multiple times is safe\n" +
+                            "and will only invoke @PreDestroy methods once.</p>\n" +
                             "<p>@PreDestroy methods are called in reverse dependency order,\n" +
-                            "ensuring dependents are destroyed before their dependencies.</p>\n")
-                .addStatement("$N.set(true)", "shutdownInitiated");
+                            "ensuring dependents are destroyed before their dependencies.</p>\n" +
+                            "<p>Individual @PreDestroy failures are isolated and do not prevent\n" +
+                            "other beans from being destroyed.</p>\n")
+                .addComment("Idempotency check - return early if already shutdown");
+        shutdownBuilder.beginControlFlow("if ($N.getAndSet(true))", "shutdownInitiated");
+        shutdownBuilder.addStatement("return");
+        shutdownBuilder.endControlFlow();
         
         if (preDestroyNodes.isEmpty()) {
             shutdownBuilder.addStatement("// No @PreDestroy methods to invoke");
         } else {
-            shutdownBuilder.addStatement("// Invoke @PreDestroy methods in reverse order");
+            shutdownBuilder.addStatement("// Invoke @PreDestroy methods in reverse order (only for existing beans)");
             for (VeldNode node : preDestroyNodes) {
+                String nodeFlagName = graph.getExistenceFlagName(node.getClassName());
                 shutdownBuilder.addStatement("// $S", node.getClassName());
+                shutdownBuilder.beginControlFlow("if ($N)", nodeFlagName);
+                shutdownBuilder.beginControlFlow("try");
                 if (node.hasPrivateFieldInjections() || node.hasPrivateMethodInjections()) {
                     ClassName accessorClass = ClassName.bestGuess(node.getAccessorClassName());
                     shutdownBuilder.addStatement("$T.preDestroy($N)", accessorClass, node.getVeldName());
                 } else {
                     shutdownBuilder.addStatement("$N.$N()", node.getVeldName(), node.getPreDestroyMethod());
                 }
+                shutdownBuilder.endControlFlow();
+                shutdownBuilder.beginControlFlow("catch ($T e)", Exception.class);
+                shutdownBuilder.addStatement("// Log error and continue with other beans");
+                shutdownBuilder.endControlFlow();
+                shutdownBuilder.endControlFlow();
             }
         }
         
@@ -719,7 +733,7 @@ public final class VeldSourceGenerator {
             if (i > 0) {
                 argsBuilder.add(", ");
             }
-            argsBuilder.add("$L", buildDependencyExpression(params.get(i), context));
+            argsBuilder.add("$L", buildDependencyExpression(params.get(i), node, context));
         }
 
         return CodeBlock.of("new $T($L)", type, argsBuilder.build());
@@ -727,8 +741,10 @@ public final class VeldSourceGenerator {
     
     /**
      * Builds dependency expression for a parameter.
+     * Throws an exception if a required dependency is not available.
      */
-    private CodeBlock buildDependencyExpression(VeldNode.ParameterInfo param, GenerationContext context) {
+    private CodeBlock buildDependencyExpression(VeldNode.ParameterInfo param, VeldNode ownerNode, 
+                                                 GenerationContext context) {
         if (param.isValueInjection()) {
             return CodeBlock.of("null /* @Value */");
         }
@@ -754,36 +770,54 @@ public final class VeldSourceGenerator {
         VeldNode depNode = nodeMap.get(param.getActualTypeName());
         if (depNode != null) {
             String flagName = GenerationContext.getExistenceFlagName(depNode.getClassName());
-            return CodeBlock.of("($N ? $N : null)", flagName, depNode.getVeldName());
+            return getDependencyOrThrow(ownerNode.getClassName(), ownerNode.getVeldName(),
+                depNode.getClassName(), flagName, depNode.getVeldName());
         }
-        return CodeBlock.of("null /* UNRESOLVED */");
+        return getDependencyOrThrowUnresolved(ownerNode.getClassName(), param.getActualTypeName());
     }
     
     /**
      * Gets the Veld access expression for a given type.
+     * Returns code that validates the dependency and throws if not available.
      */
-    private String getVeldAccessExpression(String typeName, GenerationContext context) {
+    private String getVeldAccessExpression(String typeName, VeldNode ownerNode, GenerationContext context) {
         VeldNode depNode = nodeMap.get(typeName);
         if (depNode != null) {
             if (depNode.isSingleton()) {
-                return depNode.getVeldName();
+                String flagName = GenerationContext.getExistenceFlagName(depNode.getClassName());
+                String message = "Required dependency '" + depNode.getVeldName() 
+                    + "' not available for '" + ownerNode.getVeldName() + "'";
+                return "requireDependency(" + flagName + " ? " + depNode.getVeldName() + " : null, \"" + message + "\")";
             } else {
                 return depNode.getVeldName() + "()";
             }
         }
-        return null;
+        // Dependency not found in the graph - generate code that throws at runtime
+        String message = "Required dependency '" + typeName.substring(typeName.lastIndexOf('.') + 1) 
+            + "' not found for '" + ownerNode.getClassName() 
+            + "' - ensure it is registered as a @Component or condition is met";
+        return "requireDependency(null, \"" + message + "\")";
     }
     
     /**
      * Gets the Veld name for a parameter.
+     * Returns code that validates the dependency and throws if not available.
      */
-    private String getVeldNameForParameter(VeldNode.ParameterInfo param, GenerationContext context) {
+    private String getVeldNameForParameter(VeldNode.ParameterInfo param, VeldNode ownerNode, GenerationContext context) {
         VeldNode depNode = nodeMap.get(param.getActualTypeName());
         if (depNode != null) {
             String flagName = GenerationContext.getExistenceFlagName(depNode.getClassName());
-            return "(" + flagName + " ? " + depNode.getVeldName() + " : null)";
+            String beanSimpleName = ownerNode.getClassName().substring(ownerNode.getClassName().lastIndexOf('.') + 1);
+            String depSimpleName = depNode.getClassName().substring(depNode.getClassName().lastIndexOf('.') + 1);
+            String message = "Required dependency '" + depSimpleName + "' not available for '" 
+                + beanSimpleName + "'";
+            return "requireDependency(" + flagName + " ? " + depNode.getVeldName() + " : null, \"" + message + "\")";
         }
-        return null;
+        // Dependency not found in the graph - generate code that throws at runtime
+        String message = "Required dependency '" + param.getActualTypeName() 
+            + "' not found for '" + ownerNode.getClassName() 
+            + "' - ensure it is registered as a @Component or condition is met";
+        return "requireDependency(null, \"" + message + "\")";
     }
 
     /**
@@ -929,6 +963,27 @@ public final class VeldSourceGenerator {
                 .add("<li>@PreDestroy: invoked in shutdown() method (reverse order)</li>\n")
                 .add("</ul>\n")
                 .build();
+    }
+    
+    /**
+     * Adds a helper method for dependency validation.
+     * This method throws an IllegalStateException if the dependency is null.
+     */
+    private void addDependencyValidatorMethod(TypeSpec.Builder classBuilder) {
+        TypeVariableName T = TypeVariableName.get("T");
+        MethodSpec requireDependency = MethodSpec.methodBuilder("requireDependency")
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
+                .addTypeVariable(T)
+                .addParameter(T, "dependency")
+                .addParameter(ClassName.get(String.class), "message")
+                .returns(T)
+                .addCode("// Validate required dependency\n")
+                .beginControlFlow("if ($N == null)", "dependency")
+                .addStatement("throw new $T($N)", IllegalStateException.class, "message")
+                .endControlFlow()
+                .addStatement("return $N", "dependency")
+                .build();
+        classBuilder.addMethod(requireDependency);
     }
     
     private MethodSpec createPrivateConstructor() {
