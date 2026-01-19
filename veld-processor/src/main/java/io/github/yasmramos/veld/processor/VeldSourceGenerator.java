@@ -26,6 +26,7 @@ public final class VeldSourceGenerator {
     private final String veldClassName;
     private final ClassName veldClass;
     private final Map<String, Integer> levelCache = new HashMap<>();
+    private String lastSectionComment = "";
     
     private static final Map<String, String> SECTION_COMMENTS = new LinkedHashMap<>();
     static {
@@ -58,6 +59,7 @@ public final class VeldSourceGenerator {
         this.veldClassName = className;
         this.veldClass = ClassName.get(veldPackageName, veldClassName);
         this.nodeMap = buildNodeMap();
+        this.lastSectionComment = "";
     }
     
     private Map<String, VeldNode> buildNodeMap() {
@@ -510,6 +512,13 @@ public final class VeldSourceGenerator {
         classBuilder.addField(fieldBuilder.build());
 
         // Accumulate initialization code in the shared static block
+        // Add section comment if this is a new section
+        String sectionComment = getSectionForNode(node);
+        if (!sectionComment.equals(lastSectionComment)) {
+            staticInitBuilder.add("\n$L\n", sectionComment);
+            lastSectionComment = sectionComment;
+        }
+        
         // Comment header for this component
         staticInitBuilder.add("// --- $N ---\n", fieldName);
 
@@ -786,6 +795,16 @@ public final class VeldSourceGenerator {
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .returns(returnType);
+
+        // Add section comment if this is a new section
+        String sectionComment = getSectionForNode(node);
+        if (!sectionComment.equals(lastSectionComment)) {
+            staticInitBuilder.add("\n$L\n", sectionComment);
+            lastSectionComment = sectionComment;
+        }
+        
+        // Add component comment
+        staticInitBuilder.add("// --- Factory: $N ---\n", methodName);
 
         // If has conditions, add condition check at the start
         if (hasConditions) {
