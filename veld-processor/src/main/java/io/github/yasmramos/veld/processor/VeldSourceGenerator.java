@@ -539,14 +539,7 @@ public final class VeldSourceGenerator {
     
     /**
      * Generates code to get a dependency or throw an exception if not available.
-     * This replaces silent null injection with explicit error throwing.
-     * 
-     * @param beanClassName The class name of the bean that needs the dependency
-     * @param fieldName The field name in the bean
-     * @param dependencyType The type of the dependency
-     * @param flagName The existence flag for the dependency
-     * @param depFieldName The field name of the dependency
-     * @return CodeBlock that gets the dependency or throws an exception
+     * This is used for dependencies that exist in the graph but may be conditional.
      */
     private CodeBlock getDependencyOrThrow(String beanClassName, String fieldName, 
                                            String dependencyType, String flagName, String depFieldName) {
@@ -559,27 +552,24 @@ public final class VeldSourceGenerator {
     }
     
     /**
-     * Generates code to get a dependency or throw an exception if not available.
-     * This is used for unresolved dependencies (not found in the graph).
+     * For required dependencies not found in the graph, this should NOT generate code.
+     * Instead, validateDependencies() should have already caught this and failed compilation.
+     * This method should never be called for required dependencies.
      */
     private CodeBlock getDependencyOrThrowUnresolved(String beanClassName, String dependencyType) {
         String beanSimpleName = beanClassName.substring(beanClassName.lastIndexOf('.') + 1);
         String depSimpleName = dependencyType.substring(dependencyType.lastIndexOf('.') + 1);
         
-        String message = "Required dependency '" + depSimpleName + "' not found for '" + beanSimpleName 
-            + "' - ensure it is registered as a @Component or condition is met";
-        return CodeBlock.of("requireDependency(null, $S)", message);
+        // This is a compile-time error, not runtime
+        error("Required dependency '" + depSimpleName + "' not found for '" + beanSimpleName + "'.\n" +
+              "Ensure the dependency is registered as a @Component or use @Optional for optional dependencies.");
+        
+        // Return fallback code (should never be executed due to error above)
+        return CodeBlock.of("requireDependency(null, $S)", 
+            "Required dependency not found: " + dependencyType);
     }
     
     private void addShutdownMethod(TypeSpec.Builder classBuilder, List<VeldNode> singletons, BeanExistenceGraph graph) {
-        List<VeldNode> preDestroyNodes = new ArrayList<>();
-        for (int i = singletons.size() - 1; i >= 0; i--) {
-            VeldNode node = singletons.get(i);
-            if (node.hasPreDestroy() || node.isAutoCloseable()) {
-                preDestroyNodes.add(node);
-            }
-        }
-        
         MethodSpec.Builder shutdownBuilder = MethodSpec.methodBuilder("shutdown")
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .addJavadoc("Shuts down the Veld container and invokes @PreDestroy methods.\n\n" +
@@ -590,41 +580,42 @@ public final class VeldSourceGenerator {
                             "<p>Individual destruction failures are isolated and do not prevent\n" +
                             "other beans from being destroyed.</p>\n")
                 .addComment("Idempotency check - return early if already shutdown");
-        shutdownBuilder.beginControlFlow("if ($N.getAndSet(true))", "shutdownInitiated");
+        shutdownBuilder.beginControlFlow("if (!$N.compareAndSet(false, true))", "shutdownInitiated");
         shutdownBuilder.addStatement("return");
         shutdownBuilder.endControlFlow();
         
-        if (preDestroyNodes.isEmpty()) {
-            shutdownBuilder.addStatement("// No @PreDestroy or AutoCloseable beans to invoke");
-        } else {
-            shutdownBuilder.addStatement("// Invoke @PreDestroy and close() in reverse order (only for existing beans)");
-            for (VeldNode node : preDestroyNodes) {
-                String nodeFlagName = graph.getExistenceFlagName(node.getClassName());
-                shutdownBuilder.addStatement("// $S", node.getClassName());
-                shutdownBuilder.beginControlFlow("if ($N)", nodeFlagName);
-                shutdownBuilder.beginControlFlow("try");
-                
-                // Call @PreDestroy if present
-                if (node.hasPreDestroy()) {
-                    if (node.hasPrivateFieldInjections() || node.hasPrivateMethodInjections()) {
-                        ClassName accessorClass = ClassName.bestGuess(node.getAccessorClassName());
-                        shutdownBuilder.addStatement("$T.preDestroy($N)", accessorClass, node.getVeldName());
-                    } else {
-                        shutdownBuilder.addStatement("$N.$N()", node.getVeldName(), node.getPreDestroyMethod());
-                    }
+        // Destroy ALL beans in reverse order (same order as creation)
+        // Each bean is checked for existence before cleanup
+        shutdownBuilder.addStatement("// Destroy all beans in reverse dependency order");
+        for (int i = singletons.size() - 1; i >= 0; i--) {
+            VeldNode node = singletons.get(i);
+            String nodeFlagName = graph.getExistenceFlagName(node.getClassName());
+            String fieldName = node.getVeldName();
+            
+            shutdownBuilder.addStatement("// $S", node.getClassName());
+            shutdownBuilder.beginControlFlow("if ($N)", nodeFlagName);
+            shutdownBuilder.beginControlFlow("try");
+            
+            // Call @PreDestroy if present
+            if (node.hasPreDestroy()) {
+                if (node.hasPrivateFieldInjections() || node.hasPrivateMethodInjections()) {
+                    ClassName accessorClass = ClassName.bestGuess(node.getAccessorClassName());
+                    shutdownBuilder.addStatement("$T.preDestroy($N)", accessorClass, fieldName);
+                } else {
+                    shutdownBuilder.addStatement("$N.$N()", fieldName, node.getPreDestroyMethod());
                 }
-                
-                // Call close() if bean is AutoCloseable
-                if (node.isAutoCloseable()) {
-                    shutdownBuilder.addStatement("$N.close()", node.getVeldName());
-                }
-                
-                shutdownBuilder.endControlFlow();
-                shutdownBuilder.beginControlFlow("catch ($T e)", Exception.class);
-                shutdownBuilder.addStatement("// Log error and continue with other beans");
-                shutdownBuilder.endControlFlow();
-                shutdownBuilder.endControlFlow();
             }
+            
+            // Call close() if bean is AutoCloseable
+            if (node.isAutoCloseable()) {
+                shutdownBuilder.addStatement("$N.close()", fieldName);
+            }
+            
+            shutdownBuilder.endControlFlow();
+            shutdownBuilder.beginControlFlow("catch ($T e)", Exception.class);
+            shutdownBuilder.addStatement("// Log error and continue with other beans");
+            shutdownBuilder.endControlFlow();
+            shutdownBuilder.endControlFlow();
         }
         
         classBuilder.addMethod(shutdownBuilder.build());
@@ -645,7 +636,9 @@ public final class VeldSourceGenerator {
                                         BeanExistenceGraph.ResolutionResult result) {
         ClassName returnType = ClassName.bestGuess(node.getActualClassName());
         String methodName = node.getVeldName();
+        String fieldName = node.getVeldName();
         boolean isConditional = result.isConditional(node.getClassName());
+        String flagName = result.getExistenceFlagName(node.getClassName());
         
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
@@ -656,11 +649,23 @@ public final class VeldSourceGenerator {
             ClassName.get("java.lang", "IllegalStateException"), methodName);
         methodBuilder.endControlFlow();
         
+        // For conditional beans: check flag first, then field nullity
         if (isConditional) {
-            methodBuilder.addStatement("if ($N == null) return null", methodName);
+            methodBuilder.beginControlFlow("if (!$N)", flagName);
+            methodBuilder.addStatement("return null");
+            methodBuilder.endControlFlow();
+            methodBuilder.addStatement("if ($N == null) return null", fieldName);
+        } else {
+            // For non-conditional beans: verify the bean was actually created
+            // This handles cases where initialization failed silently
+            methodBuilder.addComment("Verify bean was successfully initialized");
+            methodBuilder.beginControlFlow("if ($N == null)", fieldName);
+            methodBuilder.addStatement("throw new $T(\"Bean failed to initialize: $N\")",
+                ClassName.get("java.lang", "IllegalStateException"), methodName);
+            methodBuilder.endControlFlow();
         }
         
-        methodBuilder.addStatement("return $N", methodName);
+        methodBuilder.addStatement("return $N", fieldName);
         
         StringBuilder javadoc = new StringBuilder("Returns the singleton instance of $N.\n");
         if (node.hasPostConstruct()) {
@@ -670,7 +675,11 @@ public final class VeldSourceGenerator {
             javadoc.append("<p><b>Lifecycle:</b> @PreDestroy will be invoked on shutdown().</p>\n");
         }
         if (isConditional) {
-            javadoc.append("\n<p><b>Conditional:</b> May return null if condition is not met.</p>\n");
+            javadoc.append("\n<p><b>Conditional:</b> This bean is conditional.</p>\n");
+            javadoc.append("<p><b>Returns:</b> The bean instance if condition is met, or <code>null</code> otherwise.</p>\n");
+            javadoc.append("<p><b>Note:</b> Check conditions before use or use Optional pattern for safer access.</p>\n");
+        } else {
+            javadoc.append("<p><b>Lifecycle:</b> Guaranteed to be initialized before first access.</p>\n");
         }
         
         javadoc.append("\n<p><b>Thread-safe:</b> This method is safe to call from multiple threads.</p>\n");
