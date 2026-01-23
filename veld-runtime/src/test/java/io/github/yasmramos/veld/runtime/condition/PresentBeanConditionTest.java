@@ -202,4 +202,71 @@ class PresentBeanConditionTest {
         assertFalse(presentCondition.matches(mockContext));
         assertTrue(missingCondition.matches(mockContext));
     }
+
+    @Nested
+    @DisplayName("Failure Reason Tests")
+    class FailureReasonTests {
+
+        @Test
+        @DisplayName("Should list missing bean types")
+        void shouldListMissingBeanTypes() {
+            when(mockContext.containsBeanType("com.example.BeanA")).thenReturn(false);
+            when(mockContext.containsBeanType("com.example.BeanB")).thenReturn(false);
+
+            PresentBeanCondition condition = PresentBeanCondition.forTypes(
+                "com.example.BeanA",
+                "com.example.BeanB"
+            );
+
+            String reason = condition.getFailureReason(mockContext);
+
+            assertTrue(reason.contains("Required beans not found"));
+            assertTrue(reason.contains("Missing bean types"));
+            assertTrue(reason.contains("com.example.BeanA"));
+            assertTrue(reason.contains("com.example.BeanB"));
+        }
+
+        @Test
+        @DisplayName("Should list missing bean names")
+        void shouldListMissingBeanNames() {
+            when(mockContext.containsBeanName("beanA")).thenReturn(false);
+            when(mockContext.containsBeanName("beanB")).thenReturn(false);
+
+            PresentBeanCondition condition = PresentBeanCondition.forNames("beanA", "beanB");
+
+            String reason = condition.getFailureReason(mockContext);
+
+            assertTrue(reason.contains("Missing bean names"));
+            assertTrue(reason.contains("beanA"));
+            assertTrue(reason.contains("beanB"));
+        }
+
+        @Test
+        @DisplayName("Should return empty when all beans present")
+        void shouldReturnEmptyWhenAllBeansPresent() {
+            when(mockContext.containsBeanType("com.example.Bean")).thenReturn(true);
+
+            PresentBeanCondition condition = PresentBeanCondition.forTypes("com.example.Bean");
+
+            String reason = condition.getFailureReason(mockContext);
+
+            assertEquals("", reason);
+        }
+
+        @Test
+        @DisplayName("Should indicate ANY strategy when used")
+        void shouldIndicateAnyStrategy() {
+            when(mockContext.containsBeanType("com.example.BeanA")).thenReturn(false);
+
+            PresentBeanCondition condition = new PresentBeanCondition(
+                Arrays.asList("com.example.BeanA"),
+                Collections.emptyList(),
+                PresentBeanCondition.MatchStrategy.ANY
+            );
+
+            String reason = condition.getFailureReason(mockContext);
+
+            assertTrue(reason.contains("strategy=ANY"));
+        }
+    }
 }

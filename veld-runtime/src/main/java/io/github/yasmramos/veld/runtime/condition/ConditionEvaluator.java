@@ -170,22 +170,35 @@ public final class ConditionEvaluator {
     }
     
     /**
-     * Gets a description of all failing conditions.
-     * 
+     * Gets a detailed description of all failing conditions.
+     *
      * @param context the condition context
-     * @return description of failing conditions, or empty string if all pass
+     * @return detailed description of failing conditions, or empty string if all pass
      */
     public String getFailureMessage(ConditionContext context) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Component '").append(componentName).append("' excluded due to:\n");
-        
+        boolean hasFailures = false;
+
         for (Condition condition : conditions) {
             if (!condition.matches(context)) {
-                sb.append("  - ").append(condition.getDescription()).append("\n");
+                if (!hasFailures) {
+                    sb.append("Component '").append(componentName).append("' excluded due to:\n\n");
+                    hasFailures = true;
+                }
+
+                // Get detailed failure reason
+                String reason = condition.getFailureReason(context);
+                if (reason != null && !reason.isEmpty()) {
+                    sb.append(reason);
+                } else {
+                    // Fallback to description if getFailureReason not implemented
+                    sb.append(condition.getDescription());
+                }
+                sb.append("\n");
             }
         }
-        
-        return sb.toString();
+
+        return hasFailures ? sb.toString() : "";
     }
     
     /**

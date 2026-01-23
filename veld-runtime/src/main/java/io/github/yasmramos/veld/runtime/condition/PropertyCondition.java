@@ -58,7 +58,37 @@ public final class PropertyCondition implements Condition {
         sb.append(")");
         return sb.toString();
     }
-    
+
+    @Override
+    public String getFailureReason(ConditionContext context) {
+        String actualValue = context.getProperty(propertyName);
+
+        // Property is missing
+        if (actualValue == null) {
+            if (matchIfMissing) {
+                return ""; // Should have matched, not a failure
+            }
+            return String.format(
+                "Property '%s' is not set (matchIfMissing=false)",
+                propertyName
+            );
+        }
+
+        // Property exists but value doesn't match
+        if (expectedValue != null && !expectedValue.isEmpty()) {
+            if (!expectedValue.equals(actualValue)) {
+                return String.format(
+                    "Property '%s' has value '%s' but expected '%s'",
+                    propertyName,
+                    actualValue,
+                    expectedValue
+                );
+            }
+        }
+
+        return ""; // Condition passed
+    }
+
     public String getPropertyName() {
         return propertyName;
     }

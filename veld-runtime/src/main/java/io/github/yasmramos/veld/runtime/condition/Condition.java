@@ -21,8 +21,19 @@ public interface Condition {
     /**
      * Returns a human-readable description of this condition.
      * Used for debugging and error messages.
-     * 
+     *
      * @return description of the condition
      */
     String getDescription();
+
+    /**
+     * Returns a detailed, context-aware explanation of why this condition failed.
+     * This method should only be called when matches(context) returns false.
+     *
+     * @param context the condition evaluation context
+     * @return a detailed failure explanation, or empty string if condition passed
+     */
+    default String getFailureReason(ConditionContext context) {
+        return getDescription() + " (condition not satisfied)";
+    }
 }

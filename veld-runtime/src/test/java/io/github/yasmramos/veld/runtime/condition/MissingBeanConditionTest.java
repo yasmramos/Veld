@@ -162,4 +162,67 @@ class MissingBeanConditionTest {
         
         assertTrue(condition.matches(mockContext));
     }
+
+    @Nested
+    @DisplayName("Failure Reason Tests")
+    class FailureReasonTests {
+
+        @Test
+        @DisplayName("Should list found bean types that should be absent")
+        void shouldListFoundBeanTypes() {
+            when(mockContext.containsBeanType("com.example.DataSource")).thenReturn(true);
+
+            MissingBeanCondition condition = MissingBeanCondition.forTypes("com.example.DataSource");
+
+            String reason = condition.getFailureReason(mockContext);
+
+            assertTrue(reason.contains("Found beans that should be absent"));
+            assertTrue(reason.contains("Found bean types"));
+            assertTrue(reason.contains("com.example.DataSource"));
+        }
+
+        @Test
+        @DisplayName("Should list found bean names that should be absent")
+        void shouldListFoundBeanNames() {
+            when(mockContext.containsBeanName("myBean")).thenReturn(true);
+
+            MissingBeanCondition condition = MissingBeanCondition.forNames("myBean");
+
+            String reason = condition.getFailureReason(mockContext);
+
+            assertTrue(reason.contains("Found bean names"));
+            assertTrue(reason.contains("myBean"));
+        }
+
+        @Test
+        @DisplayName("Should return empty when no beans found")
+        void shouldReturnEmptyWhenNoBeansFound() {
+            when(mockContext.containsBeanType("com.example.Missing")).thenReturn(false);
+
+            MissingBeanCondition condition = MissingBeanCondition.forTypes("com.example.Missing");
+
+            String reason = condition.getFailureReason(mockContext);
+
+            assertEquals("", reason);
+        }
+
+        @Test
+        @DisplayName("Should list both types and names when both found")
+        void shouldListBothTypesAndNamesWhenBothFound() {
+            when(mockContext.containsBeanType("com.example.Type")).thenReturn(true);
+            when(mockContext.containsBeanName("beanName")).thenReturn(true);
+
+            MissingBeanCondition condition = new MissingBeanCondition(
+                List.of("com.example.Type"),
+                List.of("beanName")
+            );
+
+            String reason = condition.getFailureReason(mockContext);
+
+            assertTrue(reason.contains("Found bean types"));
+            assertTrue(reason.contains("com.example.Type"));
+            assertTrue(reason.contains("Found bean names"));
+            assertTrue(reason.contains("beanName"));
+        }
+    }
 }

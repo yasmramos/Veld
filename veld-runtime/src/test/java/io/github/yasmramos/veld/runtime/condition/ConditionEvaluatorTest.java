@@ -174,4 +174,98 @@ class ConditionEvaluatorTest {
         assertTrue(failureMessage.contains("testComponent"));
         assertTrue(failureMessage.contains("Test condition failed"));
     }
+
+    @Nested
+    @DisplayName("Detailed Failure Message Tests")
+    class DetailedFailureMessageTests {
+
+        @Test
+        @DisplayName("Should use getFailureReason for detailed messages")
+        void shouldUseGetFailureReasonForDetailedMessages() {
+            Condition condition = new Condition() {
+                @Override
+                public boolean matches(ConditionContext context) {
+                    return false;
+                }
+
+                @Override
+                public String getDescription() {
+                    return "@ConditionalOnTest";
+                }
+
+                @Override
+                public String getFailureReason(ConditionContext context) {
+                    return "Test failed because the magic number was 42 but expected 24";
+                }
+            };
+
+            ConditionEvaluator evaluator = new ConditionEvaluator("testComponent");
+            evaluator.addCondition(condition);
+
+            String failureMessage = evaluator.getFailureMessage(mockContext);
+
+            assertTrue(failureMessage.contains("testComponent"));
+            assertTrue(failureMessage.contains("magic number was 42 but expected 24"));
+        }
+
+        @Test
+        @DisplayName("Should combine multiple failure reasons")
+        void shouldCombineMultipleFailureReasons() {
+            when(mockContext.isClassPresent("com.fake.ClassA")).thenReturn(false);
+            when(mockContext.getProperty("missing.prop")).thenReturn(null);
+
+            ConditionEvaluator evaluator = new ConditionEvaluator("testComponent");
+            evaluator.addClassCondition("com.fake.ClassA");
+            evaluator.addPropertyCondition("missing.prop", "value", false);
+
+            String failureMessage = evaluator.getFailureMessage(mockContext);
+
+            assertTrue(failureMessage.contains("testComponent"));
+            assertTrue(failureMessage.contains("Required class not found"));
+            assertTrue(failureMessage.contains("com.fake.ClassA"));
+            assertTrue(failureMessage.contains("missing.prop"));
+            assertTrue(failureMessage.contains("not set"));
+        }
+
+        @Test
+        @DisplayName("Should return empty string when all conditions pass")
+        void shouldReturnEmptyWhenAllPass() {
+            when(mockContext.isClassPresent("java.lang.String")).thenReturn(true);
+
+            ConditionEvaluator evaluator = new ConditionEvaluator("testComponent");
+            evaluator.addClassCondition("java.lang.String");
+
+            String failureMessage = evaluator.getFailureMessage(mockContext);
+
+            assertEquals("", failureMessage);
+        }
+
+        @Test
+        @DisplayName("Should fallback to description when getFailureReason returns empty")
+        void shouldFallbackToDescriptionWhenReasonEmpty() {
+            Condition condition = new Condition() {
+                @Override
+                public boolean matches(ConditionContext context) {
+                    return false;
+                }
+
+                @Override
+                public String getDescription() {
+                    return "@CustomCondition(fallback)";
+                }
+
+                @Override
+                public String getFailureReason(ConditionContext context) {
+                    return ""; // Empty, should fallback
+                }
+            };
+
+            ConditionEvaluator evaluator = new ConditionEvaluator("testComponent");
+            evaluator.addCondition(condition);
+
+            String failureMessage = evaluator.getFailureMessage(mockContext);
+
+            assertTrue(failureMessage.contains("@CustomCondition(fallback)"));
+        }
+    }
 }
