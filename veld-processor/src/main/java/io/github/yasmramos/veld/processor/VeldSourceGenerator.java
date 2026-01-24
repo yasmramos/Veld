@@ -7,6 +7,7 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -161,6 +162,15 @@ public final class VeldSourceGenerator {
             ClassName.get("java.lang", "String"), "lifecycleComment")
             .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
             .initializer("$S", "Lifecycle tracking: PostConstruct invoked during static initialization, PreDestroy via shutdown()")
+            .build());
+        
+        // Bean state tracking map
+        classBuilder.addField(FieldSpec.builder(
+            ParameterizedTypeName.get(ClassName.get(Map.class), ClassName.get(String.class), 
+                ClassName.get("io.github.yasmramos.veld.annotation", "BeanState")), 
+            "beanStates", Modifier.FINAL)
+            .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
+            .initializer("new $T()", ClassName.get(ConcurrentHashMap.class))
             .build());
         
         // Add dependency validation helper method
@@ -408,6 +418,10 @@ public final class VeldSourceGenerator {
         // First assign the field
         staticInitBuilder.addStatement("$N = $L", fieldName, initialization);
         
+        // Register bean state as CREATED
+        staticInitBuilder.addStatement("beanStates.put($S, $T.CREATED)", node.getVeldName(), 
+            ClassName.get("io.github.yasmramos.veld.annotation", "BeanState"));
+        
         // Add field injections using accessor
         if (!fieldInjectionCode.isEmpty()) {
             staticInitBuilder.add(fieldInjectionCode);
@@ -602,6 +616,11 @@ public final class VeldSourceGenerator {
             
             shutdownBuilder.addStatement("// $S", node.getClassName());
             shutdownBuilder.beginControlFlow("if ($N)", nodeFlagName);
+            
+            // Set state to DESTROYING before destruction
+            shutdownBuilder.addStatement("beanStates.put($S, $T.DESTROYING)", fieldName,
+                ClassName.get("io.github.yasmramos.veld.annotation", "BeanState"));
+            
             shutdownBuilder.beginControlFlow("try");
             
             // Call @PreDestroy if present
@@ -623,6 +642,11 @@ public final class VeldSourceGenerator {
             shutdownBuilder.beginControlFlow("catch ($T e)", Exception.class);
             shutdownBuilder.addStatement("// Log error and continue with other beans");
             shutdownBuilder.endControlFlow();
+            
+            // Set state to DESTROYED after successful destruction
+            shutdownBuilder.addStatement("beanStates.put($S, $T.DESTROYED)", fieldName,
+                ClassName.get("io.github.yasmramos.veld.annotation", "BeanState"));
+            
             shutdownBuilder.endControlFlow();
         }
         
@@ -634,6 +658,15 @@ public final class VeldSourceGenerator {
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .returns(boolean.class)
                 .addStatement("return $N.get()", "shutdownInitiated")
+                .build());
+        
+        // Add getBeanState method
+        classBuilder.addMethod(MethodSpec.methodBuilder("getBeanState")
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                .returns(ClassName.get("io.github.yasmramos.veld.annotation", "BeanState"))
+                .addParameter(ClassName.get(String.class), "beanName")
+                .addStatement("return beanStates.getOrDefault(beanName, $T.DECLARED)",
+                    ClassName.get("io.github.yasmramos.veld.annotation", "BeanState"))
                 .build());
     }
     

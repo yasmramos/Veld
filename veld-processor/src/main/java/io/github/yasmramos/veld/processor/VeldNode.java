@@ -1,5 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
+import io.github.yasmramos.veld.annotation.BeanState;
 import javax.lang.model.element.TypeElement;
 import java.util.ArrayList;
 import java.util.List;
@@ -93,7 +94,13 @@ public final class VeldNode {
      * If true, close() will be called during shutdown.
      */
     private boolean isAutoCloseable;
-
+    
+    /**
+     * The current state of this bean in the lifecycle.
+     * Tracks: DECLARED → CREATED → USABLE → DESTROYED
+     */
+    private BeanState beanState = BeanState.DECLARED;
+    
     /**
      * Creates a new VeldNode.
      * 
@@ -456,7 +463,116 @@ public final class VeldNode {
                 "className='" + className + '\'' +
                 ", veldName='" + veldName + '\'' +
                 ", scope=" + scope +
+                ", state=" + beanState +
                 '}';
+    }
+    
+    // ===== Bean State Management =====
+    
+    /**
+     * Gets the current state of this bean in the lifecycle.
+     * 
+     * @return the current bean state
+     */
+    public BeanState getBeanState() {
+        return beanState;
+    }
+    
+    /**
+     * Sets the current state of this bean.
+     * Validates state transitions before applying.
+     * 
+     * @param state the new state
+     * @throws IllegalStateException if the state transition is invalid
+     */
+    public void setBeanState(BeanState state) {
+        if (!beanState.canTransitionTo(state)) {
+            throw new IllegalStateException(
+                "Invalid bean state transition: cannot move from " + beanState + " to " + state +
+                " for bean " + veldName);
+        }
+        this.beanState = state;
+    }
+    
+    /**
+     * Marks the bean as created (transition from DECLARED to CREATED).
+     * 
+     * @throws IllegalStateException if not in DECLARED state
+     */
+    public void markAsCreated() {
+        setBeanState(BeanState.CREATED);
+    }
+    
+    /**
+     * Marks the bean as usable (transition from CREATED to USABLE).
+     * This is called after @PostConstruct completes successfully.
+     * 
+     * @throws IllegalStateException if not in CREATED state
+     */
+    public void markAsUsable() {
+        setBeanState(BeanState.USABLE);
+    }
+    
+    /**
+     * Marks the bean as destroyed (transition from USABLE to DESTROYED).
+     * This is called after @PreDestroy completes.
+     * 
+     * @throws IllegalStateException if not in USABLE state
+     */
+    public void markAsDestroyed() {
+        setBeanState(BeanState.DESTROYED);
+    }
+    
+    /**
+     * Marks the bean as failed (transition to CREATION_FAILED).
+     * This is called if an exception occurs during initialization.
+     * 
+     * @param error the error message describing the failure
+     * @throws IllegalStateException if not in a valid state for failure
+     */
+    public void markAsFailed(String error) {
+        if (beanState == BeanState.DESTROYED || beanState == BeanState.CREATION_FAILED) {
+            throw new IllegalStateException(
+                "Cannot mark bean as failed - already in terminal state: " + beanState);
+        }
+        this.beanState = BeanState.CREATION_FAILED;
+    }
+    
+    /**
+     * Checks if this bean is in a usable state.
+     * A usable bean has been fully initialized (created, dependencies injected, @PostConstruct called).
+     * 
+     * @return true if the bean is usable
+     */
+    public boolean isUsable() {
+        return beanState.isUsable();
+    }
+    
+    /**
+     * Checks if this bean has been destroyed.
+     * 
+     * @return true if the bean is destroyed
+     */
+    public boolean isDestroyed() {
+        return beanState == BeanState.DESTROYED;
+    }
+    
+    /**
+     * Checks if this bean is in an error state.
+     * 
+     * @return true if the bean creation failed
+     */
+    public boolean isFailed() {
+        return beanState.isErrorState();
+    }
+    
+    /**
+     * Gets a human-readable summary of this bean's current state.
+     * 
+     * @return state summary string
+     */
+    public String getStateSummary() {
+        return String.format("%s [%s]", veldName, beanState.getDescription());
     }
 
     /**
