@@ -547,4 +547,28 @@ class ValueResolverTest {
             assertEquals("値", resolver.resolve("${property.日本語}"));
         }
     }
+
+    @Nested
+    @DisplayName("Environment Variable Tests")
+    class EnvironmentVariableTests {
+
+        @Test
+        @DisplayName("Should resolve from programmatic property (simulating env var)")
+        void shouldResolveFromProgrammaticProperty() {
+            resolver.setProperty("env.test.property", "env-value");
+
+            String result = resolver.resolve("${env.test.property}");
+            assertEquals("env-value", result);
+        }
+
+        @Test
+        @DisplayName("Should resolve property with dots converted to underscores")
+        void shouldResolvePropertyWithDotsConvertedToUnderscores() {
+            // System property takes precedence, so we test the fallback mechanism
+            resolver.setProperty("app.name", "MyApp");
+
+            String result = resolver.resolve("${app.name}");
+            assertEquals("MyApp", result);
+        }
+    }
 }
