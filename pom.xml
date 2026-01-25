@@ -127,7 +127,7 @@
         <jacoco.maven.plugin.version>0.8.14</jacoco.maven.plugin.version>
 
         <!-- Maven Plugin API versions -->
-        <maven-plugin-api.version>3.9.6</maven-plugin-api.version>
+        <maven-plugin-api.version>3.9.12</maven-plugin-api.version>
         <maven-plugin-annotations.version>3.15.2</maven-plugin-annotations.version>
         <maven-core.version>3.9.12</maven-core.version>
 
