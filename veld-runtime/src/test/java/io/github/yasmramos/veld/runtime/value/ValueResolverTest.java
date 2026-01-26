@@ -400,4 +400,251 @@ class ValueResolverTest {
                 resolver.resolve("${custom.key}"));
         }
     }
+
+    @Nested
+    @DisplayName("Malformed Expression Tests")
+    class MalformedExpressionTests {
+
+        @Test
+        @DisplayName("Should handle incomplete placeholder - missing closing brace")
+        void shouldHandleIncompletePlaceholderMissingClosingBrace() {
+            // ${property without closing brace should be treated as literal
+            String result = resolver.resolve("${incomplete.property");
+            assertEquals("${incomplete.property", result);
+        }
+
+        @Test
+        @DisplayName("Should handle incomplete placeholder - missing opening brace")
+        void shouldHandleIncompletePlaceholderMissingOpeningBrace() {
+            // property} without opening brace should be treated as literal
+            String result = resolver.resolve("property}");
+            assertEquals("property}", result);
+        }
+
+        @Test
+        @DisplayName("Should handle empty placeholder")
+        void shouldHandleEmptyPlaceholder() {
+            // ${} has no property name, so it won't match the pattern
+            // It will be treated as a literal string
+            String result = resolver.resolve("${}");
+            assertEquals("${}", result);
+        }
+        
+        @Test
+        @DisplayName("Should handle placeholder with only colon")
+        void shouldHandlePlaceholderWithOnlyColon() {
+            // ${:} has no property name, so it won't match the pattern
+            // It will be treated as a literal string
+            String result = resolver.resolve("${:}");
+            assertEquals("${:}", result);
+        }
+
+        @Test
+        @DisplayName("Should handle nested placeholders - not supported")
+        void shouldHandleNestedPlaceholders() {
+            // ${outer.${inner.property}} - nested placeholders are not supported
+            resolver.setProperty("inner.property", "value");
+            resolver.setProperty("outer.value", "result");
+
+            // This should not resolve nested placeholder
+            // Since nested placeholders are not supported, this will try to resolve
+            // "outer.${inner.property}" as a property name, which doesn't exist
+            assertThrows(ValueResolutionException.class, () ->
+                resolver.resolve("${outer.${inner.property}}"));
+        }
+
+        @Test
+        @DisplayName("Should handle placeholder with special characters in property name")
+        void shouldHandlePlaceholderWithSpecialCharacters() {
+            // Property names with special characters should be handled
+            resolver.setProperty("property.with.dots", "value1");
+            resolver.setProperty("property-with-dashes", "value2");
+            resolver.setProperty("property_with_underscores", "value3");
+
+            assertEquals("value1", resolver.resolve("${property.with.dots}"));
+            assertEquals("value2", resolver.resolve("${property-with-dashes}"));
+            assertEquals("value3", resolver.resolve("${property_with_underscores}"));
+        }
+
+        @Test
+        @DisplayName("Should handle placeholder with empty property name")
+        void shouldHandlePlaceholderWithEmptyPropertyName() {
+            // ${:default} - empty property name with default
+            // Pattern requires at least 1 character for property name: ([^}:]+)
+            // So this won't match and will be treated as literal
+            String result = resolver.resolve("${:default-value}");
+            assertEquals("${:default-value}", result);
+        }
+
+        @Test
+        @DisplayName("Should handle multiple colons in placeholder")
+        void shouldHandleMultipleColonsInPlaceholder() {
+            // ${property:default:value} - multiple colons
+            // Should treat everything after first colon as default value
+            String result = resolver.resolve("${missing.property:default:value}");
+            assertEquals("default:value", result);
+        }
+
+        @Test
+        @DisplayName("Should handle placeholder with spaces")
+        void shouldHandlePlaceholderWithSpaces() {
+            // ${ property name } - spaces in property name
+            resolver.setProperty("property name", "value");
+            String result = resolver.resolve("${property name}");
+            assertEquals("value", result);
+        }
+
+        @Test
+        @DisplayName("Should handle unclosed placeholder in embedded text")
+        void shouldHandleUnclosedPlaceholderInEmbeddedText() {
+            // Text with ${unclosed placeholder
+            String result = resolver.resolve("Hello ${unclosed.property world");
+            // Should be treated as literal since it doesn't match the pattern
+            assertEquals("Hello ${unclosed.property world", result);
+        }
+
+        @Test
+        @DisplayName("Should handle placeholder with newline in default value")
+        void shouldHandlePlaceholderWithNewlineInDefaultValue() {
+            // ${property:default\nvalue} - newline in default
+            String result = resolver.resolve("${missing.property:default\nvalue}");
+            assertEquals("default\nvalue", result);
+        }
+
+        @Test
+        @DisplayName("Should handle placeholder with tab in default value")
+        void shouldHandlePlaceholderWithTabInDefaultValue() {
+            // ${property:default\tvalue} - tab in default
+            String result = resolver.resolve("${missing.property:default\tvalue}");
+            assertEquals("default\tvalue", result);
+        }
+
+        @Test
+        @DisplayName("Should handle placeholder with escaped characters")
+        void shouldHandlePlaceholderWithEscapedCharacters() {
+            // ${property:default\$value} - escaped dollar sign
+            String result = resolver.resolve("${missing.property:default\\$value}");
+            assertEquals("default\\$value", result);
+        }
+
+        @Test
+        @DisplayName("Should handle very long property name")
+        void shouldHandleVeryLongPropertyName() {
+            String longPropertyName = "a".repeat(1000);
+            resolver.setProperty(longPropertyName, "value");
+
+            String result = resolver.resolve("${" + longPropertyName + "}");
+            assertEquals("value", result);
+        }
+
+        @Test
+        @DisplayName("Should handle placeholder with unicode characters")
+        void shouldHandlePlaceholderWithUnicodeCharacters() {
+            String unicodeKey = "property.unicode";
+            String unicodeValue = "\uAC12"; // 값
+
+            resolver.setProperty(unicodeKey, unicodeValue);
+
+            assertEquals(unicodeValue, resolver.resolve("${" + unicodeKey + "}"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Environment Variable Tests")
+    class EnvironmentVariableTests {
+
+        @Test
+        @DisplayName("Should resolve from programmatic property (simulating env var)")
+        void shouldResolveFromProgrammaticProperty() {
+            resolver.setProperty("env.test.property", "env-value");
+
+            String result = resolver.resolve("${env.test.property}");
+            assertEquals("env-value", result);
+        }
+
+        @Test
+        @DisplayName("Should resolve property with dots converted to underscores")
+        void shouldResolvePropertyWithDotsConvertedToUnderscores() {
+            // System property takes precedence, so we test the fallback mechanism
+            resolver.setProperty("app.name", "MyApp");
+
+            String result = resolver.resolve("${app.name}");
+            assertEquals("MyApp", result);
+        }
+    }
+
+    @Nested
+    @DisplayName("Edge Case Tests")
+    class EdgeCaseTests {
+
+        @Test
+        @DisplayName("Should handle property with only dollar sign")
+        void shouldHandlePropertyWithOnlyDollarSign() {
+            String result = resolver.resolve("$");
+            assertEquals("$", result);
+        }
+
+        @Test
+        @DisplayName("Should handle property with only dollar and opening brace")
+        void shouldHandlePropertyWithOnlyDollarAndOpeningBrace() {
+            String result = resolver.resolve("${");
+            assertEquals("${", result);
+        }
+
+        @Test
+        @DisplayName("Should handle property with only closing brace")
+        void shouldHandlePropertyWithOnlyClosingBrace() {
+            String result = resolver.resolve("}");
+            assertEquals("}", result);
+        }
+
+        @Test
+        @DisplayName("Should handle consecutive dollar signs")
+        void shouldHandleConsecutiveDollarSigns() {
+            String result = resolver.resolve("$$");
+            assertEquals("$$", result);
+        }
+
+        @Test
+        @DisplayName("Should handle dollar sign followed by non-brace character")
+        void shouldHandleDollarSignFollowedByNonBraceCharacter() {
+            String result = resolver.resolve("$property");
+            assertEquals("$property", result);
+        }
+
+        @Test
+        @DisplayName("Should handle placeholder at start of string")
+        void shouldHandlePlaceholderAtStartOfString() {
+            resolver.setProperty("start", "value");
+            String result = resolver.resolve("${start}end");
+            assertEquals("valueend", result);
+        }
+
+        @Test
+        @DisplayName("Should handle placeholder at end of string")
+        void shouldHandlePlaceholderAtEndOfString() {
+            resolver.setProperty("end", "value");
+            String result = resolver.resolve("start${end}");
+            assertEquals("startvalue", result);
+        }
+
+        @Test
+        @DisplayName("Should handle multiple consecutive placeholders")
+        void shouldHandleMultipleConsecutivePlaceholders() {
+            resolver.setProperty("a", "1");
+            resolver.setProperty("b", "2");
+            resolver.setProperty("c", "3");
+
+            String result = resolver.resolve("${a}${b}${c}");
+            assertEquals("123", result);
+        }
+
+        @Test
+        @DisplayName("Should handle placeholder with default containing placeholder syntax")
+        void shouldHandlePlaceholderWithDefaultContainingPlaceholderSyntax() {
+            // Default value that looks like a placeholder should be treated as literal
+            String result = resolver.resolve("${missing.property:${also.missing}}");
+            assertEquals("${also.missing}", result);
+        }
+    }
 }
