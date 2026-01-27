@@ -795,9 +795,6 @@ public class VeldProcessor extends AbstractProcessor {
                     dependencyGraph.addDependency(componentName, resolvedType);
                     note("    -> Explicit dependency: " + beanName + " -> " + resolvedType);
                 } else {
-//                    warning(null, "Could not resolve bean name '" + beanName +
-//                           "' in @DependsOn for component " + componentName +
-//                           ". The bean may not exist or may be in a different module.");
                     error(info.getTypeElement(),"@DependsOn references unknown bean: \""+beanName+"\"\n"+
                             "   Component: "+componentName+"\n"+
                             "   Fix: Ensure a component or @Bean with this name exists.");
