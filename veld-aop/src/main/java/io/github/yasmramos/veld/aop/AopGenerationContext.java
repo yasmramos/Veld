@@ -1,4 +1,4 @@
-package io.github.yasmramos.veld.spi.aop;
+package io.github.yasmramos.veld.aop;
 
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.Messager;

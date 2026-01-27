@@ -1,9 +1,10 @@
 package io.github.yasmramos.veld.aop.spi;
 
-import io.github.yasmramos.veld.spi.aop.AopComponentNode;
+import io.github.yasmramos.veld.aop.AopComponentNode;
 
 import javax.lang.model.type.TypeMirror;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Implementación del adapter que conecta el sistema SPI con los datos de componentes.

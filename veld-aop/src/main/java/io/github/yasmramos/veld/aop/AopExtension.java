@@ -1,13 +1,14 @@
-package io.github.yasmramos.veld.spi.aop;
+package io.github.yasmramos.veld.aop;
 
 import io.github.yasmramos.veld.spi.extension.ExtensionDescriptor;
 import io.github.yasmramos.veld.spi.extension.ExtensionPhase;
+import io.github.yasmramos.veld.spi.extension.VeldExtension;
 
 import java.util.List;
 import java.util.Map;
 
 /**
- * Contrato para extensiones AOP en Veld.
+ * Clase base abstracta para extensiones AOP en Veld.
  * 
  * <p>Una extensión AOP puede observar y modificar cómo se genera el código AOP
  * para componentes con interceptores. Esto permite a los usuarios personalizar
@@ -19,9 +20,17 @@ import java.util.Map;
  *   <li>{@code AopExtension} es específica para la generación de código AOP</li>
  * </ul>
  * 
+ * <p><strong>Implementación SPI:</strong></p>
+ * <p>Para que una extensión AOP sea descubierta automáticamente, debe:</p>
+ * <ol>
+ *   <li>Extender esta clase {@code AopExtension}</li>
+ *   <li>Implementar todos los métodos abstractos requeridos</li>
+ *   <li>Registrarse en {@code META-INF/services/io.github.yasmramos.veld.aop.AopExtension}</li>
+ * </ol>
+ * 
  * <p><strong>Ejemplo de uso:</strong></p>
  * <pre>{@code
- * public class CustomAopExtension implements AopExtension {
+ * public class CustomAopExtension extends AopExtension {
  *     @Override
  *     public ExtensionDescriptor getDescriptor() {
  *         return new ExtensionDescriptor(
@@ -55,7 +64,7 @@ import java.util.Map;
  * @author Veld Team
  * @version 1.0.0
  */
-public interface AopExtension {
+public abstract class AopExtension implements VeldExtension {
     
     /**
      * Proporciona los metadatos de la extensión AOP.
@@ -65,7 +74,8 @@ public interface AopExtension {
      * 
      * @return el descriptor de la extensión
      */
-    ExtensionDescriptor getDescriptor();
+    @Override
+    public abstract ExtensionDescriptor getDescriptor();
     
     /**
      * Se ejecuta antes de la generación de wrappers AOP.
@@ -76,7 +86,7 @@ public interface AopExtension {
      * @param components la lista de componentes descubiertos
      * @param context el contexto de generación AOP
      */
-    default void beforeAopGeneration(List<AopComponentNode> components, AopGenerationContext context) {
+    public void beforeAopGeneration(List<AopComponentNode> components, AopGenerationContext context) {
         // Default: no-op
     }
     
@@ -95,7 +105,7 @@ public interface AopExtension {
      * @param context el contexto de generación AOP
      * @return mapa de nombre de clase original -> nombre de clase wrapper AOP
      */
-    default Map<String, String> generateAopWrappers(List<AopComponentNode> components, AopGenerationContext context) {
+    public Map<String, String> generateAopWrappers(List<AopComponentNode> components, AopGenerationContext context) {
         // Default: usar generación del processor (AopClassGenerator)
         return Map.of();
     }
@@ -108,7 +118,7 @@ public interface AopExtension {
      * @param generatedWrappers mapa de wrappers generados (original -> wrapper)
      * @param context el contexto de generación AOP
      */
-    default void afterAopGeneration(Map<String, String> generatedWrappers, AopGenerationContext context) {
+    public void afterAopGeneration(Map<String, String> generatedWrappers, AopGenerationContext context) {
         // Default: no-op
     }
     
@@ -123,7 +133,7 @@ public interface AopExtension {
      * 
      * @return true si quiere control total de la generación AOP
      */
-    default boolean overridesDefaultGeneration() {
+    public boolean overridesDefaultGeneration() {
         return false;
     }
 }

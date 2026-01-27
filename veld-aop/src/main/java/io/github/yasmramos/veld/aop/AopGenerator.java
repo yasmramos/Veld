@@ -1,4 +1,4 @@
-package io.github.yasmramos.veld.spi.aop;
+package io.github.yasmramos.veld.aop;
 
 import java.util.List;
 import java.util.Map;

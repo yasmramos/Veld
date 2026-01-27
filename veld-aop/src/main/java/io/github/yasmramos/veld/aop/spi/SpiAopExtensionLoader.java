@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.aop.spi;
 
-import io.github.yasmramos.veld.spi.aop.AopExtension;
+import io.github.yasmramos.veld.aop.AopExtension;
 import io.github.yasmramos.veld.spi.extension.ExtensionDescriptor;
 import io.github.yasmramos.veld.spi.extension.ExtensionPhase;
 

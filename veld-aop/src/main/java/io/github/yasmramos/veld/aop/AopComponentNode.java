@@ -1,13 +1,14 @@
-package io.github.yasmramos.veld.spi.aop;
+package io.github.yasmramos.veld.aop;
 
 import javax.lang.model.type.TypeMirror;
+import java.util.List;
 
 /**
  * Nodo de componente especializado para procesamiento AOP.
  * 
  * <p>Esta interfaz proporciona acceso a la información necesaria para la generación
  * de wrappers AOP. Se diseñó como una abstracción ligera que no depende de clases
- * internas del processor, permitiendo que las extensiones AOP definidas en veld-spi
+ * internas del processor, permitiendo que las extensiones AOP definidas en veld-aop
  * no creen dependencias circulares.</p>
  * 
  * <p><strong>Información proporcionada:</strong></p>
@@ -18,7 +19,7 @@ import javax.lang.model.type.TypeMirror;
  * </ul>
  * 
  * <p><strong>Implementación:</strong></p>
- * <p>La implementación concreta es {@code AopComponentNodeImpl} en veld-processor,
+ * <p>La implementación concreta es {@code AopComponentNodeImpl} en veld-aop,
  * que adapta el {@code ComponentInfo} interno a esta interfaz SPI.</p>
  * 
  * @author Veld Team
@@ -65,7 +66,7 @@ public interface AopComponentNode {
      * 
      * @return lista de nombres de clases interceptor
      */
-    java.util.List<String> getInterceptors();
+    List<String> getInterceptors();
     
     /**
      * Verifica si este componente tiene interceptores AOP.

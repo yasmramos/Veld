@@ -7,6 +7,7 @@ import io.github.yasmramos.veld.processor.InjectionPoint.Dependency;
 import io.github.yasmramos.veld.processor.analyzer.ConditionAnalyzer;
 import io.github.yasmramos.veld.processor.analyzer.LifecycleAnalyzer;
 import io.github.yasmramos.veld.processor.spi.SpiExtensionExecutor;
+import io.github.yasmramos.veld.processor.spi.ProcessorAopGenerator;
 import io.github.yasmramos.veld.processor.spi.ProcessorToSpiConverter;
 import io.github.yasmramos.veld.aop.spi.SpiAopExtensionExecutor;
 import io.github.yasmramos.veld.spi.extension.VeldGraph;
@@ -176,9 +177,8 @@ public class VeldProcessor extends AbstractProcessor {
         }
         
         // Initialize AOP SPI Extension Executor
-        // Note: AopGenerator is passed as null for now; full implementation pending
         this.aopExtensionExecutor = new SpiAopExtensionExecutor(
-            options.areExtensionsEnabled(), null, messager, elementUtils, typeUtils, filer);
+            options.areExtensionsEnabled(), new ProcessorAopGenerator(), messager, elementUtils, typeUtils, filer);
         
         if (aopExtensionExecutor.hasExtensions()) {
             note("AOP Extensions loaded: " + aopExtensionExecutor.getExtensionCount());

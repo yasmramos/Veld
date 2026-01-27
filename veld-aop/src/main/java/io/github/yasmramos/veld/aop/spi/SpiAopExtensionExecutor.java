@@ -1,10 +1,9 @@
 package io.github.yasmramos.veld.aop.spi;
 
-import io.github.yasmramos.veld.aop.spi.AopComponentNodeImpl;
-import io.github.yasmramos.veld.spi.aop.AopComponentNode;
-import io.github.yasmramos.veld.spi.aop.AopExtension;
-import io.github.yasmramos.veld.spi.aop.AopGenerator;
-import io.github.yasmramos.veld.spi.aop.AopGenerationContext;
+import io.github.yasmramos.veld.aop.AopComponentNode;
+import io.github.yasmramos.veld.aop.AopExtension;
+import io.github.yasmramos.veld.aop.AopGenerationContext;
+import io.github.yasmramos.veld.aop.AopGenerator;
 import io.github.yasmramos.veld.spi.extension.ExtensionPhase;
 
 import javax.annotation.processing.Messager;
