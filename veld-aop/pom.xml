@@ -29,20 +29,6 @@
             <artifactId>veld-spi</artifactId>
         </dependency>
 
-        <!-- ASM for bytecode generation -->
-        <dependency>
-            <groupId>org.ow2.asm</groupId>
-            <artifactId>asm</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.ow2.asm</groupId>
-            <artifactId>asm-commons</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.ow2.asm</groupId>
-            <artifactId>asm-util</artifactId>
-        </dependency>
-
         <!-- JavaPoet for code generation -->
         <dependency>
             <groupId>com.squareup</groupId>
