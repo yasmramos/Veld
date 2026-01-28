@@ -33,25 +33,6 @@
             <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-aop</artifactId>
         </dependency>
-
-        <!-- ASM for bytecode generation -->
-        <dependency>
-            <groupId>org.ow2.asm</groupId>
-            <artifactId>asm</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.ow2.asm</groupId>
-            <artifactId>asm-commons</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.ow2.asm</groupId>
-            <artifactId>asm-util</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.ow2.asm</groupId>
-            <artifactId>asm-tree</artifactId>
-            <scope>test</scope>
-        </dependency>
         
         <!-- JSR-330 Standard (javax.inject) -->
         <dependency>
