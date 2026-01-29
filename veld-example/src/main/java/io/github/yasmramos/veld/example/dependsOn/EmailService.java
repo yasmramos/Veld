@@ -1,6 +1,7 @@
 package io.github.yasmramos.veld.example.dependsOn;
 
 import io.github.yasmramos.veld.annotation.Component;
+import io.github.yasmramos.veld.annotation.DependsOn;
 import io.github.yasmramos.veld.annotation.PostConstruct;
 import io.github.yasmramos.veld.example.ConfigService;
 
@@ -8,6 +9,7 @@ import io.github.yasmramos.veld.example.ConfigService;
  * Servicio de email - depende explícitamente de ConfigService.
  * Envía notificaciones por email usando la configuración.
  */
+@DependsOn("configService")
 @Component("emailService")
 public class EmailService {
     

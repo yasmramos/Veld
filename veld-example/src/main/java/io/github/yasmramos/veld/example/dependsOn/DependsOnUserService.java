@@ -1,6 +1,7 @@
 package io.github.yasmramos.veld.example.dependsOn;
 
 import io.github.yasmramos.veld.annotation.Component;
+import io.github.yasmramos.veld.annotation.DependsOn;
 import io.github.yasmramos.veld.annotation.PostConstruct;
 import io.github.yasmramos.veld.example.ConfigService;
 
@@ -9,6 +10,7 @@ import io.github.yasmramos.veld.example.ConfigService;
  * Demuestra el uso de @DependsOn con múltiples dependencias.
  * Orden requerido: DatabaseService, ConfigService, EmailService
  */
+@DependsOn({"databaseConnection", "configService", "emailService"})
 @Component("dependsOnUserService")
 public class DependsOnUserService {
     
