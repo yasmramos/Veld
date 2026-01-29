@@ -1,6 +1,5 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.annotation.ScopeType;
 import javax.lang.model.element.TypeElement;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,12 +11,16 @@ import java.util.stream.Collectors;
  */
 public final class ComponentInfo {
     
+    private static final String SCOPE_SINGLETON = "singleton";
+    private static final String SCOPE_PROTOTYPE = "prototype";
+    
     private String className;              // Fully qualified: com.example.MyService
     private String internalName;           // ASM internal: com/example/MyService
     private final String componentName;          // @Component value or simple class name
-    private final ScopeType scope;                   // SINGLETON or PROTOTYPE
+    private final String scope;                   // "singleton", "prototype", or custom scope ID
     private String scopeId;                // Custom scope ID (null for built-in scopes)
     private final boolean lazy;                  // @Lazy - deferred initialization
+    private final boolean eager;                 // @Eager - immediate initialization
     
     private InjectionPoint constructorInjection; // Constructor with @Inject (or default)
     private final List<InjectionPoint> fieldInjections = new ArrayList<>();
@@ -44,25 +47,30 @@ public final class ComponentInfo {
     // TypeElement for AOP processing (transient - not serialized)
     private transient TypeElement typeElement;
     
-    public ComponentInfo(String className, String componentName, ScopeType scope) {
+    public ComponentInfo(String className, String componentName, String scope) {
         this(className, componentName, scope, null, false);
     }
     
-    public ComponentInfo(String className, String componentName, ScopeType scope, String scopeId) {
+    public ComponentInfo(String className, String componentName, String scope, String scopeId) {
         this(className, componentName, scope, scopeId, false);
     }
     
-    public ComponentInfo(String className, String componentName, ScopeType scope, String scopeId, boolean lazy) {
+    public ComponentInfo(String className, String componentName, String scope, String scopeId, boolean lazy) {
         this(className, componentName, scope, scopeId, lazy, false);
     }
     
-    public ComponentInfo(String className, String componentName, ScopeType scope, String scopeId, boolean lazy, boolean isPrimary) {
+    public ComponentInfo(String className, String componentName, String scope, String scopeId, boolean lazy, boolean isPrimary) {
+        this(className, componentName, scope, scopeId, lazy, false, isPrimary);
+    }
+    
+    public ComponentInfo(String className, String componentName, String scope, String scopeId, boolean lazy, boolean eager, boolean isPrimary) {
         this.className = className;
         this.internalName = className.replace('.', '/');
         this.componentName = componentName;
-        this.scope = scope;
+        this.scope = scope != null ? scope : SCOPE_SINGLETON;
         this.scopeId = scopeId;
         this.lazy = lazy;
+        this.eager = eager;
         this.isPrimary = isPrimary;
     }
     
@@ -115,13 +123,31 @@ public final class ComponentInfo {
         return componentName;
     }
     
-    public ScopeType getScope() {
+    public String getScope() {
         return scope;
     }
     
     /**
+     * Returns whether this component is a singleton.
+     * 
+     * @return true if scope is "singleton"
+     */
+    public boolean isSingleton() {
+        return SCOPE_SINGLETON.equals(scope);
+    }
+    
+    /**
+     * Returns whether this component is a prototype.
+     * 
+     * @return true if scope is "prototype"
+     */
+    public boolean isPrototype() {
+        return SCOPE_PROTOTYPE.equals(scope);
+    }
+    
+    /**
      * Returns the scope ID for this component.
-     * For built-in scopes (singleton, prototype), returns the scope enum name.
+     * For built-in scopes (singleton, prototype), returns the scope string.
      * For custom scopes, returns the custom scope ID.
      * 
      * @return the scope identifier string
@@ -130,7 +156,7 @@ public final class ComponentInfo {
         if (scopeId != null && !scopeId.isEmpty()) {
             return scopeId;
         }
-        return scope != null ? scope.getScopeId() : "singleton";
+        return scope != null ? scope : SCOPE_SINGLETON;
     }
     
     /**
@@ -156,43 +182,8 @@ public final class ComponentInfo {
         return lazy;
     }
     
-    public String getFactoryClassName() {
-        // Generate factory in .veld subpackage of the original class's package
-        // This avoids conflicts when class name equals package name
-        // Example: com.example.Component -> com.example.veld.Component$$VeldFactory
-        // Example: com.example.Outer$Inner -> com.example.veld.Inner$$VeldFactory
-        String pkg = getPackageName();
-        String simpleName = getSimpleName();
-
-        // Always use the component's package (no special case for package/class name collisions)
-        // The .veld subpackage ensures generated factories don't conflict with user code
-        return pkg.isEmpty() ? "veld." + simpleName + "$$VeldFactory" : pkg + ".veld." + simpleName + "$$VeldFactory";
-    }
-
-    public String getFactoryInternalName() {
-        // Convert to internal format
-        // Example: com.example.Component -> com/example/veld/Component$$VeldFactory
-        String pkg = getPackageName();
-        String simpleName = getSimpleName();
-
-        // Always use the component's package (no special case for package/class name collisions)
-        return pkg.isEmpty() ? "veld/" + simpleName + "$$VeldFactory" : pkg.replace('.', '/') + "/veld/" + simpleName + "$$VeldFactory";
-    }
-    
-    /**
-     * Returns the outer class name for nested classes.
-     * For Outer$Inner, returns "Outer". For regular classes, returns null.
-     */
-    private String getOuterClassName() {
-        int dollarIndex = className.indexOf('$');
-        if (dollarIndex > 0) {
-            String outerPart = className.substring(0, dollarIndex);
-            int lastDot = outerPart.lastIndexOf('.');
-            return lastDot > 0 ? outerPart.substring(lastDot + 1) : outerPart;
-        }
-        // For non-nested classes, check if class name matches last package segment
-        int lastDot = className.lastIndexOf('.');
-        return lastDot > 0 ? className.substring(lastDot + 1) : className;
+    public boolean isEager() {
+        return eager;
     }
     
     public InjectionPoint getConstructorInjection() {
@@ -507,6 +498,19 @@ public final class ComponentInfo {
     public List<String> getAopInterceptors() {
         return aopInterceptors;
     }
+
+    /**
+     * Whether this component has an AOP wrapper class.
+     */
+    private boolean hasAopWrapper = false;
+
+    public boolean hasAopWrapper() {
+        return hasAopWrapper;
+    }
+
+    public void setHasAopWrapper(boolean hasAopWrapper) {
+        this.hasAopWrapper = hasAopWrapper;
+    }
     
     /**
      * Gets the dependency types from constructor injection.
@@ -520,42 +524,9 @@ public final class ComponentInfo {
             .collect(Collectors.toList());
     }
     
-    // === UNRESOLVED INTERFACE DEPENDENCIES ===
-    // Dependencies that are interfaces without @Component implementations
-    
-    private final List<String> unresolvedInterfaceDependencies = new ArrayList<>();
-    
-    /**
-     * Adds an interface dependency that has no implementing component.
-     * These can be resolved at runtime via mock injection or other mechanisms.
-     * 
-     * @param interfaceName fully qualified interface name
-     */
-    public void addUnresolvedInterfaceDependency(String interfaceName) {
-        this.unresolvedInterfaceDependencies.add(interfaceName);
-    }
-    
-    /**
-     * Gets all interface dependencies that have no implementing component.
-     * 
-     * @return list of interface names that need external resolution
-     */
-    public List<String> getUnresolvedInterfaceDependencies() {
-        return unresolvedInterfaceDependencies;
-    }
-    
-    /**
-     * Checks if this component has any unresolved interface dependencies.
-     * 
-     * @return true if there are interfaces without implementations
-     */
-    public boolean hasUnresolvedInterfaceDependencies() {
-        return !unresolvedInterfaceDependencies.isEmpty();
-    }
-
     // === HOLD PATTERN SUPPORT ===
     // Determines if this component can use the simpler holder pattern
-    // instead of the full factory pattern
+    // for instantiation in the static dependency graph.
 
     /**
      * Checks if this component can use the holder pattern for instantiation.
@@ -577,7 +548,7 @@ public final class ComponentInfo {
      */
     public boolean canUseHolderPattern() {
         // Holder pattern only makes sense for singletons
-        if (scope != ScopeType.SINGLETON) {
+        if (!SCOPE_SINGLETON.equals(scope)) {
             return false;
         }
 
@@ -631,8 +602,8 @@ public final class ComponentInfo {
      * @return description of the first blocking condition, or null if holder pattern is allowed
      */
     public String getHolderPatternRestriction() {
-        if (scope != ScopeType.SINGLETON) {
-            return "scope=" + scope + " (only SINGLETON supported)";
+        if (!SCOPE_SINGLETON.equals(scope)) {
+            return "scope=" + scope + " (only singleton supported)";
         }
         if (lazy) {
             return "lazy=true (holder pattern requires eager initialization)";
@@ -662,5 +633,29 @@ public final class ComponentInfo {
             return "has @Subscribe methods (holder pattern doesn't support event registration)";
         }
         return null; // No restrictions
+    }
+
+    /**
+     * Checks if this component needs a factory class.
+     * In static model, components don't need factory classes.
+     * 
+     * @return false (static model doesn't use factories)
+     */
+    public boolean needsFactory() {
+        return false;
+    }
+    
+    /**
+     * Capitalizes the first letter of a string.
+     * Used for generating valid Java class names from component names.
+     *
+     * @param name the string to capitalize
+     * @return the capitalized string, or empty string if input is null/empty
+     */
+    private String capitalize(String name) {
+        if (name == null || name.isEmpty()) {
+            return name;
+        }
+        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
     }
 }

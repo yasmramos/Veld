@@ -51,7 +51,7 @@ import java.lang.annotation.Target;
  * @see Named
  */
 @Documented
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 @Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER, ElementType.CONSTRUCTOR})
 public @interface Qualifier {
 

@@ -11,10 +11,10 @@ import io.github.yasmramos.veld.annotation.Singleton;
 @Component
 public class MessageService {
 
-    private final MessageRepository repository;
+    private final InMemoryMessageRepository repository;
 
     @Inject
-    public MessageService(MessageRepository repository) {
+    public MessageService(InMemoryMessageRepository repository) {
         this.repository = repository;
     }
 

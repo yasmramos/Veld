@@ -70,7 +70,7 @@ public class AsyncBenchmark {
      */
     @Benchmark
     public void measureSyncBaseline(Blackhole bh) {
-        SyncService syncService = Veld.get(SyncService.class);
+        SyncService syncService = Veld.syncService();
         syncService.execute();
         bh.consume(syncService);
     }

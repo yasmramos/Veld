@@ -96,7 +96,7 @@ import java.lang.annotation.Target;
  * @see io.github.yasmramos.veld.annotation.Inject
  */
 @Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD})
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 @Documented
 public @interface Value {
     

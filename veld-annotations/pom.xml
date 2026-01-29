@@ -41,6 +41,7 @@
                     <additionalOptions>
                         <additionalOption>-Xdoclint:none</additionalOption>
                     </additionalOptions>
+                    <skip>true</skip>
                 </configuration>
             </plugin>
 
@@ -49,24 +50,9 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
                 <version>3.6.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-javadoc-jar</id>
-                        <phase>${build-helper.attach.phase}</phase>
-                        <goals>
-                            <goal>attach-artifact</goal>
-                        </goals>
-                        <configuration>
-                            <artifacts>
-                                <artifact>
-                                    <file>${project.build.directory}/${project.artifactId}-${project.version}-javadoc.jar</file>
-                                    <classifier>javadoc</classifier>
-                                    <type>jar</type>
-                                </artifact>
-                            </artifacts>
-                        </configuration>
-                    </execution>
-                </executions>
+                <configuration>
+                    <skipAttach>true</skipAttach>
+                </configuration>
             </plugin>
         </plugins>
     </build>

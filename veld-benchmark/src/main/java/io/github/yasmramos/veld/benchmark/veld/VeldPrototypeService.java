@@ -11,7 +11,6 @@ package io.github.yasmramos.veld.benchmark.veld;
 
 import io.github.yasmramos.veld.annotation.Inject;
 import io.github.yasmramos.veld.annotation.Prototype;
-import io.github.yasmramos.veld.benchmark.common.Logger;
 import io.github.yasmramos.veld.benchmark.common.Service;
 
 /**
@@ -20,20 +19,20 @@ import io.github.yasmramos.veld.benchmark.common.Service;
  */
 @Prototype
 public class VeldPrototypeService implements Service {
-    
-    private final Logger logger;
-    
+
+    private final VeldLogger logger;
+
     @Inject
-    public VeldPrototypeService(Logger logger) {
+    public VeldPrototypeService(VeldLogger logger) {
         this.logger = logger;
     }
-    
+
     @Override
     public String process(String input) {
         logger.log("Processing: " + input);
         return "processed:" + input;
     }
-    
+
     @Override
     public String getName() {
         return "VeldPrototypeService";

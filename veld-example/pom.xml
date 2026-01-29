@@ -44,6 +44,27 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- Veld Transaction -->
+        <dependency>
+            <groupId>io.github.yasmramos</groupId>
+            <artifactId>veld-tx</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Veld Metrics -->
+        <dependency>
+            <groupId>io.github.yasmramos</groupId>
+            <artifactId>veld-metrics</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Veld Validation -->
+        <dependency>
+            <groupId>io.github.yasmramos</groupId>
+            <artifactId>veld-validation</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- JavaPoet (required by processor at compile time) -->
         <dependency>
             <groupId>com.squareup</groupId>

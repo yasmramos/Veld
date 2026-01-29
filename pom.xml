@@ -78,6 +78,7 @@
 
     <modules>
         <module>veld-annotations</module>
+        <module>veld-spi</module>
         <module>veld-runtime</module>
         <module>veld-aop</module>
         <module>veld-processor</module>
@@ -142,7 +143,7 @@
         <!-- GraalVM versions -->
         <graalvm.version>22.3.2</graalvm.version>
         <maven.javadoc.skip>true</maven.javadoc.skip>
-        <build-helper.attach.phase>package</build-helper.attach.phase>
+        <build-helper.attach.phase>none</build-helper.attach.phase>
 
         <!-- CI/Benchmark properties -->
         <ci.skip>false</ci.skip>
@@ -276,6 +277,11 @@
                 <artifactId>mockito-junit-jupiter</artifactId>
                 <version>${mockito.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.github.yasmramos</groupId>
+                <artifactId>veld-spi</artifactId>
+                <version>${project.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

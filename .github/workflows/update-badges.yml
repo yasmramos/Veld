@@ -7,6 +7,16 @@ on:
   push:
     paths:
       - '.github/workflows/update-badges.yml'
+      - '**/src/test/**'
+      - 'pom.xml'
+    branches:
+      - main
+      - develop
+
+  pull_request:
+    branches:
+      - main
+      - develop
 
 permissions:
   contents: write
@@ -35,7 +45,16 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-
+        cache: 'maven'
+    
+    - name: Build and run tests
+      run: |
+        mvn clean test -B -Dmaven.javadoc.skip=true -Dbuild-helper.attach.phase=none -pl '!veld-example,!veld-spring-boot-example,!veld-benchmark' || true
+        
+    - name: Generate JaCoCo aggregate report
+      run: |
+        mvn jacoco:report-aggregate -B -pl '!veld-example,!veld-spring-boot-example,!veld-benchmark' || true
+    
     - name: Get test count
       id: test-count
       run: |
@@ -69,7 +88,9 @@ jobs:
       id: coverage
       run: |
         # Get total coverage from aggregated report if exists, otherwise calculate from all modules
-        if [ -f "target/site/jacoco/jacoco.xml" ]; then
+        if [ -f "target/site/jacoco-aggregate/jacoco.xml" ]; then
+          COVERAGE=$(grep -oP 'line-coverage value="\K[0-9.]+' target/site/jacoco-aggregate/jacoco.xml 2>/dev/null | head -1 || echo "0")
+        elif [ -f "target/site/jacoco/jacoco.xml" ]; then
           COVERAGE=$(grep -oP 'line-coverage value="\K[0-9.]+' target/site/jacoco/jacoco.xml 2>/dev/null | head -1 || echo "0")
         else
           # Calculate average coverage from all module reports

@@ -1,17 +1,16 @@
 package io.github.yasmramos.veld.example;
 
+import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.annotation.Singleton;
 import io.github.yasmramos.veld.annotation.PostConstruct;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A simple cache service.
- * This service is intentionally NOT registered as a component in the first test
- * to demonstrate optional injection.
- * 
- * Uncomment @Singleton to register it as a component.
+ * This service is available for all profiles.
  */
-// @Singleton  // <- Uncomment to make it available
+@Singleton
+@Component
 public class CacheService {
     
     private final ConcurrentHashMap<String, Object> cache = new ConcurrentHashMap<>();

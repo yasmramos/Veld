@@ -16,14 +16,14 @@ public class LifecycleBenchmark {
 
     @Benchmark
     public void measureLifecycleBean(Blackhole bh) {
-        LifecycleBean bean = Veld.get(LifecycleBean.class);
+        LifecycleBean bean = Veld.lifecycleBean();
         bean.doWork();
         bh.consume(bean);
     }
 
     @Benchmark
     public void measurePlainBean(Blackhole bh) {
-        PlainLifecycleBean bean = Veld.get(PlainLifecycleBean.class);
+        PlainLifecycleBean bean = Veld.plainLifecycleBean();
         bean.doWork();
         bh.consume(bean);
     }

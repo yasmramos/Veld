@@ -1,6 +1,5 @@
 package io.github.yasmramos.veld.processor;
 
-import io.github.yasmramos.veld.annotation.ScopeType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -23,7 +22,7 @@ class ComponentInfoTest {
         componentInfo = new ComponentInfo(
             "com.example.MyService",
             "myService",
-            ScopeType.SINGLETON
+            "singleton"
         );
     }
     
@@ -52,19 +51,7 @@ class ComponentInfoTest {
         @Test
         @DisplayName("Should return correct scope")
         void shouldReturnCorrectScope() {
-            assertEquals(ScopeType.SINGLETON, componentInfo.getScope());
-        }
-        
-        @Test
-        @DisplayName("Should generate correct factory class name")
-        void shouldGenerateCorrectFactoryClassName() {
-            assertEquals("com.example.veld.MyService$$VeldFactory", componentInfo.getFactoryClassName());
-        }
-
-        @Test
-        @DisplayName("Should generate correct factory internal name")
-        void shouldGenerateCorrectFactoryInternalName() {
-            assertEquals("com/example/veld/MyService$$VeldFactory", componentInfo.getFactoryInternalName());
+            assertEquals("singleton", componentInfo.getScope());
         }
     }
 
@@ -73,38 +60,12 @@ class ComponentInfoTest {
     class InnerClassTests {
 
         @Test
-        @DisplayName("Should generate correct factory class name for inner class")
-        void shouldGenerateCorrectFactoryClassNameForInnerClass() {
-            // Inner class: com.example.OuterClass$InnerClass
-            ComponentInfo innerClassInfo = new ComponentInfo(
-                "com.example.OuterClass$InnerClass",
-                "innerClass",
-                ScopeType.SINGLETON
-            );
-
-            // Factory should be in the outer class's package (.veld subpackage)
-            assertEquals("com.example.veld.InnerClass$$VeldFactory", innerClassInfo.getFactoryClassName());
-        }
-
-        @Test
-        @DisplayName("Should generate correct factory internal name for inner class")
-        void shouldGenerateCorrectFactoryInternalNameForInnerClass() {
-            ComponentInfo innerClassInfo = new ComponentInfo(
-                "com.example.OuterClass$InnerClass",
-                "innerClass",
-                ScopeType.SINGLETON
-            );
-
-            assertEquals("com/example/veld/InnerClass$$VeldFactory", innerClassInfo.getFactoryInternalName());
-        }
-
-        @Test
         @DisplayName("Should return correct package name for inner class")
         void shouldReturnCorrectPackageNameForInnerClass() {
             ComponentInfo innerClassInfo = new ComponentInfo(
                 "io.github.yasmramos.veld.example.ComplexApplicationExample$OrderService",
                 "orderService",
-                ScopeType.SINGLETON
+                "singleton"
             );
 
             // Package should be the outer class's package
@@ -117,7 +78,7 @@ class ComponentInfoTest {
             ComponentInfo innerClassInfo = new ComponentInfo(
                 "com.example.OuterClass$InnerClass",
                 "innerClass",
-                ScopeType.SINGLETON
+                "singleton"
             );
 
             // Simple name should be just "InnerClass", not "OuterClass$InnerClass"
@@ -129,14 +90,13 @@ class ComponentInfoTest {
         void shouldHandleDeeplyNestedInnerClass() {
             ComponentInfo deeplyNestedInfo = new ComponentInfo(
                 "com.example.OuterClass$MiddleClass$InnerClass",
-                "deeplyNested",
-                ScopeType.SINGLETON
+                "innerClass",
+                "singleton"
             );
 
             // Package should still be the outermost class's package
             assertEquals("com.example", deeplyNestedInfo.getPackageName());
             assertEquals("InnerClass", deeplyNestedInfo.getSimpleName());
-            assertEquals("com.example.veld.InnerClass$$VeldFactory", deeplyNestedInfo.getFactoryClassName());
         }
     }
     
@@ -276,10 +236,10 @@ class ComponentInfoTest {
             ComponentInfo prototypeInfo = new ComponentInfo(
                 "com.example.Request",
                 "request",
-                ScopeType.PROTOTYPE
+                "prototype"
             );
             
-            assertEquals(ScopeType.PROTOTYPE, prototypeInfo.getScope());
+            assertEquals("prototype", prototypeInfo.getScope());
         }
     }
     
@@ -299,7 +259,7 @@ class ComponentInfoTest {
             ComponentInfo lazyInfo = new ComponentInfo(
                 "com.example.LazyService",
                 "lazyService",
-                ScopeType.SINGLETON,
+                "singleton",
                 null,
                 true
             );
@@ -312,7 +272,7 @@ class ComponentInfoTest {
             ComponentInfo nonLazyInfo = new ComponentInfo(
                 "com.example.EagerService",
                 "eagerService",
-                ScopeType.SINGLETON,
+                "singleton",
                 null,
                 false
             );
@@ -452,7 +412,7 @@ class ComponentInfoTest {
             ComponentInfo simpleComponent = new ComponentInfo(
                 "com.example.SimpleService",
                 "simpleService",
-                ScopeType.SINGLETON
+                "singleton"
             );
 
             assertTrue(simpleComponent.canUseHolderPattern());
@@ -465,12 +425,12 @@ class ComponentInfoTest {
             ComponentInfo prototypeComponent = new ComponentInfo(
                 "com.example.PrototypeService",
                 "prototypeService",
-                ScopeType.PROTOTYPE
+                "prototype"
             );
 
             assertFalse(prototypeComponent.canUseHolderPattern());
             assertNotNull(prototypeComponent.getHolderPatternRestriction());
-            assertTrue(prototypeComponent.getHolderPatternRestriction().contains("PROTOTYPE"));
+            assertTrue(prototypeComponent.getHolderPatternRestriction().contains("prototype"));
         }
 
         @Test
@@ -479,7 +439,7 @@ class ComponentInfoTest {
             ComponentInfo lazyComponent = new ComponentInfo(
                 "com.example.LazyService",
                 "lazyService",
-                ScopeType.SINGLETON,
+                "singleton",
                 null,
                 true
             );
@@ -495,7 +455,7 @@ class ComponentInfoTest {
             ComponentInfo injectedComponent = new ComponentInfo(
                 "com.example.InjectedService",
                 "injectedService",
-                ScopeType.SINGLETON
+                "singleton"
             );
             injectedComponent.setConstructorInjection(
                 new InjectionPoint(
@@ -517,7 +477,7 @@ class ComponentInfoTest {
             ComponentInfo injectedComponent = new ComponentInfo(
                 "com.example.FieldInjectedService",
                 "fieldInjectedService",
-                ScopeType.SINGLETON
+                "singleton"
             );
             InjectionPoint fieldInjection = new InjectionPoint(
                 InjectionPoint.Type.FIELD,
@@ -537,7 +497,7 @@ class ComponentInfoTest {
             ComponentInfo injectedComponent = new ComponentInfo(
                 "com.example.MethodInjectedService",
                 "methodInjectedService",
-                ScopeType.SINGLETON
+                "singleton"
             );
             InjectionPoint methodInjection = new InjectionPoint(
                 InjectionPoint.Type.METHOD,
@@ -557,7 +517,7 @@ class ComponentInfoTest {
             ComponentInfo lifecycleComponent = new ComponentInfo(
                 "com.example.LifecycleService",
                 "lifecycleService",
-                ScopeType.SINGLETON
+                "singleton"
             );
             lifecycleComponent.setPostConstruct("init", "()V");
 
@@ -572,7 +532,7 @@ class ComponentInfoTest {
             ComponentInfo lifecycleComponent = new ComponentInfo(
                 "com.example.LifecycleService",
                 "lifecycleService",
-                ScopeType.SINGLETON
+                "singleton"
             );
             lifecycleComponent.setPreDestroy("cleanup", "()V");
 
@@ -587,7 +547,7 @@ class ComponentInfoTest {
             ComponentInfo conditionalComponent = new ComponentInfo(
                 "com.example.ConditionalService",
                 "conditionalService",
-                ScopeType.SINGLETON
+                "singleton"
             );
             ConditionInfo conditionInfo = new ConditionInfo();
             conditionInfo.addPropertyCondition("feature.enabled", null, false);
@@ -604,7 +564,7 @@ class ComponentInfoTest {
             ComponentInfo aopComponent = new ComponentInfo(
                 "com.example.AopService",
                 "aopService",
-                ScopeType.SINGLETON
+                "singleton"
             );
             aopComponent.addAopInterceptor("com.example.LoggingInterceptor");
 
@@ -619,7 +579,7 @@ class ComponentInfoTest {
             ComponentInfo eventComponent = new ComponentInfo(
                 "com.example.EventService",
                 "eventService",
-                ScopeType.SINGLETON
+                "singleton"
             );
             eventComponent.setHasSubscribeMethods(true);
 
@@ -634,7 +594,7 @@ class ComponentInfoTest {
             ComponentInfo complexComponent = new ComponentInfo(
                 "com.example.ComplexService",
                 "complexService",
-                ScopeType.PROTOTYPE
+                "prototype"
             );
             complexComponent.setConstructorInjection(
                 new InjectionPoint(
@@ -649,7 +609,7 @@ class ComponentInfoTest {
             // Prototype is the first check, so that's what should be reported
             assertFalse(complexComponent.canUseHolderPattern());
             assertNotNull(complexComponent.getHolderPatternRestriction());
-            assertTrue(complexComponent.getHolderPatternRestriction().contains("PROTOTYPE"));
+            assertTrue(complexComponent.getHolderPatternRestriction().contains("prototype"));
         }
 
         @Test
@@ -659,7 +619,7 @@ class ComponentInfoTest {
             ComponentInfo idealComponent = new ComponentInfo(
                 "com.example.IdealService",
                 "idealService",
-                ScopeType.SINGLETON,
+                "singleton",
                 null,
                 false  // Not lazy
             );

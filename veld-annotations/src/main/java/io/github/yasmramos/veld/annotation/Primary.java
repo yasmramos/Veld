@@ -31,7 +31,7 @@ import java.lang.annotation.Target;
  * @see Qualifier
  */
 @Documented
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 @Target(ElementType.TYPE)
 public @interface Primary {
 }

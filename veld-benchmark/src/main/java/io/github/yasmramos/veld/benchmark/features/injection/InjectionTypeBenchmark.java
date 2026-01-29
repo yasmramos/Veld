@@ -37,7 +37,7 @@ public class InjectionTypeBenchmark {
      */
     @Benchmark
     public void baselineNoInjection(Blackhole bh) {
-        NoInjectionTestBean bean = Veld.get(NoInjectionTestBean.class);
+        NoInjectionTestBean bean = Veld.noInjectionTestBean();
         bh.consume(bean);
     }
 
@@ -48,7 +48,7 @@ public class InjectionTypeBenchmark {
      */
     @Benchmark
     public void fieldInjection(Blackhole bh) {
-        FieldInjectionTestBean bean = Veld.get(FieldInjectionTestBean.class);
+        FieldInjectionTestBean bean = Veld.fieldInjectionTestBean();
         bh.consume(bean);
     }
 
@@ -59,7 +59,7 @@ public class InjectionTypeBenchmark {
      */
     @Benchmark
     public void constructorInjection(Blackhole bh) {
-        ConstructorInjectionTestBean bean = Veld.get(ConstructorInjectionTestBean.class);
+        ConstructorInjectionTestBean bean = Veld.constructorInjectionTestBean();
         bh.consume(bean);
     }
 
@@ -70,7 +70,7 @@ public class InjectionTypeBenchmark {
      */
     @Benchmark
     public void methodInjection(Blackhole bh) {
-        MethodInjectionTestBean bean = Veld.get(MethodInjectionTestBean.class);
+        MethodInjectionTestBean bean = Veld.methodInjectionTestBean();
         bh.consume(bean);
     }
 }

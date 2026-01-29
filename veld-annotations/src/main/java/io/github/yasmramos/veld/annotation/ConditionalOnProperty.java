@@ -39,7 +39,7 @@ import java.lang.annotation.Target;
  * @see ConditionalOnMissingBean
  */
 @Documented
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 @Target(ElementType.TYPE)
 public @interface ConditionalOnProperty {
     

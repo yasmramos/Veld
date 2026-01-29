@@ -3,12 +3,15 @@ package io.github.yasmramos.veld.example;
 import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.annotation.Inject;
 import io.github.yasmramos.veld.annotation.Singleton;
+import io.github.yasmramos.veld.annotation.Profile;
 
 /**
  * Servicio para gestionar usuarios.
+ * Only available in production profile since it depends on DatabaseService.
  */
+@Profile("production")
 @Singleton
-@Component
+@Component("mainUserService")
 public class UserService {
     private final DatabaseService databaseService;
 

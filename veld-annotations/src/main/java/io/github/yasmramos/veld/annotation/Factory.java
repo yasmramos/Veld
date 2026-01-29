@@ -7,60 +7,75 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marks a class as a factory that produces beans for the Veld container.
- *
- * <p>A factory class contains one or more methods annotated with {@link Bean}
- * that return instances of objects to be managed by the container. Unlike
- * regular {@link Component} classes where the class itself is instantiated,
- * factory classes are instantiated once and their methods are called to
- * create bean instances.</p>
- *
- * <p>Example usage:</p>
- * <pre>
- * {@code @Factory}
- * public class ConnectionFactory {
- *
- *     {@code @Bean}
- *     public Connection createDatabaseConnection() {
- *         return new DatabaseConnection(config.getUrl());
+ * Anotación para métodos factory que generan instancias.
+ * 
+ * <p>En Veld, los métodos @Factory siguen el modelo compile-time statico.
+ * El procesador genera código en Veld.java que:</p>
+ * <ol>
+ *   <li>Resuelve las dependencias (parámetros del método)</li>
+ *   <li>Llama al método factory</li>
+ *   <li>Invoca @PostConstruct si existe en el bean retornado</li>
+ *   <li>Retorna la nueva instancia</li>
+ * </ol>
+ * 
+ * <p>El scope (singleton vs prototype) se determina automáticamente:</p>
+ * <ul>
+ *   <li>Si otro componente depende de este factory y se injecta una vez → singleton</li>
+ *   <li>Si se llama directamente desde Veld.methodName() → prototype</li>
+ * </ul>
+ * 
+ * <p>Ejemplo de uso:</p>
+ * <pre>{@code
+ * @Component
+ * public class ConfigFactory {
+ * 
+ *     @Factory
+ *     public DatabaseConfig createDbConfig(AppProperties props) {
+ *         return new DatabaseConfig(props.getUrl(), props.getUser());
  *     }
- *
- *     {@code @Bean(name = "pooledConnection")}
- *     public Connection createPooledConnection() {
- *         ConnectionPool pool = new ConnectionPool();
- *         return pool.getConnection();
- *     }
- * }
- * </pre>
- *
- * <p>Factory classes can also inject dependencies to help create their beans:</p>
- * <pre>
- * {@code @Factory}
- * public class ServiceFactory {
- *
- *     {@code @Inject}
- *     private Configuration config;
- *
- *     {@code @Bean}
- *     public UserService createUserService() {
- *         return new UserService(config.getUserRepository());
+ * 
+ *     @Factory
+ *     public UserSession createSession(DatabaseConfig db, SessionConfig cfg) {
+ *         return new UserSession(db, cfg);
  *     }
  * }
- * </pre>
- *
- * @see Bean
- * @see Component
+ * }</pre>
+ * 
+ * <p>El procesador genera en Veld.java:</p>
+ * <pre>{@code
+ * // Singleton (usado por otros componentes)
+ * private static final DatabaseConfig databaseConfig;
+ * static {
+ *     databaseConfig = ConfigFactory.createDbConfig(appProperties);
+ *     if (databaseConfig instanceof HasPostConstruct) {
+ *         ((HasPostConstruct) databaseConfig).init();
+ *     }
+ * }
+ * 
+ * // Prototype (llamado directamente)
+ * public static UserSession createSession() {
+ *     UserSession instance = ConfigFactory.createSession(databaseConfig, sessionConfig);
+ *     if (instance instanceof HasPostConstruct) {
+ *         ((HasPostConstruct) instance).init();
+ *     }
+ *     return instance;
+ * }
+ * }</pre>
  */
 @Documented
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.CLASS)
+@Target(ElementType.METHOD)
 public @interface Factory {
 
     /**
-     * Optional name for the factory. If not specified, the simple class name
-     * will be used as the factory identifier.
-     *
-     * @return the factory name
+     * Nombre del bean producido.
+     * Si no se especifica, se usa el nombre del método.
      */
-    String name() default "";
+    String value() default "";
+
+    /**
+     * Si es true, el factory se inicializa inmediatamente (eager).
+     * Útil para factories cuyos productos son críticos al startup.
+     */
+    boolean eager() default false;
 }

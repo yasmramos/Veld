@@ -19,7 +19,7 @@ import java.lang.annotation.*;
  * <p>Both "value" and "name" would be treated as equivalent.
  */
 @Target({ElementType.METHOD, ElementType.FIELD})
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 @Documented
 public @interface AliasFor {
     

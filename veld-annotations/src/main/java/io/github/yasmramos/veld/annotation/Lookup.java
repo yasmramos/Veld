@@ -26,7 +26,7 @@ import java.lang.annotation.*;
  * </pre>
  */
 @Target({ElementType.FIELD, ElementType.METHOD})
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 @Documented
 public @interface Lookup {
     

@@ -56,7 +56,7 @@ import java.lang.annotation.Target;
  * @see DependsOn
  */
 @Documented
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 @Target({ElementType.TYPE, ElementType.METHOD})
 public @interface Order {
     

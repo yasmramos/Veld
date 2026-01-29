@@ -1,6 +1,5 @@
 package io.github.yasmramos.veld.boot.starter.autoconfigure;
 
-import io.github.yasmramos.veld.boot.starter.bridge.SpringToVeldBridge;
 import io.github.yasmramos.veld.boot.starter.bridge.VeldToSpringBridge;
 import io.github.yasmramos.veld.boot.starter.config.VeldProperties;
 import io.github.yasmramos.veld.boot.starter.health.VeldHealthIndicator;
@@ -16,23 +15,22 @@ import org.springframework.context.annotation.DependsOn;
 
 /**
  * Auto-configuration for Veld Framework integration with Spring Boot.
- * 
+ *
  * This configuration is automatically applied when:
  * 1. Veld classes are on the classpath
  * 2. VeldProperties is available
  * 3. Spring Boot Actuator is available (for health indicator)
- * 
+ *
  * Provides:
  * - VeldProperties configuration bean
  * - VeldSpringBootService for container management
  * - VeldToSpringBridge for bridging Veld beans to Spring
- * - SpringToVeldBridge for bridging Spring beans to Veld (via BeanFactoryPostProcessor)
  * - VeldHealthIndicator for Spring Boot Actuator
- * 
+ *
  * Disable via: veld.spring-integration.enabled=false
  */
 @Configuration
-@ConditionalOnClass({VeldSpringBootService.class, SpringToVeldBridge.class})
+@ConditionalOnClass({VeldSpringBootService.class})
 @EnableConfigurationProperties(VeldProperties.class)
 public class VeldAutoConfiguration {
 
@@ -65,7 +63,7 @@ public class VeldAutoConfiguration {
     @ConditionalOnProperty(prefix = "veld", name = "spring-integration.bridge-beans", havingValue = "true", matchIfMissing = true)
     @ConditionalOnBean(VeldSpringBootService.class)
     @DependsOn("veldSpringBootService")
-    public VeldToSpringBridge veldToSpringBridge(VeldProperties properties, 
+    public VeldToSpringBridge veldToSpringBridge(VeldProperties properties,
                                                   VeldSpringBootService veldService) {
         return new VeldToSpringBridge(properties, null, veldService);
     }

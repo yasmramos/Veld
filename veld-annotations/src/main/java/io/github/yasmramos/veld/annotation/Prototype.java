@@ -44,7 +44,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.CLASS)
 @Target(ElementType.TYPE)
 @Component  // Meta-annotation: @Prototype implies @Component
-@VeldScope(value = "io.github.yasmramos.veld.runtime.scope.PrototypeScope", id = "prototype", displayName = "Prototype")
+@Scope("prototype")
 public @interface Prototype {
     
     /**

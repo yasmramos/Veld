@@ -10,29 +10,30 @@
 package io.github.yasmramos.veld.benchmark.veld;
 
 import io.github.yasmramos.veld.annotation.Inject;
+import io.github.yasmramos.veld.annotation.Primary;
 import io.github.yasmramos.veld.annotation.Singleton;
-import io.github.yasmramos.veld.benchmark.common.Logger;
 import io.github.yasmramos.veld.benchmark.common.Service;
 
 /**
  * Veld implementation of SimpleService.
  */
 @Singleton
+@Primary
 public class VeldSimpleService implements Service {
-    
-    private final Logger logger;
-    
+
+    private final VeldLogger logger;
+
     @Inject
-    public VeldSimpleService(Logger logger) {
+    public VeldSimpleService(VeldLogger logger) {
         this.logger = logger;
     }
-    
+
     @Override
     public String process(String input) {
         logger.log("Processing: " + input);
         return "processed:" + input;
     }
-    
+
     @Override
     public String getName() {
         return "VeldSimpleService";

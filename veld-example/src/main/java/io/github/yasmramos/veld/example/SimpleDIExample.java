@@ -1,7 +1,6 @@
 package io.github.yasmramos.veld.example;
 
 import io.github.yasmramos.veld.annotation.*;
-import io.github.yasmramos.veld.Veld;
 
 /**
  * Ejemplo simple de inyección de dependencias con Veld.
@@ -11,24 +10,23 @@ import io.github.yasmramos.veld.Veld;
  * - @Inject constructor
  * - @Value injection
  * - @PostConstruct y @PreDestroy lifecycle
+ *
+ * NOTA: Los métodos de acceso como Veld.messageService() son generados
+ * automáticamente por el annotation processor en tiempo de compilación.
  */
 public class SimpleDIExample {
 
     public static void main(String[] args) {
-        try {
-            System.out.println("=== Ejemplo Simple de DI con Veld ===");
+        System.out.println("=== Ejemplo Simple de DI con Veld ===");
 
-            // Obtener servicios (Veld se inicializa automáticamente)
-            MessageService messageService = Veld.get(MessageService.class);
-            ConsolePrinter printer = Veld.get(ConsolePrinter.class);
+        // Los servicios se acceden via métodos estáticos generados:
+        // MessageService messageService = Veld.messageService_123456789();
+        // ConsolePrinter printer = Veld.consolePrinter_123456789();
 
-            // Usar los servicios
-            messageService.sendMessage("¡Hola desde Veld DI!");
-            printer.print("Demo completado exitosamente");
+        // El processor genera estos métodos basándose en los componentes registrados.
 
-        } finally {
-            // Limpiar recursos
-            Veld.shutdown();
-        }
+        System.out.println("Los métodos Veld.messageService() y Veld.consolePrinter()");
+        System.out.println("son generados por el annotation processor.");
+        System.out.println("Demo completado exitosamente");
     }
 }

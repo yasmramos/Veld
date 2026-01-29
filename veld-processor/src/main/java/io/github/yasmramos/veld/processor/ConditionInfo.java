@@ -152,6 +152,25 @@ public final class ConditionInfo {
         return presentBeanConditions;
     }
     
+    /**
+     * Checks if profile conditions are defined.
+     */
+    public boolean hasProfileConditions() {
+        return !profileConditions.isEmpty();
+    }
+    
+    /**
+     * Gets all profile names from all profile conditions.
+     * Returns a flattened list of all profile names.
+     */
+    public List<String> getProfiles() {
+        List<String> profiles = new ArrayList<>();
+        for (ProfileConditionInfo pci : profileConditions) {
+            profiles.addAll(pci.profiles());
+        }
+        return profiles;
+    }
+    
     public List<ProfileConditionInfo> getProfileConditions() {
         return profileConditions;
     }

@@ -22,7 +22,7 @@ public class EventBenchmark {
     public void setup() {
         eventBus = EventBus.getInstance();
         eventBus.clear();
-        listener = Veld.get(BenchmarkEventListener.class);
+        listener = Veld.benchmarkEventListener();
         eventBus.register(listener);
     }
 

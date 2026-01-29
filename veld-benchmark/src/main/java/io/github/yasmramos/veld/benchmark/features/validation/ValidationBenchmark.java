@@ -16,7 +16,7 @@ public class ValidationBenchmark {
 
     @Benchmark
     public void measureValidationOverhead(Blackhole bh) {
-        ValidatedBean bean = Veld.get(ValidatedBean.class);
+        ValidatedBean bean = Veld.validatedBean();
         ValidatedBean data = new ValidatedBean();
         bean.processWithValidation(data);
         bh.consume(bean);
@@ -24,7 +24,7 @@ public class ValidationBenchmark {
 
     @Benchmark
     public void measureNoValidation(Blackhole bh) {
-        PlainValidatedBean bean = Veld.get(PlainValidatedBean.class);
+        PlainValidatedBean bean = Veld.plainValidatedBean();
         PlainValidatedBean data = new PlainValidatedBean();
         bean.process(data);
         bh.consume(bean);

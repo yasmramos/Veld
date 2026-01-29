@@ -14,9 +14,9 @@ import java.util.Optional;
 @Singleton
 public class ConditionalDemoService {
     
-    // DatabaseService should always be available (default or custom)
+    // DatabaseService is optional - it may not be available in all profiles
     @Inject
-    DatabaseService databaseService;
+    Optional<DatabaseService> databaseService;
     
     // DebugService is only available if app.debug=true
     @Inject
@@ -31,7 +31,7 @@ public class ConditionalDemoService {
     Optional<JacksonJsonService> jacksonService;
     
     // Setters for field injection by Veld
-    public void setDatabaseService(DatabaseService databaseService) {
+    public void setDatabaseService(Optional<DatabaseService> databaseService) {
         this.databaseService = databaseService;
     }
     
@@ -50,7 +50,7 @@ public class ConditionalDemoService {
     @PostConstruct
     public void init() {
         System.out.println("[ConditionalDemoService] Initialized with:");
-        System.out.println("  - DatabaseService: " + databaseService.getConnectionInfo());
+        System.out.println("  - DatabaseService: " + (databaseService.isPresent() ? databaseService.get().getConnectionInfo() : "NOT AVAILABLE"));
         System.out.println("  - DebugService: " + (debugService.isPresent() ? "AVAILABLE" : "NOT AVAILABLE"));
         System.out.println("  - FeatureXService: " + (featureXService.isPresent() ? "AVAILABLE" : "NOT AVAILABLE"));
         System.out.println("  - JacksonJsonService: " + (jacksonService.isPresent() ? "AVAILABLE" : "NOT AVAILABLE"));
@@ -59,8 +59,11 @@ public class ConditionalDemoService {
     public void runDemo() {
         System.out.println("\n=== Conditional Services Demo ===\n");
         
-        // Database is always available
-        databaseService.connect();
+        // Database is available if present
+        databaseService.ifPresent(db -> {
+            db.connect();
+            db.disconnect();
+        });
         
         // Debug logging only if debug mode is enabled
         debugService.ifPresent(debug -> {
@@ -77,8 +80,6 @@ public class ConditionalDemoService {
         jacksonService.ifPresent(jackson -> {
             System.out.println("JSON output: " + jackson.toJson(new Object()));
         });
-        
-        databaseService.disconnect();
         
         System.out.println("\n=== Demo Complete ===\n");
     }

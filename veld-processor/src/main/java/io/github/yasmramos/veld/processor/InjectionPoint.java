@@ -1,5 +1,6 @@
 package io.github.yasmramos.veld.processor;
 
+import io.github.yasmramos.veld.annotation.Lookup;
 import java.util.List;
 
 /**
@@ -84,26 +85,33 @@ public final class InjectionPoint {
         private final String actualTypeName;     // For Provider<T>/Optional<T>, the T type
         private final String actualTypeDescriptor; // For Provider<T>/Optional<T>, the T descriptor
         private final String valueExpression;    // @Value expression, or null
+        private final Lookup lookupAnnotation;   // @Lookup annotation, or null
         
         public Dependency(String typeName, String typeDescriptor, String qualifierName) {
-            this(typeName, typeDescriptor, qualifierName, false, false, false, false, typeName, typeDescriptor, null);
+            this(typeName, typeDescriptor, qualifierName, false, false, false, false, typeName, typeDescriptor, null, null);
         }
         
         public Dependency(String typeName, String typeDescriptor, String qualifierName,
                           boolean isProvider, boolean isLazy, 
                           String actualTypeName, String actualTypeDescriptor) {
-            this(typeName, typeDescriptor, qualifierName, isProvider, isLazy, false, false, actualTypeName, actualTypeDescriptor, null);
+            this(typeName, typeDescriptor, qualifierName, isProvider, isLazy, false, false, actualTypeName, actualTypeDescriptor, null, null);
         }
         
         public Dependency(String typeName, String typeDescriptor, String qualifierName,
                           boolean isProvider, boolean isLazy, boolean isOptional, boolean isOptionalWrapper,
                           String actualTypeName, String actualTypeDescriptor) {
-            this(typeName, typeDescriptor, qualifierName, isProvider, isLazy, isOptional, isOptionalWrapper, actualTypeName, actualTypeDescriptor, null);
+            this(typeName, typeDescriptor, qualifierName, isProvider, isLazy, isOptional, isOptionalWrapper, actualTypeName, actualTypeDescriptor, null, null);
         }
         
         public Dependency(String typeName, String typeDescriptor, String qualifierName,
                           boolean isProvider, boolean isLazy, boolean isOptional, boolean isOptionalWrapper,
                           String actualTypeName, String actualTypeDescriptor, String valueExpression) {
+            this(typeName, typeDescriptor, qualifierName, isProvider, isLazy, isOptional, isOptionalWrapper, actualTypeName, actualTypeDescriptor, valueExpression, null);
+        }
+        
+        public Dependency(String typeName, String typeDescriptor, String qualifierName,
+                          boolean isProvider, boolean isLazy, boolean isOptional, boolean isOptionalWrapper,
+                          String actualTypeName, String actualTypeDescriptor, String valueExpression, Lookup lookupAnnotation) {
             this.typeName = typeName;
             this.typeDescriptor = typeDescriptor;
             this.qualifierName = qualifierName;
@@ -114,13 +122,21 @@ public final class InjectionPoint {
             this.actualTypeName = actualTypeName;
             this.actualTypeDescriptor = actualTypeDescriptor;
             this.valueExpression = valueExpression;
+            this.lookupAnnotation = lookupAnnotation;
         }
         
         /**
          * Creates a @Value dependency.
          */
         public static Dependency forValue(String typeName, String typeDescriptor, String valueExpression) {
-            return new Dependency(typeName, typeDescriptor, null, false, false, false, false, typeName, typeDescriptor, valueExpression);
+            return new Dependency(typeName, typeDescriptor, null, false, false, false, false, typeName, typeDescriptor, valueExpression, null);
+        }
+        
+        /**
+         * Creates a @Lookup dependency.
+         */
+        public static Dependency forLookup(String typeName, String typeDescriptor, Lookup lookupAnnotation) {
+            return new Dependency(typeName, typeDescriptor, null, false, false, lookupAnnotation.optional(), false, typeName, typeDescriptor, null, lookupAnnotation);
         }
         
         public String getTypeName() {
@@ -210,6 +226,20 @@ public final class InjectionPoint {
          */
         public boolean isValueInjection() {
             return valueExpression != null;
+        }
+        
+        /**
+         * Returns the @Lookup annotation, or null if not a lookup injection.
+         */
+        public Lookup getLookupAnnotation() {
+            return lookupAnnotation;
+        }
+        
+        /**
+         * Returns true if this is a @Lookup injection.
+         */
+        public boolean isLookupInjection() {
+            return lookupAnnotation != null;
         }
     }
 }

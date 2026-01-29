@@ -37,7 +37,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.CLASS)
 @Target(ElementType.TYPE)
 @Component  // Meta-annotation: @Singleton implies @Component
-@VeldScope(value = "io.github.yasmramos.veld.runtime.scope.SingletonScope", id = "singleton", displayName = "Singleton")
+@Scope("singleton")
 public @interface Singleton {
     
     /**

@@ -1,0 +1,4 @@
+# SPI Service Provider Registration for AopGenerator
+# This file is discovered by java.util.ServiceLoader at runtime
+
+io.github.yasmramos.veld.aop.AopClassGenerator

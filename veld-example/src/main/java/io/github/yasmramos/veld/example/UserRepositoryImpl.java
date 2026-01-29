@@ -16,7 +16,7 @@ import java.util.Optional;
  * 
  * Note: @Singleton("name") includes component naming - no need for @Component.
  */
-@Singleton("userRepository")
+@Singleton("mainUserRepository")
 public class UserRepositoryImpl implements IUserRepository {
     
     private final LogService logService;

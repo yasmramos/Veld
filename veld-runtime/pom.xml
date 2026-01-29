@@ -70,6 +70,7 @@
                             <goal>attach-artifact</goal>
                         </goals>
                         <configuration>
+                            <skip>${maven.javadoc.skip}</skip>
                             <artifacts>
                                 <artifact>
                                     <file>${project.build.directory}/${project.artifactId}-${project.version}-javadoc.jar</file>

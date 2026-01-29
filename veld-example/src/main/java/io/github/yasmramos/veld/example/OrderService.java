@@ -3,13 +3,16 @@ package io.github.yasmramos.veld.example;
 import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.annotation.Inject;
 import io.github.yasmramos.veld.annotation.Singleton;
+import io.github.yasmramos.veld.annotation.Profile;
 import io.github.yasmramos.veld.runtime.event.Event;
 
 import java.util.List;
 
 /**
  * Servicio para gestionar órdenes de compra.
+ * Only available in production profile since it depends on production services.
  */
+@Profile("production")
 @Singleton
 @Component
 public class OrderService {

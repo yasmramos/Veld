@@ -19,6 +19,7 @@ public final class AnnotationHelper {
     private static final String VELD_INJECT = "io.github.yasmramos.veld.annotation.Inject";
     private static final String VELD_NAMED = "io.github.yasmramos.veld.annotation.Named";
     private static final String VELD_SINGLETON = "io.github.yasmramos.veld.annotation.Singleton";
+    private static final String VELD_SCOPE = "io.github.yasmramos.veld.annotation.Scope";
     private static final String VELD_PRIMARY = "io.github.yasmramos.veld.annotation.Primary";
     private static final String VELD_QUALIFIER = "io.github.yasmramos.veld.annotation.Qualifier";
     private static final String VELD_FACTORY = "io.github.yasmramos.veld.annotation.Factory";
@@ -51,9 +52,59 @@ public final class AnnotationHelper {
     
     /**
      * Checks if an element has any @Singleton annotation (Veld, JSR-330, or Jakarta).
+     * Also checks for @Scope("singleton") annotation for the new string-based scope model.
      */
     public static boolean hasSingletonAnnotation(Element element) {
-        return hasAnnotation(element, VELD_SINGLETON, JAVAX_SINGLETON, JAKARTA_SINGLETON);
+        // Check for Veld @Singleton annotation
+        if (hasAnnotation(element, VELD_SINGLETON)) {
+            return true;
+        }
+        // Check for JSR-330 @Singleton annotation
+        if (hasAnnotation(element, JAVAX_SINGLETON)) {
+            return true;
+        }
+        // Check for Jakarta @Singleton annotation
+        if (hasAnnotation(element, JAKARTA_SINGLETON)) {
+            return true;
+        }
+        // Check for @Scope("singleton") annotation (new string-based scope model)
+        return hasScopeAnnotationWithValue(element, "singleton");
+    }
+    
+    /**
+     * Checks if an element has @Prototype annotation.
+     * Checks for @Scope("prototype") annotation for the new string-based scope model.
+     */
+    public static boolean hasPrototypeAnnotation(Element element) {
+        // Check for @Scope("prototype") annotation
+        return hasScopeAnnotationWithValue(element, "prototype");
+    }
+    
+    /**
+     * Gets the scope value from @Scope annotation.
+     * Returns "singleton", "prototype", or other custom scope identifier.
+     */
+    public static Optional<String> getScopeValue(Element element) {
+        return getAnnotationValue(element, VELD_SCOPE, "value");
+    }
+    
+    /**
+     * Checks if an element has a @Scope annotation with a specific value.
+     */
+    private static boolean hasScopeAnnotationWithValue(Element element, String scopeValue) {
+        for (AnnotationMirror mirror : element.getAnnotationMirrors()) {
+            if (VELD_SCOPE.equals(mirror.getAnnotationType().toString())) {
+                for (var entry : mirror.getElementValues().entrySet()) {
+                    if ("value".equals(entry.getKey().getSimpleName().toString())) {
+                        Object value = entry.getValue().getValue();
+                        return scopeValue.equals(value);
+                    }
+                }
+                // If no value specified, default is "singleton"
+                return "singleton".equals(scopeValue);
+            }
+        }
+        return false;
     }
     
     /**
@@ -157,6 +208,23 @@ public final class AnnotationHelper {
             for (String name : annotationNames) {
                 if (name.equals(annotationType)) {
                     return true;
+                }
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Checks if an element has a specific annotation and returns its value.
+     */
+    public static boolean hasAnnotationWithValue(Element element, String annotationName, String attributeName, String expectedValue) {
+        for (AnnotationMirror mirror : element.getAnnotationMirrors()) {
+            if (annotationName.equals(mirror.getAnnotationType().toString())) {
+                for (var entry : mirror.getElementValues().entrySet()) {
+                    if (attributeName.equals(entry.getKey().getSimpleName().toString())) {
+                        Object value = entry.getValue().getValue();
+                        return expectedValue.equals(value);
+                    }
                 }
             }
         }

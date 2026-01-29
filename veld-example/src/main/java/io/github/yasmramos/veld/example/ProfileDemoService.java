@@ -3,13 +3,16 @@ package io.github.yasmramos.veld.example;
 import io.github.yasmramos.veld.annotation.Inject;
 import io.github.yasmramos.veld.annotation.Optional;
 import io.github.yasmramos.veld.annotation.PostConstruct;
+import io.github.yasmramos.veld.annotation.Profile;
 import io.github.yasmramos.veld.annotation.Singleton;
 
 /**
  * Demonstrates how services can work with profile-specific dependencies.
  * Uses @Optional to gracefully handle dependencies that may not be present
  * based on the active profile.
+ * Available in all profiles since it demonstrates features across profiles.
  */
+@Profile({"dev", "test", "production"})
 @Singleton
 public class ProfileDemoService {
     

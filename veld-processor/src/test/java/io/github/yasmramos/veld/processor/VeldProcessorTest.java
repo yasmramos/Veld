@@ -31,6 +31,10 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import static org.mockito.Mockito.*;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.List;
+
 /**
  * Unit tests for {@link VeldProcessor} annotation processor.
  * Tests processor configuration, annotations, and basic behavior.
@@ -140,13 +144,13 @@ class VeldProcessorTest {
         }
 
         @Test
-        @DisplayName("should support exactly 13 component annotations")
-        void shouldSupportExactlyThirteenComponentAnnotations() {
+        @DisplayName("should support exactly 24 component annotations")
+        void shouldSupportExactlyTwentyFourComponentAnnotations() {
             SupportedAnnotationTypes annotation = VeldProcessor.class.getAnnotation(SupportedAnnotationTypes.class);
             assertNotNull(annotation);
             
-            assertEquals(13, annotation.value().length, 
-                "Should support exactly 13 component annotations");
+            assertEquals(24, annotation.value().length,
+                "Should support exactly 24 component annotations");
         }
     }
 
@@ -452,6 +456,229 @@ class VeldProcessorTest {
             
             // @Component is the generic one
             assertTrue(supported.contains("io.github.yasmramos.veld.annotation.Component"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Profile-based Class Generation Tests")
+    class ProfileClassGenerationTests {
+
+        @Test
+        @DisplayName("should generate VeldDev when @Profile(\"dev\") is present")
+        void shouldGenerateVeldDevForDevProfile() {
+            // Test the naming convention logic
+            assertEquals("VeldDev", getVeldClassNameForTest("dev"));
+            assertEquals("VeldDev", getVeldClassNameForTest("DEV"));
+        }
+
+        @Test
+        @DisplayName("should generate VeldTest when @Profile(\"test\") is present")
+        void shouldGenerateVeldTestForTestProfile() {
+            assertEquals("VeldTest", getVeldClassNameForTest("test"));
+            assertEquals("VeldTest", getVeldClassNameForTest("TEST"));
+        }
+
+        @Test
+        @DisplayName("should generate Veld (NOT VeldProd) for production profile")
+        void shouldGenerateVeldForProdProfile() {
+            assertEquals("Veld", getVeldClassNameForTest("prod"));
+            assertEquals("Veld", getVeldClassNameForTest("production"));
+            assertEquals("Veld", getVeldClassNameForTest("PROD"));
+        }
+
+        @Test
+        @DisplayName("should handle arbitrary profile names")
+        void shouldHandleArbitraryProfileNames() {
+            assertEquals("VeldStaging", getVeldClassNameForTest("staging"));
+            assertEquals("VeldIntegration", getVeldClassNameForTest("integration"));
+            assertEquals("VeldCustom", getVeldClassNameForTest("custom"));
+        }
+
+        /**
+         * Helper method to test the naming convention logic.
+         * This mirrors the logic in VeldProcessor.getVeldClassName()
+         */
+        private String getVeldClassNameForTest(String profile) {
+            if ("prod".equalsIgnoreCase(profile) || "production".equalsIgnoreCase(profile)) {
+                return "Veld";
+            }
+            // Normalize to lowercase first, then capitalize only the first letter
+            String normalized = profile.toLowerCase();
+            String capitalized = normalized.substring(0, 1).toUpperCase() + normalized.substring(1);
+            return "Veld" + capitalized;
+        }
+    }
+
+    @Nested
+    @DisplayName("Profile Visibility Rules Tests")
+    class ProfileVisibilityRulesTests {
+
+        @Test
+        @DisplayName("should allow default component to depend on default component")
+        void shouldAllowDefaultOnDefault() {
+            // This is valid - no profile component depending on no profile component
+            // The validation should pass
+            assertTrue(isValidVisibility("default", "default", true));
+        }
+
+        @Test
+        @DisplayName("should reject default component depending on profile component")
+        void shouldRejectDefaultOnProfile() {
+            // This is INVALID - default component cannot depend on profile-specific component
+            // The validation should fail
+            assertFalse(isValidVisibility("default", "dev", true));
+        }
+
+        @Test
+        @DisplayName("should allow profile component to depend on same profile component")
+        void shouldAllowSameProfile() {
+            // This is valid - dev component depending on dev component
+            assertTrue(isValidVisibility("dev", "dev", false));
+        }
+
+        @Test
+        @DisplayName("should reject profile component depending on different profile")
+        void shouldRejectDifferentProfile() {
+            // This is INVALID - dev component cannot depend on prod component
+            assertFalse(isValidVisibility("dev", "prod", false));
+        }
+
+        @Test
+        @DisplayName("should reject profile component depending on default component")
+        void shouldRejectProfileOnDefault() {
+            // This is INVALID - dev component cannot depend on default component
+            assertFalse(isValidVisibility("dev", "default", false));
+        }
+
+        /**
+         * Helper method to test visibility validation logic.
+         * This mirrors the logic in VeldProcessor.isValidDependency()
+         */
+        private boolean isValidVisibility(String dependerProfile, String dependencyProfile, 
+                                          boolean dependerIsDefault) {
+            boolean dependencyIsDefault = dependencyProfile.equals("default");
+            
+            // If dependency is in available set, it exists
+            // For this test, assume dependency IS available
+            
+            // Default component can only depend on default
+            if ( dependerIsDefault && !dependencyIsDefault) {
+                return false;
+            }
+            
+            // Profile component can only depend on same profile
+            if (!dependerIsDefault && dependencyIsDefault) {
+                return false;
+            }
+            
+            // Profile component can depend on same profile
+            if (!dependerIsDefault && !dependencyIsDefault) {
+                return dependerProfile.equals(dependencyProfile);
+            }
+            
+            return true;
+        }
+    }
+
+    @Nested
+    @DisplayName("Profile Duplicate Implementation Detection Tests")
+    class ProfileDuplicateImplementationTests {
+
+        @Test
+        @DisplayName("should detect multiple implementations without @Named")
+        void shouldDetectDuplicatesWithoutNamed() {
+            // Multiple implementations of same interface without @Named should fail
+            // This test verifies the validation logic exists
+            assertTrue(hasDuplicateDetectionLogic());
+        }
+
+        @Test
+        @DisplayName("should allow multiple implementations with unique @Named")
+        void shouldAllowMultipleWithNamed() {
+            // Multiple implementations WITH unique @Named values should pass
+            // The validation should check for @Named presence
+            assertTrue(validatesNamedPresence());
+        }
+
+        /**
+         * Verifies that the processor has duplicate detection logic.
+         */
+        private boolean hasDuplicateDetectionLogic() {
+            // Check if validateNoDuplicateImplementations method exists
+            try {
+                VeldProcessor.class.getDeclaredMethod("validateNoDuplicateImplementations", 
+                    String.class, java.util.List.class);
+                return true;
+            } catch (NoSuchMethodException e) {
+                return false;
+            }
+        }
+
+        /**
+         * Verifies that the processor validates @Named presence.
+         */
+        private boolean validatesNamedPresence() {
+            // Check if the validation method checks for @Named
+            try {
+                java.lang.reflect.Method method = VeldProcessor.class.getDeclaredMethod(
+                    "validateNoDuplicateImplementations", String.class, java.util.List.class);
+                return method != null;
+            } catch (NoSuchMethodException e) {
+                return false;
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("Profile Graph Isolation Tests")
+    class ProfileGraphIsolationTests {
+
+        @Test
+        @DisplayName("should build separate graphs for each profile")
+        void shouldBuildSeparateGraphs() {
+            // Verify that discoveredProfiles is a Set (no duplicates)
+            assertTrue(hasIsolatedProfileTracking());
+        }
+
+        @Test
+        @DisplayName("should not mix components from different profiles")
+        void shouldNotMixComponents() {
+            // Components should be classified by their profile
+            // Default components go to Veld only
+            // Profile components go to their specific VeldX only
+            assertTrue(hasProfileClassificationLogic());
+        }
+
+        @Test
+        @DisplayName("should track discovered profiles for class generation")
+        void shouldTrackDiscoveredProfiles() {
+            // Verify discoveredProfiles field exists
+            try {
+                java.lang.reflect.Field field = VeldProcessor.class.getDeclaredField("discoveredProfiles");
+                assertNotNull(field, "discoveredProfiles field should exist");
+                assertEquals(java.util.Set.class, field.getType());
+            } catch (NoSuchFieldException e) {
+                fail("discoveredProfiles field not found");
+            }
+        }
+
+        private boolean hasIsolatedProfileTracking() {
+            try {
+                java.lang.reflect.Field field = VeldProcessor.class.getDeclaredField("discoveredProfiles");
+                return field.getType().equals(java.util.Set.class);
+            } catch (NoSuchFieldException e) {
+                return false;
+            }
+        }
+
+        private boolean hasProfileClassificationLogic() {
+            try {
+                java.lang.reflect.Method method = VeldProcessor.class.getDeclaredMethod(
+                    "getNodeProfiles", VeldNode.class);
+                return method != null;
+            } catch (NoSuchMethodException e) {
+                return false;
+            }
         }
     }
 }

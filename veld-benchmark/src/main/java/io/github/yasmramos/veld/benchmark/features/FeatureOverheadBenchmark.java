@@ -18,14 +18,14 @@ public class FeatureOverheadBenchmark {
 
     @Benchmark
     public void measureAopExecution(Blackhole bh) {
-        AopTargetBean bean = Veld.get(AopTargetBean.class);
+        AopTargetBean bean = Veld.aopTargetBean();
         bean.doWork();
         bh.consume(bean);
     }
 
     @Benchmark
     public void measureAopBaseline(Blackhole bh) {
-        PlainBean bean = Veld.get(PlainBean.class);
+        PlainBean bean = Veld.plainBean();
         bean.method();
         bh.consume(bean);
     }

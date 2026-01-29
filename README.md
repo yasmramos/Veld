@@ -5,8 +5,8 @@
 [![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://openjdk.java.net/)
 [![Maven](https://img.shields.io/badge/Maven-3.6%2B-red.svg)](https://maven.apache.org/)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/yasmramos/veld)
-[![Tests](https://img.shields.io/badge/Tests-210%20passed-green)](https://github.com/yasmramos/Veld/actions)
-[![Coverage](https://img.shields.io/badge/Coverage-0%25-green)](https://codecov.io/gh/yasmramos/Veld)
+[![Tests](https://img.shields.io/badge/Tests-170%20passed-green)](https://github.com/yasmramos/Veld/actions)
+[![Coverage](https://img.shields.io/badge/Coverage-%25-green)](https://codecov.io/gh/yasmramos/Veld)
 [![Last Release](https://img.shields.io/github/v/release/yasmramos/Veld?display_name=tag)](https://github.com/yasmramos/Veld/releases)
 [![Last Commit](https://img.shields.io/github/last-commit/yasmramos/Veld/develop)](https://github.com/yasmramos/Veld/commits/develop)
 [![Issues](https://img.shields.io/github/issues/yasmramos/Veld)](https://github.com/yasmramos/Veld/issues)
@@ -88,7 +88,7 @@ import io.github.yasmramos.veld.Veld;
 
 public class Main {
     public static void main(String[] args) {
-        UserService userService = Veld.get(UserService.class);
+        UserService userService = Veld.userService();
         User user = userService.getUser(1L);
     }
 }

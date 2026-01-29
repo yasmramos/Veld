@@ -1,12 +1,15 @@
 package io.github.yasmramos.veld.example;
 
 import io.github.yasmramos.veld.annotation.Component;
+import io.github.yasmramos.veld.annotation.Inject;
 import io.github.yasmramos.veld.annotation.Singleton;
+import io.github.yasmramos.veld.annotation.Profile;
 import io.github.yasmramos.veld.annotation.Value;
 
 /**
- * Servicio de email SMTP.
+ * Servicio de email SMTP para producción.
  */
+@Profile("production")
 @Singleton
 @Component
 public class SmtpEmailService implements EmailService {

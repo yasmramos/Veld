@@ -76,7 +76,7 @@ import java.lang.annotation.Target;
  * @see Singleton
  */
 @Target({ElementType.TYPE, ElementType.METHOD})
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 @Documented
 public @interface Profile {
     

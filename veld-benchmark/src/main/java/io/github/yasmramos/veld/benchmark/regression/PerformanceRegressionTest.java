@@ -10,9 +10,6 @@
 package io.github.yasmramos.veld.benchmark.regression;
 
 import io.github.yasmramos.veld.Veld;
-import io.github.yasmramos.veld.benchmark.veld.VeldComplexService;
-import io.github.yasmramos.veld.benchmark.veld.VeldLogger;
-import io.github.yasmramos.veld.benchmark.veld.VeldSimpleService;
 
 import java.io.*;
 import java.nio.file.*;
@@ -178,7 +175,7 @@ public class PerformanceRegressionTest {
         // Test 1: Simple injection
         validateInjection("Simple Service", () -> {
             try {
-                Veld.get(VeldSimpleService.class);
+                Veld.veldSimpleService();
                 return 0.0;
             } catch (Exception e) {
                 return -1.0;
@@ -188,7 +185,7 @@ public class PerformanceRegressionTest {
         // Test 2: Complex injection
         validateInjection("Complex Service", () -> {
             try {
-                Veld.get(VeldComplexService.class);
+                Veld.veldComplexService();
                 return 0.0;
             } catch (Exception e) {
                 return -1.0;
@@ -198,7 +195,7 @@ public class PerformanceRegressionTest {
         // Test 3: Logger lookup
         validateInjection("Logger", () -> {
             try {
-                Veld.get(VeldLogger.class);
+                Veld.veldLogger();
                 return 0.0;
             } catch (Exception e) {
                 return -1.0;
@@ -209,7 +206,7 @@ public class PerformanceRegressionTest {
         validateInjection("Rapid Injections (10x)", () -> {
             long start = System.nanoTime();
             for (int i = 0; i < 10; i++) {
-                Veld.get(VeldSimpleService.class);
+                Veld.veldSimpleService();
             }
             long elapsed = System.nanoTime() - start;
             return (double) elapsed / 10; // Average ns/op

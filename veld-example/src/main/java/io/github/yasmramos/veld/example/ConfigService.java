@@ -10,12 +10,12 @@ import io.github.yasmramos.veld.annotation.PostConstruct;
  */
 @Component("configService")
 public class ConfigService {
-    
+
     private String appName = "Veld Framework Example";
     private String environment = "development";
     private int port = 8080;
     private boolean debugMode = false;
-    
+
     @Inject
     private LogService logService;
     

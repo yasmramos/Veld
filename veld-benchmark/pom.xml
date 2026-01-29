@@ -46,6 +46,17 @@
             <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-aop</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.github.yasmramos</groupId>
+            <artifactId>veld-validation</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Jakarta Validation API -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
         <!-- JMH -->
         <dependency>
             <groupId>org.openjdk.jmh</groupId>
@@ -119,7 +130,89 @@
 
     <build>
         <plugins>
-            <!-- Compiler with annotation processing -->
+            <!-- Phase 1: Run annotation processors only (proc:only) to generate code -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <executions>
+                    <execution>
+                        <id>annotation-processing</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <source>11</source>
+                            <target>11</target>
+                            <proc>only</proc>
+                            <failOnError>false</failOnError>
+                            <annotationProcessorPaths>
+                                <!-- JMH annotation processor -->
+                                <path>
+                                    <groupId>org.openjdk.jmh</groupId>
+                                    <artifactId>jmh-generator-annprocess</artifactId>
+                                    <version>${jmh.version}</version>
+                                </path>
+                                <!-- Dagger annotation processor -->
+                                <path>
+                                    <groupId>com.google.dagger</groupId>
+                                    <artifactId>dagger-compiler</artifactId>
+                                    <version>${dagger.version}</version>
+                                </path>
+                                <!-- Veld annotation processor dependencies -->
+                                <path>
+                                    <groupId>io.github.yasmramos</groupId>
+                                    <artifactId>veld-annotations</artifactId>
+                                    <version>${project.version}</version>
+                                </path>
+                                <path>
+                                    <groupId>io.github.yasmramos</groupId>
+                                    <artifactId>veld-runtime</artifactId>
+                                    <version>${project.version}</version>
+                                </path>
+                                <!-- Veld annotation processor -->
+                                <path>
+                                    <groupId>io.github.yasmramos</groupId>
+                                    <artifactId>veld-processor</artifactId>
+                                    <version>${project.version}</version>
+                                </path>
+                            </annotationProcessorPaths>
+                            <compilerArgs>
+                                <arg>--add-opens</arg>
+                                <arg>java.base/java.lang=ALL-UNNAMED</arg>
+                                <arg>--add-opens</arg>
+                                <arg>java.base/java.lang.reflect=ALL-UNNAMED</arg>
+                                <arg>--add-opens</arg>
+                                <arg>java.base/java.util=ALL-UNNAMED</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Add generated sources to compile classpath -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.4.0</version>
+                <executions>
+                    <execution>
+                        <id>add-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.build.directory}/generated-sources/annotations</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Phase 2: Normal compilation with generated sources on classpath -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -127,34 +220,7 @@
                 <configuration>
                     <source>11</source>
                     <target>11</target>
-                    <annotationProcessorPaths>
-                        <!-- JMH annotation processor -->
-                        <path>
-                            <groupId>org.openjdk.jmh</groupId>
-                            <artifactId>jmh-generator-annprocess</artifactId>
-                            <version>${jmh.version}</version>
-                        </path>
-                        <!-- Dagger annotation processor -->
-                        <path>
-                            <groupId>com.google.dagger</groupId>
-                            <artifactId>dagger-compiler</artifactId>
-                            <version>${dagger.version}</version>
-                        </path>
-                        <!-- Veld annotation processor -->
-                        <path>
-                            <groupId>io.github.yasmramos</groupId>
-                            <artifactId>veld-processor</artifactId>
-                            <version>${project.version}</version>
-                        </path>
-                    </annotationProcessorPaths>
-                    <compilerArgs>
-                        <arg>--add-opens</arg>
-                        <arg>java.base/java.lang=ALL-UNNAMED</arg>
-                        <arg>--add-opens</arg>
-                        <arg>java.base/java.lang.reflect=ALL-UNNAMED</arg>
-                        <arg>--add-opens</arg>
-                        <arg>java.base/java.util=ALL-UNNAMED</arg>
-                    </compilerArgs>
+                    <proc>none</proc>
                 </configuration>
             </plugin>
 

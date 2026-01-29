@@ -63,72 +63,6 @@ public class Service {
 
 ---
 
-### 3. @Factory
-
-**Propósito:** Marcar una clase como factory que produce beans para el contenedor Veld.
-
-**Uso:**
-```java
-@Factory
-public class ConnectionFactory {
-
-    @Bean
-    public Connection createDatabaseConnection() {
-        return new DatabaseConnection(config.getUrl());
-    }
-
-    @Bean(name = "pooledConnection")
-    public Connection createPooledConnection() {
-        ConnectionPool pool = new ConnectionPool();
-        return pool.getConnection();
-    }
-}
-```
-
-**Atributos:**
-- `name`: Nombre opcional para el factory (por defecto: nombre de clase)
-
-**Características:**
-- Las clases factory pueden inyectar sus propias dependencias
-- Los métodos `@Bean` dentro de una factory pueden tener parámetros que se resuelven del contenedor
-
----
-
-### 4. @Bean
-
-**Propósito:** Marcar un método dentro de una clase `@Factory` como productor de beans.
-
-**Uso:**
-```java
-@Factory
-public class ServiceFactory {
-
-    // Bean simple - tipo inferido del tipo de retorno
-    @Bean
-    public UserService createUserService() {
-        return new UserService();
-    }
-
-    // Bean con nombre
-    @Bean(name = "premiumService")
-    public UserService createPremiumService() {
-        return new UserService(PREMIUM_CONFIG);
-    }
-
-    // Bean primario
-    @Bean(primary = true)
-    public UserService createDefaultService() {
-        return new UserService(DEFAULT_CONFIG);
-    }
-}
-```
-
-**Atributos:**
-- `name`: Nombre opcional para el bean producido (por defecto: nombre del método)
-- `primary`: Indica si este bean debe ser tratado como primario (por defecto: false)
-
----
-
 ## Casos de Uso Comunes
 
 ### Desambiguación de Beans
@@ -158,26 +92,6 @@ private PaymentProcessor processor;
 private PaymentProcessor creditCardProcessor;
 ```
 
-### Factory Pattern
-```java
-@Factory
-public class DatabaseFactory {
-
-    @Inject
-    private Configuration config;
-
-    @Bean
-    public DataSource createDataSource() {
-        return new HikariDataSource(config.getJdbcConfig());
-    }
-
-    @Bean(name = "readReplicaDataSource")
-    public DataSource createReadReplicaDataSource() {
-        return new HikariDataSource(config.getReadReplicaConfig());
-    }
-}
-```
-
 ---
 
 ## Notas de Implementación
@@ -198,7 +112,6 @@ public class DatabaseFactory {
 1. Implementar la lógica del contenedor para soportar las nuevas anotaciones
 2. Añadir tests de integración en veld-runtime
 3. Actualizar la documentación con ejemplos avanzados
-4. Crear un proyecto de ejemplo demostrando el patrón Factory
 
 ---
 

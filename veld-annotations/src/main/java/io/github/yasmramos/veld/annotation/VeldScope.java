@@ -7,107 +7,65 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Meta-annotation that defines a Veld scope.
- * 
- * <p>Use this annotation to create custom scope annotations that can be
- * recognized by the Veld processor and applied to components.</p>
- * 
- * <h2>Creating a Custom Scope:</h2>
+ * Meta-annotation that defines a custom scope for Veld components.
+ *
+ * <p>This annotation is used to mark other annotations as scope definitions.
+ * When applied to an annotation (like {@code @RequestScoped} or {@code @SessionScoped}),
+ * it specifies the runtime scope implementation class and a display name for visualization
+ * purposes (such as in dependency graph exports).</p>
+ *
+ * <p>The {@code value} attribute should contain the fully qualified class name of the
+ * scope implementation class that will manage the lifecycle of beans annotated with
+ * the custom scope annotation.</p>
+ *
+ * <h2>Usage:</h2>
  * <pre>{@code
- * import io.github.yasmramos.veld.annotation.VeldScope;
- * import io.github.yasmramos.veld.runtime.scope.ThreadScope;
- * 
- * // Define the scope annotation with fully-qualified class name
- * @VeldScope("io.github.yasmramos.veld.runtime.scope.ThreadScope")
+ * @Documented
  * @Retention(RetentionPolicy.RUNTIME)
  * @Target(ElementType.TYPE)
- * public @interface ThreadScoped {
- * }
- * 
- * // Use the custom scope
- * @ThreadScoped
- * public class RequestContext {
- *     private final String requestId;
- *     
- *     public RequestContext() {
- *         this.requestId = UUID.randomUUID().toString();
- *     }
- * }
- * }</pre>
- * 
- * <h2>Creating a Custom Scope with Configuration:</h2>
- * <pre>{@code
- * import io.github.yasmramos.veld.annotation.VeldScope;
- * 
- * // Define the scope annotation with custom attributes
- * @VeldScope(value = "io.github.yasmramos.veld.runtime.scope.CustomScope", displayName = "Custom Scope")
- * @Retention(RetentionPolicy.RUNTIME)
- * @Target(ElementType.TYPE)
- * public @interface CustomScoped {
- *     String name() default "";
- * }
- * }</pre>
- * 
- * <h2>Scope with Parameter:</h2>
- * <p>For scopes that require configuration, create a factory annotation:</p>
- * <pre>{@code
- * // Define a scope configuration annotation
- * @Retention(RetentionPolicy.RUNTIME)
- * @Target(ElementType.TYPE)
- * public @interface SessionScoped {
+ * @VeldScope(
+ *     value = "io.github.yasmramos.veld.runtime.scope.RequestScope",
+ *     displayName = "Request Scope"
+ * )
+ * public @interface RequestScoped {
  *     String value() default "";
  * }
- * 
- * // Register the scope implementation via ScopeProvider
- * public class SessionScopeProvider implements ScopeProvider {
- *     public Scope getScope() {
- *         return new SessionScope();
- *     }
- *     // ... other methods
- * }
  * }</pre>
- * 
- * @see io.github.yasmramos.veld.annotation.Singleton
- * @see io.github.yasmramos.veld.annotation.Prototype
+ *
+ * <h2>Built-in Scopes:</h2>
+ * <ul>
+ *   <li>{@code @Singleton} - Single instance shared across the entire container</li>
+ *   <li>{@code @Prototype} - New instance created for each injection point</li>
+ *   <li>{@code @RequestScoped} - Instance per HTTP request (requires web integration)</li>
+ *   <li>{@code @SessionScoped} - Instance per HTTP session (requires web integration)</li>
+ * </ul>
+ *
  * @see io.github.yasmramos.veld.runtime.scope.Scope
+ * @see io.github.yasmramos.veld.runtime.scope.RequestScope
+ * @see io.github.yasmramos.veld.runtime.scope.SessionScope
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.ANNOTATION_TYPE)
 public @interface VeldScope {
-    
+
     /**
-     * The fully-qualified name of the Scope implementation class.
-     * 
-     * <p>Must be the binary name (e.g., "com.example.MyScope") of a class that
-     * implements {@link io.github.yasmramos.veld.runtime.scope.Scope} and has
-     * a public no-arg constructor.</p>
-     * 
-     * @return the fully-qualified class name of the Scope implementation
+     * The fully qualified class name of the scope implementation.
+     *
+     * <p>This class must implement {@link io.github.yasmramos.veld.runtime.scope.Scope}
+     * and will be responsible for managing the lifecycle of beans with this scope.</p>
+     *
+     * @return the fully qualified class name of the scope implementation
      */
-    String value() default "";
-    
+    String value();
+
     /**
-     * Optional scope identifier.
-     * 
-     * <p>If not specified, the simple name of the annotation being annotated
-     * will be used (e.g., @ThreadScoped becomes "thread").</p>
-     * 
-     * @return the scope identifier, or empty for auto-detection
+     * A human-readable display name for this scope.
+     *
+     * <p>This name is used for visualization purposes, such as displaying
+     * scope information in dependency graph exports or debugging tools.</p>
+     *
+     * @return the display name for this scope
      */
-    String id() default "";
-    
-    /**
-     * Optional display name for documentation and debugging.
-     * 
-     * @return the display name, or empty for default
-     */
-    String displayName() default "";
-    
-    /**
-     * Optional description of the scope's behavior.
-     * 
-     * @return the description, or empty for default
-     */
-    String description() default "";
+    String displayName();
 }
