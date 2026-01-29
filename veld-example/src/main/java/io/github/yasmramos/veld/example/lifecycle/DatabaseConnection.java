@@ -15,6 +15,7 @@
  */
 package io.github.yasmramos.veld.example.lifecycle;
 
+import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.annotation.PostConstruct;
 import io.github.yasmramos.veld.annotation.PreDestroy;
 import io.github.yasmramos.veld.annotation.Singleton;
@@ -22,10 +23,11 @@ import io.github.yasmramos.veld.runtime.lifecycle.SmartLifecycle;
 
 /**
  * Example of a SmartLifecycle component that manages database connections.
- * 
+ *
  * <p>Uses a low phase number (-1000) to ensure it starts early and stops late,
  * since other components may depend on the database connection.
  */
+@Component("databaseConnection")
 @Singleton
 public class DatabaseConnection implements SmartLifecycle {
     

@@ -1,6 +1,5 @@
 package io.github.yasmramos.veld.example.dependsOn;
 
-import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.example.ConfigService;
 
 /**

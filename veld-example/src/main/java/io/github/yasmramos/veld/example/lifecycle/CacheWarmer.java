@@ -15,18 +15,16 @@
  */
 package io.github.yasmramos.veld.example.lifecycle;
 
-import io.github.yasmramos.veld.annotation.DependsOn;
 import io.github.yasmramos.veld.annotation.PostInitialize;
 import io.github.yasmramos.veld.annotation.Singleton;
 
 /**
  * Example of using @PostInitialize for cache warming.
- * 
+ *
  * <p>This component uses @DependsOn to ensure the database is ready
  * before attempting to warm the cache.
  */
 @Singleton
-@DependsOn("databaseConnection")
 public class CacheWarmer {
     
     private boolean cacheWarmed = false;
