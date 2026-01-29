@@ -63,13 +63,17 @@ import java.util.concurrent.TimeUnit;
  * <p>For each component with intercepted methods, generates a subclass
  * that inlines the interception logic, eliminating runtime proxies.
  *
+ * <p>This class implements {@link AopGenerator} interface to provide
+ * AOP code generation as an SPI service. The implementation is discovered
+ * at runtime via Java's {@link java.util.ServiceLoader} mechanism.</p>
+ *
  * <p>This class works with {@link AopComponentNode} interface, allowing it
- * to be used by the SPI system without direct dependencies on the processor module.
+ * to be used by the SPI system without direct dependencies on the processor module.</p>
  *
  * @author Veld Framework Team
  * @since 1.0.3
  */
-public class AopClassGenerator {
+public class AopClassGenerator implements AopGenerator {
 
     private static final String AOP_SUFFIX = "$$Aop";
 
@@ -100,6 +104,22 @@ public class AopClassGenerator {
     // Using static field to persist across multiple instances of AopClassGenerator
     private static final Set<String> generatedAopClasses = Collections.synchronizedSet(new HashSet<>());
 
+    /**
+     * Default constructor for SPI instantiation.
+     * 
+     * <p>When used via SPI, the context will be provided via 
+     * {@link #generateAopWrappers(List, AopGenerationContext)}.</p>
+     */
+    public AopClassGenerator() {
+        this.context = null;
+        this.typeUtils = null;
+    }
+
+    /**
+     * Constructor with explicit context for direct instantiation.
+     *
+     * @param context the AOP generation context
+     */
     public AopClassGenerator(AopGenerationContext context) {
         this.context = context;
         this.typeUtils = context.getTypeUtils();
@@ -957,5 +977,28 @@ public class AopClassGenerator {
      */
     public boolean hasAopWrapper(String originalClassName) {
         return aopClassMap.containsKey(originalClassName);
+    }
+
+    /**
+     * Generates AOP wrapper classes implementing {@link AopGenerator} interface.
+     *
+     * <p>This method serves as the SPI entry point for AOP code generation.
+     * It creates a new generator instance with the provided context and
+     * delegates to {@link #generateAopClasses(List)}.</p>
+     *
+     * @param components the components to process
+     * @param context the generation context (used for type utilities, filer, and logging)
+     * @return map of original class name to AOP wrapper class name
+     */
+    @Override
+    public Map<String, String> generateAopWrappers(
+            List<? extends AopComponentNode> components,
+            AopGenerationContext context) {
+        if (components == null || components.isEmpty()) {
+            return Map.of();
+        }
+        // Create a new generator instance with the provided context
+        AopClassGenerator generator = new AopClassGenerator(context);
+        return generator.generateAopClasses((List<AopComponentNode>) components);
     }
 }

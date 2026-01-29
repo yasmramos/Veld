@@ -1,5 +1,6 @@
 package io.github.yasmramos.veld.aop.spi;
 
+import io.github.yasmramos.veld.aop.AopClassGenerator;
 import io.github.yasmramos.veld.aop.AopComponentNode;
 import io.github.yasmramos.veld.aop.AopExtension;
 import io.github.yasmramos.veld.aop.AopGenerationContext;
@@ -23,7 +24,8 @@ import java.util.*;
  *   <li>Proveer el contexto de generación a cada extensión</li>
  * </ul>
  * 
- * <p>Este ejecutor está en {@code veld-aop} y es descubierto via SPI por el processor.</p>
+ * <p>Este ejecutor está en {@code veld-aop} y usa {@link AopClassGenerator}
+ * como implementación por defecto de {@link AopGenerator}.</p>
  * 
  * @author Veld Team
  * @version 1.0.0
@@ -42,8 +44,16 @@ public final class SpiAopExtensionExecutor {
     /**
      * Crea un nuevo executor de extensiones AOP.
      * 
+     * <p>Este constructor usa directamente {@link AopClassGenerator} como
+     * implementación de {@link AopGenerator}. Ambas clases están en el mismo
+     * módulo (veld-aop), evitando problemas de classloader que ocurrirían
+     * con {@link ServiceLoader} en annotation processing.</p>
+     * 
+     * <p>Para verdadera extensibilidad SPI, las implementaciones adicionales
+     * de {@link AopGenerator} pueden ser registradas en META-INF/services
+     * y serán descubiertas en runtime (no en annotation processing).</p>
+     * 
      * @param enabled si el sistema AOP está habilitado
-     * @param aopGenerator el generador AOP del processor (null si no disponible)
      * @param messager el messager para reportes
      * @param elementUtils utilities de elementos
      * @param typeUtils utilities de tipos
@@ -51,13 +61,11 @@ public final class SpiAopExtensionExecutor {
      */
     public SpiAopExtensionExecutor(
             boolean enabled,
-            AopGenerator aopGenerator,
             Messager messager,
             Elements elementUtils,
             Types typeUtils,
             javax.annotation.processing.Filer filer) {
         this.enabled = enabled;
-        this.aopGenerator = aopGenerator;
         this.messager = messager;
         this.elementUtils = elementUtils;
         this.typeUtils = typeUtils;
@@ -65,12 +73,17 @@ public final class SpiAopExtensionExecutor {
         this.extensionLoader = enabled ? SpiAopExtensionLoader.loadExtensions() : null;
         this.executionErrors = new ArrayList<>();
         
+        // Directly instantiate AopGenerator (both in veld-aop, no classloader issues)
+        this.aopGenerator = enabled ? new AopClassGenerator() : null;
+        
         if (enabled && extensionLoader.hasExtensions()) {
             reportNote("AOP Extensions loaded: " + extensionLoader.getExtensionCount());
         }
         
-        if (aopGenerator == null && enabled && extensionLoader.hasExtensions()) {
-            reportWarning("AOP extensions enabled but no AopGenerator available from processor");
+        if (aopGenerator != null) {
+            reportNote("AopGenerator discovered via SPI: " + aopGenerator.getClass().getName());
+        } else if (enabled) {
+            reportWarning("No AopGenerator available via SPI, skipping AOP generation");
         }
     }
     
