@@ -411,9 +411,19 @@ public class VeldProcessor extends AbstractProcessor {
                     dependencyGraph.addDependency(componentName, resolvedType);
                     note("    -> Explicit dependency: " + beanName + " -> " + resolvedType);
                 } else {
-                    error(info.getTypeElement(),"@DependsOn references unknown bean: \""+beanName+"\"\n"+
-                            "   Component: "+componentName+"\n"+
-                            "   Fix: Ensure a component or @Bean with this name exists.");
+
+                    String suggestion = findBestFuzzyMatch(beanName);
+
+                    StringBuilder msg = new StringBuilder();
+                    msg.append("@DependsOn references unknown bean: \"")
+                            .append(beanName).append("\"\n")
+                            .append("   Component: ").append(componentName);
+
+                    if (suggestion != null) {
+                        msg.append("\n   Did you mean \"").append(suggestion).append("\"?");
+                    }
+
+                    error(info.getTypeElement(), msg.toString());
                 }
             }
         }
