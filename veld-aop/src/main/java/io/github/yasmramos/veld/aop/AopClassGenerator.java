@@ -132,6 +132,10 @@ public class AopClassGenerator implements AopGenerator {
      * @return map of original class name to AOP wrapper class name
      */
     public Map<String, String> generateAopClasses(List<? extends AopComponentNode> components) {
+        if (components == null) {
+            return aopClassMap;
+        }
+        
         for (AopComponentNode component : components) {
             if (hasInterceptedMethods(component)) {
                 String aopClassName = component.getClassName() + AOP_SUFFIX;
@@ -162,6 +166,7 @@ public class AopClassGenerator implements AopGenerator {
     private boolean hasInterceptedMethods(AopComponentNode component) {
         TypeMirror typeMirror = component.getTypeMirror();
         if (typeMirror == null) return false;
+        if (typeUtils == null) return false;
 
         TypeElement typeElement = (TypeElement) typeUtils.asElement(typeMirror);
         if (typeElement == null) return false;
