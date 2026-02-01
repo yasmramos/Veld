@@ -141,6 +141,29 @@ public class Main {
 | `veld-tx` | Transaction management |
 | `veld-spring-boot-starter` | Spring Boot integration |
 
+
+
+
+## Spring Boot Starter
+
+To integrate Veld with Spring Boot applications, use the Spring Boot starter.
+
+### Add Dependency
+
+**Maven:**
+```xml
+<dependency>
+    <groupId>io.github.yasmramos</groupId>
+    <artifactId>veld-spring-boot-starter</artifactId>
+    <version>1.0.3</version>
+</dependency>
+```
+**Gradle:**
+```gradle
+implementation 'io.github.yasmramos:veld-spring-boot-starter:1.0.3'
+```
+
+
 ## Building from Source
 
 ```bash

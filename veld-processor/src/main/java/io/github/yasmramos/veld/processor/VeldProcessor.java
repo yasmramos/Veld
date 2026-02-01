@@ -258,6 +258,7 @@ public class VeldProcessor extends AbstractProcessor {
         }
         
         // PHASE 1: DISCOVERY - Analyze all components first without generating factories
+        // This two-phase approach ensures @DependsOn validation works correctly for cross-package dependencies
         for (TypeElement typeElement : componentElements) {
             String className = typeElement.getQualifiedName().toString();
             
@@ -303,16 +304,19 @@ public class VeldProcessor extends AbstractProcessor {
                 
                 discoveredComponents.add(info);
                 
-                // Build dependency graph for cycle detection
-                buildDependencyGraph(info);
-                
                 note("Discovered component: " + info.getClassName() + " (name: " + info.getComponentName() + ")");
             } catch (ProcessingException e) {
                 error(typeElement, e.getMessage());
             }
         }
 
-        // PHASE 2: GENERATION - Now that we have all components, identify unresolved dependencies
+        // PHASE 2: VALIDATION - Build dependency graph for ALL discovered components
+        // This separate phase ensures @DependsOn validation has access to all components
+        for (ComponentInfo info : discoveredComponents) {
+            buildDependencyGraph(info);
+        }
+
+        // PHASE 3: GENERATION - Now that we have all components and dependencies validated
 
         return true;
     }
