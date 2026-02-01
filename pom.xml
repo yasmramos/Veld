@@ -113,7 +113,7 @@
         <jacoco.version>0.8.14</jacoco.version>
 
         <!-- Spring Boot versions -->
-        <spring-boot.version>4.0.1</spring-boot.version>
+        <spring-boot.version>4.0.2</spring-boot.version>
         <spring.version>7.0.2</spring.version>
 
         <!-- Maven plugins versions -->
