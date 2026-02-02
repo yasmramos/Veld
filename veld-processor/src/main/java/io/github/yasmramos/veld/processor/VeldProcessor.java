@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
 import java.util.*;
+import java.util.Optional;
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
@@ -110,6 +111,7 @@ public class VeldProcessor extends AbstractProcessor {
     
     private final List<ComponentInfo> discoveredComponents = new ArrayList<>();
     private final DependencyGraph dependencyGraph = new DependencyGraph();
+    private final Set<String> registeredScopes = new HashSet<>();
     
     // Maps interface -> list of implementing components (for conflict detection)
     private final Map<String, List<String>> interfaceImplementors = new HashMap<>();
@@ -197,7 +199,29 @@ public class VeldProcessor extends AbstractProcessor {
             }
             return true;
         }
-        
+
+        registeredScopes.clear();
+        // Discover all registered custom scopes (@VeldScope meta-annotations)
+        for (Element element : roundEnv.getElementsAnnotatedWith(VeldScope.class)) {
+            if (element.getKind() == ElementKind.ANNOTATION_TYPE) {
+                TypeElement scopeAnnotation = (TypeElement) element;
+                String simpleName = scopeAnnotation.getSimpleName().toString();
+
+                // Convention: RequestScoped -> request
+                String scopeId =
+                        Character.toLowerCase(simpleName.charAt(0)) +
+                                simpleName.substring(1).replace("Scoped", "");
+
+                registeredScopes.add(scopeId);
+                note("Registered scope: " + scopeId);
+            }
+        }
+
+        registeredScopes.add("singleton");
+        registeredScopes.add("prototype");
+        registeredScopes.add("request");
+        registeredScopes.add("session");
+
         // Collect all elements that should be components
         Set<TypeElement> componentElements = new HashSet<>();
         
@@ -856,12 +880,21 @@ public class VeldProcessor extends AbstractProcessor {
         }
         
         // Check for @Scope annotation with custom value
-        java.util.Optional<String> scopeValue = AnnotationHelper.getScopeValue(typeElement);
+        Optional<String> scopeValue = AnnotationHelper.getScopeValue(typeElement);
         if (scopeValue.isPresent()) {
-            note("  -> Scope: " + scopeValue.get());
-            return scopeValue.get();
+            String scope = scopeValue.get();
+
+            if (!registeredScopes.contains(scope)) {
+                error(typeElement,
+                        "Component with @Scope(\"" + scope + "\") uses unregistered scope\n" +
+                                "Available scopes: " + String.join(", ", registeredScopes)
+                );
+            }
+
+            note("  -> Scope: " + scope);
+            return scope;
         }
-        
+
         // Default scope
         note("  -> Scope: singleton (default)");
         return "singleton";
