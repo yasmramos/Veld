@@ -19,7 +19,7 @@
         <jmh.version>1.37</jmh.version>
 
         <!-- Competing frameworks -->
-        <spring.version>6.1.20</spring.version>
+        <spring.version>7.0.3</spring.version>
         <guice.version>7.0.0</guice.version>
         <dagger.version>2.59</dagger.version>
 
