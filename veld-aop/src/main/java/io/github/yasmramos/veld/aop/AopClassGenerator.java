@@ -44,6 +44,7 @@ import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -96,6 +97,7 @@ public class AopClassGenerator implements AopGenerator {
 
     private final AopGenerationContext context;
     private final Types typeUtils;
+    private final Elements elementUtils;
 
     // Maps original class to its AOP wrapper class name
     private final Map<String, String> aopClassMap = new HashMap<>();
@@ -113,6 +115,7 @@ public class AopClassGenerator implements AopGenerator {
     public AopClassGenerator() {
         this.context = null;
         this.typeUtils = null;
+        this.elementUtils = null;
     }
 
     /**
@@ -123,6 +126,7 @@ public class AopClassGenerator implements AopGenerator {
     public AopClassGenerator(AopGenerationContext context) {
         this.context = context;
         this.typeUtils = context.getTypeUtils();
+        this.elementUtils = context.getElementUtils();
     }
 
     /**
@@ -420,7 +424,46 @@ public class AopClassGenerator implements AopGenerator {
             }
         }
 
+        // Validate all interceptor types implement CompileTimeInterceptor
+        validateInterceptorTypes(types, typeElement);
+
         return types;
+    }
+
+    /**
+     * Validates that all interceptor types implement CompileTimeInterceptor interface.
+     * Reports an error for each interceptor that doesn't implement the interface.
+     */
+    private void validateInterceptorTypes(Set<String> interceptorTypes, TypeElement enclosingElement) {
+        if (typeUtils == null) {
+            return;
+        }
+
+        // Get the CompileTimeInterceptor type mirror
+        TypeElement interceptorInterface = elementUtils.getTypeElement("io.github.yasmramos.veld.aop.CompileTimeInterceptor");
+        if (interceptorInterface == null) {
+            context.reportError("Cannot find CompileTimeInterceptor interface", null);
+            return;
+        }
+
+        TypeMirror interceptorMirror = interceptorInterface.asType();
+
+        for (String interceptorType : interceptorTypes) {
+            TypeElement interceptorElement = elementUtils.getTypeElement(interceptorType);
+            if (interceptorElement == null) {
+                context.reportError(
+                    "Cannot find interceptor class: " + interceptorType,
+                    enclosingElement);
+                continue;
+            }
+
+            // Check if the interceptor implements CompileTimeInterceptor
+            if (!typeUtils.isAssignable(interceptorElement.asType(), interceptorMirror)) {
+                context.reportError(
+                    "Interceptor " + interceptorType + " must implement io.github.yasmramos.veld.aop.CompileTimeInterceptor",
+                    enclosingElement);
+            }
+        }
     }
 
     /**
@@ -521,10 +564,21 @@ public class AopClassGenerator implements AopGenerator {
      * Generates the scheduled tasks initializer method.
      */
     private void generateScheduledInitializer(TypeSpec.Builder classBuilder, TypeElement typeElement) {
+        // Add static field to store scheduled task references for cleanup
+        classBuilder.addField(FieldSpec.builder(
+                ParameterizedTypeName.get(ClassName.get(List.class), ClassName.get("java.util.concurrent", "ScheduledFuture")),
+                "__scheduledTasks__")
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
+                .initializer("$T.asList(new $T[$N])", Arrays.class, ClassName.get("java.util.concurrent", "ScheduledFuture"), countScheduledMethods(typeElement))
+                .addJavadoc("Stores references to scheduled tasks for cleanup on shutdown.\n")
+                .build());
+
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("initScheduledTasks")
                 .addModifiers(Modifier.PRIVATE)
-                .addStatement("$T scheduler = $T.getInstance()", SchedulerService.class, SchedulerService.class);
+                .addStatement("$T scheduler = $T.getInstance()", SchedulerService.class, SchedulerService.class)
+                .addStatement("int __taskIndex__ = 0");
 
+        int taskIndex = 0;
         for (Element enclosed : typeElement.getEnclosedElements()) {
             if (enclosed.getKind() != ElementKind.METHOD) continue;
 
@@ -549,18 +603,54 @@ public class AopClassGenerator implements AopGenerator {
             methodBuilder.addStatement("};");
 
             if (!cron.isEmpty()) {
-                // Cron-based scheduling
+                // Cron-based scheduling - these tasks self-reschedule, no need to track
                 methodBuilder.addStatement("scheduler.scheduleCron(task_$N, $S, $S)", methodName, cron, zone);
             } else if (!fixedRate.equals("-1") && Long.parseLong(fixedRate) > 0) {
-                // Fixed rate scheduling
-                methodBuilder.addStatement("scheduler.scheduleAtFixedRate(task_$N, $NL, $NL, $T.MILLISECONDS)",
+                // Fixed rate scheduling - store the future for cleanup
+                methodBuilder.addStatement("__scheduledTasks__[__taskIndex__++] = scheduler.scheduleAtFixedRate(task_$N, $NL, $NL, $T.MILLISECONDS)",
                         methodName, initialDelay, fixedRate, TimeUnit.class);
             } else if (!fixedDelay.equals("-1") && Long.parseLong(fixedDelay) > 0) {
-                // Fixed delay scheduling
-                methodBuilder.addStatement("scheduler.scheduleWithFixedDelay(task_$N, $NL, $NL, $T.MILLISECONDS)",
+                // Fixed delay scheduling - store the future for cleanup
+                methodBuilder.addStatement("__scheduledTasks__[__taskIndex__++] = scheduler.scheduleWithFixedDelay(task_$N, $NL, $NL, $T.MILLISECONDS)",
                         methodName, initialDelay, fixedDelay, TimeUnit.class);
             }
+            taskIndex++;
         }
+
+        classBuilder.addMethod(methodBuilder.build());
+
+        // Generate shutdown method to clean up scheduled tasks
+        generateScheduledShutdownMethod(classBuilder);
+    }
+
+    /**
+     * Counts the number of scheduled methods in a class.
+     */
+    private int countScheduledMethods(TypeElement typeElement) {
+        int count = 0;
+        for (Element enclosed : typeElement.getEnclosedElements()) {
+            if (enclosed.getKind() == ElementKind.METHOD) {
+                if (hasAnnotation(enclosed, "io.github.yasmramos.veld.annotation.Scheduled")) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Generates the scheduled tasks shutdown method for cleanup.
+     */
+    private void generateScheduledShutdownMethod(TypeSpec.Builder classBuilder) {
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("shutdownScheduledTasks")
+                .addModifiers(Modifier.PRIVATE)
+                .addJavadoc("Cancels all scheduled tasks to prevent memory leaks.\n" +
+                        "Should be called during component shutdown or application termination.\n")
+                .addStatement("for ($T task : __scheduledTasks__)",
+                    ClassName.get("java.util.concurrent", "ScheduledFuture"))
+                .beginControlFlow("if (task != null && !task.isDone())")
+                .addStatement("task.cancel(false)")
+                .endControlFlow();
 
         classBuilder.addMethod(methodBuilder.build());
     }
