@@ -170,7 +170,7 @@ public final class VeldSourceGenerator {
                 ClassName.get("io.github.yasmramos.veld.annotation", "BeanState")), 
             "beanStates", Modifier.FINAL)
             .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
-            .initializer("new $T()", ClassName.get(ConcurrentHashMap.class))
+            .initializer("new $T<>()", ClassName.get(ConcurrentHashMap.class))
             .build());
         
         // Add dependency validation helper method
