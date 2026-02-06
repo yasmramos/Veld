@@ -64,11 +64,10 @@ public final class ConditionalValidator {
                     boolean depIsConditional = depNode != null && graph.hasConditions(dep);
                     
                     if (depIsConditional) {
-                        // El bean dependencia es condicional pero no se cumplió
                         error(node,
-                            "Dependencia condicional $S no garantizada. " +
-                            "Bean condicional $S no puede ser dependencia de $S porque no existe. " +
-                            "Considere usar @Optional o hacer esta dependencia nullable.",
+                            "Conditional dependency %s is not satisfied. " +
+                            "Conditional bean %s cannot be a dependency of %s because it does not exist. " +
+                            "Consider using @Optional or making this dependency nullable.",
                             dep, dep, bean);
                     }
                 }
@@ -96,11 +95,10 @@ public final class ConditionalValidator {
             
             for (String dep : deps) {
                 if (result.isConditional(dep)) {
-                    // Bean incondicional depende de bean condicional
                     warning(node,
-                        "Bean incondicional $S depende de bean condicional $S. " +
-                        "Si la condición de $S no se cumple, $S recibirá null. " +
-                        "Considere usar @Optional, @Nullable, o hacer $S también condicional.",
+                        "Unconditional bean %s depends on conditional bean %s. " +
+                        "If the condition for %s is not met, %s will receive null. " +
+                        "Consider using @Optional, @Nullable, or making %s conditional as well.",
                         bean, dep, dep, bean, bean);
                 }
             }
@@ -117,10 +115,9 @@ public final class ConditionalValidator {
             if (node == null) continue;
             
             if (!graph.hasConditions(absentBean)) {
-                // Bean sin condiciones está ausente - esto no debería pasar
                 warning(node,
-                    "Bean $S está marcado como ausente pero no tiene condiciones. " +
-                    "Esto puede indicar un error en el grafo de dependencias.",
+                    "Bean %s is marked as absent but has no conditions. " +
+                    "This may indicate an error in the dependency graph.",
                     absentBean);
             }
         }
@@ -137,8 +134,8 @@ public final class ConditionalValidator {
             // Verificar @ConditionalOnBean y @ConditionalOnMissingBean simultáneos
             if (hasConflictingConditions(node)) {
                 error(node,
-                    "Condiciones conflictivas en $S. " +
-                    "No puede tener simultáneamente @ConditionalOnBean y @ConditionalOnMissingBean para el mismo bean.",
+                    "Conflicting conditions on %s. " +
+                    "Cannot have both @ConditionalOnBean and @ConditionalOnMissingBean for the same bean.",
                     bean);
             }
         }
