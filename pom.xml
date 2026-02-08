@@ -127,7 +127,7 @@
         <maven.assembly.plugin.version>3.7.1</maven.assembly.plugin.version>
         <jacoco.maven.plugin.version>0.8.14</jacoco.maven.plugin.version>
         <maven.checkstyle.plugin.version>3.6.0</maven.checkstyle.plugin.version>
-        <checkstyle.version>10.21.2</checkstyle.version>
+        <checkstyle.version>13.2.0</checkstyle.version>
 
         <!-- Maven Plugin API versions -->
         <maven-plugin-api.version>3.9.12</maven-plugin-api.version>
