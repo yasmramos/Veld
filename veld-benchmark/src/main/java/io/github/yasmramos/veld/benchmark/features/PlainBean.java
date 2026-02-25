@@ -1,8 +1,8 @@
 package io.github.yasmramos.veld.benchmark.features;
 
-import io.github.yasmramos.veld.annotation.Singleton;
+import io.github.yasmramos.veld.annotation.Component;
 
-@Singleton
+@Component
 public class PlainBean {
     public void method() {
         // Intentionally empty method for baseline comparison
