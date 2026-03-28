@@ -148,18 +148,6 @@
                             <proc>only</proc>
                             <failOnError>false</failOnError>
                             <annotationProcessorPaths>
-                                <!-- JMH annotation processor -->
-                                <path>
-                                    <groupId>org.openjdk.jmh</groupId>
-                                    <artifactId>jmh-generator-annprocess</artifactId>
-                                    <version>${jmh.version}</version>
-                                </path>
-                                <!-- Dagger annotation processor -->
-                                <path>
-                                    <groupId>com.google.dagger</groupId>
-                                    <artifactId>dagger-compiler</artifactId>
-                                    <version>${dagger.version}</version>
-                                </path>
                                 <!-- Veld annotation processor dependencies -->
                                 <path>
                                     <groupId>io.github.yasmramos</groupId>
@@ -171,11 +159,23 @@
                                     <artifactId>veld-runtime</artifactId>
                                     <version>${project.version}</version>
                                 </path>
-                                <!-- Veld annotation processor -->
+                                <!-- Veld annotation processor - MUST be first to generate Veld class -->
                                 <path>
                                     <groupId>io.github.yasmramos</groupId>
                                     <artifactId>veld-processor</artifactId>
                                     <version>${project.version}</version>
+                                </path>
+                                <!-- JMH annotation processor -->
+                                <path>
+                                    <groupId>org.openjdk.jmh</groupId>
+                                    <artifactId>jmh-generator-annprocess</artifactId>
+                                    <version>${jmh.version}</version>
+                                </path>
+                                <!-- Dagger annotation processor -->
+                                <path>
+                                    <groupId>com.google.dagger</groupId>
+                                    <artifactId>dagger-compiler</artifactId>
+                                    <version>${dagger.version}</version>
                                 </path>
                             </annotationProcessorPaths>
                             <compilerArgs>
