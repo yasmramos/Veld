@@ -130,89 +130,26 @@
 
     <build>
         <plugins>
-            <!-- Phase 1: Run annotation processors only (proc:only) to generate code -->
+            <!-- Veld Maven Plugin handles all compilation and code generation -->
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.15.0</version>
+                <groupId>io.github.yasmramos</groupId>
+                <artifactId>veld-maven-plugin</artifactId>
+                <version>${project.version}</version>
+                <configuration>
+                    <compile>true</compile>
+                    <verbose>false</verbose>
+                </configuration>
                 <executions>
                     <execution>
-                        <id>annotation-processing</id>
-                        <phase>generate-sources</phase>
+                        <phase>process-classes</phase>
                         <goals>
                             <goal>compile</goal>
                         </goals>
-                        <configuration>
-                            <source>11</source>
-                            <target>11</target>
-                            <proc>only</proc>
-                            <failOnError>false</failOnError>
-                            <annotationProcessorPaths>
-                                <!-- Veld annotation processor dependencies -->
-                                <path>
-                                    <groupId>io.github.yasmramos</groupId>
-                                    <artifactId>veld-annotations</artifactId>
-                                    <version>${project.version}</version>
-                                </path>
-                                <path>
-                                    <groupId>io.github.yasmramos</groupId>
-                                    <artifactId>veld-runtime</artifactId>
-                                    <version>${project.version}</version>
-                                </path>
-                                <!-- Veld annotation processor - MUST be first to generate Veld class -->
-                                <path>
-                                    <groupId>io.github.yasmramos</groupId>
-                                    <artifactId>veld-processor</artifactId>
-                                    <version>${project.version}</version>
-                                </path>
-                                <!-- JMH annotation processor -->
-                                <path>
-                                    <groupId>org.openjdk.jmh</groupId>
-                                    <artifactId>jmh-generator-annprocess</artifactId>
-                                    <version>${jmh.version}</version>
-                                </path>
-                                <!-- Dagger annotation processor -->
-                                <path>
-                                    <groupId>com.google.dagger</groupId>
-                                    <artifactId>dagger-compiler</artifactId>
-                                    <version>${dagger.version}</version>
-                                </path>
-                            </annotationProcessorPaths>
-                            <compilerArgs>
-                                <arg>--add-opens</arg>
-                                <arg>java.base/java.lang=ALL-UNNAMED</arg>
-                                <arg>--add-opens</arg>
-                                <arg>java.base/java.lang.reflect=ALL-UNNAMED</arg>
-                                <arg>--add-opens</arg>
-                                <arg>java.base/java.util=ALL-UNNAMED</arg>
-                            </compilerArgs>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
 
-            <!-- Add generated sources to compile classpath -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.4.0</version>
-                <executions>
-                    <execution>
-                        <id>add-source</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>${project.build.directory}/generated-sources/annotations</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <!-- Phase 2: Normal compilation with generated sources on classpath -->
+            <!-- Standard compiler configuration -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -220,7 +157,14 @@
                 <configuration>
                     <source>11</source>
                     <target>11</target>
-                    <proc>none</proc>
+                    <compilerArgs>
+                        <arg>--add-opens</arg>
+                        <arg>java.base/java.lang=ALL-UNNAMED</arg>
+                        <arg>--add-opens</arg>
+                        <arg>java.base/java.lang.reflect=ALL-UNNAMED</arg>
+                        <arg>--add-opens</arg>
+                        <arg>java.base/java.util=ALL-UNNAMED</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
 
@@ -260,25 +204,6 @@
                                 </filter>
                             </filters>
                         </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <!-- Veld Maven Plugin (weave only by default) -->
-            <plugin>
-                <groupId>io.github.yasmramos</groupId>
-                <artifactId>veld-maven-plugin</artifactId>
-                <version>${project.version}</version>
-                <configuration>
-                    <compile>true</compile>
-                    <verbose>false</verbose>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>process-classes</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
                     </execution>
                 </executions>
             </plugin>
