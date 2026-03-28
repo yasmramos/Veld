@@ -51,6 +51,14 @@
             <artifactId>veld-validation</artifactId>
             <version>${project.version}</version>
         </dependency>
+        
+        <!-- Veld Processor for code generation -->
+        <dependency>
+            <groupId>io.github.yasmramos</groupId>
+            <artifactId>veld-processor</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
 
         <!-- Jakarta Validation API -->
         <dependency>
