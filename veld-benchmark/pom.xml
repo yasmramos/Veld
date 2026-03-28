@@ -269,6 +269,10 @@
                 <groupId>io.github.yasmramos</groupId>
                 <artifactId>veld-maven-plugin</artifactId>
                 <version>${project.version}</version>
+                <configuration>
+                    <compile>true</compile>
+                    <verbose>false</verbose>
+                </configuration>
                 <executions>
                     <execution>
                         <phase>process-classes</phase>
