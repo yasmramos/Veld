@@ -17,7 +17,7 @@ package io.github.yasmramos.veld.example.lifecycle;
 
 import io.github.yasmramos.veld.annotation.Singleton;
 import io.github.yasmramos.veld.annotation.Subscribe;
-import io.github.yasmramos.veld.runtime.lifecycle.event.*;
+import io.github.yasmramos.veld.processor.runtime.lifecycle.event.*;
 
 import java.time.Instant;
 

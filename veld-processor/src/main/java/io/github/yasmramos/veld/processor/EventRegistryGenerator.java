@@ -29,12 +29,12 @@ import java.util.stream.Collectors;
  *         if (component == null) return;
  *         if (component instanceof ComponentA) {
  *             ComponentA a = (ComponentA) component;
- *             ((io.github.yasmramos.veld.runtime.event.EventBus) bus).registerEventHandler(EVENT_ID_A, a::handlerMethodA);
- *             ((io.github.yasmramos.veld.runtime.event.EventBus) bus).registerEventHandler(EVENT_ID_B, a::handlerMethodB);
+ *             ((io.github.yasmramos.veld.processor.generated.event.EventBus) bus).registerEventHandler(EVENT_ID_A, a::handlerMethodA);
+ *             ((io.github.yasmramos.veld.processor.generated.event.EventBus) bus).registerEventHandler(EVENT_ID_B, a::handlerMethodB);
  *         }
  *         if (component instanceof ComponentB) {
  *             ComponentB b = (ComponentB) component;
- *             ((io.github.yasmramos.veld.runtime.event.EventBus) bus).registerEventHandler(EVENT_ID_C, b::handlerMethodC);
+ *             ((io.github.yasmramos.veld.processor.generated.event.EventBus) bus).registerEventHandler(EVENT_ID_C, b::handlerMethodC);
  *         }
  *     }
  *
@@ -50,7 +50,7 @@ import java.util.stream.Collectors;
  */
 public class EventRegistryGenerator {
 
-    private static final String EVENT_BUS_FULL_NAME = "io.github.yasmramos.veld.runtime.event.EventBus";
+    private static final String EVENT_BUS_FULL_NAME = "io.github.yasmramos.veld.processor.generated.event.EventBus";
 
     private final List<SubscriptionInfo> subscriptions;
     private final String packageName;

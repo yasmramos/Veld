@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.example;
 
-import io.github.yasmramos.veld.runtime.event.Event;
+import io.github.yasmramos.veld.processor.runtime.event.Event;
 
 /**
  * Evento de pago procesado.

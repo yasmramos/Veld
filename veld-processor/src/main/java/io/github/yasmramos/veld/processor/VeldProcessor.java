@@ -1416,7 +1416,7 @@ public class VeldProcessor extends AbstractProcessor {
         
         // Check for any Provider type (Veld, javax.inject, jakarta.inject)
         boolean isProvider = 
-            "io.github.yasmramos.veld.runtime.Provider".equals(providerTypeName) ||
+            "io.github.yasmramos.veld.processor.generated.Provider".equals(providerTypeName) ||
             "javax.inject.Provider".equals(providerTypeName) ||
             "jakarta.inject.Provider".equals(providerTypeName);
         

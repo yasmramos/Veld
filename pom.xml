@@ -79,7 +79,6 @@
     <modules>
         <module>veld-annotations</module>
         <module>veld-spi</module>
-        <module>veld-runtime</module>
         <module>veld-aop</module>
         <module>veld-processor</module>
         <module>veld-weaver</module>
@@ -88,13 +87,7 @@
         <module>veld-example</module>
         <module>veld-spring-boot-example</module>
         <module>veld-benchmark</module>
-        <module>veld-resilience</module>
-        <module>veld-cache</module>
-        <module>veld-validation</module>
         <module>veld-security</module>
-        <module>veld-metrics</module>
-        <module>veld-tx</module>
-        <module>veld-test</module>
     </modules>
 
     <properties>
@@ -104,21 +97,21 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- Dependencies versions -->
-        <junit.version>6.0.3</junit.version>
-        <mockito.version>5.23.0</mockito.version>
-        <bytebuddy.version>1.18.7</bytebuddy.version>
-        <asm.version>9.10</asm.version>
+        <junit.version>6.0.2</junit.version>
+        <mockito.version>5.21.0</mockito.version>
+        <bytebuddy.version>1.18.4</bytebuddy.version>
+        <asm.version>9.9.1</asm.version>
         <javax.inject.version>1</javax.inject.version>
         <jakarta.inject.version>2.0.1.MR</jakarta.inject.version>
         <jacoco.version>0.8.14</jacoco.version>
 
         <!-- Spring Boot versions -->
-        <spring-boot.version>4.0.6</spring-boot.version>
+        <spring-boot.version>4.0.2</spring-boot.version>
         <spring.version>7.0.2</spring.version>
 
         <!-- Maven plugins versions -->
         <maven.compiler.plugin.version>3.15.0</maven.compiler.plugin.version>
-        <maven.surefire.plugin.version>3.5.5</maven.surefire.plugin.version>
+        <maven.surefire.plugin.version>3.5.4</maven.surefire.plugin.version>
         <maven.source.plugin.version>3.4.0</maven.source.plugin.version>
         <maven.javadoc.plugin.version>3.12.0</maven.javadoc.plugin.version>
         <maven.gpg.plugin.version>3.2.8</maven.gpg.plugin.version>
@@ -127,12 +120,12 @@
         <maven.assembly.plugin.version>3.7.1</maven.assembly.plugin.version>
         <jacoco.maven.plugin.version>0.8.14</jacoco.maven.plugin.version>
         <maven.checkstyle.plugin.version>3.6.0</maven.checkstyle.plugin.version>
-        <checkstyle.version>13.4.2</checkstyle.version>
+        <checkstyle.version>9.3</checkstyle.version>
 
         <!-- Maven Plugin API versions -->
-        <maven-plugin-api.version>3.9.15</maven-plugin-api.version>
+        <maven-plugin-api.version>3.9.12</maven-plugin-api.version>
         <maven-plugin-annotations.version>3.15.2</maven-plugin-annotations.version>
-        <maven-core.version>3.9.14</maven-core.version>
+        <maven-core.version>3.9.12</maven-core.version>
 
         <!-- Release properties -->
         <maven.compiler.release>17</maven.compiler.release>
@@ -192,11 +185,6 @@
             <dependency>
                 <groupId>io.github.yasmramos</groupId>
                 <artifactId>veld-annotations</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.yasmramos</groupId>
-                <artifactId>veld-runtime</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -790,7 +778,7 @@
                     <plugin>
                         <groupId>org.graalvm.buildtools</groupId>
                         <artifactId>native-maven-plugin</artifactId>
-                        <version>1.0.0</version>
+                        <version>0.11.4</version>
                         <extensions>true</extensions>
                         <executions>
                             <execution>

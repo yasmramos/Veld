@@ -15,7 +15,7 @@
  */
 package io.github.yasmramos.veld.example.lifecycle;
 
-import io.github.yasmramos.veld.runtime.lifecycle.BeanPostProcessor;
+import io.github.yasmramos.veld.processor.runtime.lifecycle.BeanPostProcessor;
 
 import java.util.concurrent.atomic.AtomicInteger;
 

@@ -29,8 +29,6 @@
         <!-- Veld Runtime -->
         <dependency>
             <groupId>io.github.yasmramos</groupId>
-            <artifactId>veld-runtime</artifactId>
-        </dependency>
 
         <!-- ASM for bytecode manipulation -->
         <dependency>
@@ -133,10 +131,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-plugin</artifactId>
-                <version>3.15.2</version>
-                <configuration>
-                    <goalPrefix>veld-weaver</goalPrefix>
-                </configuration>
+                <version>3.9.0</version>
                 <executions>
                     <execution>
                         <id>default-descriptor</id>

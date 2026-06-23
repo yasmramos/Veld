@@ -4,7 +4,7 @@ import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.annotation.Inject;
 import io.github.yasmramos.veld.annotation.Singleton;
 import io.github.yasmramos.veld.annotation.Profile;
-import io.github.yasmramos.veld.runtime.event.Event;
+import io.github.yasmramos.veld.processor.runtime.event.Event;
 
 import java.util.List;
 

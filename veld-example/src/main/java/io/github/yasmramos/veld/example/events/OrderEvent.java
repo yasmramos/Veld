@@ -15,7 +15,7 @@
  */
 package io.github.yasmramos.veld.example.events;
 
-import io.github.yasmramos.veld.runtime.event.Event;
+import io.github.yasmramos.veld.processor.runtime.event.Event;
 
 /**
  * Base event class for all order-related events.
