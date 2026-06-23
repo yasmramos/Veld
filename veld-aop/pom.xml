@@ -22,9 +22,12 @@
         </dependency>
         <dependency>
             <groupId>io.github.yasmramos</groupId>
+            <artifactId>veld-spi</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.github.yasmramos</groupId>
-            <artifactId>veld-spi</artifactId>
+            <artifactId>veld-processor</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <!-- JavaPoet for code generation -->

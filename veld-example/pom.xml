@@ -25,6 +25,9 @@
         <!-- Veld Runtime -->
         <dependency>
             <groupId>io.github.yasmramos</groupId>
+            <artifactId>veld-runtime</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Veld AOP -->
         <dependency>

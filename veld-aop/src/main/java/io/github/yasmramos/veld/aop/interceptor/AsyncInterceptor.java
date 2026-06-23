@@ -16,7 +16,7 @@
 package io.github.yasmramos.veld.aop.interceptor;
 
 import io.github.yasmramos.veld.aop.CompileTimeInterceptor;
-import io.github.yasmramos.veld.processor.runtime.async.AsyncExecutor;
+import io.github.yasmramos.veld.aop.runtime.async.AsyncExecutor;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;

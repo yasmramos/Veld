@@ -25,6 +25,9 @@
         <!-- Veld Core Dependencies -->
         <dependency>
             <groupId>io.github.yasmramos</groupId>
+            <artifactId>veld-runtime</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-annotations</artifactId>

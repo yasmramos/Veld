@@ -29,6 +29,9 @@
         <!-- Veld Runtime -->
         <dependency>
             <groupId>io.github.yasmramos</groupId>
+            <artifactId>veld-runtime</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- ASM for bytecode manipulation -->
         <dependency>

@@ -28,8 +28,8 @@ import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeVariableName;
 import io.github.yasmramos.veld.aop.interceptor.LoggingInterceptor;
-import io.github.yasmramos.veld.processor.runtime.async.AsyncExecutor;
-import io.github.yasmramos.veld.processor.runtime.async.SchedulerService;
+import io.github.yasmramos.veld.aop.runtime.async.AsyncExecutor;
+import io.github.yasmramos.veld.aop.runtime.async.SchedulerService;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
