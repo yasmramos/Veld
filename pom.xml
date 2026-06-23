@@ -88,13 +88,7 @@
         <module>veld-example</module>
         <module>veld-spring-boot-example</module>
         <module>veld-benchmark</module>
-        <module>veld-resilience</module>
-        <module>veld-cache</module>
-        <module>veld-validation</module>
         <module>veld-security</module>
-        <module>veld-metrics</module>
-        <module>veld-tx</module>
-        <module>veld-test</module>
     </modules>
 
     <properties>
