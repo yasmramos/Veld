@@ -83,7 +83,6 @@
         <module>veld-processor</module>
         <module>veld-weaver</module>
         <module>veld-maven-plugin</module>
-        <module>veld-benchmark</module>
         <module>veld-security</module>
     </modules>
 
