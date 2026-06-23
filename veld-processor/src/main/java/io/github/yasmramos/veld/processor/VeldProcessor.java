@@ -859,13 +859,13 @@ public class VeldProcessor extends AbstractProcessor {
         }
         
         // Check for @RequestScoped
-        if (typeElement.getAnnotation(io.github.yasmramos.veld.annotation.RequestScoped.class) != null) {
+        if (typeElement.getAnnotation(io.github.yasmramos.veld.processor.annotation.RequestScoped.class) != null) {
             note("  -> Scope: request");
             return "request";
         }
         
         // Check for @SessionScoped
-        if (typeElement.getAnnotation(io.github.yasmramos.veld.annotation.SessionScoped.class) != null) {
+        if (typeElement.getAnnotation(io.github.yasmramos.veld.processor.annotation.SessionScoped.class) != null) {
             note("  -> Scope: session");
             return "session";
         }

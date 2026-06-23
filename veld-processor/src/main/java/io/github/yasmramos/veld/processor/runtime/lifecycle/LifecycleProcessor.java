@@ -15,9 +15,9 @@
  */
 package io.github.yasmramos.veld.processor.runtime.lifecycle;
 
-import io.github.yasmramos.veld.processor.annotation.OnStart;
-import io.github.yasmramos.veld.processor.annotation.OnStop;
-import io.github.yasmramos.veld.processor.annotation.PostInitialize;
+import io.github.yasmramos.veld.annotation.OnStart;
+import io.github.yasmramos.veld.annotation.OnStop;
+import io.github.yasmramos.veld.annotation.PostInitialize;
 import io.github.yasmramos.veld.processor.runtime.event.EventBus;
 import io.github.yasmramos.veld.processor.runtime.lifecycle.event.*;
 

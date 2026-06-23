@@ -15,7 +15,7 @@
  */
 package io.github.yasmramos.veld.processor.runtime.event;
 
-import io.github.yasmramos.veld.processor.annotation.Subscribe;
+import io.github.yasmramos.veld.annotation.Subscribe;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
