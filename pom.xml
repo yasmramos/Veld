@@ -83,9 +83,6 @@
         <module>veld-processor</module>
         <module>veld-weaver</module>
         <module>veld-maven-plugin</module>
-        <module>veld-spring-boot-starter</module>
-        <module>veld-example</module>
-        <module>veld-spring-boot-example</module>
         <module>veld-benchmark</module>
         <module>veld-security</module>
     </modules>
