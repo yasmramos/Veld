@@ -1,40 +1,59 @@
 ```
-# Java/Maven specific
-target/
+# Compiled and build artifacts
 *.class
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.out
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
 *.jar
 *.war
 *.ear
 *.zip
-!*.java
-
-# IDE
-.idea/
-*.iml
-*.ipr
-*.iws
-.vscode/
-
-# Logs
-*.log
-
-# Environment
-.env
-.env.local
-*.env.*
-
-# OS generated files
-.DS_Store
-Thumbs.db
+*.tar.gz
+*.tar.bz2
+*.tar.xz
 
 # Dependencies
 node_modules/
-**/node_modules/
-lib/
-**/lib/
+venv/
+.venv/
+.env
+.env.local
+.env.*
 
-# Build outputs
-dist/
+# Build directories
+target/
 build/
+dist/
 out/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+
+# Gradle
+.gradle/
+
+# Maven
+.mvn/
 ```
