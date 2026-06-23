@@ -7,7 +7,7 @@ import io.github.yasmramos.veld.example.dependsOn.DependsOnDemo;
 import io.github.yasmramos.veld.example.dependsOn.DatabaseService;
 import io.github.yasmramos.veld.example.dependsOn.DependsOnUserService;
 import io.github.yasmramos.veld.aop.interceptor.LoggingInterceptor;
-import io.github.yasmramos.veld.runtime.event.EventBus;
+import io.github.yasmramos.veld.processor.runtime.event.EventBus;
 
 import java.util.Arrays;
 import java.util.List;

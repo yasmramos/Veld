@@ -1,6 +1,6 @@
 package io.github.yasmramos.veld.example;
 
-import io.github.yasmramos.veld.runtime.event.EventBus;
+import io.github.yasmramos.veld.processor.runtime.event.EventBus;
 
 /**
  * Ejemplo complejo que demuestra TODAS las características de Veld funcionando juntos:

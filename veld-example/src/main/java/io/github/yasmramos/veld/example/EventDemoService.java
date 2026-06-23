@@ -19,7 +19,7 @@ import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.example.events.NotificationEvent;
 import io.github.yasmramos.veld.example.events.OrderCancelledEvent;
 import io.github.yasmramos.veld.example.events.OrderCreatedEvent;
-import io.github.yasmramos.veld.runtime.event.EventBus;
+import io.github.yasmramos.veld.processor.runtime.event.EventBus;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;

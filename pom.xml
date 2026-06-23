@@ -79,7 +79,6 @@
     <modules>
         <module>veld-annotations</module>
         <module>veld-spi</module>
-        <module>veld-runtime</module>
         <module>veld-aop</module>
         <module>veld-processor</module>
         <module>veld-weaver</module>
@@ -186,11 +185,6 @@
             <dependency>
                 <groupId>io.github.yasmramos</groupId>
                 <artifactId>veld-annotations</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.yasmramos</groupId>
-                <artifactId>veld-runtime</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

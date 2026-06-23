@@ -16,8 +16,8 @@
 package io.github.yasmramos.veld.example.lifecycle;
 
 import io.github.yasmramos.veld.annotation.Singleton;
-import io.github.yasmramos.veld.runtime.lifecycle.DisposableBean;
-import io.github.yasmramos.veld.runtime.lifecycle.InitializingBean;
+import io.github.yasmramos.veld.processor.runtime.lifecycle.DisposableBean;
+import io.github.yasmramos.veld.processor.runtime.lifecycle.InitializingBean;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

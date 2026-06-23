@@ -3,7 +3,7 @@ package io.github.yasmramos.veld.example;
 import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.annotation.Inject;
 import io.github.yasmramos.veld.annotation.Singleton;
-import io.github.yasmramos.veld.runtime.Provider;
+import io.github.yasmramos.veld.processor.runtime.Provider;
 
 /**
  * Gestor de caché.

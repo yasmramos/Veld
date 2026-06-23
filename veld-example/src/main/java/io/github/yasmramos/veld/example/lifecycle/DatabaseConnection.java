@@ -19,7 +19,7 @@ import io.github.yasmramos.veld.annotation.Component;
 import io.github.yasmramos.veld.annotation.PostConstruct;
 import io.github.yasmramos.veld.annotation.PreDestroy;
 import io.github.yasmramos.veld.annotation.Singleton;
-import io.github.yasmramos.veld.runtime.lifecycle.SmartLifecycle;
+import io.github.yasmramos.veld.processor.runtime.lifecycle.SmartLifecycle;
 
 /**
  * Example of a SmartLifecycle component that manages database connections.
