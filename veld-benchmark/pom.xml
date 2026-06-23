@@ -47,11 +47,6 @@
             <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-aop</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.github.yasmramos</groupId>
-            <artifactId>veld-validation</artifactId>
-            <version>${project.version}</version>
-        </dependency>
         
         <!-- Veld Processor for code generation -->
         <dependency>
