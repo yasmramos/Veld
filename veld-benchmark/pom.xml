@@ -180,7 +180,7 @@
                             </transformers>
                             <filters>
                                 <filter>
-                                    <artifact>io.github.yasmramos:veld-runtime</artifact>
+                                    <artifact>io.github.yasmramos:veld-aop</artifact>
                                     <excludes>
                                         <exclude>io/github/yasmramos/veld/Veld.class</exclude>
                                     </excludes>
