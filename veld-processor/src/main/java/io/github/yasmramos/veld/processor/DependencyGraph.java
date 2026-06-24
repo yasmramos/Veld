@@ -215,6 +215,17 @@ public class DependencyGraph {
     }
     
     /**
+     * Clears all state in the dependency graph.
+     * This should only be called if the processor needs to be reinitialized.
+     */
+    public void clear() {
+        adjacencyList.clear();
+        visited.clear();
+        recursionStack.clear();
+        parent.clear();
+    }
+    
+    /**
      * Returns a string representation of the graph for debugging.
      */
     @Override
