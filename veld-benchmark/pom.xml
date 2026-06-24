@@ -129,6 +129,9 @@
                 <configuration>
                     <compile>true</compile>
                     <verbose>false</verbose>
+                    <excludes>
+                        <exclude>io/github/yasmramos/veld/benchmark/dagger/**</exclude>
+                    </excludes>
                 </configuration>
                 <executions>
                     <execution>
