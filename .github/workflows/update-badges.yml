@@ -51,10 +51,69 @@ jobs:
       run: |
         mvn clean test -B -Dmaven.javadoc.skip=true -Dbuild-helper.attach.phase=none -pl '!veld-benchmark' || true
         
-    - name: Generate JaCoCo aggregate report
+    - name: Generate JaCoCo aggregate report and badge
       run: |
         mvn jacoco:report-aggregate -B -pl '!veld-benchmark' || true
+        
+        # Create badge directory in gist repo if needed
+        mkdir -p /tmp/jacoco-badge
+        
+        # Generate SVG badge using Jacoco data
+        if [ -f "target/site/jacoco-aggregate/jacoco.xml" ]; then
+          COVERAGE=$(grep -oP 'line-coverage value="\K[0-9.]+' target/site/jacoco-aggregate/jacoco.xml 2>/dev/null | head -1 || echo "0")
+        else
+          COVERAGE="0"
+        fi
+        
+        # Round to integer for display
+        COVERAGE_INT=$(printf "%.0f" "$COVERAGE")
+        
+        # Determine color based on coverage
+        if (( $(echo "$COVERAGE >= 80" | bc -l) )); then
+          COLOR="brightgreen"
+        elif (( $(echo "$COVERAGE >= 60" | bc -l) )); then
+          COLOR="yellow"
+        elif (( $(echo "$COVERAGE >= 40" | bc -l) )); then
+          COLOR="orange"
+        else
+          COLOR="red"
+        fi
+        
+        # Create simple SVG badge
+        cat > /tmp/jacoco-badge/badge.svg << EOF
+<svg xmlns="http://www.w3.org/2000/svg" width="106" height="20">
+  <linearGradient id="b" x2="0" y2="100%">
+    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+    <stop offset="1" stop-opacity=".1"/>
+  </linearGradient>
+  <mask id="a">
+    <rect width="106" height="20" rx="3" fill="#fff"/>
+  </mask>
+  <g mask="url(#a)">
+    <path fill="#555" d="M0 0h59v20H0z"/>
+    <path fill="#${COLOR}" d="M59 0h47v20H59z"/>
+    <path fill="url(#b)" d="M0 0h106v20H0z"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+    <text x="30.5" y="15" fill="#010101" fill-opacity=".3">Coverage</text>
+    <text x="30.5" y="14">Coverage</text>
+    <text x="82.5" y="15" fill="#010101" fill-opacity=".3">${COVERAGE_INT}%</text>
+    <text x="82.5" y="14">${COVERAGE_INT}%</text>
+  </g>
+</svg>
+EOF
+        
+        echo "Generated badge with ${COVERAGE_INT}% coverage"
+        cat /tmp/jacoco-badge/badge.svg
     
+    - name: Push badge to Gist
+      uses: andymckay/update-gist-action@v1
+      with:
+        gist-token: ${{ secrets.GIST_TOKEN }}
+        gist-id: 0d44151660b75722a230afcf0a987d7b
+        files: |
+          /tmp/jacoco-badge/badge.svg:badge.svg
+
     - name: Get test count
       id: test-count
       run: |
@@ -116,21 +175,22 @@ jobs:
       run: |
         TEST_COUNT="${{ steps.test-count.outputs.test_count }}"
         COVERAGE="${{ steps.coverage.outputs.coverage }}"
-        
+        COVERAGE_INT=$(printf "%.0f" "$COVERAGE")
+
         # Update test badge
         sed -i "s/\[!\[Tests\](https:\/\/img.shields.io\/badge\/Tests-[0-9]*%20passed-green)\](https:\/\/github.com\/yasmramos\/Veld\/actions)/[![Tests](https:\/\/img.shields.io\/badge\/Tests-$TEST_COUNT%20passed-green)](https:\/\/github.com\/yasmramos\/Veld\/actions)/g" README.md
+
+        # Update coverage badge to use Gist URL
+        sed -i 's|\[!\[Coverage\](https://img\.shields\.io/badge/Coverage-[0-9]*%25-[a-z]*)\](https://codecov\.io/gh/yasmramos/Veld)|[![Coverage](https://gist.githubusercontent.com/yasmramos/0d44151660b75722a230afcf0a987d7b/raw/badge.svg)](https://gist.github.com/yasmramos/0d44151660b75722a230afcf0a987d7b)|g' README.md
         
-        # Update coverage badge (matches current img.shields.io format with Codecov URL)
-        sed -i "s/\[!\[Coverage\](https:\/\/img.shields.io\/badge\/Coverage-[0-9]*%25-[a-z]*)\](https:\/\/codecov.io\/gh\/yasmramos\/Veld)/[![Coverage](https:\/\/img.shields.io\/badge\/Coverage-$COVERAGE%25-green)](https:\/\/codecov.io\/gh\/yasmramos\/Veld)/g" README.md
-        
-        # Alternative: Update coverage badge if it uses different URL format
-        sed -i "s/Coverage-[0-9]*%25-[a-z]*/Coverage-$COVERAGE%25-green/g" README.md
-        
+        # Alternative update if format differs
+        sed -i "s|Coverage-[0-9]*%25-[a-z]*|Coverage-${COVERAGE_INT}%25-green|g" README.md
+
         # Update Latest Updates section with version
         CURRENT_VERSION=$(grep -o '<version>[^<]*</version>' pom.xml | head -1 | sed 's/<version>//g' | sed 's/<\/version>//g')
         sed -i "s/## Latest Updates (v[0-9.]*)/## Latest Updates (v$CURRENT_VERSION)/g" README.md
         sed -i "s/- \*\*543 tests now passing\*\*/- \*\*$TEST_COUNT tests now passing\*\*/g" README.md
-        
+
         cat README.md | head -30
 
     - name: Commit and push changes
