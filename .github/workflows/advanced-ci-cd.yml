@@ -510,12 +510,10 @@ jobs:
         name: release-artifacts
         path: |
           veld-annotations/target/*.jar
-          veld-runtime/target/*.jar
           veld-processor/target/*.jar
           veld-aop/target/*.jar
           veld-weaver/target/*.jar
           veld-maven-plugin/target/*.jar
-          veld-spring-boot-starter/target/*.jar
         if-no-files-found: warn
         retention-days: 90
         

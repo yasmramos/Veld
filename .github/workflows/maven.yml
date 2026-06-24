@@ -82,7 +82,7 @@ jobs:
     - name: Run unit tests with coverage
       run: |
         echo "=== Starting Maven test phase with coverage ==="
-        mvn test -Pci -pl '!veld-benchmark,!veld-spring-boot-starter,!veld-spring-boot-example' --batch-mode
+        mvn test -Pci -pl '!veld-benchmark,!veld-spring-boot-example' --batch-mode
       env:
         MAVEN_OPTS: "-Xmx2g -XX:+UseG1GC"
       timeout-minutes: 10
@@ -90,7 +90,7 @@ jobs:
     - name: Generate JaCoCo coverage report
       run: |
         echo "=== Generating JaCoCo coverage report ==="
-        mvn jacoco:report -Pci -pl '!veld-benchmark,!veld-spring-boot-starter,!veld-spring-boot-example' --batch-mode
+        mvn jacoco:report -Pci -pl '!veld-benchmark,!veld-spring-boot-example' --batch-mode
       env:
         MAVEN_OPTS: "-Xmx1g"
       timeout-minutes: 5
