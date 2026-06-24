@@ -84,6 +84,7 @@
         <module>veld-weaver</module>
         <module>veld-maven-plugin</module>
         <module>veld-security</module>
+        <module>veld-benchmark</module>
     </modules>
 
     <properties>

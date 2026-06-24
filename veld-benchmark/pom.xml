@@ -129,6 +129,9 @@
                 <configuration>
                     <compile>true</compile>
                     <verbose>false</verbose>
+                    <excludes>
+                        <exclude>io/github/yasmramos/veld/benchmark/dagger/**</exclude>
+                    </excludes>
                 </configuration>
                 <executions>
                     <execution>
@@ -180,7 +183,7 @@
                             </transformers>
                             <filters>
                                 <filter>
-                                    <artifact>io.github.yasmramos:veld-runtime</artifact>
+                                    <artifact>io.github.yasmramos:veld-aop</artifact>
                                     <excludes>
                                         <exclude>io/github/yasmramos/veld/Veld.class</exclude>
                                     </excludes>
