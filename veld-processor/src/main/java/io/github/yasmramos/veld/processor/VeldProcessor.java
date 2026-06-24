@@ -109,6 +109,7 @@ public class VeldProcessor extends AbstractProcessor {
     private Elements elementUtils;
     private Types typeUtils;
     
+    // State containers for multi-round safety - cleared explicitly in init() and process()
     private final List<ComponentInfo> discoveredComponents = new ArrayList<>();
     private final DependencyGraph dependencyGraph = new DependencyGraph();
     private final Set<String> registeredScopes = new HashSet<>();
@@ -116,13 +117,13 @@ public class VeldProcessor extends AbstractProcessor {
     // Maps interface -> list of implementing components (for conflict detection)
     private final Map<String, List<String>> interfaceImplementors = new HashMap<>();
     
-    // Track already processed classes to avoid duplicates
+    // Track already processed classes to avoid duplicates across rounds
     private final Set<String> processedClasses = new HashSet<>();
 
     // Event subscriptions for zero-reflection event registration
     private final List<EventRegistryGenerator.SubscriptionInfo> eventSubscriptions = new ArrayList<>();
 
-    // Static dependency graph
+    // Static dependency graph - built incrementally across rounds
     private final List<VeldNode> veldNodes = new ArrayList<>();
     
     // Discovered profiles from @Profile annotations - for compile-time class generation
@@ -143,6 +144,9 @@ public class VeldProcessor extends AbstractProcessor {
     // Modular analyzers for component analysis
     private ConditionAnalyzer conditionAnalyzer;
     private LifecycleAnalyzer lifecycleAnalyzer;
+    
+    // Flag to track if initialization has occurred
+    private boolean initialized = false;
     
     public VeldProcessor() {
     }
@@ -184,10 +188,19 @@ public class VeldProcessor extends AbstractProcessor {
         if (aopExtensionExecutor.hasExtensions()) {
             note("AOP Extensions loaded: " + aopExtensionExecutor.getExtensionCount());
         }
+        
+        // Mark initialization complete
+        this.initialized = true;
     }
     
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        // Safety check: ensure initialization occurred
+        if (!initialized) {
+            error(null, "VeldProcessor not initialized properly. This should not happen.");
+            return false;
+        }
+        
         if (roundEnv.processingOver()) {
             // Check for circular dependencies before generating code
             if (!discoveredComponents.isEmpty()) {
@@ -200,7 +213,11 @@ public class VeldProcessor extends AbstractProcessor {
             return true;
         }
 
+        // Clear per-round state at the start of each processing round
+        // Note: discoveredComponents, veldNodes, processedClasses, interfaceImplementors, 
+        // and discoveredProfiles are ACCUMULATED across rounds and NOT cleared
         registeredScopes.clear();
+        
         // Discover all registered custom scopes (@VeldScope meta-annotations)
         for (Element element : roundEnv.getElementsAnnotatedWith(VeldScope.class)) {
             if (element.getKind() == ElementKind.ANNOTATION_TYPE) {
@@ -439,18 +456,10 @@ public class VeldProcessor extends AbstractProcessor {
                     dependencyGraph.addDependency(componentName, resolvedType);
                     note("    -> Explicit dependency: " + beanName + " -> " + resolvedType);
                 } else {
-
-                    String suggestion = findBestFuzzyMatch(beanName);
-
                     StringBuilder msg = new StringBuilder();
                     msg.append("@DependsOn references unknown bean: \"")
                             .append(beanName).append("\"\n")
                             .append("   Component: ").append(componentName);
-
-                    if (suggestion != null) {
-                        msg.append("\n   Did you mean \"").append(suggestion).append("\"?");
-                    }
-
                     error(info.getTypeElement(), msg.toString());
                 }
             }
@@ -532,19 +541,14 @@ public class VeldProcessor extends AbstractProcessor {
             }
         }
         
-        // Strategy 6: Fuzzy matching for typos (Levenshtein distance)
-        String bestMatch = findBestFuzzyMatch(beanName);
-        if (bestMatch != null) {
-            warning(null, "Bean name '" + beanName + "' not found. Did you mean '" + bestMatch + "'?");
-            return null;
-        }
-        
+        // Bean name not found - will be reported as error during dependency resolution
         debug("Could not resolve bean name: " + beanName);
         return null;
     }
     
     /**
      * Checks if a component has an explicit @Named value that matches the given name.
+     * Uses javax.lang.model API instead of reflection for compile-time safety.
      */
     private boolean hasExplicitNamedValue(ComponentInfo component, String name) {
         TypeElement element = component.getTypeElement();
@@ -559,34 +563,22 @@ public class VeldProcessor extends AbstractProcessor {
             return true;
         }
         
-        // Check javax.inject.Named
-        try {
-            Class<?> javaxNamed = Class.forName("javax.inject.Named");
-            Object annotation = element.getAnnotation(javaxNamed.asSubclass(java.lang.annotation.Annotation.class));
-            if (annotation != null) {
-                java.lang.reflect.Method valueMethod = annotation.getClass().getMethod("value");
-                String value = (String) valueMethod.invoke(annotation);
-                if (name.equals(value)) {
-                    return true;
-                }
+        // Check javax.inject.Named using javax.lang.model API (no reflection)
+        TypeElement javaxNamedType = elementUtils.getTypeElement("javax.inject.Named");
+        if (javaxNamedType != null) {
+            javax.inject.Named jNamed = element.getAnnotation(javax.inject.Named.class);
+            if (jNamed != null && name.equals(jNamed.value())) {
+                return true;
             }
-        } catch (Exception e) {
-            // Annotation not available or not applicable
         }
         
-        // Check jakarta.inject.Named
-        try {
-            Class<?> jakartaNamed = Class.forName("jakarta.inject.Named");
-            Object annotation = element.getAnnotation(jakartaNamed.asSubclass(java.lang.annotation.Annotation.class));
-            if (annotation != null) {
-                java.lang.reflect.Method valueMethod = annotation.getClass().getMethod("value");
-                String value = (String) valueMethod.invoke(annotation);
-                if (name.equals(value)) {
-                    return true;
-                }
+        // Check jakarta.inject.Named using javax.lang.model API (no reflection)
+        TypeElement jakartaNamedType = elementUtils.getTypeElement("jakarta.inject.Named");
+        if (jakartaNamedType != null) {
+            jakarta.inject.Named jNamed = element.getAnnotation(jakarta.inject.Named.class);
+            if (jNamed != null && name.equals(jNamed.value())) {
+                return true;
             }
-        } catch (Exception e) {
-            // Annotation not available or not applicable
         }
         
         return false;
@@ -621,79 +613,6 @@ public class VeldProcessor extends AbstractProcessor {
             return name;
         }
         return name.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
-    }
-    
-    /**
-     * Finds the best fuzzy match for a bean name using Levenshtein distance.
-     * Returns the closest matching component name if similarity > 0.7.
-     */
-    private String findBestFuzzyMatch(String beanName) {
-        String bestMatch = null;
-        double bestSimilarity = 0.0;
-        
-        for (ComponentInfo component : discoveredComponents) {
-            String[] candidates = {
-                component.getComponentName(),
-                getSimpleClassName(component.getClassName())
-            };
-            
-            for (String candidate : candidates) {
-                double similarity = calculateSimilarity(beanName, candidate);
-                if (similarity > bestSimilarity && similarity > 0.7) {
-                    bestSimilarity = similarity;
-                    bestMatch = component.getComponentName();
-                }
-            }
-        }
-        
-        return bestMatch;
-    }
-    
-    /**
-     * Calculates similarity between two strings (0.0 to 1.0).
-     * Uses Levenshtein distance for calculation.
-     */
-    private double calculateSimilarity(String s1, String s2) {
-        if (s1 == null || s2 == null) {
-            return 0.0;
-        }
-        if (s1.equalsIgnoreCase(s2)) {
-            return 1.0;
-        }
-        
-        int maxLength = Math.max(s1.length(), s2.length());
-        if (maxLength == 0) {
-            return 1.0;
-        }
-        
-        int distance = levenshteinDistance(s1.toLowerCase(), s2.toLowerCase());
-        return 1.0 - (double) distance / maxLength;
-    }
-    
-    /**
-     * Calculates Levenshtein distance between two strings.
-     */
-    private int levenshteinDistance(String s1, String s2) {
-        int[][] dp = new int[s1.length() + 1][s2.length() + 1];
-        
-        for (int i = 0; i <= s1.length(); i++) {
-            dp[i][0] = i;
-        }
-        for (int j = 0; j <= s2.length(); j++) {
-            dp[0][j] = j;
-        }
-        
-        for (int i = 1; i <= s1.length(); i++) {
-            for (int j = 1; j <= s2.length(); j++) {
-                int cost = s1.charAt(i - 1) == s2.charAt(j - 1) ? 0 : 1;
-                dp[i][j] = Math.min(
-                    Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1),
-                    dp[i - 1][j - 1] + cost
-                );
-            }
-        }
-        
-        return dp[s1.length()][s2.length()];
     }
     
     /**
@@ -1007,6 +926,7 @@ public class VeldProcessor extends AbstractProcessor {
     
     /**
      * Checks if a class has @Named annotation (any variant).
+     * Uses javax.lang.model API instead of reflection for compile-time safety.
      */
     private boolean hasNamedAnnotation(String className) {
         TypeElement element = elementUtils.getTypeElement(className);
@@ -1019,30 +939,16 @@ public class VeldProcessor extends AbstractProcessor {
             return true;
         }
         
-        // Check javax.inject.Named using reflection - handle safely if not on classpath
-        try {
-            Class<?> javaxNamedClass = Class.forName("javax.inject.Named");
-            Object annotation = element.getAnnotation(javaxNamedClass.asSubclass(java.lang.annotation.Annotation.class));
-            if (annotation != null) {
-                return true;
-            }
-        } catch (ClassNotFoundException e) {
-            // javax.inject.Named not available on classpath
-        } catch (ClassCastException e) {
-            // Not an annotation
+        // Check javax.inject.Named using javax.lang.model API (no reflection)
+        TypeElement javaxNamedType = elementUtils.getTypeElement("javax.inject.Named");
+        if (javaxNamedType != null && element.getAnnotation(javax.inject.Named.class) != null) {
+            return true;
         }
         
-        // Check jakarta.inject.Named using reflection - handle safely if not on classpath
-        try {
-            Class<?> jakartaNamedClass = Class.forName("jakarta.inject.Named");
-            Object annotation = element.getAnnotation(jakartaNamedClass.asSubclass(java.lang.annotation.Annotation.class));
-            if (annotation != null) {
-                return true;
-            }
-        } catch (ClassNotFoundException e) {
-            // jakarta.inject.Named not available on classpath
-        } catch (ClassCastException e) {
-            // Not an annotation
+        // Check jakarta.inject.Named using javax.lang.model API (no reflection)
+        TypeElement jakartaNamedType = elementUtils.getTypeElement("jakarta.inject.Named");
+        if (jakartaNamedType != null && element.getAnnotation(jakarta.inject.Named.class) != null) {
+            return true;
         }
         
         return false;
@@ -1987,17 +1893,22 @@ public class VeldProcessor extends AbstractProcessor {
                             impl.getTypeElement().getAnnotation(io.github.yasmramos.veld.annotation.Named.class);
                         hasNamed = namedAnn != null && !namedAnn.value().isEmpty();
                         
-                        // Also check jakarta.inject.Named and javax.inject.Named
+                        // Also check jakarta.inject.Named and javax.inject.Named using javax.lang.model API
                         if (!hasNamed) {
-                            // Check javax.inject.Named via reflection
-                            try {
-                                Class<?> javaxNamedClass = Class.forName("javax.inject.Named");
-                                Object annotation = impl.getTypeElement().getAnnotation(javaxNamedClass.asSubclass(java.lang.annotation.Annotation.class));
-                                hasNamed = annotation != null;
-                            } catch (ClassNotFoundException e) {
-                                // javax.inject.Named not available
-                            } catch (ClassCastException e) {
-                                // Not an annotation
+                            // Check javax.inject.Named (no reflection)
+                            TypeElement javaxNamedType = elementUtils.getTypeElement("javax.inject.Named");
+                            if (javaxNamedType != null) {
+                                javax.inject.Named javaxNamed = impl.getTypeElement().getAnnotation(javax.inject.Named.class);
+                                hasNamed = javaxNamed != null;
+                            }
+                        }
+                        
+                        if (!hasNamed) {
+                            // Check jakarta.inject.Named (no reflection)
+                            TypeElement jakartaNamedType = elementUtils.getTypeElement("jakarta.inject.Named");
+                            if (jakartaNamedType != null) {
+                                jakarta.inject.Named jakartaNamed = impl.getTypeElement().getAnnotation(jakarta.inject.Named.class);
+                                hasNamed = jakartaNamed != null;
                             }
                         }
                     }

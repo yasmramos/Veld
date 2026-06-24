@@ -494,7 +494,7 @@ jobs:
     - name: 🔨 Package Build
       run: |
         echo "🔨 Building package artifacts..."
-        mvn clean package -DskipTests -DskipGpg=true -Dmaven.javadoc.skip=true -Pci -pl '!veld-benchmark,!veld-example,' -q
+        mvn clean package -DskipTests -DskipGpg=true -Dmaven.javadoc.skip=true -Pci -pl '!veld-benchmark' -q
         
     - name: 📦 Create Distribution
       run: |
