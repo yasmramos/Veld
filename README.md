@@ -30,20 +30,14 @@ Designed for developers who want maximum performance, full control, and zero run
 ```xml
 <dependency>
     <groupId>io.github.yasmramos</groupId>
-    <artifactId>veld-runtime</artifactId>
-    <version>1.0.3</version>
-</dependency>
-<dependency>
-    <groupId>io.github.yasmramos</groupId>
     <artifactId>veld-annotations</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
 </dependency>
 ```
 
 **Gradle:**
 ```gradle
-implementation 'io.github.yasmramos:veld-runtime:1.0.3'
-implementation 'io.github.yasmramos:veld-annotations:1.0.3'
+implementation 'io.github.yasmramos:veld-annotations:1.0.4'
 ```
 
 ### 2. Configure Maven Plugin
@@ -54,7 +48,7 @@ implementation 'io.github.yasmramos:veld-annotations:1.0.3'
         <plugin>
             <groupId>io.github.yasmramos</groupId>
             <artifactId>veld-maven-plugin</artifactId>
-            <version>1.0.3</version>
+            <version>1.0.4</version>
         </plugin>
     </plugins>
 </build>
@@ -128,40 +122,12 @@ public class Main {
 | Module | Description |
 |--------|-------------|
 | `veld-annotations` | Core annotations |
-| `veld-runtime` | Runtime utilities |
 | `veld-processor` | Annotation processor |
 | `veld-weaver` | Bytecode weaving |
 | `veld-maven-plugin` | Unified build plugin |
 | `veld-aop` | Aspect-Oriented Programming |
-| `veld-resilience` | Circuit Breaker, Retry, Rate Limiter |
-| `veld-cache` | Caching support |
-| `veld-validation` | Bean validation |
 | `veld-security` | Method-level security |
-| `veld-metrics` | Metrics collection |
-| `veld-tx` | Transaction management |
-| `veld-spring-boot-starter` | Spring Boot integration |
-
-
-
-
-## Spring Boot Starter
-
-To integrate Veld with Spring Boot applications, use the Spring Boot starter.
-
-### Add Dependency
-
-**Maven:**
-```xml
-<dependency>
-    <groupId>io.github.yasmramos</groupId>
-    <artifactId>veld-spring-boot-starter</artifactId>
-    <version>1.0.3</version>
-</dependency>
-```
-**Gradle:**
-```gradle
-implementation 'io.github.yasmramos:veld-spring-boot-starter:1.0.3'
-```
+| `veld-benchmark` | Performance benchmarks |
 
 
 ## Building from Source
