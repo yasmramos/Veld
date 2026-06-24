@@ -107,15 +107,9 @@ public class Main {
 
 | Topic | Location |
 |-------|----------|
-| Getting Started | [docs/getting-started.md](docs/getting-started.md) |
+| Quick Start | [docs/quickstart.md](docs/quickstart.md) |
 | Annotations Reference | [docs/annotations.md](docs/annotations.md) |
-| Core Features | [docs/core-features.md](docs/core-features.md) |
-| API Reference | [docs/api.md](docs/api.md) |
-| AOP Guide | [docs/aop.md](docs/aop.md) |
-| EventBus | [docs/eventbus.md](docs/eventbus.md) |
-| Performance Benchmarks | [docs/benchmarks.md](docs/benchmarks.md) |
 | Architecture | [docs/architecture.md](docs/architecture.md) |
-| Examples | [docs/examples.md](docs/examples.md) |
 
 ## Modules
 
