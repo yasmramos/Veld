@@ -85,6 +85,13 @@
             <version>${guice.version}</version>
         </dependency>
 
+        <!-- Guava (required by Dagger) -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>33.4.0-jre</version>
+        </dependency>
+
         <!-- Dagger 2 -->
         <dependency>
             <groupId>com.google.dagger</groupId>
