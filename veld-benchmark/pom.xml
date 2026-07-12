@@ -21,7 +21,7 @@
         <!-- Competing frameworks -->
         <spring.version>7.0.8</spring.version>
         <guice.version>7.0.0</guice.version>
-        <dagger.version>2.60</dagger.version>
+        <dagger.version>2.60.1</dagger.version>
 
         <!-- Benchmark configuration -->
         <benchmark.forks>2</benchmark.forks>
