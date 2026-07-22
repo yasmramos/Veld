@@ -1,11 +1,9 @@
-![Veld](.github/assets/logo.png)
-
-[![Build Status](https://github.com/yasmramos/Veld/actions/workflows/maven.yml/badge.svg)](https://github.com/yasmramos/Veld/actions)
+[![Build Status](https://github.com/yasmramos/Veld/actions/workflows/maven.yml/badge.svg?branch=develop)](https://github.com/yasmramos/Veld/actions)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://openjdk.java.net/)
 [![Maven](https://img.shields.io/badge/Maven-3.6%2B-red.svg)](https://maven.apache.org/)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/yasmramos/veld)
-[![Tests](https://img.shields.io/badge/Tests-105%20passed-green)](https://github.com/yasmramos/Veld/actions)
+[![Tests](https://img.shields.io/github/actions/workflow/status/yasmramos/Veld/maven.yml?branch=develop&label=tests)](https://github.com/yasmramos/Veld/actions)
 [![Coverage](https://img.shields.io/badge/Coverage-%25-green)](https://codecov.io/gh/yasmramos/Veld)
 [![Last Release](https://img.shields.io/github/v/release/yasmramos/Veld?display_name=tag)](https://github.com/yasmramos/Veld/releases)
 [![Last Commit](https://img.shields.io/github/last-commit/yasmramos/Veld/develop)](https://github.com/yasmramos/Veld/commits/develop)
