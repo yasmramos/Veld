@@ -15,10 +15,9 @@ public class DependencyGraph {
     // Adjacency list: component -> list of dependencies
     private final Map<String, Set<String>> adjacencyList = new LinkedHashMap<>();
     
-    // For cycle detection
+    // For cycle detection (stateless per detectCycle() call)
     private final Set<String> visited = new HashSet<>();
     private final Set<String> recursionStack = new HashSet<>();
-    private final Map<String, String> parent = new HashMap<>();
 
     public DependencyGraph() {
     }
@@ -52,11 +51,11 @@ public class DependencyGraph {
     public Optional<List<String>> detectCycle() {
         visited.clear();
         recursionStack.clear();
-        parent.clear();
         
         for (String component : adjacencyList.keySet()) {
             if (!visited.contains(component)) {
-                Optional<List<String>> cycle = dfs(component);
+                List<String> pathStack = new ArrayList<>();
+                Optional<List<String>> cycle = dfs(component, pathStack);
                 if (cycle.isPresent()) {
                     return cycle;
                 }
@@ -68,62 +67,49 @@ public class DependencyGraph {
     
     /**
      * Depth-First Search for cycle detection.
+     * Uses an explicit path stack to correctly reconstruct cycles even in complex graphs.
      */
-    private Optional<List<String>> dfs(String current) {
+    private Optional<List<String>> dfs(String current, List<String> pathStack) {
         visited.add(current);
         recursionStack.add(current);
+        pathStack.add(current);
         
         Set<String> dependencies = adjacencyList.getOrDefault(current, Collections.emptySet());
         
         for (String dependency : dependencies) {
             if (!visited.contains(dependency)) {
-                parent.put(dependency, current);
-                Optional<List<String>> cycle = dfs(dependency);
+                Optional<List<String>> cycle = dfs(dependency, pathStack);
                 if (cycle.isPresent()) {
                     return cycle;
                 }
             } else if (recursionStack.contains(dependency)) {
-                // Cycle detected! Build the cycle path
-                return Optional.of(buildCyclePath(current, dependency));
+                // Cycle detected! Extract cycle directly from pathStack
+                int startIndex = pathStack.indexOf(dependency);
+                List<String> cycle = new ArrayList<>(pathStack.subList(startIndex, pathStack.size()));
+                cycle.add(dependency); // Close the cycle
+                return Optional.of(cycle);
             }
         }
         
+        pathStack.remove(pathStack.size() - 1);
         recursionStack.remove(current);
         return Optional.empty();
     }
     
     /**
      * Builds the cycle path from the detected cycle.
+     * Deprecated: No longer used since cycles are extracted directly from pathStack.
+     * Kept for backward compatibility but will be removed in future versions.
      * 
      * @param current the current node where cycle was detected
      * @param cycleStart the node that starts the cycle
      * @return list representing the cycle path
+     * @deprecated Use the pathStack-based cycle extraction instead
      */
+    @Deprecated
     private List<String> buildCyclePath(String current, String cycleStart) {
-        List<String> cycle = new ArrayList<>();
-        
-        // Add the edge that closes the cycle
-        cycle.add(cycleStart);
-        
-        // Trace back from current to cycleStart
-        String node = current;
-        List<String> path = new ArrayList<>();
-        path.add(current);
-        
-        while (node != null && !node.equals(cycleStart)) {
-            node = parent.get(node);
-            if (node != null) {
-                path.add(node);
-            }
-        }
-        
-        // Reverse to get correct order
-        Collections.reverse(path);
-        cycle.clear();
-        cycle.addAll(path);
-        cycle.add(cycleStart); // Close the cycle
-        
-        return cycle;
+        // This method is no longer used - cycles are now extracted directly from pathStack
+        throw new UnsupportedOperationException("Use pathStack-based cycle extraction instead");
     }
     
     /**
@@ -222,7 +208,6 @@ public class DependencyGraph {
         adjacencyList.clear();
         visited.clear();
         recursionStack.clear();
-        parent.clear();
     }
     
     /**
