@@ -17,6 +17,7 @@ public final class ComponentInfo {
     private String className;              // Fully qualified: com.example.MyService
     private String internalName;           // ASM internal: com/example/MyService
     private final String componentName;          // @Component value or simple class name
+    private final String namedValue;             // Explicit @Named value (if present)
     private final String scope;                   // "singleton", "prototype", or custom scope ID
     private String scopeId;                // Custom scope ID (null for built-in scopes)
     private final boolean lazy;                  // @Lazy - deferred initialization
@@ -48,25 +49,26 @@ public final class ComponentInfo {
     private transient TypeElement typeElement;
     
     public ComponentInfo(String className, String componentName, String scope) {
-        this(className, componentName, scope, null, false);
+        this(className, componentName, null, scope, null, false);
     }
     
     public ComponentInfo(String className, String componentName, String scope, String scopeId) {
-        this(className, componentName, scope, scopeId, false);
+        this(className, componentName, null, scope, scopeId, false);
     }
     
     public ComponentInfo(String className, String componentName, String scope, String scopeId, boolean lazy) {
-        this(className, componentName, scope, scopeId, lazy, false);
+        this(className, componentName, null, scope, scopeId, lazy, false);
     }
     
     public ComponentInfo(String className, String componentName, String scope, String scopeId, boolean lazy, boolean isPrimary) {
-        this(className, componentName, scope, scopeId, lazy, false, isPrimary);
+        this(className, componentName, null, scope, scopeId, lazy, false, isPrimary);
     }
     
-    public ComponentInfo(String className, String componentName, String scope, String scopeId, boolean lazy, boolean eager, boolean isPrimary) {
+    public ComponentInfo(String className, String componentName, String namedValue, String scope, String scopeId, boolean lazy, boolean eager, boolean isPrimary) {
         this.className = className;
         this.internalName = className.replace('.', '/');
         this.componentName = componentName;
+        this.namedValue = namedValue;
         this.scope = scope != null ? scope : SCOPE_SINGLETON;
         this.scopeId = scopeId;
         this.lazy = lazy;

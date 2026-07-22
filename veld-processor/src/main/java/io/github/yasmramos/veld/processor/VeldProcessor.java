@@ -129,6 +129,10 @@ public class VeldProcessor extends AbstractProcessor {
     // Discovered profiles from @Profile annotations - for compile-time class generation
     private final Set<String> discoveredProfiles = new LinkedHashSet<>();
     
+    // O(1) Component Resolution Index: maps all possible bean name variations to ComponentInfo
+    // Keys include: explicit @Named values, decapitalized simple names, kebab-case, snake_case variations
+    private final Map<String, ComponentInfo> componentResolutionIndex = new HashMap<>();
+    
     // SPI Extension Executor
     private SpiExtensionExecutor extensionExecutor;
     private SpiAopExtensionExecutor aopExtensionExecutor;
@@ -213,10 +217,18 @@ public class VeldProcessor extends AbstractProcessor {
             return true;
         }
 
-        // Clear per-round state at the start of each processing round
-        // Note: discoveredComponents, veldNodes, processedClasses, interfaceImplementors, 
-        // and discoveredProfiles are ACCUMULATED across rounds and NOT cleared
+        // CRITICAL: Clear ALL per-round state to prevent memory leaks in incremental compilation
+        // Only discoveredProfiles is accumulated across rounds intentionally
+        discoveredComponents.clear();
+        veldNodes.clear();
+        processedClasses.clear();
+        interfaceImplementors.clear();
+        eventSubscriptions.clear();
+        dependencyGraph.clear();
         registeredScopes.clear();
+        componentResolutionIndex.clear();
+        
+        note("Starting processing round - cleared all accumulative state");
         
         // Discover all registered custom scopes (@VeldScope meta-annotations)
         for (Element element : roundEnv.getElementsAnnotatedWith(VeldScope.class)) {
@@ -322,8 +334,17 @@ public class VeldProcessor extends AbstractProcessor {
                 continue;
             }
             
-            // Log nesting kind for debugging inner class processing
+            // CRITICAL: Reject non-static member classes - they cannot be instantiated without outer instance
             if (nestingKind == NestingKind.MEMBER) {
+                if (!typeElement.getModifiers().contains(Modifier.STATIC)) {
+                    error(typeElement, 
+                        "Component annotation cannot be applied to non-static inner classes. " +
+                        "Non-static inner classes require an instance of the outer class to be instantiated, " +
+                        "which is not supported in Veld's static dependency injection model. " +
+                        "Consider making this class static or moving it to a top-level class.");
+                    continue;
+                }
+                
                 // Static inner class - get enclosing element for context
                 Element enclosing = typeElement.getEnclosingElement();
                 String enclosingName = enclosing instanceof TypeElement 
@@ -344,6 +365,9 @@ public class VeldProcessor extends AbstractProcessor {
                 }
                 
                 discoveredComponents.add(info);
+                
+                // Build resolution index for O(1) bean name lookups
+                buildResolutionIndexEntry(info);
                 
                 note("Discovered component: " + info.getClassName() + " (name: " + info.getComponentName() + ")");
             } catch (ProcessingException e) {
@@ -467,13 +491,7 @@ public class VeldProcessor extends AbstractProcessor {
     }
     
     /**
-     * Resolves a bean name to its corresponding type name.
-     * Supports multiple resolution strategies:
-     * 1. Explicit @Named value (highest priority)
-     * 2. @Component value (explicit name)
-     * 3. Decapitalized simple class name
-     * 4. Fully qualified class name
-     * 5. Aliases with kebab-case, snake_case variations
+     * Resolves a bean name to its corresponding type name using O(1) index lookup.
      * 
      * @param beanName the bean name to resolve
      * @return the fully qualified type name, or null if not found
@@ -483,67 +501,65 @@ public class VeldProcessor extends AbstractProcessor {
             return null;
         }
         
-        // Strategy 1: Check if this is an explicit @Named value (highest priority)
-        for (ComponentInfo component : discoveredComponents) {
-            if (hasExplicitNamedValue(component, beanName)) {
-                debug("Resolved '" + beanName + "' -> " + component.getClassName() + " (@Named)");
-                return component.getClassName();
+        // O(1) lookup in component resolution index
+        ComponentInfo component = componentResolutionIndex.get(beanName);
+        if (component != null) {
+            debug("Resolved '" + beanName + "' -> " + component.getClassName() + " (index lookup)");
+            return component.getClassName();
+        }
+        
+        // Fallback: check fully qualified name directly
+        for (ComponentInfo info : discoveredComponents) {
+            if (beanName.equals(info.getClassName())) {
+                debug("Resolved '" + beanName + "' -> " + info.getClassName() + " (full name fallback)");
+                return info.getClassName();
             }
         }
         
-        // Strategy 2: Check explicit component name (@Component value)
-        for (ComponentInfo component : discoveredComponents) {
-            if (beanName.equals(component.getComponentName())) {
-                debug("Resolved '" + beanName + "' -> " + component.getClassName() + " (component name)");
-                return component.getClassName();
-            }
-        }
-        
-        // Strategy 3: Decapitalized simple class name (JavaBeans convention)
-        String decapitalizedName = decapitalize(beanName);
-        for (ComponentInfo component : discoveredComponents) {
-            String simpleName = getSimpleClassName(component.getClassName());
-            if (decapitalizedName.equals(simpleName) || decapitalizedName.equals(simpleName.toLowerCase())) {
-                debug("Resolved '" + beanName + "' -> " + component.getClassName() + " (simple name)");
-                return component.getClassName();
-            }
-        }
-        
-        // Strategy 4: Fully qualified class name
-        for (ComponentInfo component : discoveredComponents) {
-            if (beanName.equals(component.getClassName())) {
-                debug("Resolved '" + beanName + "' -> " + component.getClassName() + " (full name)");
-                return component.getClassName();
-            }
-        }
-        
-        // Strategy 5: Try variations (kebab-case, snake_case)
-        String kebabName = toKebabCase(beanName);
-        String snakeName = toSnakeCase(beanName);
-        
-        for (ComponentInfo component : discoveredComponents) {
-            // Check component name variations
-            String compName = component.getComponentName();
-            if (compName.equalsIgnoreCase(beanName) || 
-                compName.equalsIgnoreCase(kebabName) || 
-                compName.equalsIgnoreCase(snakeName)) {
-                debug("Resolved '" + beanName + "' -> " + component.getClassName() + " (case-insensitive)");
-                return component.getClassName();
-            }
-            
-            // Check simple name variations
-            String simpleName = getSimpleClassName(component.getClassName());
-            if (simpleName.equalsIgnoreCase(beanName) || 
-                toKebabCase(simpleName).equalsIgnoreCase(kebabName) ||
-                toSnakeCase(simpleName).equalsIgnoreCase(snakeName)) {
-                debug("Resolved '" + beanName + "' -> " + component.getClassName() + " (variation)");
-                return component.getClassName();
-            }
-        }
-        
-        // Bean name not found - will be reported as error during dependency resolution
-        debug("Could not resolve bean name: " + beanName);
         return null;
+    }
+    
+    /**
+     * Builds a resolution index entry for a component with all possible name variations.
+     * This enables O(1) bean name resolution instead of O(N*M) nested loops.
+     */
+    private void buildResolutionIndexEntry(ComponentInfo info) {
+        // Index by explicit @Named value (highest priority - overwrites any existing)
+        if (info.getNamedValue() != null && !info.getNamedValue().isEmpty()) {
+            componentResolutionIndex.put(info.getNamedValue(), info);
+        }
+        
+        // Index by explicit component name (only if not already indexed by @Named)
+        if (info.getComponentName() != null && !info.getComponentName().isEmpty()) {
+            if (!componentResolutionIndex.containsKey(info.getComponentName())) {
+                componentResolutionIndex.put(info.getComponentName(), info);
+            }
+        }
+        
+        // Index by decapitalized simple class name (JavaBeans convention)
+        String simpleName = getSimpleClassName(info.getClassName());
+        String decapitalizedName = decapitalize(simpleName);
+        if (!componentResolutionIndex.containsKey(decapitalizedName)) {
+            componentResolutionIndex.put(decapitalizedName, info);
+        }
+        
+        // Index by lowercase simple name
+        String lowerName = simpleName.toLowerCase();
+        if (!componentResolutionIndex.containsKey(lowerName)) {
+            componentResolutionIndex.put(lowerName, info);
+        }
+        
+        // Index by kebab-case variation
+        String kebabName = toKebabCase(decapitalizedName);
+        if (!componentResolutionIndex.containsKey(kebabName)) {
+            componentResolutionIndex.put(kebabName, info);
+        }
+        
+        // Index by snake_case variation
+        String snakeName = toSnakeCase(decapitalizedName);
+        if (!componentResolutionIndex.containsKey(snakeName)) {
+            componentResolutionIndex.put(snakeName, info);
+        }
     }
     
     /**
@@ -2401,19 +2417,15 @@ public class VeldProcessor extends AbstractProcessor {
         note("generateVeld() is deprecated - use generateVeldClasses() instead");
     }
     /**
-     * Determines the package for Veld.java based on discovered components.
-     * Uses the package of the first component.
+     * Determines the package for Veld.java.
+     * Always returns the fixed package io.github.yasmramos.veld for consistency.
      */
     private String determineVeldPackage() {
-        if (discoveredComponents.isEmpty()) {
-            return "io.github.yasmramos.veld.generated";
-        }
-
-        // Simply use the package of the first component
-        String pkg = getPackageName(discoveredComponents.get(0).getClassName());
-        note("Veld package determined: " + pkg);
-        
-        return pkg.isEmpty() ? "io.github.yasmramos.veld.generated" : pkg;
+        // FIXED: Always use the standard Veld package to ensure consistent imports
+        // regardless of where user components are located
+        String veldPackage = "io.github.yasmramos.veld";
+        note("Veld package fixed: " + veldPackage);
+        return veldPackage;
     }
     /**
      * Gets the package name from a fully qualified class name.
