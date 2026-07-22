@@ -38,6 +38,7 @@ public final class VeldSourceGenerator {
     private final String veldClassName;
     private final ClassName veldClass;
     private final Map<String, Integer> levelCache = new HashMap<>();
+    private static final int CHUNK_SIZE = 150; // Safe limit well under 64KB bytecode limit
     private String lastSectionComment = "";
     
     private static final Map<String, String> SECTION_COMMENTS = new LinkedHashMap<>();
@@ -187,21 +188,45 @@ public final class VeldSourceGenerator {
             addPropertyLoaderField(classBuilder);
         }
         
-        // ===== SECTION 3: STATIC INITIALIZATION BLOCK =====
-        CodeBlock.Builder staticInitBuilder = CodeBlock.builder();
+        // ===== SECTION 3: STATIC INITIALIZATION BLOCK - CHUNKED =====
+        // Split singleton initialization into chunks to avoid 64KB <clinit> limit
+        List<String> chunkMethodNames = new ArrayList<>();
         
-        // Load properties if needed
+        // Load properties if needed (done once before any chunks)
         if (hasPropertyConditions) {
             addPropertyLoadingCode(staticInitBuilder);
         }
         
-        // Generate condition evaluation and flag setup
+        // Generate condition evaluation and flag setup (done once before any chunks)
         addConditionEvaluationAndFlagSetup(staticInitBuilder, graph, resolutionResult, context);
         
-        // ===== SECTION 4: BEAN FIELDS AND INITIALIZATION =====
-        for (VeldNode node : singletons) {
-            addSingletonFieldWithLifecycle(classBuilder, node, staticInitBuilder, graph, resolutionResult, context);
+        // Split singletons into chunks
+        int chunkIndex = 0;
+        for (int i = 0; i < singletons.size(); i += CHUNK_SIZE) {
+            int end = Math.min(i + CHUNK_SIZE, singletons.size());
+            List<VeldNode> chunkNodes = singletons.subList(i, end);
+            
+            String methodName = "initChunk_" + chunkIndex;
+            chunkMethodNames.add(methodName);
+            
+            // Generate the chunk method
+            MethodSpec chunkMethod = createChunkInitializationMethod(
+                methodName, chunkNodes, graph, resolutionResult, context);
+            classBuilder.addMethod(chunkMethod);
+            
+            chunkIndex++;
         }
+        
+        // Call each chunk method sequentially from <clinit>
+        for (String methodName : chunkMethodNames) {
+            staticInitBuilder.addStatement("$L()", methodName);
+        }
+        
+        // Add summary message
+        staticInitBuilder.addStatement(
+            "System.out.println(\\\"[Veld] Application context initialized with \\\" + $L + \\\" singleton beans\\\")",
+            singletons.size()
+        );
         
         // Add the single static block
         classBuilder.addStaticBlock(staticInitBuilder.build());
@@ -358,7 +383,102 @@ public final class VeldSourceGenerator {
     }
 
     /**
+     * Creates a chunk initialization method that handles a subset of beans.
+     * Each chunk method contains instantiation, injection, and @PostConstruct for its beans.
+     */
+    private MethodSpec createChunkInitializationMethod(
+            String methodName,
+            List<VeldNode> chunkNodes,
+            BeanExistenceGraph graph,
+            BeanExistenceGraph.ResolutionResult result,
+            GenerationContext context) {
+        
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(methodName)
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
+                .returns(void.class);
+        
+        CodeBlock.Builder body = CodeBlock.builder();
+        
+        for (VeldNode node : chunkNodes) {
+            String actualClassName = node.getActualClassName();
+            String fieldName = node.getVeldName();
+            String flagName = graph.getExistenceFlagName(node.getClassName());
+            boolean isConditional = result.isConditional(node.getClassName());
+            
+            // Section comment if needed
+            String sectionComment = getSectionForNode(node);
+            if (!sectionComment.equals(lastSectionComment)) {
+                body.add("\n$L\n", sectionComment);
+                lastSectionComment = sectionComment;
+            }
+            
+            // Header comment for this component
+            body.add("// --- $N ($N) ---\n", fieldName, actualClassName);
+            
+            // Build instantiation code
+            CodeBlock initialization = buildInstantiationCode(node, context);
+            
+            // Build field injection code using accessors
+            CodeBlock fieldInjectionCode = buildFieldInjectionCode(node, fieldName, context);
+            
+            // Build method injection code using accessors
+            CodeBlock methodInjectionCode = buildMethodInjectionCode(node, fieldName, context);
+            
+            // Handle conditional beans
+            if (isConditional) {
+                body.add("if ($N) {\n", flagName);
+                body.indent();
+            }
+            
+            // First assign the field
+            body.addStatement("$N = $L", fieldName, initialization);
+            
+            // Register bean state as CREATED
+            body.addStatement("beanStates.put($S, $T.CREATED)", node.getVeldName(), 
+                ClassName.get("io.github.yasmramos.veld.annotation", "BeanState"));
+            
+            // Add field injections using accessor
+            if (!fieldInjectionCode.isEmpty()) {
+                body.add(fieldInjectionCode);
+            }
+            
+            // Add method injections
+            if (!methodInjectionCode.isEmpty()) {
+                body.add(methodInjectionCode);
+            }
+            
+            // Add PostConstruct call with error handling
+            if (node.hasPostConstruct()) {
+                body.add("// Invoke @PostConstruct with error handling\n");
+                body.beginControlFlow("try");
+                if (node.hasPrivateFieldInjections() || node.hasPrivateMethodInjections()) {
+                    ClassName accessorClass = ClassName.bestGuess(node.getAccessorClassName());
+                    body.addStatement("$T.postConstruct($N)", accessorClass, fieldName);
+                } else {
+                    body.addStatement("$N.$N()", fieldName, node.getPostConstructMethod());
+                }
+                body.endControlFlow();
+                body.beginControlFlow("catch ($T e)", Exception.class);
+                body.addStatement("throw new $T(\"Failed to initialize bean: \" + $S, e)",
+                    ClassName.get("java.lang", "RuntimeException"), node.getClassName());
+                body.endControlFlow();
+            }
+            
+            // Close conditional block if needed
+            if (isConditional) {
+                body.unindent();
+                body.add("}\n");
+            }
+        }
+        
+        methodBuilder.addCode(body.build());
+        return methodBuilder.build();
+    }
+    
+    /**
      * Adds a singleton field with lifecycle support and conditional initialization.
+     * Note: This method now only adds the field declaration, not the initialization code.
+     * Initialization is handled by chunk methods.
      */
     private void addSingletonFieldWithLifecycle(TypeSpec.Builder classBuilder, VeldNode node, 
                                                   CodeBlock.Builder staticInitBuilder,
@@ -368,89 +488,15 @@ public final class VeldSourceGenerator {
         String actualClassName = node.getActualClassName();
         ClassName type = ClassName.bestGuess(actualClassName);
         String fieldName = node.getVeldName();
-        String flagName = graph.getExistenceFlagName(node.getClassName());
-        boolean exists = result.exists(node.getClassName());
-        boolean isConditional = result.isConditional(node.getClassName());
-        
-        // Build instantiation code
-        CodeBlock initialization = buildInstantiationCode(node, context);
-        
-        // Build field injection code using accessors
-        CodeBlock fieldInjectionCode = buildFieldInjectionCode(node, fieldName, context);
-        
-        // Build method injection code using accessors
-        CodeBlock methodInjectionCode = buildMethodInjectionCode(node, fieldName, context);
-        
-        // Build lifecycle code
-        CodeBlock lifecycleCode = buildPostConstructInvocation(node, fieldName);
         
         // Add field declaration with volatile for thread-safe lazy access
         FieldSpec.Builder fieldBuilder = FieldSpec.builder(type, fieldName)
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.VOLATILE);
         
         // Initialize all fields to null to ensure definite assignment
-        // All beans are now wrapped in existence flag checks, so we can't use 'final'
-        // The fields are still effectively immutable (assigned once in static block)
-        // Volatile ensures visibility across threads for the double-checked locking pattern
         fieldBuilder.initializer("null");
         
-        if (isConditional) {
-            staticInitBuilder.add("// Conditional bean: $N\n", fieldName);
-        }
-        
         classBuilder.addField(fieldBuilder.build());
-        
-        // Accumulate initialization code in the shared static block
-        String sectionComment = getSectionForNode(node);
-        if (!sectionComment.equals(lastSectionComment)) {
-            staticInitBuilder.add("\n$L\n", sectionComment);
-            lastSectionComment = sectionComment;
-        }
-        
-        // Header comment for this component
-        staticInitBuilder.add("// --- $N ($N) ---\n", fieldName, actualClassName);
-        
-        // Always wrap instantiation, injection, and PostConstruct in existence flag check
-        // This ensures consistent behavior and proper lifecycle management
-        staticInitBuilder.add("if ($N) {\n", flagName);
-        staticInitBuilder.indent();
-        
-        // First assign the field
-        staticInitBuilder.addStatement("$N = $L", fieldName, initialization);
-        
-        // Register bean state as CREATED
-        staticInitBuilder.addStatement("beanStates.put($S, $T.CREATED)", node.getVeldName(), 
-            ClassName.get("io.github.yasmramos.veld.annotation", "BeanState"));
-        
-        // Add field injections using accessor
-        if (!fieldInjectionCode.isEmpty()) {
-            staticInitBuilder.add(fieldInjectionCode);
-        }
-        
-        // Add method injections
-        if (!methodInjectionCode.isEmpty()) {
-            staticInitBuilder.add(methodInjectionCode);
-        }
-        
-        // Add PostConstruct call with error handling
-        if (node.hasPostConstruct()) {
-            staticInitBuilder.add("// Invoke @PostConstruct with error handling\n");
-            staticInitBuilder.beginControlFlow("try");
-            if (node.hasPrivateFieldInjections() || node.hasPrivateMethodInjections()) {
-                ClassName accessorClass = ClassName.bestGuess(node.getAccessorClassName());
-                staticInitBuilder.addStatement("$T.postConstruct($N)", accessorClass, fieldName);
-            } else {
-                staticInitBuilder.addStatement("$N.$N()", fieldName, node.getPostConstructMethod());
-            }
-            staticInitBuilder.endControlFlow();
-            staticInitBuilder.beginControlFlow("catch ($T e)", Exception.class);
-            staticInitBuilder.addStatement("throw new $T(\"Failed to initialize bean: \" + $S, e)",
-                ClassName.get("java.lang", "RuntimeException"), node.getClassName());
-            staticInitBuilder.endControlFlow();
-        }
-        
-        staticInitBuilder.unindent();
-        staticInitBuilder.add("}\n");
     }
     
     private CodeBlock buildPostConstructInvocation(VeldNode node, String fieldName) {
