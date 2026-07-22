@@ -190,6 +190,7 @@ public final class VeldSourceGenerator {
         
         // ===== SECTION 3: STATIC INITIALIZATION BLOCK - CHUNKED =====
         // Split singleton initialization into chunks to avoid 64KB <clinit> limit
+        CodeBlock.Builder staticInitBuilder = CodeBlock.builder();
         List<String> chunkMethodNames = new ArrayList<>();
         
         // Load properties if needed (done once before any chunks)
