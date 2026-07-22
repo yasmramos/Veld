@@ -716,7 +716,7 @@ public class VeldProcessor extends AbstractProcessor {
             note("  -> Primary bean selected");
         }
         
-        ComponentInfo info = new ComponentInfo(className, componentName, scope, null, isLazy, isEager, isPrimary);
+        ComponentInfo info = new ComponentInfo(className, componentName, null, scope, null, isLazy, isEager, isPrimary);
         
         // Check for @Order annotation (must be after info is created)
         Order orderAnnotation = typeElement.getAnnotation(Order.class);

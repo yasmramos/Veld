@@ -49,15 +49,15 @@ public final class ComponentInfo {
     private transient TypeElement typeElement;
     
     public ComponentInfo(String className, String componentName, String scope) {
-        this(className, componentName, null, scope, null, false);
+        this(className, componentName, null, scope, null, false, false, false);
     }
     
     public ComponentInfo(String className, String componentName, String scope, String scopeId) {
-        this(className, componentName, null, scope, scopeId, false);
+        this(className, componentName, null, scope, scopeId, false, false, false);
     }
     
     public ComponentInfo(String className, String componentName, String scope, String scopeId, boolean lazy) {
-        this(className, componentName, null, scope, scopeId, lazy, false);
+        this(className, componentName, null, scope, scopeId, lazy, false, false);
     }
     
     public ComponentInfo(String className, String componentName, String scope, String scopeId, boolean lazy, boolean isPrimary) {
@@ -123,6 +123,10 @@ public final class ComponentInfo {
     
     public String getComponentName() {
         return componentName;
+    }
+    
+    public String getNamedValue() {
+        return namedValue;
     }
     
     public String getScope() {
